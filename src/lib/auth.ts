@@ -97,68 +97,94 @@ export const authOptions: any = {
             return `${baseUrl}/dashboard`;
         },
         async jwt({ token, user, account }: { token: JWT; user?: User | AdapterUser; account?: any }) {
+            console.log("=== JWT CALLBACK START ===");
             console.log("JWT callback:", {
                 hasUser: !!user,
                 provider: account?.provider,
                 email: (token as any).email,
-                existingRole: token.role
+                existingRole: token.role,
+                userObject: user ? { id: user.id, email: user.email, name: user.name } : null
             });
 
             // If this is the first time (user object exists), it means user just signed in
             if (user) {
+                console.log("First time sign in, processing user...");
                 // For OAuth users, fetch the role from database since adapter might not include it
                 if (account?.provider === "google") {
                     try {
+                        console.log("Google OAuth user, querying database...");
                         const dbUser = await prisma.user.findUnique({
                             where: { email: user.email! }
                         });
-                        console.log("DB user role:", dbUser?.role);
+                        console.log("DB query result:", {
+                            found: !!dbUser,
+                            role: dbUser?.role,
+                            id: dbUser?.id
+                        });
                         // For Google OAuth users, use the role from database or default to NORMAL_USER
                         (token as any).role = (dbUser?.role as any) || UserRole.NORMAL_USER;
+                        console.log("Set token role to:", (token as any).role);
                     } catch (error) {
-                        console.error("Error fetching user role in JWT:", error);
+                        console.error("Database error in JWT callback:", error);
                         (token as any).role = UserRole.NORMAL_USER;
                     }
                 } else {
                     // For credentials, the role should already be in the user object
                     token.role = (user as any).role || UserRole.NORMAL_USER;
+                    console.log("Credentials login, role:", token.role);
                 }
             }
 
             // If no role in token, try to fetch from database
             if (!token.role && (token as any).email) {
+                console.log("No role in token, fetching from database...");
                 try {
                     const dbUser = await prisma.user.findUnique({
                         where: { email: (token as any).email }
                     });
                     (token as any).role = (dbUser?.role as any) || UserRole.NORMAL_USER;
+                    console.log("Fetched role from DB:", (token as any).role);
                 } catch (error) {
                     console.error("Error fetching user role in JWT:", error);
                     (token as any).role = UserRole.NORMAL_USER;
                 }
             }
 
-            console.log("JWT final role:", token.role);
+            console.log("JWT final result:", {
+                role: token.role,
+                email: (token as any).email,
+                sub: (token as any).sub
+            });
+            console.log("=== JWT CALLBACK END ===");
             return token;
         },
         async session({ session, token }: { session: any; token: JWT }) {
+            console.log("=== SESSION CALLBACK START ===");
             console.log("Session callback:", {
                 hasToken: !!token,
                 tokenRole: token.role,
                 tokenEmail: (token as any).email,
-                sessionUser: session?.user?.email
+                sessionUser: session?.user?.email,
+                tokenSub: (token as any).sub
             });
 
             if (token && session.user) {
                 session.user.id = (token as any).sub!;
                 session.user.role = token.role as UserRole;
+                console.log("Session updated:", {
+                    userId: session.user.id,
+                    userRole: session.user.role,
+                    userEmail: session.user.email
+                });
+            } else {
+                console.log("Missing token or session.user:", {
+                    hasToken: !!token,
+                    hasSessionUser: !!session?.user
+                });
             }
 
-            console.log("Final session:", {
-                userId: session?.user?.id,
-                userRole: session?.user?.role,
-                userEmail: session?.user?.email
-            });
+            console.log("Final session object:", session);
+            console.log("=== SESSION CALLBACK END ===");
 
             return session;
         },
