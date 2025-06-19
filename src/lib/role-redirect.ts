@@ -1,4 +1,7 @@
-import { UserRole } from "./auth";
+import { $Enums } from "../../generated/prisma";
+
+type UserRole = $Enums.UserRole;
+const UserRole = $Enums.UserRole;
 
 export function getRoleBasedDashboard(role: UserRole | null): string {
     if (!role) return "/confirm-role";

@@ -1,14 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-// Define UserRole enum manually since it's not being exported from generated client
-enum UserRole {
-    NORMAL_USER = "NORMAL_USER",
-    PARENT_GUARDIAN = "PARENT_GUARDIAN",
-    THERAPIST = "THERAPIST",
-    MANAGER = "MANAGER",
-    ADMIN = "ADMIN"
-}
+import { $Enums } from "../../../../../generated/prisma";
+
+const UserRole = $Enums.UserRole;
 
 export async function POST(request: NextRequest) {
     try {
@@ -89,7 +84,6 @@ export async function POST(request: NextRequest) {
             { status: 201 }
         );
     } catch (error) {
-        console.error("Signup error:", error);
         return NextResponse.json(
             { error: "Internal server error" },
             { status: 500 }

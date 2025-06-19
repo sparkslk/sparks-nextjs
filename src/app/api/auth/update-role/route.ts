@@ -2,10 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { $Enums } from "../../../../../generated/prisma";
+
+const UserRole = $Enums.UserRole;
 
 export async function POST(request: NextRequest) {
     try {
-        const session = await getServerSession(authOptions) as any;
+        const session = await getServerSession(authOptions);
 
         if (!session || !session.user?.email) {
             return NextResponse.json(
@@ -16,7 +19,7 @@ export async function POST(request: NextRequest) {
 
         const { role } = await request.json();
 
-        if (!role || !["NORMAL_USER", "PARENT_GUARDIAN", "THERAPIST", "MANAGER", "ADMIN"].includes(role)) {
+        if (!role || !Object.values(UserRole).includes(role)) {
             return NextResponse.json(
                 { error: "Invalid role" },
                 { status: 400 }
@@ -34,7 +37,6 @@ export async function POST(request: NextRequest) {
             { status: 200 }
         );
     } catch (error) {
-        console.error("Update role error:", error);
         return NextResponse.json(
             { error: "Internal server error" },
             { status: 500 }

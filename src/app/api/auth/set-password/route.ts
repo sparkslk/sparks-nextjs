@@ -6,7 +6,7 @@ import bcrypt from "bcryptjs";
 
 export async function POST(request: NextRequest) {
     try {
-        const session = await getServerSession(authOptions) as any;
+        const session = await getServerSession(authOptions);
 
         if (!session || !session.user?.email) {
             return NextResponse.json(
@@ -57,7 +57,6 @@ export async function POST(request: NextRequest) {
             { status: 200 }
         );
     } catch (error) {
-        console.error("Set password error:", error);
         return NextResponse.json(
             { error: "Internal server error" },
             { status: 500 }

@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(request: NextRequest) {
     try {
-        const session = await getServerSession(authOptions) as any;
+        const session = await getServerSession(authOptions);
 
         if (!session || !session.user?.email) {
             return NextResponse.json(
@@ -42,7 +42,6 @@ export async function GET(request: NextRequest) {
             shouldShowPasswordPrompt: hasOAuthAccount && !hasPassword
         });
     } catch (error) {
-        console.error("Check password status error:", error);
         return NextResponse.json(
             { error: "Internal server error" },
             { status: 500 }
