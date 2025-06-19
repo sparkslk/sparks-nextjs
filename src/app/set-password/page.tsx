@@ -72,8 +72,8 @@ export default function SetPasswordPage() {
             setTimeout(() => {
                 router.push("/dashboard");
             }, 2000);
-        } catch (error: any) {
-            setError(error.message || "An error occurred. Please try again.");
+        } catch (error: unknown) {
+            setError(error instanceof Error ? error.message : "An error occurred. Please try again.");
         } finally {
             setIsLoading(false);
         }

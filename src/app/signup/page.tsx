@@ -106,8 +106,8 @@ export default function SignupPage() {
                 // If auto sign-in fails, redirect to login
                 router.push("/login?message=Account created successfully. Please sign in.");
             }
-        } catch (error: any) {
-            setError(error.message || "An error occurred. Please try again.");
+        } catch (error: unknown) {
+            setError(error instanceof Error ? error.message : "An error occurred. Please try again.");
         } finally {
             setIsLoading(false);
         }
@@ -117,7 +117,7 @@ export default function SignupPage() {
         setIsLoading(true);
         try {
             await signIn("google", { callbackUrl: "/dashboard" });
-        } catch (error) {
+        } catch {
             setError("Google sign-in failed. Please try again.");
             setIsLoading(false);
         }

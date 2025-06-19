@@ -60,30 +60,25 @@ export async function POST(request: NextRequest) {
         const hashedPassword = await bcrypt.hash(password, 12);
 
         // Create user with metadata if provided
-        const userData: any = {
-            name,
-            email,
-            password: hashedPassword,
-            role: role || UserRole.NORMAL_USER,
-        };
-
-        // Store metadata in a JSON field (you might want to add this to your schema)
-        if (metadata) {
-            userData.metadata = metadata;
-        }
-
         const user = await prisma.user.create({
-            data: userData,
+            data: {
+                name,
+                email,
+                password: hashedPassword,
+                role: role || UserRole.NORMAL_USER,
+                ...(metadata ? { metadata } : {})
+            },
         });
 
         // Remove password from response
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { password: _, ...userWithoutPassword } = user;
 
         return NextResponse.json(
             { user: userWithoutPassword },
             { status: 201 }
         );
-    } catch (error) {
+    } catch {
         return NextResponse.json(
             { error: "Internal server error" },
             { status: 500 }

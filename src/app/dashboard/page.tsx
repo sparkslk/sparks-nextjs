@@ -2,7 +2,7 @@
 
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,14 +20,12 @@ enum UserRole {
 export default function DashboardPage() {
     const { data: session, status } = useSession();
     const router = useRouter();
-    const [shouldShowPasswordPrompt, setShouldShowPasswordPrompt] = useState(false);
-    const [passwordPromptDismissed, setPasswordPromptDismissed] = useState(false);
 
     useEffect(() => {
         if (status === "unauthenticated") {
             router.push("/login");
         } else if (status === "authenticated" && session?.user) {
-            const userRole = (session.user as any).role as UserRole;
+            const userRole = (session.user as { role?: UserRole }).role as UserRole;
 
             // Redirect users with other roles to their proper dashboards
             if (userRole !== UserRole.NORMAL_USER) {
@@ -35,18 +33,8 @@ export default function DashboardPage() {
                 router.push(dashboardUrl);
                 return;
             }
-
-            // Check if user needs to set up a password (only for normal users)
-            fetch("/api/auth/password-status")
-                .then(res => res.json())
-                .then(data => {
-                    if (data.shouldShowPasswordPrompt) {
-                        setShouldShowPasswordPrompt(true);
-                    }
-                })
-                .catch(console.error);
         }
-    }, [status, router]);
+    }, [status, router, session]);
 
     if (status === "loading") {
         return (
@@ -64,7 +52,13 @@ export default function DashboardPage() {
     }
 
     // Type assertion to access the role property
-    const user = session.user as typeof session.user & { role: UserRole };
+    const user = session.user as {
+        id?: string;
+        name?: string | null;
+        email?: string | null;
+        image?: string | null;
+        role?: UserRole;
+    };
 
     const handleSignOut = async () => {
         await signOut({ callbackUrl: "/login" });
@@ -92,7 +86,7 @@ export default function DashboardPage() {
             case "NORMAL_USER":
                 return "You have regular user access to the platform.";
             case "PARENT_GUARDIAN":
-                return "You can manage family accounts and children's profiles.";
+                return "You can manage family accounts and children&apos;s profiles.";
             case "THERAPIST":
                 return "You have access to therapeutic tools and client management.";
             case "MANAGER":
@@ -269,11 +263,11 @@ export default function DashboardPage() {
                             <CardHeader>
                                 <CardTitle>Family Dashboard</CardTitle>
                                 <CardDescription>
-                                    Manage your family's SPARKS journey
+                                    Manage your family&apos;s SPARKS journey
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="grid gap-4 md:grid-cols-2">
-                                <Button>Children's Profiles</Button>
+                                <Button>Children&apos;s Profiles</Button>
                                 <Button>Appointments</Button>
                                 <Button>Progress Reports</Button>
                                 <Button>Resources</Button>

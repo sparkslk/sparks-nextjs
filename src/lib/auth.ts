@@ -7,6 +7,10 @@ import bcrypt from "bcryptjs";
 import { $Enums } from "../../generated/prisma";
 import { Adapter } from "next-auth/adapters";
 
+// Export UserRole enum from Prisma
+export const UserRole = $Enums.UserRole;
+export type UserRole = $Enums.UserRole;
+
 export const authOptions: NextAuthOptions = {
     adapter: PrismaAdapter(prisma) as Adapter,
     providers: [

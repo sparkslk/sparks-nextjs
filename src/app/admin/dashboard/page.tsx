@@ -8,12 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import {
     Users,
-    Calendar,
-    FileText,
     Settings,
-    Activity,
     BarChart3,
-    UserCheck,
     Shield,
     Database,
     Globe,

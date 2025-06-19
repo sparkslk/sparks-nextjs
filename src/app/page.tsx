@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function Home() {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const router = useRouter();
 
   useEffect(() => {
@@ -66,7 +66,7 @@ export default function Home() {
             </h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
               A comprehensive platform connecting families, therapists, and care providers
-              to support children's therapeutic journey and development.
+              to support children&apos;s therapeutic journey and development.
             </p>
           </div>
 
@@ -95,7 +95,7 @@ export default function Home() {
               </div>
               <CardTitle>For Families</CardTitle>
               <CardDescription>
-                Manage appointments, track progress, and stay connected with your child's care team.
+                Manage appointments, track progress, and stay connected with your child&apos;s care team.
               </CardDescription>
             </CardHeader>
           </Card>

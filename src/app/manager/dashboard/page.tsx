@@ -11,10 +11,8 @@ import {
     Calendar,
     FileText,
     Settings,
-    Activity,
     BarChart3,
     UserCheck,
-    Clock,
     DollarSign
 } from "lucide-react";
 
@@ -84,7 +82,7 @@ export default function ManagerDashboard() {
                         Welcome back, {session?.user?.name?.split(' ')[0]}!
                     </h2>
                     <p className="text-lg text-muted-foreground">
-                        Oversee operations and manage your team's performance.
+                        Oversee operations and manage your team&apos;s performance.
                     </p>
                 </div>
 

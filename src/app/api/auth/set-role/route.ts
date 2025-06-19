@@ -56,21 +56,19 @@ export async function POST(request: NextRequest) {
         }
 
         // Update the user's role and metadata
-        const updateData: any = { role };
-        if (metadata) {
-            updateData.metadata = metadata;
-        }
-
         await prisma.user.update({
             where: { email: session.user.email },
-            data: updateData,
+            data: {
+                role,
+                ...(metadata ? { metadata } : {})
+            },
         });
 
         return NextResponse.json(
             { message: "Role set successfully", role },
             { status: 200 }
         );
-    } catch (error) {
+    } catch {
         return NextResponse.json(
             { error: "Internal server error" },
             { status: 500 }

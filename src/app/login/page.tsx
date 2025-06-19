@@ -41,13 +41,13 @@ export default function LoginPage() {
                 // Get the session to check user role and redirect appropriately
                 const session = await getSession();
                 if (session?.user) {
-                    const userRole = (session.user as any).role as UserRole;
+                    const userRole = (session.user as { role?: UserRole }).role as UserRole;
                     const dashboardUrl = getRoleBasedDashboard(userRole);
                     router.push(dashboardUrl);
                     router.refresh();
                 }
             }
-        } catch (error) {
+        } catch {
             setError("An error occurred. Please try again.");
         } finally {
             setIsLoading(false);
@@ -59,7 +59,7 @@ export default function LoginPage() {
         try {
             // Google OAuth will be handled by middleware for role-based redirect
             await signIn("google");
-        } catch (error) {
+        } catch {
             setError("Google sign-in failed. Please try again.");
             setIsLoading(false);
         }
@@ -171,7 +171,7 @@ export default function LoginPage() {
 
                     <div className="text-center text-sm space-y-2">
                         <div>
-                            <span className="text-muted-foreground">Don't have an account? </span>
+                            <span className="text-muted-foreground">Don&apos;t have an account? </span>
                             <Link
                                 href="/signup"
                                 className="text-primary font-medium hover:underline"

@@ -9,9 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import {
     Users,
     Calendar,
-    FileText,
     Settings,
-    Activity,
     Heart,
     TrendingUp,
     MessageCircle
@@ -83,7 +81,7 @@ export default function ParentDashboard() {
                         Welcome back, {session?.user?.name?.split(' ')[0]}!
                     </h2>
                     <p className="text-lg text-muted-foreground">
-                        Track your child's progress and manage family appointments.
+                        Track your child&apos;s progress and manage family appointments.
                     </p>
                 </div>
 
@@ -143,7 +141,7 @@ export default function ParentDashboard() {
                                 My Children
                             </CardTitle>
                             <CardDescription>
-                                View your children's profiles, progress, and therapy details
+                                View your children&apos;s profiles, progress, and therapy details
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -232,7 +230,7 @@ export default function ParentDashboard() {
                     <Card>
                         <CardHeader>
                             <CardTitle>Recent Updates</CardTitle>
-                            <CardDescription>Latest updates about your children's therapy progress</CardDescription>
+                            <CardDescription>Latest updates about your children&apos;s therapy progress</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-4">
