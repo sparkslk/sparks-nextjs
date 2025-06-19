@@ -30,7 +30,11 @@ export default function LoginPage() {
             });
 
             if (result?.error) {
-                setError("Invalid credentials. Please try again.");
+                if (result.error === "CredentialsSignin") {
+                    setError("Invalid email or password. If you signed up with Google, you may need to set up a password first.");
+                } else {
+                    setError("Invalid credentials. Please try again.");
+                }
             } else {
                 // Get the session to check user role and redirect appropriately
                 const session = await getSession();
@@ -160,14 +164,25 @@ export default function LoginPage() {
                         Continue with Google
                     </Button>
 
-                    <div className="text-center text-sm">
-                        <span className="text-muted-foreground">Don't have an account? </span>
-                        <Link
-                            href="/signup"
-                            className="text-primary font-medium hover:underline"
-                        >
-                            Sign up
-                        </Link>
+                    <div className="text-center text-sm space-y-2">
+                        <div>
+                            <span className="text-muted-foreground">Don't have an account? </span>
+                            <Link
+                                href="/signup"
+                                className="text-primary font-medium hover:underline"
+                            >
+                                Sign up
+                            </Link>
+                        </div>
+                        <div>
+                            <span className="text-muted-foreground">Signed up with Google? </span>
+                            <Link
+                                href="/set-password"
+                                className="text-primary font-medium hover:underline"
+                            >
+                                Set up password
+                            </Link>
+                        </div>
                     </div>
                 </CardContent>
             </Card>

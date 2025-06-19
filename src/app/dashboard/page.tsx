@@ -2,7 +2,7 @@
 
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,10 +19,22 @@ enum UserRole {
 export default function DashboardPage() {
     const { data: session, status } = useSession();
     const router = useRouter();
+    const [shouldShowPasswordPrompt, setShouldShowPasswordPrompt] = useState(false);
+    const [passwordPromptDismissed, setPasswordPromptDismissed] = useState(false);
 
     useEffect(() => {
         if (status === "unauthenticated") {
             router.push("/login");
+        } else if (status === "authenticated") {
+            // Check if user needs to set up a password
+            fetch("/api/auth/password-status")
+                .then(res => res.json())
+                .then(data => {
+                    if (data.shouldShowPasswordPrompt) {
+                        setShouldShowPasswordPrompt(true);
+                    }
+                })
+                .catch(console.error);
         }
     }, [status, router]);
 
@@ -258,6 +270,34 @@ export default function DashboardPage() {
                             </CardContent>
                         </Card>
                     )}
+
+                    {/* Password Setup Prompt for OAuth users */}
+                    <Card className="border-yellow-200 bg-yellow-50 dark:bg-yellow-950/20 dark:border-yellow-800">
+                        <CardHeader>
+                            <CardTitle className="text-lg flex items-center gap-2">
+                                <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                </svg>
+                                Set Up Password
+                            </CardTitle>
+                            <CardDescription>
+                                Set up a password to sign in with email and password in addition to Google OAuth.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex gap-3">
+                                <Button 
+                                    onClick={() => router.push("/set-password")}
+                                    className="bg-yellow-600 hover:bg-yellow-700"
+                                >
+                                    Set Password
+                                </Button>
+                                <Button variant="outline">
+                                    Remind Me Later
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
                 </div>
             </main>
         </div>
