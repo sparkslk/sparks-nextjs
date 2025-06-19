@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { getRoleBasedDashboard } from "@/lib/role-redirect";
 
 // Manual UserRole enum (matching our types)
 enum UserRole {
@@ -25,8 +26,17 @@ export default function DashboardPage() {
     useEffect(() => {
         if (status === "unauthenticated") {
             router.push("/login");
-        } else if (status === "authenticated") {
-            // Check if user needs to set up a password
+        } else if (status === "authenticated" && session?.user) {
+            const userRole = (session.user as any).role as UserRole;
+
+            // Redirect users with other roles to their proper dashboards
+            if (userRole !== UserRole.NORMAL_USER) {
+                const dashboardUrl = getRoleBasedDashboard(userRole);
+                router.push(dashboardUrl);
+                return;
+            }
+
+            // Check if user needs to set up a password (only for normal users)
             fetch("/api/auth/password-status")
                 .then(res => res.json())
                 .then(data => {
@@ -286,7 +296,7 @@ export default function DashboardPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="flex gap-3">
-                                <Button 
+                                <Button
                                     onClick={() => router.push("/set-password")}
                                     className="bg-yellow-600 hover:bg-yellow-700"
                                 >
@@ -298,6 +308,35 @@ export default function DashboardPage() {
                             </div>
                         </CardContent>
                     </Card>
+
+                    {/* Temporary Role Update - Remove after fixing your account */}
+                    {user.email === "thedailygrindbykh@gmail.com" && user.role === "NORMAL_USER" && (
+                        <Card className="border-yellow-200 bg-yellow-50">
+                            <CardHeader>
+                                <CardTitle className="text-yellow-800">Account Role Update</CardTitle>
+                                <CardDescription className="text-yellow-700">
+                                    You signed up from therapist signup but got normal user role. Click below to update your role.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <Button
+                                    onClick={async () => {
+                                        const response = await fetch("/api/auth/update-role", {
+                                            method: "POST",
+                                            headers: { "Content-Type": "application/json" },
+                                            body: JSON.stringify({ role: "THERAPIST" })
+                                        });
+                                        if (response.ok) {
+                                            window.location.href = "/therapist/dashboard";
+                                        }
+                                    }}
+                                    className="bg-yellow-600 hover:bg-yellow-700"
+                                >
+                                    Update to Therapist Role
+                                </Button>
+                            </CardContent>
+                        </Card>
+                    )}
                 </div>
             </main>
         </div>

@@ -12,13 +12,41 @@ enum UserRole {
 
 export async function POST(request: NextRequest) {
     try {
-        const { name, email, password, role } = await request.json();
+        const { name, email, password, role, metadata } = await request.json();
 
         if (!name || !email || !password) {
             return NextResponse.json(
                 { error: "Missing required fields" },
                 { status: 400 }
             );
+        }
+
+        // Role-specific validation
+        if (role === UserRole.THERAPIST) {
+            if (!metadata?.licenseNumber) {
+                return NextResponse.json(
+                    { error: "License number is required for therapist registration" },
+                    { status: 400 }
+                );
+            }
+        }
+
+        if (role === UserRole.MANAGER) {
+            if (!metadata?.organizationCode) {
+                return NextResponse.json(
+                    { error: "Organization code is required for manager registration" },
+                    { status: 400 }
+                );
+            }
+        }
+
+        if (role === UserRole.ADMIN) {
+            if (!metadata?.adminKey || metadata.adminKey !== process.env.ADMIN_KEY) {
+                return NextResponse.json(
+                    { error: "Invalid admin key" },
+                    { status: 403 }
+                );
+            }
         }
 
         // Check if user already exists
@@ -36,14 +64,21 @@ export async function POST(request: NextRequest) {
         // Hash password
         const hashedPassword = await bcrypt.hash(password, 12);
 
-        // Create user
+        // Create user with metadata if provided
+        const userData: any = {
+            name,
+            email,
+            password: hashedPassword,
+            role: role || UserRole.NORMAL_USER,
+        };
+
+        // Store metadata in a JSON field (you might want to add this to your schema)
+        if (metadata) {
+            userData.metadata = metadata;
+        }
+
         const user = await prisma.user.create({
-            data: {
-                name,
-                email,
-                password: hashedPassword,
-                role: role || UserRole.NORMAL_USER,
-            },
+            data: userData,
         });
 
         // Remove password from response

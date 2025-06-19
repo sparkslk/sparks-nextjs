@@ -57,6 +57,7 @@ model User {
   image         String?
   password      String?
   role          UserRole  @default(NORMAL_USER)
+  metadata      Json? // For storing role-specific data like license numbers, specializations, etc.
   accounts      Account[]
   sessions      Session[]
   createdAt     DateTime  @default(now())

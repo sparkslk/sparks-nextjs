@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { getRoleBasedDashboard } from "@/lib/role-redirect";
+import { UserRole } from "@/lib/auth";
 
 export default function LoginPage() {
     const [email, setEmail] = useState("");
@@ -39,7 +41,9 @@ export default function LoginPage() {
                 // Get the session to check user role and redirect appropriately
                 const session = await getSession();
                 if (session?.user) {
-                    router.push("/dashboard");
+                    const userRole = (session.user as any).role as UserRole;
+                    const dashboardUrl = getRoleBasedDashboard(userRole);
+                    router.push(dashboardUrl);
                     router.refresh();
                 }
             }
@@ -53,7 +57,8 @@ export default function LoginPage() {
     const handleGoogleSignIn = async () => {
         setIsLoading(true);
         try {
-            await signIn("google", { callbackUrl: "/dashboard" });
+            // Google OAuth will be handled by middleware for role-based redirect
+            await signIn("google");
         } catch (error) {
             setError("Google sign-in failed. Please try again.");
             setIsLoading(false);

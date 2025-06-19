@@ -7,6 +7,8 @@ import bcrypt from "bcryptjs";
 import type { User } from "next-auth";
 import type { JWT } from "next-auth/jwt";
 import type { AdapterUser } from "next-auth/adapters";
+import { getRoleBasedDashboard } from "./role-redirect";
+
 // Define UserRole enum manually since it's not being exported from generated client
 export enum UserRole {
     NORMAL_USER = "NORMAL_USER",
@@ -68,17 +70,77 @@ export const authOptions: any = {
     },
     callbacks: {
         async signIn({ user, account, profile }: { user: User | AdapterUser; account: any; profile?: any }) {
+            console.log("SignIn callback:", {
+                provider: account?.provider,
+                email: user?.email,
+                isNewUser: account?.type === "oauth"
+            });
+
+            // For Google OAuth users, check if they need role assignment
+            if (account?.provider === "google") {
+                try {
+                    const dbUser = await prisma.user.findUnique({
+                        where: { email: user.email! },
+                        select: { role: true }
+                    });
+
+                    console.log("User role check:", { email: user.email, role: dbUser?.role });
+
+                    // If user doesn't have a role, they'll be redirected by middleware
+                    return true;
+                } catch (error) {
+                    console.error("Error checking user role:", error);
+                    return false;
+                }
+            }
+
             return true;
         },
+        async redirect({ url, baseUrl }: { url: string; baseUrl: string }) {
+            console.log("Redirect callback:", { url, baseUrl });
+
+            // Always allow relative URLs
+            if (url.startsWith("/")) {
+                return `${baseUrl}${url}`;
+            }
+
+            // If it's our domain
+            if (url.startsWith(baseUrl)) {
+                return url;
+            }
+
+            // For OAuth callback completion (when url is just baseUrl), redirect to dashboard
+            // The middleware will then handle routing based on user role
+            if (url === baseUrl || url === `${baseUrl}/`) {
+                return `${baseUrl}/dashboard`;
+            }
+
+            // For external URLs or unmatched cases, redirect to dashboard
+            return `${baseUrl}/dashboard`;
+        },
         async jwt({ token, user, account }: { token: JWT; user?: User | AdapterUser; account?: any }) {
+            console.log("JWT callback:", {
+                hasUser: !!user,
+                provider: account?.provider,
+                email: (token as any).email,
+                existingRole: token.role
+            });
+
             // If this is the first time (user object exists), it means user just signed in
             if (user) {
                 // For OAuth users, fetch the role from database since adapter might not include it
                 if (account?.provider === "google") {
-                    const dbUser = await prisma.user.findUnique({
-                        where: { email: user.email! }
-                    });
-                    token.role = (dbUser?.role as any) || UserRole.NORMAL_USER;
+                    try {
+                        const dbUser = await prisma.user.findUnique({
+                            where: { email: user.email! }
+                        });
+                        console.log("DB user role:", dbUser?.role);
+                        // Don't set a default role for Google OAuth users - let them choose
+                        (token as any).role = (dbUser?.role as any) || null;
+                    } catch (error) {
+                        console.error("Error fetching user role in JWT:", error);
+                        (token as any).role = null;
+                    }
                 } else {
                     // For credentials, the role should already be in the user object
                     token.role = (user as any).role || UserRole.NORMAL_USER;
@@ -87,12 +149,17 @@ export const authOptions: any = {
 
             // If no role in token, try to fetch from database
             if (!token.role && (token as any).email) {
-                const dbUser = await prisma.user.findUnique({
-                    where: { email: (token as any).email }
-                });
-                token.role = (dbUser?.role as any) || UserRole.NORMAL_USER;
+                try {
+                    const dbUser = await prisma.user.findUnique({
+                        where: { email: (token as any).email }
+                    });
+                    (token as any).role = (dbUser?.role as any) || null;
+                } catch (error) {
+                    console.error("Error fetching user role in JWT:", error);
+                }
             }
 
+            console.log("JWT final role:", token.role);
             return token;
         },
         async session({ session, token }: { session: any; token: JWT }) {
@@ -111,15 +178,15 @@ export const authOptions: any = {
     // This resolves the OAuthAccountNotLinked error
     events: {
         async linkAccount({ user, account, profile }: { user: any; account: any; profile?: any }) {
-            // Ensure the user has a role when linking Google account
+            // For Google OAuth, don't set a default role - let user choose on confirm-role page
             if (account.provider === "google") {
-                await prisma.user.update({
-                    where: { id: user.id },
-                    data: {
-                        role: UserRole.NORMAL_USER // Set default role if not already set
-                    }
-                });
+                // The user will be redirected to /confirm-role to set their role
+                console.log("Google OAuth user linked, role will be set via confirm-role page");
             }
+        },
+        async signIn({ user, account, profile, isNewUser }: { user: any; account: any; profile?: any; isNewUser?: boolean }) {
+            return true;
         },
     },
 };
+
