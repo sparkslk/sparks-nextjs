@@ -9,19 +9,24 @@ export default withAuth(
         const { pathname } = request.nextUrl;
         const token = request.nextauth.token;
 
-        console.log("Middleware:", { pathname, hasToken: !!token, role: token?.role });
+        console.log("Middleware:", {
+            pathname,
+            hasToken: !!token,
+            role: token?.role,
+            email: token?.email
+        });
 
         // Allow access to public routes
         if (
             pathname === "/" ||
             pathname === "/login" ||
             pathname === "/signup" ||
-            pathname === "/setup-role" ||
-            pathname === "/confirm-role" ||
+            pathname === "/debug-auth" ||
             pathname.startsWith("/therapist/signup") ||
             pathname.startsWith("/manager/signup") ||
             pathname.startsWith("/admin/signup")
         ) {
+            console.log("Allowing public route:", pathname);
             return NextResponse.next();
         }
 
@@ -31,12 +36,7 @@ export default withAuth(
         }
 
         const userRole = token.role as UserRole | null;
-
-        // If user doesn't have a role set, redirect to confirm-role page
-        if (!userRole && pathname !== "/confirm-role") {
-            console.log("No role, redirecting to confirm-role");
-            return NextResponse.redirect(new URL("/confirm-role", request.url));
-        }
+        console.log("User role from token:", userRole);
 
         // Check if user is authorized for this route
         if (userRole && !isAuthorizedForRoute(userRole, pathname)) {
@@ -46,6 +46,7 @@ export default withAuth(
             return NextResponse.redirect(new URL(dashboardUrl, request.url));
         }
 
+        console.log("Allowing access to:", pathname);
         return NextResponse.next();
     },
     {
