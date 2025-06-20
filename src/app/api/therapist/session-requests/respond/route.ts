@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireApiAuth } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
+import { SessionStatus, NotificationType } from "../../../../../../generated/prisma";
 
 export async function POST(request: NextRequest) {
     try {
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
             where: {
                 id: requestId,
                 therapistId: therapist.id,
-                status: "SCHEDULED" // Using SCHEDULED as the pending status for now
+                status: SessionStatus.REQUESTED // Look for REQUESTED status
             },
             include: {
                 patient: {
@@ -71,7 +72,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Update session status
-        const newStatus = action === "approve" ? "SCHEDULED" : "CANCELLED";
+        const newStatus = action === "approve" ? SessionStatus.APPROVED : SessionStatus.DECLINED;
 
         await prisma.therapySession.update({
             where: { id: requestId },
@@ -91,7 +92,7 @@ export async function POST(request: NextRequest) {
                 data: {
                     title: `Session Request ${action === "approve" ? "Approved" : "Declined"}`,
                     message: notificationMessage,
-                    type: "APPOINTMENT",
+                    type: NotificationType.APPOINTMENT,
                     receiverId: patientUserId,
                     senderId: session.user.id,
                     isRead: false,

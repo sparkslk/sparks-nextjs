@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import {
     StatCard,
     QuickActionCard,
@@ -16,7 +15,8 @@ import {
     UserPlus,
     FileText,
     Clock,
-    CheckCircle
+    CheckCircle,
+    Bell
 } from "lucide-react";
 
 interface TherapistStats {
@@ -75,6 +75,12 @@ export default function TherapistDashboard() {
 
     const quickActions = [
         {
+            title: "Session Requests",
+            description: "Review and approve session requests",
+            icon: Bell,
+            onClick: () => router.push("/therapist/requests")
+        },
+        {
             title: "Schedule Appointment",
             description: "Book a new therapy session",
             icon: Calendar,
@@ -112,12 +118,9 @@ export default function TherapistDashboard() {
     }
 
     return (
-        <DashboardLayout
-            title="Therapist Dashboard"
-            subtitle="Welcome back, Therapist"
-        >
+        <div className="space-y-6">
             {/* Statistics Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard
                     title="Total Patients"
                     value={stats.totalPatients}
@@ -151,7 +154,7 @@ export default function TherapistDashboard() {
             </div>
 
             {/* Quick Actions */}
-            <div className="mb-8">
+            <div>
                 <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     {quickActions.map((action, index) => (
@@ -178,6 +181,6 @@ export default function TherapistDashboard() {
                     <RecentActivity activities={recentActivities} />
                 </div>
             </div>
-        </DashboardLayout>
+        </div>
     );
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireApiAuth } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
+import { SessionStatus, NotificationType } from "../../../../../generated/prisma";
 
 // Get all session requests for a therapist
 export async function GET(req: NextRequest) {
@@ -23,7 +24,7 @@ export async function GET(req: NextRequest) {
         const sessionRequests = await prisma.therapySession.findMany({
             where: {
                 therapistId: therapist.id,
-                status: { in: ['REQUESTED', 'APPROVED', 'SCHEDULED'] }
+                status: { in: [SessionStatus.REQUESTED, SessionStatus.APPROVED, SessionStatus.SCHEDULED] }
             },
             include: {
                 patient: {
@@ -107,7 +108,7 @@ export async function PATCH(req: NextRequest) {
             where: {
                 id: sessionId,
                 therapistId: therapist.id,
-                status: 'REQUESTED'
+                status: SessionStatus.REQUESTED
             },
             include: {
                 patient: {
@@ -130,7 +131,7 @@ export async function PATCH(req: NextRequest) {
         }
 
         // Update the session status
-        const newStatus = action === 'approve' ? 'APPROVED' : 'DECLINED';
+        const newStatus = action === 'approve' ? SessionStatus.APPROVED : SessionStatus.DECLINED;
         const updatedSession = await prisma.therapySession.update({
             where: { id: sessionId },
             data: {
@@ -144,7 +145,7 @@ export async function PATCH(req: NextRequest) {
             data: {
                 senderId: session.user.id,
                 receiverId: therapySession.patient.user!.id,
-                type: 'APPOINTMENT',
+                type: NotificationType.APPOINTMENT,
                 title: `Session Request ${action === 'approve' ? 'Approved' : 'Declined'}`,
                 message: `Your ${therapySession.type} session request for ${new Date(therapySession.scheduledAt).toLocaleDateString()} has been ${action}d${notes ? `. Note: ${notes}` : '.'}`,
                 isUrgent: true

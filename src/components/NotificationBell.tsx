@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bell, Check, Clock, User } from "lucide-react";
+import { Bell, Clock, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
     DropdownMenu,

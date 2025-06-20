@@ -46,20 +46,20 @@ export async function GET(req: NextRequest) {
                 if (!user.therapistProfile) {
                     console.log(`Creating Therapist record for user ${user.email}`);
 
-                    const metadata = user.metadata as any;
+                    const metadata = user.metadata as Record<string, unknown> | null;
                     const specializationArray = metadata?.specialization
                         ? (Array.isArray(metadata.specialization)
                             ? metadata.specialization
-                            : metadata.specialization.split(',').map((s: string) => s.trim()).filter(Boolean))
+                            : (metadata.specialization as string).split(',').map((s: string) => s.trim()).filter(Boolean))
                         : [];
 
                     await prisma.therapist.create({
                         data: {
                             userId: user.id,
-                            licenseNumber: metadata?.licenseNumber || `LIC-${user.id.slice(-8)}`,
+                            licenseNumber: (metadata?.licenseNumber as string) || `LIC-${user.id.slice(-8)}`,
                             specialization: specializationArray,
-                            experience: metadata?.experience || 0,
-                            bio: metadata?.bio || '',
+                            experience: (metadata?.experience as number) || 0,
+                            bio: (metadata?.bio as string) || '',
                         },
                     });
                 }
