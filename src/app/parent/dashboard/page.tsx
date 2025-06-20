@@ -1,6 +1,6 @@
 "use client";
 
-import { useSession, signOut } from "next-auth/react";
+import { signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Image from "next/image";
@@ -35,22 +35,14 @@ interface ParentData {
 }
 
 export default function ParentDashboard() {
-    const { data: session, status } = useSession();
     const router = useRouter();
     const [parentData, setParentData] = useState<ParentData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (status === "unauthenticated") {
-            router.push("/login");
-            return;
-        }
-
-        if (status === "authenticated") {
-            fetchParentData();
-        }
-    }, [status, router]);
+        fetchParentData();
+    }, []);
 
     const fetchParentData = async () => {
         try {
@@ -68,7 +60,11 @@ export default function ParentDashboard() {
         }
     };
 
-    if (status === "loading" || loading) {
+    const handleSignOut = async () => {
+        await signOut({ callbackUrl: "/login" });
+    };
+
+    if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
                 <div className="text-center">
@@ -93,10 +89,6 @@ export default function ParentDashboard() {
         );
     }
 
-    const handleSignOut = async () => {
-        await signOut({ callbackUrl: "/login" });
-    };
-
     return (
         <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5">
             {/* Header */}
@@ -118,7 +110,7 @@ export default function ParentDashboard() {
                         </div>
                         <div className="flex items-center space-x-4">
                             <div className="text-right">
-                                <p className="text-sm font-medium">{session?.user?.name}</p>
+                                <p className="text-sm font-medium">{parentData?.children[0]?.firstName}</p>
                                 <Badge variant="secondary" className="text-xs">
                                     Parent/Guardian
                                 </Badge>
@@ -136,7 +128,7 @@ export default function ParentDashboard() {
                 {/* Welcome Section */}
                 <div className="mb-8">
                     <h2 className="text-3xl font-bold text-foreground mb-2">
-                        Welcome back, {session?.user?.name?.split(' ')[0]}!
+                        Welcome back, {parentData?.children[0]?.firstName}!
                     </h2>
                     <p className="text-lg text-muted-foreground">
                         Track your child&apos;s progress and manage family appointments.
@@ -298,7 +290,7 @@ export default function ParentDashboard() {
                                     {parentData.recentUpdates.map((update) => (
                                         <div key={update.id} className="flex items-center space-x-4">
                                             <div className={`w-2 h-2 rounded-full ${update.type === "success" ? "bg-green-500" :
-                                                    update.type === "warning" ? "bg-yellow-500" : "bg-blue-500"
+                                                update.type === "warning" ? "bg-yellow-500" : "bg-blue-500"
                                                 }`}></div>
                                             <div className="flex-1">
                                                 <p className="text-sm font-medium">{update.message}</p>

@@ -1,6 +1,5 @@
 "use client";
 
-import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
@@ -23,15 +22,6 @@ import {
     Plus,
     Activity
 } from "lucide-react";
-
-// Manual UserRole enum (matching our types)
-enum UserRole {
-    NORMAL_USER = "NORMAL_USER",
-    PARENT_GUARDIAN = "PARENT_GUARDIAN",
-    THERAPIST = "THERAPIST",
-    MANAGER = "MANAGER",
-    ADMIN = "ADMIN",
-}
 
 interface PatientData {
     id: string;
@@ -65,7 +55,6 @@ interface TreatmentPlan {
 }
 
 export default function DashboardPage() {
-    const { data: session, status } = useSession();
     const router = useRouter();
     const [patientData, setPatientData] = useState<PatientData | null>(null);
     const [loading, setLoading] = useState(true);
@@ -104,47 +93,15 @@ export default function DashboardPage() {
     }, [router]);
 
     useEffect(() => {
-        if (status === "unauthenticated") {
-            router.push("/login");
-            return;
-        }
-
-        if (status === "authenticated" && session) {
-            const userRole = (session.user as { role?: UserRole }).role as UserRole;
-
-            // Only NORMAL_USER (patients) should access this dashboard
-            if (userRole !== UserRole.NORMAL_USER) {
-                // Redirect other roles to their specific dashboards
-                switch (userRole) {
-                    case UserRole.PARENT_GUARDIAN:
-                        router.push("/parent/dashboard");
-                        break;
-                    case UserRole.THERAPIST:
-                        router.push("/therapist/dashboard");
-                        break;
-                    case UserRole.MANAGER:
-                        router.push("/manager/dashboard");
-                        break;
-                    case UserRole.ADMIN:
-                        router.push("/admin/dashboard");
-                        break;
-                    default:
-                        router.push("/confirm-role");
-                        break;
-                }
-                return;
-            }
-
-            // Fetch patient data for NORMAL_USER
-            fetchPatientData();
-        }
-    }, [status, router, session, fetchPatientData]);
+        // Fetch patient data on component mount
+        fetchPatientData();
+    }, [fetchPatientData]);
 
     const requestSession = () => {
         router.push("/sessions/request");
     };
 
-    if (status === "loading" || loading) {
+    if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
                 <div className="text-center">

@@ -1,7 +1,6 @@
 "use client";
 
-import { useSession, signOut } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { signOut } from "next-auth/react";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -48,22 +47,13 @@ interface AdminData {
 }
 
 export default function AdminDashboard() {
-    const { data: session, status } = useSession();
-    const router = useRouter();
     const [adminData, setAdminData] = useState<AdminData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (status === "unauthenticated") {
-            router.push("/login");
-            return;
-        }
-
-        if (status === "authenticated") {
-            fetchAdminData();
-        }
-    }, [status, router]);
+        fetchAdminData();
+    }, []);
 
     const fetchAdminData = async () => {
         try {
@@ -81,7 +71,11 @@ export default function AdminDashboard() {
         }
     };
 
-    if (status === "loading" || loading) {
+    const handleSignOut = async () => {
+        await signOut({ callbackUrl: "/login" });
+    };
+
+    if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
                 <div className="text-center">
@@ -106,10 +100,6 @@ export default function AdminDashboard() {
         );
     }
 
-    const handleSignOut = async () => {
-        await signOut({ callbackUrl: "/login" });
-    };
-
     return (
         <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5">
             {/* Header */}
@@ -131,7 +121,7 @@ export default function AdminDashboard() {
                         </div>
                         <div className="flex items-center space-x-4">
                             <div className="text-right">
-                                <p className="text-sm font-medium">{session?.user?.name}</p>
+                                <p className="text-sm font-medium">Admin</p>
                                 <Badge variant="destructive" className="text-xs">
                                     Administrator
                                 </Badge>
@@ -337,7 +327,7 @@ export default function AdminDashboard() {
                                 {adminData?.recentEvents?.map((event) => (
                                     <div key={event.id} className="flex items-center space-x-4">
                                         <div className={`w-2 h-2 rounded-full ${event.type === "success" ? "bg-green-500" :
-                                                event.type === "warning" ? "bg-yellow-500" : "bg-blue-500"
+                                            event.type === "warning" ? "bg-yellow-500" : "bg-blue-500"
                                             }`}></div>
                                         <div className="flex-1">
                                             <p className="text-sm font-medium">{event.message}</p>

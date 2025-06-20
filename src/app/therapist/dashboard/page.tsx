@@ -1,6 +1,5 @@
 "use client";
 
-import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
@@ -10,16 +9,12 @@ import {
     RecentActivity,
     UpcomingAppointments
 } from "@/components/dashboard/DashboardComponents";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import {
     Users,
     Calendar,
     ClipboardList,
-    TrendingUp,
     UserPlus,
     FileText,
-    Activity,
     Clock,
     CheckCircle
 } from "lucide-react";
@@ -31,8 +26,24 @@ interface TherapistStats {
     pendingTasks: number;
 }
 
+interface Activity {
+    id: string;
+    type: "session" | "task" | "assessment" | "notification";
+    title: string;
+    description: string;
+    time: string;
+    status?: "completed" | "pending" | "cancelled";
+}
+
+interface Appointment {
+    id: string;
+    patientName: string;
+    time: string;
+    type: string;
+    status: "scheduled" | "confirmed" | "pending";
+}
+
 export default function TherapistDashboard() {
-    const { data: session, status } = useSession();
     const router = useRouter();
     const [stats, setStats] = useState<TherapistStats>({
         totalPatients: 0,
@@ -40,93 +51,27 @@ export default function TherapistDashboard() {
         completedSessions: 0,
         pendingTasks: 0
     });
+    const [recentActivities, setRecentActivities] = useState<Activity[]>([]);
+    const [upcomingAppointments, setUpcomingAppointments] = useState<Appointment[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (status === "unauthenticated") {
-            router.push("/login");
-            return;
-        }
-
-        if (status === "authenticated") {
-            // TODO: Fetch actual data from API
-            // Simulated data for now
-            setStats({
-                totalPatients: 24,
-                todayAppointments: 5,
-                completedSessions: 18,
-                pendingTasks: 7
-            });
-            setLoading(false);
-        }
-    }, [status, router]);
-
-    if (status === "loading" || loading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                    <p className="mt-2 text-muted-foreground">Loading...</p>
-                </div>
-            </div>
-        );
-    }
-
-    if (status === "unauthenticated") {
-        return null;
-    }
-
-    // Sample data - replace with actual API calls
-    const recentActivities = [
-        {
-            id: "1",
-            type: "session" as const,
-            title: "Therapy Session with Sarah Johnson",
-            description: "Individual cognitive behavioral therapy session",
-            time: "2 hours ago",
-            status: "completed" as const
-        },
-        {
-            id: "2",
-            type: "assessment" as const,
-            title: "Initial Assessment - Michael Chen",
-            description: "Comprehensive psychological evaluation",
-            time: "5 hours ago",
-            status: "completed" as const
-        },
-        {
-            id: "3",
-            type: "task" as const,
-            title: "Treatment Plan Review",
-            description: "Review and update treatment plans for 3 patients",
-            time: "1 day ago",
-            status: "pending" as const
-        }
-    ];
-
-    const upcomingAppointments = [
-        {
-            id: "1",
-            patientName: "Emma Wilson",
-            time: "2:00 PM",
-            type: "Individual Therapy",
-            status: "confirmed" as const
-        },
-        {
-            id: "2",
-            patientName: "David Brown",
-            time: "3:30 PM",
-            type: "Family Therapy",
-            status: "scheduled" as const
-        },
-        {
-            id: "3",
-            patientName: "Lisa Garcia",
-            time: "4:45 PM",
-            type: "Assessment",
-            status: "pending" as const
-        }
-    ];
+        const fetchDashboard = async () => {
+            try {
+                const res = await fetch("/api/therapist/dashboard");
+                if (!res.ok) throw new Error("Failed to fetch dashboard data");
+                const data = await res.json();
+                setStats(data.stats);
+                setRecentActivities(data.recentActivities || []);
+                setUpcomingAppointments(data.upcomingAppointments || []);
+            } catch (error) {
+                console.error('Failed to fetch dashboard data:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchDashboard();
+    }, []);
 
     const quickActions = [
         {
@@ -155,10 +100,21 @@ export default function TherapistDashboard() {
         }
     ];
 
+    if (loading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                    <p className="mt-2 text-muted-foreground">Loading...</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <DashboardLayout
             title="Therapist Dashboard"
-            subtitle={`Welcome back, ${session?.user?.name || 'Doctor'}`}
+            subtitle="Welcome back, Therapist"
         >
             {/* Statistics Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -221,61 +177,6 @@ export default function TherapistDashboard() {
                 <div className="lg:col-span-2">
                     <RecentActivity activities={recentActivities} />
                 </div>
-            </div>
-
-            {/* Patient Progress Overview */}
-            <div className="mt-8">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Patient Progress Overview</CardTitle>
-                        <CardDescription>
-                            Weekly progress summary for your active patients
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between p-4 bg-muted/20 rounded-lg">
-                                <div>
-                                    <p className="font-medium">Sarah Johnson</p>
-                                    <p className="text-sm text-muted-foreground">Anxiety Management Program</p>
-                                </div>
-                                <div className="text-right">
-                                    <div className="flex items-center space-x-2">
-                                        <TrendingUp className="h-4 w-4 text-green-500" />
-                                        <span className="text-sm font-medium">85% Progress</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="flex items-center justify-between p-4 bg-muted/20 rounded-lg">
-                                <div>
-                                    <p className="font-medium">Michael Chen</p>
-                                    <p className="text-sm text-muted-foreground">Depression Treatment</p>
-                                </div>
-                                <div className="text-right">
-                                    <div className="flex items-center space-x-2">
-                                        <TrendingUp className="h-4 w-4 text-green-500" />
-                                        <span className="text-sm font-medium">72% Progress</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="flex items-center justify-between p-4 bg-muted/20 rounded-lg">
-                                <div>
-                                    <p className="font-medium">Emma Wilson</p>
-                                    <p className="text-sm text-muted-foreground">PTSD Recovery Program</p>
-                                </div>
-                                <div className="text-right">
-                                    <div className="flex items-center space-x-2">
-                                        <Activity className="h-4 w-4 text-yellow-500" />
-                                        <span className="text-sm font-medium">58% Progress</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <Button variant="outline" className="w-full mt-4">
-                            View Detailed Progress Reports
-                        </Button>
-                    </CardContent>
-                </Card>
             </div>
         </DashboardLayout>
     );
