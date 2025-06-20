@@ -134,7 +134,7 @@ export async function GET(request: NextRequest) {
         const endDate = searchParams.get("endDate");
 
         // Build where clause
-        const whereClause: any = {
+        const whereClause: Record<string, unknown> = {
             therapistId: user.therapistProfile.id
         };
 
@@ -145,10 +145,10 @@ export async function GET(request: NextRequest) {
         if (startDate || endDate) {
             whereClause.scheduledAt = {};
             if (startDate) {
-                whereClause.scheduledAt.gte = new Date(startDate);
+                (whereClause.scheduledAt as Record<string, unknown>).gte = new Date(startDate);
             }
             if (endDate) {
-                whereClause.scheduledAt.lte = new Date(endDate);
+                (whereClause.scheduledAt as Record<string, unknown>).lte = new Date(endDate);
             }
         }
 

@@ -2,6 +2,7 @@
 
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,11 +18,70 @@ import {
     AlertTriangle
 } from "lucide-react";
 
+interface AdminData {
+    systemStatus: "online" | "offline" | "maintenance";
+    totalUsers: number;
+    newUsersThisMonth: number;
+    databaseSize: string;
+    databaseCapacity: number;
+    securityAlerts: number;
+    resolvedAlertsToday: number;
+    systemHealth: {
+        cpuUsage: number;
+        memoryUsage: number;
+        diskUsage: number;
+        networkIO: string;
+    };
+    userRoleDistribution: {
+        normalUsers: number;
+        parents: number;
+        therapists: number;
+        managers: number;
+        admins: number;
+    };
+    recentEvents: Array<{
+        id: string;
+        message: string;
+        timestamp: string;
+        type: "success" | "warning" | "info";
+    }>;
+}
+
 export default function AdminDashboard() {
     const { data: session, status } = useSession();
     const router = useRouter();
+    const [adminData, setAdminData] = useState<AdminData | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    if (status === "loading") {
+    useEffect(() => {
+        if (status === "unauthenticated") {
+            router.push("/login");
+            return;
+        }
+
+        if (status === "authenticated") {
+            fetchAdminData();
+        }
+    }, [status, router]);
+
+    const fetchAdminData = async () => {
+        try {
+            const response = await fetch("/api/admin/dashboard");
+            if (!response.ok) {
+                throw new Error("Failed to fetch admin data");
+            }
+            const data = await response.json();
+            setAdminData(data);
+        } catch (error) {
+            console.error("Error fetching admin data:", error);
+            setError("Failed to load dashboard data");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (status === "loading" || loading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
                 <div className="text-center">
@@ -32,9 +92,18 @@ export default function AdminDashboard() {
         );
     }
 
-    if (status === "unauthenticated") {
-        router.push("/login");
-        return null;
+    if (error) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="text-center">
+                    <h3 className="text-lg font-semibold mb-2">Unable to load dashboard</h3>
+                    <p className="text-muted-foreground mb-4">{error}</p>
+                    <Button onClick={() => window.location.reload()}>
+                        Try Again
+                    </Button>
+                </div>
+            </div>
+        );
     }
 
     const handleSignOut = async () => {
@@ -92,10 +161,12 @@ export default function AdminDashboard() {
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">System Status</CardTitle>
-                            <Zap className="h-4 w-4 text-green-500" />
+                            <Zap className={`h-4 w-4 ${adminData?.systemStatus === 'online' ? 'text-green-500' : 'text-red-500'}`} />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold text-green-600">Online</div>
+                            <div className={`text-2xl font-bold ${adminData?.systemStatus === 'online' ? 'text-green-600' : 'text-red-600'}`}>
+                                {adminData?.systemStatus ? adminData.systemStatus.charAt(0).toUpperCase() + adminData.systemStatus.slice(1) : 'Unknown'}
+                            </div>
                             <p className="text-xs text-muted-foreground">99.9% uptime</p>
                         </CardContent>
                     </Card>
@@ -106,8 +177,8 @@ export default function AdminDashboard() {
                             <Users className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">1,247</div>
-                            <p className="text-xs text-muted-foreground">+89 this month</p>
+                            <div className="text-2xl font-bold">{adminData?.totalUsers?.toLocaleString() || 0}</div>
+                            <p className="text-xs text-muted-foreground">+{adminData?.newUsersThisMonth || 0} this month</p>
                         </CardContent>
                     </Card>
 
@@ -117,8 +188,8 @@ export default function AdminDashboard() {
                             <Database className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">2.4GB</div>
-                            <p className="text-xs text-muted-foreground">68% capacity</p>
+                            <div className="text-2xl font-bold">{adminData?.databaseSize || 'N/A'}</div>
+                            <p className="text-xs text-muted-foreground">{adminData?.databaseCapacity || 0}% capacity</p>
                         </CardContent>
                     </Card>
 
@@ -128,8 +199,8 @@ export default function AdminDashboard() {
                             <AlertTriangle className="h-4 w-4 text-yellow-500" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">3</div>
-                            <p className="text-xs text-muted-foreground">2 resolved today</p>
+                            <div className="text-2xl font-bold">{adminData?.securityAlerts || 0}</div>
+                            <p className="text-xs text-muted-foreground">{adminData?.resolvedAlertsToday || 0} resolved today</p>
                         </CardContent>
                     </Card>
                 </div>
@@ -238,19 +309,19 @@ export default function AdminDashboard() {
                             <div className="space-y-4">
                                 <div className="flex justify-between">
                                     <span className="text-sm">CPU Usage</span>
-                                    <span className="text-sm font-medium">23.5%</span>
+                                    <span className="text-sm font-medium">{adminData?.systemHealth?.cpuUsage?.toFixed(1) || '0'}%</span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-sm">Memory Usage</span>
-                                    <span className="text-sm font-medium">54.2%</span>
+                                    <span className="text-sm font-medium">{adminData?.systemHealth?.memoryUsage?.toFixed(1) || '0'}%</span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-sm">Disk Usage</span>
-                                    <span className="text-sm font-medium">68.1%</span>
+                                    <span className="text-sm font-medium">{adminData?.systemHealth?.diskUsage?.toFixed(1) || '0'}%</span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-sm">Network I/O</span>
-                                    <span className="text-sm font-medium">12.4 MB/s</span>
+                                    <span className="text-sm font-medium">{adminData?.systemHealth?.networkIO || '0 MB/s'}</span>
                                 </div>
                             </div>
                         </CardContent>
@@ -263,27 +334,19 @@ export default function AdminDashboard() {
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-4">
-                                <div className="flex items-center space-x-4">
-                                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                    <div className="flex-1">
-                                        <p className="text-sm font-medium">Database backup completed successfully</p>
-                                        <p className="text-xs text-muted-foreground">30 minutes ago</p>
+                                {adminData?.recentEvents?.map((event) => (
+                                    <div key={event.id} className="flex items-center space-x-4">
+                                        <div className={`w-2 h-2 rounded-full ${event.type === "success" ? "bg-green-500" :
+                                                event.type === "warning" ? "bg-yellow-500" : "bg-blue-500"
+                                            }`}></div>
+                                        <div className="flex-1">
+                                            <p className="text-sm font-medium">{event.message}</p>
+                                            <p className="text-xs text-muted-foreground">{event.timestamp}</p>
+                                        </div>
                                     </div>
-                                </div>
-                                <div className="flex items-center space-x-4">
-                                    <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                                    <div className="flex-1">
-                                        <p className="text-sm font-medium">High CPU usage detected on server-02</p>
-                                        <p className="text-xs text-muted-foreground">2 hours ago</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center space-x-4">
-                                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                    <div className="flex-1">
-                                        <p className="text-sm font-medium">Security patch applied successfully</p>
-                                        <p className="text-xs text-muted-foreground">1 day ago</p>
-                                    </div>
-                                </div>
+                                )) || (
+                                        <p className="text-sm text-muted-foreground">No recent events</p>
+                                    )}
                             </div>
                         </CardContent>
                     </Card>
@@ -299,23 +362,23 @@ export default function AdminDashboard() {
                         <CardContent>
                             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                                 <div className="text-center">
-                                    <div className="text-2xl font-bold text-blue-600">892</div>
-                                    <p className="text-xs text-muted-foreground">Normal Users</p>
+                                    <div className="text-2xl font-bold text-blue-600">{adminData?.userRoleDistribution?.normalUsers || 0}</div>
+                                    <p className="text-xs text-muted-foreground">Patients</p>
                                 </div>
                                 <div className="text-center">
-                                    <div className="text-2xl font-bold text-green-600">234</div>
+                                    <div className="text-2xl font-bold text-green-600">{adminData?.userRoleDistribution?.parents || 0}</div>
                                     <p className="text-xs text-muted-foreground">Parents</p>
                                 </div>
                                 <div className="text-center">
-                                    <div className="text-2xl font-bold text-purple-600">89</div>
+                                    <div className="text-2xl font-bold text-purple-600">{adminData?.userRoleDistribution?.therapists || 0}</div>
                                     <p className="text-xs text-muted-foreground">Therapists</p>
                                 </div>
                                 <div className="text-center">
-                                    <div className="text-2xl font-bold text-orange-600">27</div>
+                                    <div className="text-2xl font-bold text-orange-600">{adminData?.userRoleDistribution?.managers || 0}</div>
                                     <p className="text-xs text-muted-foreground">Managers</p>
                                 </div>
                                 <div className="text-center">
-                                    <div className="text-2xl font-bold text-red-600">5</div>
+                                    <div className="text-2xl font-bold text-red-600">{adminData?.userRoleDistribution?.admins || 0}</div>
                                     <p className="text-xs text-muted-foreground">Admins</p>
                                 </div>
                             </div>

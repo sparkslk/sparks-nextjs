@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { $Enums } from "../../../../../generated/prisma";
 
-const Gender = $Enums.Gender;
+// const Gender = $Enums.Gender;
 
 export async function POST(request: NextRequest) {
     try {
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
                 firstName,
                 lastName,
                 dateOfBirth: new Date(dateOfBirth),
-                gender: gender as keyof typeof Gender,
+                gender: gender as $Enums.Gender,
                 phone: phone || null,
                 email: email || null,
                 address: address || null,
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
     }
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
     try {
         const session = await getServerSession(authOptions);
 

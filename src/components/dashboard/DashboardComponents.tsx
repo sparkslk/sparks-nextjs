@@ -4,7 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-    Users,
     Calendar,
     Clock,
     TrendingUp,
@@ -18,7 +17,7 @@ interface StatCardProps {
     title: string;
     value: string | number;
     description?: string;
-    icon: React.ComponentType<any>;
+    icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
     trend?: {
         value: number;
         isPositive: boolean;
@@ -62,12 +61,12 @@ export function StatCard({ title, value, description, icon: Icon, trend, color =
 interface QuickActionProps {
     title: string;
     description: string;
-    icon: React.ComponentType<any>;
+    icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
     onClick: () => void;
     variant?: "default" | "primary" | "secondary";
 }
 
-export function QuickActionCard({ title, description, icon: Icon, onClick, variant = "default" }: QuickActionProps) {
+export function QuickActionCard({ title, description, icon: Icon, onClick }: QuickActionProps) {
     return (
         <Card className="cursor-pointer transition-all hover:shadow-md hover:scale-105" onClick={onClick}>
             <CardHeader>

@@ -16,7 +16,7 @@ import {
     SelectValue
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Save, Calendar, Clock } from "lucide-react";
+import { ArrowLeft, Save, Calendar } from "lucide-react";
 
 interface Patient {
     id: string;
@@ -35,7 +35,7 @@ interface SessionForm {
 }
 
 export default function NewAppointmentPage() {
-    const { data: session, status } = useSession();
+    const { status } = useSession();
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [patients, setPatients] = useState<Patient[]>([]);

@@ -33,7 +33,7 @@ interface PatientForm {
 }
 
 export default function NewPatientPage() {
-    const { data: session, status } = useSession();
+    const { status } = useSession();
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState<PatientForm>({
@@ -119,7 +119,7 @@ export default function NewPatientPage() {
                     </Button>
                     <div>
                         <h2 className="text-2xl font-bold">New Patient Registration</h2>
-                        <p className="text-muted-foreground">Fill in the patient's information below</p>
+                        <p className="text-muted-foreground">Fill in the patient&apos;s information below</p>
                     </div>
                 </div>
 

@@ -2,6 +2,7 @@
 
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,11 +16,59 @@ import {
     MessageCircle
 } from "lucide-react";
 
+interface ParentData {
+    children: Array<{
+        id: string;
+        firstName: string;
+        lastName: string;
+        upcomingSessions: number;
+        progressReports: number;
+    }>;
+    totalUpcomingSessions: number;
+    unreadMessages: number;
+    recentUpdates: Array<{
+        id: string;
+        message: string;
+        timestamp: string;
+        type: "success" | "info" | "warning";
+    }>;
+}
+
 export default function ParentDashboard() {
     const { data: session, status } = useSession();
     const router = useRouter();
+    const [parentData, setParentData] = useState<ParentData | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    if (status === "loading") {
+    useEffect(() => {
+        if (status === "unauthenticated") {
+            router.push("/login");
+            return;
+        }
+
+        if (status === "authenticated") {
+            fetchParentData();
+        }
+    }, [status, router]);
+
+    const fetchParentData = async () => {
+        try {
+            const response = await fetch("/api/parent/dashboard");
+            if (!response.ok) {
+                throw new Error("Failed to fetch parent data");
+            }
+            const data = await response.json();
+            setParentData(data);
+        } catch (error) {
+            console.error("Error fetching parent data:", error);
+            setError("Failed to load dashboard data");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (status === "loading" || loading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
                 <div className="text-center">
@@ -30,9 +79,18 @@ export default function ParentDashboard() {
         );
     }
 
-    if (status === "unauthenticated") {
-        router.push("/login");
-        return null;
+    if (error) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="text-center">
+                    <h3 className="text-lg font-semibold mb-2">Unable to load dashboard</h3>
+                    <p className="text-muted-foreground mb-4">{error}</p>
+                    <Button onClick={() => window.location.reload()}>
+                        Try Again
+                    </Button>
+                </div>
+            </div>
+        );
     }
 
     const handleSignOut = async () => {
@@ -93,8 +151,8 @@ export default function ParentDashboard() {
                             <Users className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">2</div>
-                            <p className="text-xs text-muted-foreground">Both actively enrolled</p>
+                            <div className="text-2xl font-bold">{parentData?.children.length || 0}</div>
+                            <p className="text-xs text-muted-foreground">Enrolled in therapy</p>
                         </CardContent>
                     </Card>
 
@@ -104,7 +162,7 @@ export default function ParentDashboard() {
                             <Calendar className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">3</div>
+                            <div className="text-2xl font-bold">{parentData?.totalUpcomingSessions || 0}</div>
                             <p className="text-xs text-muted-foreground">This week</p>
                         </CardContent>
                     </Card>
@@ -115,7 +173,9 @@ export default function ParentDashboard() {
                             <TrendingUp className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">2</div>
+                            <div className="text-2xl font-bold">
+                                {parentData?.children.reduce((sum, child) => sum + child.progressReports, 0) || 0}
+                            </div>
                             <p className="text-xs text-muted-foreground">New reports available</p>
                         </CardContent>
                     </Card>
@@ -126,8 +186,8 @@ export default function ParentDashboard() {
                             <MessageCircle className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">4</div>
-                            <p className="text-xs text-muted-foreground">1 unread</p>
+                            <div className="text-2xl font-bold">{parentData?.unreadMessages || 0}</div>
+                            <p className="text-xs text-muted-foreground">Unread</p>
                         </CardContent>
                     </Card>
                 </div>
@@ -226,39 +286,45 @@ export default function ParentDashboard() {
                 </div>
 
                 {/* Recent Activity */}
-                <div className="mt-8">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Recent Updates</CardTitle>
-                            <CardDescription>Latest updates about your children&apos;s therapy progress</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-4">
-                                <div className="flex items-center space-x-4">
-                                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                    <div className="flex-1">
-                                        <p className="text-sm font-medium">Emma completed her session with excellent progress</p>
-                                        <p className="text-xs text-muted-foreground">2 hours ago</p>
-                                    </div>
+                {parentData && parentData.recentUpdates.length > 0 && (
+                    <div className="mt-8">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Recent Updates</CardTitle>
+                                <CardDescription>Latest updates about your children&apos;s therapy progress</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-4">
+                                    {parentData.recentUpdates.map((update) => (
+                                        <div key={update.id} className="flex items-center space-x-4">
+                                            <div className={`w-2 h-2 rounded-full ${update.type === "success" ? "bg-green-500" :
+                                                    update.type === "warning" ? "bg-yellow-500" : "bg-blue-500"
+                                                }`}></div>
+                                            <div className="flex-1">
+                                                <p className="text-sm font-medium">{update.message}</p>
+                                                <p className="text-xs text-muted-foreground">{update.timestamp}</p>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
-                                <div className="flex items-center space-x-4">
-                                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                    <div className="flex-1">
-                                        <p className="text-sm font-medium">New progress report available for Jake</p>
-                                        <p className="text-xs text-muted-foreground">1 day ago</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center space-x-4">
-                                    <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                                    <div className="flex-1">
-                                        <p className="text-sm font-medium">Upcoming appointment reminder sent</p>
-                                        <p className="text-xs text-muted-foreground">2 days ago</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+                )}
+
+                {/* No data state */}
+                {!parentData && !loading && !error && (
+                    <div className="flex flex-col items-center justify-center py-12">
+                        <Users className="h-16 w-16 text-muted-foreground mb-4" />
+                        <h3 className="text-lg font-semibold mb-2">No Children Enrolled</h3>
+                        <p className="text-muted-foreground mb-4 text-center">
+                            You don&apos;t have any children enrolled in therapy services yet.
+                        </p>
+                        <Button onClick={() => router.push("/parent/children/add")}>
+                            Add Child
+                        </Button>
+                    </div>
+                )}
             </main>
         </div>
     );

@@ -1,7 +1,6 @@
 "use client";
 
 import { useSession, signOut } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,7 +20,6 @@ interface DashboardLayoutProps {
 
 export default function DashboardLayout({ children, title, subtitle }: DashboardLayoutProps) {
     const { data: session } = useSession();
-    const router = useRouter();
 
     const handleSignOut = async () => {
         await signOut({ callbackUrl: "/login" });

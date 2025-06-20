@@ -8,7 +8,7 @@ export function getRoleBasedDashboard(role: UserRole | null): string {
 
     switch (role) {
         case UserRole.NORMAL_USER:
-            return "/dashboard";
+            return "/dashboard"; // Patient users go to main dashboard
         case UserRole.PARENT_GUARDIAN:
             return "/parent/dashboard";
         case UserRole.THERAPIST:
@@ -67,9 +67,13 @@ export function isAuthorizedForRoute(userRole: UserRole | null, pathname: string
         return userRole === UserRole.PARENT_GUARDIAN || userRole === UserRole.MANAGER || userRole === UserRole.ADMIN;
     }
 
-    // Default dashboard and other routes for normal users and parents
-    if (pathname.startsWith("/dashboard") || pathname.startsWith("/set-password")) {
-        return userRole === UserRole.NORMAL_USER || userRole === UserRole.PARENT_GUARDIAN;
+    // Default dashboard and patient routes for normal users, plus sessions and profile routes
+    if (pathname.startsWith("/dashboard") ||
+        pathname.startsWith("/set-password") ||
+        pathname.startsWith("/sessions") ||
+        pathname.startsWith("/profile") ||
+        pathname.startsWith("/patient")) {
+        return userRole === UserRole.NORMAL_USER || userRole === UserRole.MANAGER || userRole === UserRole.ADMIN;
     }
 
     return false;
