@@ -16,15 +16,15 @@ export async function GET(req: NextRequest) {
             },
         });
 
-        // Fetch tasks assigned to this therapist's patients
-        const patientIds = therapist?.patients.map(p => p.id) || [];
-        const tasks = await prisma.task.findMany({
-            where: { patientId: { in: patientIds } },
-        });
-
         if (!therapist) {
             return NextResponse.json({ error: 'Therapist profile not found' }, { status: 404 });
         }
+
+        // Fetch tasks assigned to this therapist's patients
+        const patientIds = therapist.patients.map(p => p.id);
+        const tasks = await prisma.task.findMany({
+            where: { patientId: { in: patientIds } },
+        });
 
         // Stats
         const stats = {

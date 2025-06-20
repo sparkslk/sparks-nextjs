@@ -70,6 +70,20 @@ export async function POST(request: NextRequest) {
             },
         });
 
+        // Create role-specific profiles
+        if (role === UserRole.THERAPIST) {
+            await prisma.therapist.create({
+                data: {
+                    userId: user.id,
+                    licenseNumber: metadata.licenseNumber,
+                    specialization: metadata.specialization || [],
+                    experience: metadata.experience || 0,
+                    bio: metadata.bio || '',
+                    // Note: organizationId will need to be set later by an admin
+                },
+            });
+        }
+
         // Remove password from response
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { password: _, ...userWithoutPassword } = user;
