@@ -64,19 +64,9 @@ export default function DashboardPage() {
         try {
             const response = await fetch("/api/profile");
             if (!response.ok) {
-                if (response.status === 404) {
-                    // Patient profile not found, redirect to profile creation
-                    router.push("/profile/create");
-                    return;
-                }
                 throw new Error("Failed to fetch patient data");
             }
             const data = await response.json();
-            if (!data.profile) {
-                // No profile found, redirect to profile creation
-                router.push("/profile/create");
-                return;
-            }
             // Set patient data with default empty arrays for sessions and treatment plans
             setPatientData({
                 ...data.profile,
@@ -90,7 +80,7 @@ export default function DashboardPage() {
         } finally {
             setLoading(false);
         }
-    }, [router]);
+    }, []);
 
     useEffect(() => {
         // Fetch patient data on component mount

@@ -1,15 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { requireApiAuth } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
-        const session = await getServerSession(authOptions);
-
-        if (!session?.user?.id) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
+        const session = await requireApiAuth(req);
 
         // Get patient profile
         const patient = await prisma.patient.findUnique({
@@ -56,6 +51,10 @@ export async function GET() {
             }
         });
     } catch (error) {
+        // Handle authentication/authorization errors
+        if (error instanceof NextResponse) {
+            return error;
+        }
         console.error("Error fetching patient profile:", error);
         return NextResponse.json(
             { error: "Failed to fetch profile" },
@@ -66,11 +65,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
     try {
-        const session = await getServerSession(authOptions);
-
-        if (!session?.user?.id) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
+        const session = await requireApiAuth(request);
 
         const data = await request.json();
         console.log("Profile creation data received:", data);
@@ -139,6 +134,10 @@ export async function POST(request: NextRequest) {
             }
         });
     } catch (error) {
+        // Handle authentication/authorization errors
+        if (error instanceof NextResponse) {
+            return error;
+        }
         console.error("Error creating patient profile:", error);
         return NextResponse.json(
             { error: "Failed to create profile" },

@@ -1,15 +1,10 @@
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { NextRequest, NextResponse } from "next/server";
+import { requireApiAuth } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
-        const session = await getServerSession(authOptions);
-
-        if (!session?.user?.id) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
+        await requireApiAuth(req);
 
         // Fetch all therapists with their details
         const therapists = await prisma.therapist.findMany({
@@ -59,6 +54,10 @@ export async function GET() {
         });
 
     } catch (error) {
+        // Handle authentication/authorization errors
+        if (error instanceof NextResponse) {
+            return error;
+        }
         console.error("Error fetching therapists:", error);
         return NextResponse.json({
             error: "Internal server error"

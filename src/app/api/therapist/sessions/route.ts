@@ -1,29 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { requireApiAuth } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(request: NextRequest) {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await requireApiAuth(request, ['THERAPIST']);
 
-        if (!session || !session.user?.email) {
-            return NextResponse.json(
-                { error: "Unauthorized" },
-                { status: 401 }
-            );
-        }
-
-        // Check if user is a therapist
+        // Get therapist profile
         const user = await prisma.user.findUnique({
-            where: { email: session.user.email },
+            where: { id: session.user.id },
             include: { therapistProfile: true }
         });
 
-        if (!user || user.role !== "THERAPIST" || !user.therapistProfile) {
+        if (!user?.therapistProfile) {
             return NextResponse.json(
-                { error: "Only therapists can create sessions" },
-                { status: 403 }
+                { error: "Therapist profile not found" },
+                { status: 404 }
             );
         }
 
@@ -96,6 +88,10 @@ export async function POST(request: NextRequest) {
             { status: 201 }
         );
     } catch (error) {
+        // Handle authentication/authorization errors
+        if (error instanceof NextResponse) {
+            return error;
+        }
         console.error("Error creating session:", error);
         return NextResponse.json(
             { error: "Internal server error" },
@@ -106,25 +102,18 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await requireApiAuth(request, ['THERAPIST']);
 
-        if (!session || !session.user?.email) {
-            return NextResponse.json(
-                { error: "Unauthorized" },
-                { status: 401 }
-            );
-        }
-
-        // Check if user is a therapist
+        // Get therapist profile
         const user = await prisma.user.findUnique({
-            where: { email: session.user.email },
+            where: { id: session.user.id },
             include: { therapistProfile: true }
         });
 
-        if (!user || user.role !== "THERAPIST" || !user.therapistProfile) {
+        if (!user?.therapistProfile) {
             return NextResponse.json(
-                { error: "Only therapists can view sessions" },
-                { status: 403 }
+                { error: "Therapist profile not found" },
+                { status: 404 }
             );
         }
 
@@ -185,6 +174,10 @@ export async function GET(request: NextRequest) {
             { status: 200 }
         );
     } catch (error) {
+        // Handle authentication/authorization errors
+        if (error instanceof NextResponse) {
+            return error;
+        }
         console.error("Error fetching sessions:", error);
         return NextResponse.json(
             { error: "Internal server error" },
