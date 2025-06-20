@@ -72,11 +72,18 @@ export async function POST(request: NextRequest) {
 
         // Create role-specific profiles
         if (role === UserRole.THERAPIST) {
+            // Ensure specialization is an array
+            const specializationArray = metadata.specialization
+                ? (Array.isArray(metadata.specialization)
+                    ? metadata.specialization
+                    : metadata.specialization.split(',').map((s: string) => s.trim()).filter(Boolean))
+                : [];
+
             await prisma.therapist.create({
                 data: {
                     userId: user.id,
                     licenseNumber: metadata.licenseNumber,
-                    specialization: metadata.specialization || [],
+                    specialization: specializationArray,
                     experience: metadata.experience || 0,
                     bio: metadata.bio || '',
                     // Note: organizationId will need to be set later by an admin

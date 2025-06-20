@@ -6,7 +6,7 @@ export async function GET(req: NextRequest) {
     try {
         const session = await requireApiAuth(req);
 
-        // Get patient profile
+        // Get patient profile with sessions and treatment plans
         const patient = await prisma.patient.findUnique({
             where: { userId: session.user.id },
             include: {
@@ -24,6 +24,27 @@ export async function GET(req: NextRequest) {
                             }
                         }
                     }
+                },
+                therapySessions: {
+                    include: {
+                        therapist: {
+                            include: {
+                                user: {
+                                    select: {
+                                        name: true
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    orderBy: {
+                        scheduledAt: 'desc'
+                    }
+                },
+                treatmentPlans: {
+                    orderBy: {
+                        createdAt: 'desc'
+                    }
                 }
             }
         });
@@ -31,6 +52,33 @@ export async function GET(req: NextRequest) {
         if (!patient) {
             return NextResponse.json({ profile: null });
         }
+
+        // Process sessions data
+        const now = new Date();
+        const upcomingSessions = patient.therapySessions
+            .filter(session => new Date(session.scheduledAt) >= now && session.status === 'SCHEDULED')
+            .map(session => ({
+                id: session.id,
+                scheduledAt: session.scheduledAt.toISOString(),
+                duration: session.duration,
+                type: session.type,
+                status: session.status,
+                therapistName: session.therapist.user.name || 'Unknown Therapist',
+                notes: session.notes
+            }));
+
+        const recentSessions = patient.therapySessions
+            .filter(session => new Date(session.scheduledAt) < now || session.status !== 'SCHEDULED')
+            .slice(0, 10) // Limit to 10 most recent
+            .map(session => ({
+                id: session.id,
+                scheduledAt: session.scheduledAt.toISOString(),
+                duration: session.duration,
+                type: session.type,
+                status: session.status,
+                therapistName: session.therapist.user.name || 'Unknown Therapist',
+                notes: session.notes
+            }));
 
         return NextResponse.json({
             profile: {
@@ -46,8 +94,18 @@ export async function GET(req: NextRequest) {
                 medicalHistory: patient.medicalHistory,
                 therapist: patient.primaryTherapist ? {
                     id: patient.primaryTherapist.id,
-                    name: patient.primaryTherapist.user.name
-                } : null
+                    name: patient.primaryTherapist.user.name,
+                    specialization: patient.primaryTherapist.specialization
+                } : null,
+                upcomingSessions,
+                recentSessions,
+                treatmentPlans: patient.treatmentPlans.map(plan => ({
+                    id: plan.id,
+                    title: plan.title,
+                    goals: plan.goals,
+                    startDate: plan.startDate.toISOString(),
+                    isActive: plan.isActive
+                }))
             }
         });
     } catch (error) {

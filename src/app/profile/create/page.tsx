@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { User, ArrowLeft } from "lucide-react";
 
 export default function CreateProfilePage() {
-    const { status } = useSession();
+    const { data: session, status } = useSession();
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -58,6 +58,16 @@ export default function CreateProfilePage() {
             checkExistingProfile();
         }
     }, [status, router, checkExistingProfile]);
+
+    // Pre-populate email from session
+    useEffect(() => {
+        if (session?.user?.email && !formData.email) {
+            setFormData(prev => ({
+                ...prev,
+                email: session.user.email!
+            }));
+        }
+    }, [session?.user?.email, formData.email]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -202,7 +212,9 @@ export default function CreateProfilePage() {
                                         type="email"
                                         value={formData.email}
                                         onChange={(e) => handleInputChange("email", e.target.value)}
-                                        className="mt-1"
+                                        className="mt-1 bg-gray-50"
+                                        readOnly
+                                        placeholder="Email will be populated from your account"
                                     />
                                 </div>
                             </div>

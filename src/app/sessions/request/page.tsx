@@ -51,6 +51,7 @@ export default function RequestSessionPage() {
                 throw new Error("Failed to fetch therapists");
             }
             const data = await response.json();
+            console.log("Received therapists data:", data);
             setTherapists(data.therapists);
         } catch (error) {
             console.error("Error fetching therapists:", error);
@@ -162,26 +163,33 @@ export default function RequestSessionPage() {
                                 {/* Therapist Selection */}
                                 <div className="space-y-2">
                                     <Label htmlFor="therapist">Preferred Therapist *</Label>
-                                    <Select
-                                        value={formData.therapistId}
-                                        onValueChange={(value) => handleInputChange("therapistId", value)}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select a therapist" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {therapists.map((therapist) => (
-                                                <SelectItem key={therapist.id} value={therapist.id}>
-                                                    <div>
-                                                        <div className="font-medium">{therapist.name}</div>
-                                                        <div className="text-sm text-muted-foreground">
-                                                            {therapist.specialization.join(", ")}
+                                    {therapists.length === 0 ? (
+                                        <div className="p-3 bg-muted/20 rounded-lg text-center">
+                                            <p className="text-muted-foreground">No therapists available at the moment.</p>
+                                            <p className="text-sm text-muted-foreground">Please contact support for assistance.</p>
+                                        </div>
+                                    ) : (
+                                        <Select
+                                            value={formData.therapistId}
+                                            onValueChange={(value) => handleInputChange("therapistId", value)}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select a therapist" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {therapists.map((therapist) => (
+                                                    <SelectItem key={therapist.id} value={therapist.id}>
+                                                        <div>
+                                                            <div className="font-medium">{therapist.name}</div>
+                                                            <div className="text-sm text-muted-foreground">
+                                                                {therapist.specialization.join(", ")}
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
                                 </div>
 
                                 {/* Session Type */}

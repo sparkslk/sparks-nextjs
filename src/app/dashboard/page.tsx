@@ -67,7 +67,14 @@ export default function DashboardPage() {
                 throw new Error("Failed to fetch patient data");
             }
             const data = await response.json();
-            // Set patient data with default empty arrays for sessions and treatment plans
+
+            // Ensure data.profile exists
+            if (!data.profile) {
+                setPatientData(null);
+                return;
+            }
+
+            // Set patient data with safe default empty arrays for sessions and treatment plans
             setPatientData({
                 ...data.profile,
                 upcomingSessions: data.profile.upcomingSessions || [],
@@ -174,13 +181,13 @@ export default function DashboardPage() {
         }> = [];
 
         // Add recent sessions (safely handle empty array)
-        if (patientData?.recentSessions) {
+        if (patientData?.recentSessions && Array.isArray(patientData.recentSessions)) {
             patientData.recentSessions.slice(0, 3).forEach(session => {
                 activities.push({
                     id: `session-${session.id}`,
                     type: "session" as const,
-                    title: `Therapy Session - ${session.type}`,
-                    description: `Session with ${session.therapistName}`,
+                    title: `Therapy Session - ${session.type || 'General'}`,
+                    description: `Session with ${session.therapistName || 'Therapist'}`,
                     time: new Date(session.scheduledAt).toLocaleDateString(),
                     status: session.status as "completed" | "pending" | "cancelled"
                 });
@@ -233,14 +240,14 @@ export default function DashboardPage() {
                 />
                 <StatCard
                     title="Completed Sessions"
-                    value={patientData?.recentSessions?.filter(s => s.status === 'COMPLETED')?.length || 0}
+                    value={patientData?.recentSessions?.filter(s => s?.status === 'COMPLETED')?.length || 0}
                     description="This month"
                     icon={Heart}
                     color="success"
                 />
                 <StatCard
                     title="Active Plans"
-                    value={patientData?.treatmentPlans?.filter(p => p.isActive)?.length || 0}
+                    value={patientData?.treatmentPlans?.filter(p => p?.isActive)?.length || 0}
                     description="Treatment plans in progress"
                     icon={TrendingUp}
                     color="default"
@@ -273,7 +280,7 @@ export default function DashboardPage() {
                             <CardDescription>Your scheduled therapy appointments</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-3">
-                            {!patientData?.upcomingSessions || patientData.upcomingSessions.length === 0 ? (
+                            {!patientData?.upcomingSessions || !Array.isArray(patientData.upcomingSessions) || patientData.upcomingSessions.length === 0 ? (
                                 <div className="text-center py-4">
                                     <Clock className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
                                     <p className="text-muted-foreground text-sm">No upcoming sessions</p>
@@ -285,7 +292,7 @@ export default function DashboardPage() {
                                 patientData.upcomingSessions.map((session) => (
                                     <div key={session.id} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg">
                                         <div>
-                                            <p className="font-medium">{session.type}</p>
+                                            <p className="font-medium">{session.type || 'Therapy Session'}</p>
                                             <p className="text-sm text-muted-foreground">
                                                 {new Date(session.scheduledAt).toLocaleDateString()} at{" "}
                                                 {new Date(session.scheduledAt).toLocaleTimeString([], {
@@ -294,7 +301,7 @@ export default function DashboardPage() {
                                                 })}
                                             </p>
                                         </div>
-                                        <Badge variant="outline">{session.duration} min</Badge>
+                                        <Badge variant="outline">{session.duration || 60} min</Badge>
                                     </div>
                                 ))
                             )}
