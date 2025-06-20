@@ -23,9 +23,12 @@ enum UserRole {
 }
 
 enum SessionStatus {
+  REQUESTED
+  APPROVED
   SCHEDULED
   COMPLETED
   CANCELLED
+  DECLINED
   NO_SHOW
 }
 

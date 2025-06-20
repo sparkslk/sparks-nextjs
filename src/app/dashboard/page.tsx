@@ -20,7 +20,8 @@ import {
     User,
     FileText,
     Plus,
-    Activity
+    Activity,
+    List
 } from "lucide-react";
 
 interface PatientData {
@@ -149,6 +150,12 @@ export default function DashboardPage() {
             description: "Schedule a new therapy session",
             icon: Calendar,
             onClick: requestSession
+        },
+        {
+            title: "My Requests",
+            description: "View your session requests",
+            icon: List,
+            onClick: () => router.push("/sessions/my-requests")
         },
         {
             title: "View Progress",

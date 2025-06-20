@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireApiAuth } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
+import { SessionStatus, NotificationType } from "../../../../../generated/prisma";
 
 export async function POST(request: NextRequest) {
     try {
@@ -53,7 +54,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Create the therapy session
+        // Create the therapy session as a pending request
         const therapySession = await prisma.therapySession.create({
             data: {
                 patientId: patient.id,
@@ -61,21 +62,21 @@ export async function POST(request: NextRequest) {
                 scheduledAt: new Date(preferredDateTime),
                 duration: 60, // Default 60 minutes
                 type: sessionType,
-                status: 'SCHEDULED',
+                status: SessionStatus.REQUESTED, // Use proper enum value
                 notes: notes || null,
                 objectives: [] // Default empty objectives
-            },
-            include: {
-                therapist: {
-                    include: {
-                        user: {
-                            select: {
-                                name: true,
-                                email: true
-                            }
-                        }
-                    }
-                }
+            }
+        });
+
+        // Create notification for the therapist
+        await prisma.notification.create({
+            data: {
+                senderId: session.user.id,
+                receiverId: therapist.userId,
+                type: NotificationType.APPOINTMENT,
+                title: 'New Session Request',
+                message: `${patient.firstName} ${patient.lastName} has requested a ${sessionType} session on ${new Date(preferredDateTime).toLocaleDateString()}. Session ID: ${therapySession.id}`,
+                isUrgent: true
             }
         });
 
@@ -87,7 +88,7 @@ export async function POST(request: NextRequest) {
                 duration: therapySession.duration,
                 type: therapySession.type,
                 status: therapySession.status,
-                therapistName: therapySession.therapist.user.name || therapySession.therapist.user.email,
+                therapistName: therapist.user.name || therapist.user.email,
                 notes: therapySession.notes
             }
         });
