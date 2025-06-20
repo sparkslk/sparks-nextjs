@@ -6,7 +6,12 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db:reset": "bash scripts/reset-database.sh",
+    "db:reset:hard": "bash scripts/reset-database-advanced.sh --hard",
+    "db:reset:soft": "bash scripts/reset-database-advanced.sh --soft",
+    "db:generate": "bash scripts/reset-database-advanced.sh --schema",
+    "db:migrate": "bash scripts/reset-database-advanced.sh --migrate"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.9.1",
