@@ -4,7 +4,7 @@ import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "./prisma";
 import bcrypt from "bcryptjs";
-import { $Enums } from "../../generated/prisma";
+import { $Enums } from "@prisma/client";
 import { Adapter } from "next-auth/adapters";
 
 // Export UserRole enum from Prisma

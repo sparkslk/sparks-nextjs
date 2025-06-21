@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireApiAuth } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
-import { SessionStatus } from "../../../../../../generated/prisma";
+import { SessionStatus } from "@prisma/client";
 
 // Get count of pending session requests for a therapist
 export async function GET(req: NextRequest) {

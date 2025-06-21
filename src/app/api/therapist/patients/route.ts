@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireApiAuth } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
-import { $Enums } from "../../../../../generated/prisma";
+import { $Enums } from "@prisma/client";
 
 export async function POST(request: NextRequest) {
     try {

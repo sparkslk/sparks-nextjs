@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireApiAuth } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
-import { SessionStatus, NotificationType } from "../../../../../generated/prisma";
+import { SessionStatus, NotificationType } from "@prisma/client";
 
 export async function POST(request: NextRequest) {
     try {

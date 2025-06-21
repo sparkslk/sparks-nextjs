@@ -1,4 +1,4 @@
-import { $Enums } from "../../generated/prisma";
+import { $Enums } from "@prisma/client";
 
 type UserRole = $Enums.UserRole;
 const UserRole = $Enums.UserRole;
