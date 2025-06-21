@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname } from "next/navigation"
 import {
     Calendar,
     Users,
@@ -17,6 +17,7 @@ import {
     ChevronUp,
     Clock
 } from "lucide-react"
+import { signOut } from "next-auth/react";
 
 import {
     Sidebar,
@@ -161,7 +162,6 @@ interface TherapistSidebarProps {
 
 export function TherapistSidebar({ children }: TherapistSidebarProps) {
     const pathname = usePathname()
-    const router = useRouter()
     const [pendingRequests, setPendingRequests] = React.useState(0)
     const [therapistData, setTherapistData] = React.useState<{
         name: string | null
@@ -222,8 +222,7 @@ export function TherapistSidebar({ children }: TherapistSidebarProps) {
 
     const handleSignOut = async () => {
         try {
-            await fetch("/api/auth/signout", { method: "POST" })
-            router.push("/login")
+            await signOut({ callbackUrl: "/login" });
         } catch (error) {
             console.error("Sign out error:", error)
         }
