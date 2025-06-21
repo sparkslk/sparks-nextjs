@@ -7,7 +7,7 @@ const PUBLIC_PATHS = [
     '/',
     '/login',
     '/signup',
-    '/therapist/signup', 
+    '/therapist/signup',
     '/api/auth',
     '/api/auth/',
     '/api/auth/callback',
@@ -50,7 +50,7 @@ export async function middleware(req: NextRequest) {
 
     // Define role-based route access
     const roleRoutes: Record<string, RegExp> = {
-        NORMAL_USER: /^\/dashboard(\/|$)/,
+        NORMAL_USER: /^\/(dashboard|sessions(\/|$)|profile\/create)/,
         THERAPIST: /^\/therapist\//,
         PARENT_GUARDIAN: /^\/parent\//,
         ADMIN: /^\/admin\//,
