@@ -19,7 +19,6 @@ import {
     Clock,
     User,
     FileText,
-    Plus,
     Activity,
     List
 } from "lucide-react";
@@ -99,6 +98,14 @@ export default function DashboardPage() {
         router.push("/sessions/request");
     };
 
+    // Always call the redirect useEffect, but only redirect if patientData is null and not loading or error
+    useEffect(() => {
+        if (!loading && !error && !patientData) {
+            router.replace("/profile/create?reason=new_user");
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [loading, error, patientData]);
+
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
@@ -127,21 +134,8 @@ export default function DashboardPage() {
     }
 
     if (!patientData) {
-        return (
-            <DashboardLayout title="Patient Dashboard" subtitle="Welcome to your therapy portal">
-                <div className="flex flex-col items-center justify-center py-12">
-                    <User className="h-16 w-16 text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">Complete Your Profile</h3>
-                    <p className="text-muted-foreground mb-4 text-center">
-                        To get started with your therapy journey, please complete your patient profile.
-                    </p>
-                    <Button onClick={() => router.push("/profile/create")}>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Create Profile
-                    </Button>
-                </div>
-            </DashboardLayout>
-        );
+        // While redirecting, render nothing
+        return null;
     }
 
     const quickActions = [

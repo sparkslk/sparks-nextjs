@@ -72,20 +72,7 @@ export async function middleware(req: NextRequest) {
     }
 
     // Patient onboarding: check if NORMAL_USER has a profile
-    if (role === 'NORMAL_USER' && pathname === '/dashboard') {
-        // Call API to check profile status
-        const res = await fetch(`${req.nextUrl.origin}/api/user/profile-status`, {
-            headers: { 'Authorization': `Bearer ${token.sub}` },
-        });
-        if (res.ok) {
-            const { hasProfile } = await res.json();
-            if (!hasProfile) {
-                const createProfileUrl = new URL('/profile/create', req.url);
-                createProfileUrl.searchParams.set('reason', 'new_user');
-                return NextResponse.redirect(createProfileUrl);
-            }
-        }
-    }
+    // (Removed API call from middleware. Move this logic to the dashboard page/server component.)
 
     return NextResponse.next();
 }
