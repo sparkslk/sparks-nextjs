@@ -1,42 +1,105 @@
 "use client";
 
-import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import Image from "next/image";
-import { Button } from "@/components/ui/button";
+import { useEffect, useState, useCallback } from "react";
+import DashboardLayout from "@/components/dashboard/DashboardLayout";
+import {
+    StatCard,
+    QuickActionCard,
+    RecentActivity
+} from "@/components/dashboard/DashboardComponents";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { getRoleBasedDashboard } from "@/lib/role-redirect";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+    Calendar,
+    Heart,
+    TrendingUp,
+    MessageCircle,
+    Clock,
+    User,
+    FileText,
+    Plus,
+    Activity,
+    List
+} from "lucide-react";
 
-// Manual UserRole enum (matching our types)
-enum UserRole {
-    NORMAL_USER = "NORMAL_USER",
-    PARENT_GUARDIAN = "PARENT_GUARDIAN",
-    THERAPIST = "THERAPIST",
-    MANAGER = "MANAGER",
-    ADMIN = "ADMIN",
+interface PatientData {
+    id: string;
+    firstName: string;
+    lastName: string;
+    therapist?: {
+        name: string;
+        specialization: string[];
+    };
+    upcomingSessions: SessionData[];
+    recentSessions: SessionData[];
+    treatmentPlans: TreatmentPlan[];
+}
+
+interface SessionData {
+    id: string;
+    scheduledAt: string;
+    duration: number;
+    type: string;
+    status: string;
+    therapistName: string;
+    notes?: string;
+}
+
+interface TreatmentPlan {
+    id: string;
+    title: string;
+    goals: string[];
+    startDate: string;
+    isActive: boolean;
 }
 
 export default function DashboardPage() {
-    const { data: session, status } = useSession();
     const router = useRouter();
+    const [patientData, setPatientData] = useState<PatientData | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-        if (status === "unauthenticated") {
-            router.push("/login");
-        } else if (status === "authenticated" && session?.user) {
-            const userRole = (session.user as { role?: UserRole }).role as UserRole;
+    const fetchPatientData = useCallback(async () => {
+        try {
+            const response = await fetch("/api/profile");
+            if (!response.ok) {
+                throw new Error("Failed to fetch patient data");
+            }
+            const data = await response.json();
 
-            // Redirect users with other roles to their proper dashboards
-            if (userRole !== UserRole.NORMAL_USER) {
-                const dashboardUrl = getRoleBasedDashboard(userRole);
-                router.push(dashboardUrl);
+            // Ensure data.profile exists
+            if (!data.profile) {
+                setPatientData(null);
                 return;
             }
-        }
-    }, [status, router, session]);
 
-    if (status === "loading") {
+            // Set patient data with safe default empty arrays for sessions and treatment plans
+            setPatientData({
+                ...data.profile,
+                upcomingSessions: data.profile.upcomingSessions || [],
+                recentSessions: data.profile.recentSessions || [],
+                treatmentPlans: data.profile.treatmentPlans || []
+            });
+        } catch (error) {
+            console.error("Error fetching patient data:", error);
+            setError(error instanceof Error ? error.message : "Failed to load patient data");
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        // Fetch patient data on component mount
+        fetchPatientData();
+    }, [fetchPatientData]);
+
+    const requestSession = () => {
+        router.push("/sessions/request");
+    };
+
+    if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
                 <div className="text-center">
@@ -47,292 +110,260 @@ export default function DashboardPage() {
         );
     }
 
-    if (!session || !session.user) {
-        return null;
+    if (error) {
+        return (
+            <DashboardLayout title="Patient Dashboard" subtitle="Welcome to your therapy portal">
+                <div className="flex flex-col items-center justify-center py-12">
+                    <div className="text-center">
+                        <h3 className="text-lg font-semibold mb-2">Unable to load dashboard</h3>
+                        <p className="text-muted-foreground mb-4">{error}</p>
+                        <Button onClick={() => window.location.reload()}>
+                            Try Again
+                        </Button>
+                    </div>
+                </div>
+            </DashboardLayout>
+        );
     }
 
-    // Type assertion to access the role property
-    const user = session.user as {
-        id?: string;
-        name?: string | null;
-        email?: string | null;
-        image?: string | null;
-        role?: UserRole;
-    };
+    if (!patientData) {
+        return (
+            <DashboardLayout title="Patient Dashboard" subtitle="Welcome to your therapy portal">
+                <div className="flex flex-col items-center justify-center py-12">
+                    <User className="h-16 w-16 text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">Complete Your Profile</h3>
+                    <p className="text-muted-foreground mb-4 text-center">
+                        To get started with your therapy journey, please complete your patient profile.
+                    </p>
+                    <Button onClick={() => router.push("/profile/create")}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Create Profile
+                    </Button>
+                </div>
+            </DashboardLayout>
+        );
+    }
 
-    const handleSignOut = async () => {
-        await signOut({ callbackUrl: "/login" });
-    };
-
-    const getRoleDisplayName = (role: string) => {
-        switch (role) {
-            case "NORMAL_USER":
-                return "Normal User";
-            case "PARENT_GUARDIAN":
-                return "Parent/Guardian";
-            case "THERAPIST":
-                return "Therapist";
-            case "MANAGER":
-                return "Manager";
-            case "ADMIN":
-                return "Administrator";
-            default:
-                return role;
+    const quickActions = [
+        {
+            title: "Request Session",
+            description: "Schedule a new therapy session",
+            icon: Calendar,
+            onClick: requestSession
+        },
+        {
+            title: "My Requests",
+            description: "View your session requests",
+            icon: List,
+            onClick: () => router.push("/sessions/my-requests")
+        },
+        {
+            title: "View Progress",
+            description: "Check your treatment progress",
+            icon: TrendingUp,
+            onClick: () => router.push("/progress")
+        },
+        {
+            title: "Message Therapist",
+            description: "Send a message to your therapist",
+            icon: MessageCircle,
+            onClick: () => router.push("/messages")
+        },
+        {
+            title: "Resources",
+            description: "Access therapy resources and exercises",
+            icon: FileText,
+            onClick: () => router.push("/resources")
         }
-    };
+    ];
 
-    const getRoleDescription = (role: string) => {
-        switch (role) {
-            case "NORMAL_USER":
-                return "You have regular user access to the platform.";
-            case "PARENT_GUARDIAN":
-                return "You can manage family accounts and children&apos;s profiles.";
-            case "THERAPIST":
-                return "You have access to therapeutic tools and client management.";
-            case "MANAGER":
-                return "You can manage team operations and user accounts.";
-            case "ADMIN":
-                return "You have full administrative access to the system.";
-            default:
-                return "Welcome to your dashboard.";
+    const formatRecentActivities = () => {
+        const activities: Array<{
+            id: string;
+            type: "session" | "task" | "assessment" | "notification";
+            title: string;
+            description: string;
+            time: string;
+            status: "completed" | "pending" | "cancelled";
+        }> = [];
+
+        // Add recent sessions (safely handle empty array)
+        if (patientData?.recentSessions && Array.isArray(patientData.recentSessions)) {
+            patientData.recentSessions.slice(0, 3).forEach(session => {
+                activities.push({
+                    id: `session-${session.id}`,
+                    type: "session" as const,
+                    title: `Therapy Session - ${session.type || 'General'}`,
+                    description: `Session with ${session.therapistName || 'Therapist'}`,
+                    time: new Date(session.scheduledAt).toLocaleDateString(),
+                    status: session.status as "completed" | "pending" | "cancelled"
+                });
+            });
         }
+
+        return activities;
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5">
-            <header className="border-b border-border bg-card/50 backdrop-blur">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center h-16">
+        <DashboardLayout
+            title="Patient Dashboard"
+            subtitle={`Welcome back, ${patientData.firstName}!`}
+        >
+            {/* Patient Info Card */}
+            <Card className="mb-8">
+                <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-4">
-                            <Image
-                                src="/images/sparkslogo.png"
-                                alt="SPARKS Logo"
-                                width={80}
-                                height={40}
-                                className="object-contain"
-                            />
+                            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
+                                <User className="h-8 w-8 text-primary" />
+                            </div>
                             <div>
-                                <h1 className="text-xl font-bold text-foreground">SPARKS Dashboard</h1>
+                                <h2 className="text-2xl font-bold">
+                                    {patientData.firstName} {patientData.lastName}
+                                </h2>
+                                {patientData.therapist && (
+                                    <p className="text-muted-foreground">
+                                        Primary Therapist: {patientData.therapist.name}
+                                    </p>
+                                )}
                             </div>
                         </div>
-                        <div className="flex items-center space-x-4">
-                            <div className="text-right">
-                                <p className="text-sm font-medium text-foreground">{user.name}</p>
-                                <p className="text-xs text-muted-foreground">{user.email}</p>
-                            </div>
-                            <Button variant="outline" onClick={handleSignOut}>
-                                Sign Out
-                            </Button>
-                        </div>
+                        <Button onClick={requestSession}>
+                            <Calendar className="mr-2 h-4 w-4" />
+                            Request Session
+                        </Button>
                     </div>
-                </div>
-            </header>
+                </CardContent>
+            </Card>
 
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="grid gap-6">
+            {/* Statistics Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <StatCard
+                    title="Upcoming Sessions"
+                    value={patientData?.upcomingSessions?.length || 0}
+                    description="Scheduled therapy sessions"
+                    icon={Calendar}
+                    color="primary"
+                />
+                <StatCard
+                    title="Completed Sessions"
+                    value={patientData?.recentSessions?.filter(s => s?.status === 'COMPLETED')?.length || 0}
+                    description="This month"
+                    icon={Heart}
+                    color="success"
+                />
+                <StatCard
+                    title="Active Plans"
+                    value={patientData?.treatmentPlans?.filter(p => p?.isActive)?.length || 0}
+                    description="Treatment plans in progress"
+                    icon={TrendingUp}
+                    color="default"
+                />
+            </div>
+
+            {/* Quick Actions */}
+            <div className="mb-8">
+                <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {quickActions.map((action, index) => (
+                        <QuickActionCard
+                            key={index}
+                            title={action.title}
+                            description={action.description}
+                            icon={action.icon}
+                            onClick={action.onClick}
+                        />
+                    ))}
+                </div>
+            </div>
+
+            {/* Main Content Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Upcoming Sessions */}
+                <div className="lg:col-span-1">
                     <Card>
-                        <CardHeader>            <CardTitle className="text-2xl">
-                            Welcome, {user.name}!
-                        </CardTitle>
-                            <CardDescription>
-                                {getRoleDescription(user.role || "")}
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                                <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
-                                    <h3 className="font-semibold text-foreground">Account Type</h3>
-                                    <p className="text-sm text-muted-foreground mt-1">
-                                        {getRoleDisplayName(user.role || "")}
-                                    </p>
-                                </div>
-                                <div className="p-4 rounded-lg bg-secondary/5 border border-secondary/20">
-                                    <h3 className="font-semibold text-foreground">Email</h3>
-                                    <p className="text-sm text-muted-foreground mt-1">
-                                        {user.email}
-                                    </p>
-                                </div>
-                                <div className="p-4 rounded-lg bg-accent/5 border border-accent/20">
-                                    <h3 className="font-semibold text-foreground">Status</h3>
-                                    <p className="text-sm text-muted-foreground mt-1">
-                                        Active User
-                                    </p>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Profile</CardTitle>
-                                <CardDescription>
-                                    Manage your account settings
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <Button variant="outline" className="w-full">
-                                    Edit Profile
-                                </Button>
-                            </CardContent>
-                        </Card>
-
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Security</CardTitle>
-                                <CardDescription>
-                                    Update password and security settings
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <Button variant="outline" className="w-full">
-                                    Security Settings
-                                </Button>
-                            </CardContent>
-                        </Card>
-
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Support</CardTitle>
-                                <CardDescription>
-                                    Get help and contact support
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <Button variant="outline" className="w-full">
-                                    Contact Support
-                                </Button>
-                            </CardContent>
-                        </Card>
-                    </div>
-
-                    {/* Role-specific content */}
-                    {user.role === "ADMIN" && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Admin Panel</CardTitle>
-                                <CardDescription>
-                                    Administrative tools and user management
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="grid gap-4 md:grid-cols-2">
-                                <Button>User Management</Button>
-                                <Button>System Settings</Button>
-                                <Button>Analytics</Button>
-                                <Button>Audit Logs</Button>
-                            </CardContent>
-                        </Card>
-                    )}
-
-                    {user.role === "MANAGER" && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Manager Tools</CardTitle>
-                                <CardDescription>
-                                    Team management and operational tools
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="grid gap-4 md:grid-cols-2">
-                                <Button>Team Management</Button>
-                                <Button>Reports</Button>
-                                <Button>Scheduling</Button>
-                                <Button>Resources</Button>
-                            </CardContent>
-                        </Card>
-                    )}
-
-                    {user.role === "THERAPIST" && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Therapist Dashboard</CardTitle>
-                                <CardDescription>
-                                    Client management and therapeutic tools
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="grid gap-4 md:grid-cols-2">
-                                <Button>Client List</Button>
-                                <Button>Assessments</Button>
-                                <Button>Treatment Plans</Button>
-                                <Button>Progress Notes</Button>
-                            </CardContent>
-                        </Card>
-                    )}
-
-                    {user.role === "PARENT_GUARDIAN" && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Family Dashboard</CardTitle>
-                                <CardDescription>
-                                    Manage your family&apos;s SPARKS journey
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="grid gap-4 md:grid-cols-2">
-                                <Button>Children&apos;s Profiles</Button>
-                                <Button>Appointments</Button>
-                                <Button>Progress Reports</Button>
-                                <Button>Resources</Button>
-                            </CardContent>
-                        </Card>
-                    )}
-
-                    {/* Password Setup Prompt for OAuth users */}
-                    <Card className="border-yellow-200 bg-yellow-50 dark:bg-yellow-950/20 dark:border-yellow-800">
                         <CardHeader>
-                            <CardTitle className="text-lg flex items-center gap-2">
-                                <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                                </svg>
-                                Set Up Password
-                            </CardTitle>
-                            <CardDescription>
-                                Set up a password to sign in with email and password in addition to Google OAuth.
-                            </CardDescription>
+                            <CardTitle>Upcoming Sessions</CardTitle>
+                            <CardDescription>Your scheduled therapy appointments</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                            {!patientData?.upcomingSessions || !Array.isArray(patientData.upcomingSessions) || patientData.upcomingSessions.length === 0 ? (
+                                <div className="text-center py-4">
+                                    <Clock className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                                    <p className="text-muted-foreground text-sm">No upcoming sessions</p>
+                                    <Button variant="outline" size="sm" className="mt-2" onClick={requestSession}>
+                                        Request Session
+                                    </Button>
+                                </div>
+                            ) : (
+                                patientData.upcomingSessions.map((session) => (
+                                    <div key={session.id} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg">
+                                        <div>
+                                            <p className="font-medium">{session.type || 'Therapy Session'}</p>
+                                            <p className="text-sm text-muted-foreground">
+                                                {new Date(session.scheduledAt).toLocaleDateString()} at{" "}
+                                                {new Date(session.scheduledAt).toLocaleTimeString([], {
+                                                    hour: '2-digit',
+                                                    minute: '2-digit'
+                                                })}
+                                            </p>
+                                        </div>
+                                        <Badge variant="outline">{session.duration || 60} min</Badge>
+                                    </div>
+                                ))
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* Recent Activity */}
+                <div className="lg:col-span-2">
+                    <RecentActivity
+                        activities={formatRecentActivities()}
+                        title="Recent Sessions"
+                    />
+                </div>
+            </div>
+
+            {/* Treatment Plans */}
+            {patientData?.treatmentPlans && patientData.treatmentPlans.length > 0 && (
+                <div className="mt-8">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Treatment Plans</CardTitle>
+                            <CardDescription>Your active treatment and therapy goals</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <div className="flex gap-3">
-                                <Button
-                                    onClick={() => router.push("/set-password")}
-                                    className="bg-yellow-600 hover:bg-yellow-700"
-                                >
-                                    Set Password
-                                </Button>
-                                <Button variant="outline">
-                                    Remind Me Later
-                                </Button>
+                            <div className="space-y-4">
+                                {patientData.treatmentPlans.map((plan) => (
+                                    <div key={plan.id} className="p-4 bg-muted/20 rounded-lg">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <h4 className="font-medium">{plan.title}</h4>
+                                            <Badge variant={plan.isActive ? "default" : "secondary"}>
+                                                {plan.isActive ? "Active" : "Completed"}
+                                            </Badge>
+                                        </div>
+                                        <p className="text-sm text-muted-foreground mb-2">
+                                            Started: {new Date(plan.startDate).toLocaleDateString()}
+                                        </p>
+                                        <div className="space-y-1">
+                                            <p className="text-sm font-medium">Goals:</p>
+                                            <ul className="text-sm text-muted-foreground space-y-1">
+                                                {plan.goals.map((goal, index) => (
+                                                    <li key={index} className="flex items-center">
+                                                        <Activity className="h-3 w-3 mr-2" />
+                                                        {goal}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         </CardContent>
                     </Card>
-
-                    {/* Temporary Role Update - Remove after fixing your account */}
-                    {user.email === "thedailygrindbykh@gmail.com" && user.role === "NORMAL_USER" && (
-                        <Card className="border-yellow-200 bg-yellow-50">
-                            <CardHeader>
-                                <CardTitle className="text-yellow-800">Account Role Update</CardTitle>
-                                <CardDescription className="text-yellow-700">
-                                    You signed up from therapist signup but got normal user role. Click below to update your role.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <Button
-                                    onClick={async () => {
-                                        const response = await fetch("/api/auth/update-role", {
-                                            method: "POST",
-                                            headers: { "Content-Type": "application/json" },
-                                            body: JSON.stringify({ role: "THERAPIST" })
-                                        });
-                                        if (response.ok) {
-                                            window.location.href = "/therapist/dashboard";
-                                        }
-                                    }}
-                                    className="bg-yellow-600 hover:bg-yellow-700"
-                                >
-                                    Update to Therapist Role
-                                </Button>
-                            </CardContent>
-                        </Card>
-                    )}
                 </div>
-            </main>
-        </div>
+            )}
+        </DashboardLayout>
     );
 }

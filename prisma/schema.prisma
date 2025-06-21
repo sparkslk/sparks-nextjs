@@ -22,6 +22,46 @@ enum UserRole {
   ADMIN
 }
 
+enum SessionStatus {
+  REQUESTED
+  APPROVED
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  DECLINED
+  NO_SHOW
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  OVERDUE
+}
+
+enum AssessmentType {
+  INITIAL
+  PROGRESS
+  FINAL
+  FOLLOW_UP
+}
+
+enum NotificationType {
+  APPOINTMENT
+  REMINDER
+  TASK
+  SYSTEM
+  EMERGENCY
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+// Auth Models (kept as is for role assignment)
 model Account {
   id                String  @id @default(cuid())
   userId            String
@@ -58,10 +98,23 @@ model User {
   password      String?
   role          UserRole  @default(NORMAL_USER)
   metadata      Json? // For storing role-specific data like license numbers, specializations, etc.
-  accounts      Account[]
-  sessions      Session[]
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  accounts Account[]
+  sessions Session[]
+
+  // Role-specific relations
+  therapistProfile    Therapist?
+  patientProfile      Patient?
+  parentGuardianRel   ParentGuardian[]
+  managedOrganization Organization?    @relation("OrganizationManager")
+
+  // Activity tracking
+  sentNotifications     Notification[] @relation("NotificationSender")
+  receivedNotifications Notification[] @relation("NotificationReceiver")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model VerificationToken {
@@ -70,4 +123,246 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+// Core Business Models
+model Organization {
+  id      String  @id @default(cuid())
+  name    String
+  code    String  @unique
+  address String?
+  phone   String?
+  email   String?
+  website String?
+
+  // Relations
+  managerId  String?     @unique
+  manager    User?       @relation("OrganizationManager", fields: [managerId], references: [id])
+  therapists Therapist[]
+  patients   Patient[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Therapist {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  licenseNumber  String   @unique
+  specialization String[]
+  experience     Int? // Years of experience
+  bio            String?  @db.Text
+  availability   Json? // Store availability schedule
+
+  // Relations
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+
+  // Professional relations
+  patients        Patient[]
+  therapySessions TherapySession[]
+  treatments      Treatment[]
+  assessments     Assessment[]
+  treatmentPlans  TreatmentPlan[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Patient {
+  id               String   @id @default(cuid())
+  userId           String?  @unique
+  firstName        String
+  lastName         String
+  dateOfBirth      DateTime
+  gender           Gender
+  phone            String?
+  email            String?
+  address          String?
+  emergencyContact Json? // Store emergency contact info
+  medicalHistory   String?  @db.Text
+
+  // Relations
+  user               User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  organizationId     String?
+  organization       Organization? @relation(fields: [organizationId], references: [id])
+  primaryTherapistId String?
+  primaryTherapist   Therapist?    @relation(fields: [primaryTherapistId], references: [id])
+
+  // Family relations
+  parentGuardians ParentGuardian[]
+
+  // Clinical relations
+  therapySessions TherapySession[]
+  treatments      Treatment[]
+  assessments     Assessment[]
+  treatmentPlans  TreatmentPlan[]
+  tasks           Task[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ParentGuardian {
+  id               String  @id @default(cuid())
+  userId           String
+  patientId        String
+  relationship     String // mother, father, guardian, etc.
+  isPrimary        Boolean @default(false)
+  canMakeDecisions Boolean @default(true)
+
+  // Relations
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, patientId])
+}
+
+model TherapySession {
+  id          String        @id @default(cuid())
+  patientId   String
+  therapistId String
+  scheduledAt DateTime
+  duration    Int // Duration in minutes
+  status      SessionStatus @default(SCHEDULED)
+  type        String // individual, group, family, etc.
+  location    String?
+  notes       String?       @db.Text
+  objectives  String[] // Session objectives
+
+  // Progress tracking
+  patientMood   Int? // 1-10 scale
+  engagement    Int? // 1-10 scale
+  progressNotes String? @db.Text
+
+  // Relations
+  patient   Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  therapist Therapist @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TreatmentPlan {
+  id            String    @id @default(cuid())
+  patientId     String
+  therapistId   String
+  title         String
+  description   String    @db.Text
+  goals         String[]
+  startDate     DateTime
+  targetEndDate DateTime?
+  isActive      Boolean   @default(true)
+
+  // Relations
+  patient    Patient     @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  therapist  Therapist   @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+  treatments Treatment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Treatment {
+  id              String    @id @default(cuid())
+  treatmentPlanId String
+  patientId       String
+  therapistId     String
+  name            String
+  description     String    @db.Text
+  instructions    String?   @db.Text
+  frequency       String? // daily, weekly, etc.
+  dosage          String?
+  startDate       DateTime
+  endDate         DateTime?
+  isActive        Boolean   @default(true)
+
+  // Relations
+  treatmentPlan TreatmentPlan @relation(fields: [treatmentPlanId], references: [id], onDelete: Cascade)
+  patient       Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  therapist     Therapist     @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Assessment {
+  id              String         @id @default(cuid())
+  patientId       String
+  therapistId     String
+  type            AssessmentType
+  title           String
+  description     String?        @db.Text
+  questions       Json // Store assessment questions and structure
+  responses       Json? // Store patient responses
+  score           Float?
+  interpretation  String?        @db.Text
+  recommendations String?        @db.Text
+  assessmentDate  DateTime
+
+  // Relations
+  patient   Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  therapist Therapist @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Task {
+  id               String     @id @default(cuid())
+  patientId        String
+  title            String
+  description      String?    @db.Text
+  instructions     String?    @db.Text
+  dueDate          DateTime?
+  status           TaskStatus @default(PENDING)
+  priority         Int        @default(1) // 1-5 scale
+  isRecurring      Boolean    @default(false)
+  recurringPattern String? // daily, weekly, monthly
+
+  // Progress tracking
+  completedAt     DateTime?
+  completionNotes String?   @db.Text
+
+  // Relations
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Notification {
+  id           String           @id @default(cuid())
+  senderId     String?
+  receiverId   String
+  type         NotificationType
+  title        String
+  message      String           @db.Text
+  isRead       Boolean          @default(false)
+  isUrgent     Boolean          @default(false)
+  scheduledFor DateTime?
+  sentAt       DateTime?
+
+  // Relations
+  sender   User? @relation("NotificationSender", fields: [senderId], references: [id], onDelete: SetNull)
+  receiver User  @relation("NotificationReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model JournalEntry {
+  id        String   @id @default(cuid())
+  patientId String?
+  content   String   @db.Text
+  mood      Int? // 1-10 scale
+  tags      String[]
+  isPrivate Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

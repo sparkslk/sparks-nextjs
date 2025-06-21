@@ -1,0 +1,5 @@
+{
+    "name": "reset-db",
+    "description": "Reset database and regenerate Prisma schema",
+    "script": "bash scripts/reset-database.sh"
+}
