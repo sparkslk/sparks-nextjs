@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { withAuth } from "next-auth/middleware";
-import { $Enums } from "./generated/prisma";
+import { $Enums } from "@prisma/client";
 import { isAuthorizedForRoute, getRoleBasedDashboard } from "./src/lib/role-redirect";
 
 type UserRole = $Enums.UserRole;
