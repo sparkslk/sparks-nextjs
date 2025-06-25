@@ -7,6 +7,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import NotificationBell from "@/components/NotificationBell";
 import {
     Users,
     Calendar,
@@ -109,6 +110,7 @@ export default function ParentDashboard() {
                             </div>
                         </div>
                         <div className="flex items-center space-x-4">
+                            <NotificationBell />
                             <div className="text-right">
                                 <p className="text-sm font-medium">{parentData?.children[0]?.firstName}</p>
                                 <Badge variant="secondary" className="text-xs">
