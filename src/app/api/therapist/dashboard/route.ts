@@ -12,7 +12,17 @@ export async function GET(req: NextRequest) {
             where: { userId: session.user.id },
             include: {
                 patients: true,
-                therapySessions: true,
+                therapySessions: {
+                    include: {
+                        patient: {
+                            select: {
+                                id: true,
+                                firstName: true,
+                                lastName: true
+                            }
+                        }
+                    }
+                },
             },
         });
 
@@ -44,11 +54,11 @@ export async function GET(req: NextRequest) {
             .slice(0, 5)
             .map((s) => ({
                 id: s.id,
-                type: s.type,
-                title: `Session with ${s.patientId}`,
-                description: s.notes || '',
+                type: "session" as const,
+                title: `Session with ${s.patient.firstName} ${s.patient.lastName}`,
+                description: s.notes || `${s.type} session`,
                 time: s.scheduledAt,
-                status: s.status,
+                status: s.status.toLowerCase(),
             }));
 
         // Upcoming appointments (next 5 sessions)
@@ -59,10 +69,10 @@ export async function GET(req: NextRequest) {
             .slice(0, 5)
             .map((s) => ({
                 id: s.id,
-                patientId: s.patientId,
+                patientName: `${s.patient.firstName} ${s.patient.lastName}`,
                 time: s.scheduledAt,
                 type: s.type,
-                status: s.status,
+                status: s.status.toLowerCase(),
             }));
 
         return NextResponse.json({ stats, recentActivities, upcomingAppointments });

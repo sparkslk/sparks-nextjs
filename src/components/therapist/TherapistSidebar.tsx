@@ -57,7 +57,7 @@ function getInitials(name: string): string {
 }
 
 // Menu items data
-const menuItems = {
+const getMenuItems = (pendingRequests: number) => ({
     overview: [
         {
             title: "Dashboard",
@@ -69,7 +69,7 @@ const menuItems = {
             title: "Session Requests",
             url: "/therapist/requests",
             icon: Bell,
-            badge: "pending",
+            badge: pendingRequests > 0 ? pendingRequests.toString() : null,
         },
     ],
     clinical: [
@@ -154,7 +154,7 @@ const menuItems = {
             badge: "3",
         },
     ],
-}
+});
 
 interface TherapistSidebarProps {
     children: React.ReactNode
@@ -170,6 +170,9 @@ export function TherapistSidebar({ children }: TherapistSidebarProps) {
         specialization: string[]
     } | null>(null)
     const [isLoading, setIsLoading] = React.useState(true)
+
+    // Get menu items with current pending requests count
+    const menuItems = getMenuItems(pendingRequests)
 
     // Fetch therapist data and pending requests count
     React.useEffect(() => {
