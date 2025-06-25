@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "deploy:prod": "bash scripts/deploy-production.sh",
     "db:reset": "bash scripts/reset-database.sh",
     "db:reset:hard": "bash scripts/reset-database-advanced.sh --hard",
     "db:reset:soft": "bash scripts/reset-database-advanced.sh --soft",
