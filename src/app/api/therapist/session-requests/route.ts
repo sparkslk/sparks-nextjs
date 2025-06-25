@@ -3,6 +3,82 @@ import { requireApiAuth } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
 import { SessionStatus, NotificationType } from "@prisma/client";
 
+/**
+ * @swagger
+ * /api/therapist/session-requests:
+ *   get:
+ *     summary: Get therapist's session requests
+ *     description: Retrieve all therapy session requests for the authenticated therapist
+ *     tags:
+ *       - Therapist
+ *       - Sessions
+ *     security:
+ *       - sessionAuth: []
+ *     responses:
+ *       200:
+ *         description: Session requests retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                     description: Session request ID
+ *                   sessionType:
+ *                     type: string
+ *                     description: Type of therapy session
+ *                   preferredDateTime:
+ *                     type: string
+ *                     format: date-time
+ *                     description: Requested date and time
+ *                   status:
+ *                     type: string
+ *                     enum: ["PENDING", "APPROVED", "REJECTED", "COMPLETED"]
+ *                     description: Current status of the request
+ *                   notes:
+ *                     type: string
+ *                     description: Additional notes from patient
+ *                   patient:
+ *                     type: object
+ *                     properties:
+ *                       user:
+ *                         type: object
+ *                         properties:
+ *                           name:
+ *                             type: string
+ *                             description: Patient name
+ *                   createdAt:
+ *                     type: string
+ *                     format: date-time
+ *                     description: Request creation time
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Forbidden - user is not a therapist
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Therapist profile not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 // Get all session requests for a therapist
 export async function GET(req: NextRequest) {
     try {
@@ -71,6 +147,82 @@ export async function GET(req: NextRequest) {
     }
 }
 
+/**
+ * @swagger
+ * /api/therapist/session-requests:
+ *   patch:
+ *     summary: Update session request status
+ *     description: Approve or decline a therapy session request
+ *     tags:
+ *       - Therapist
+ *       - Sessions
+ *     security:
+ *       - sessionAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - sessionId
+ *               - action
+ *             properties:
+ *               sessionId:
+ *                 type: string
+ *                 description: ID of the session request to update
+ *                 example: "session_123456"
+ *               action:
+ *                 type: string
+ *                 enum: ["approve", "decline"]
+ *                 description: Action to take on the session request
+ *                 example: "approve"
+ *               notes:
+ *                 type: string
+ *                 description: Additional notes from therapist
+ *                 example: "Looking forward to our session"
+ *     responses:
+ *       200:
+ *         description: Session request status updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Session request approved"
+ *       400:
+ *         description: Bad request - missing or invalid fields
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Forbidden - user is not a therapist
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Session request not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 // Update session request status (approve/decline)
 export async function PATCH(req: NextRequest) {
     try {
