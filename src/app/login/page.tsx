@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { signIn, getSession } from "next-auth/react";
+import { useState, useEffect } from "react";
+import { signIn, getSession, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -18,6 +18,28 @@ export default function LoginPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
     const router = useRouter();
+    const { data: session, status } = useSession();
+
+    // Redirect authenticated users to their dashboard
+    useEffect(() => {
+        if (status === "authenticated" && session?.user) {
+            const userRole = (session.user as { role?: UserRole }).role as UserRole;
+            const dashboardUrl = getRoleBasedDashboard(userRole);
+            router.push(dashboardUrl);
+        }
+    }, [session, status, router]);
+
+    // Show loading while checking authentication
+    if (status === "loading") {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/10">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
+                    <p className="mt-4 text-muted-foreground">Loading...</p>
+                </div>
+            </div>
+        );
+    }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
