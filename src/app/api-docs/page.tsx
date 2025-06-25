@@ -16,7 +16,7 @@ const SwaggerUI = dynamic(() => import('swagger-ui-react'), {
 });
 
 export default function ApiDoc() {
-  const [spec, setSpec] = useState<any>(null);
+  const [spec, setSpec] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

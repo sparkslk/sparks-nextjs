@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getApiDocs } from "../../../lib/swagger";
 
 /**
@@ -24,11 +24,11 @@ import { getApiDocs } from "../../../lib/swagger";
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-export async function GET(req: NextRequest) {
+export async function GET() {
     try {
         console.log('Swagger endpoint called');
         const spec = await getApiDocs();
-        console.log('Generated spec with paths:', Object.keys((spec as any).paths || {}));
+        console.log('Generated spec with paths:', Object.keys((spec as Record<string, unknown>).paths || {}));
 
         return NextResponse.json(spec, {
             headers: {

@@ -2,7 +2,7 @@ declare module 'swagger-ui-react' {
     import React from 'react';
 
     interface SwaggerUIProps {
-        spec?: any;
+        spec?: Record<string, unknown>;
         url?: string;
         docExpansion?: 'list' | 'full' | 'none';
         defaultModelsExpandDepth?: number;
@@ -13,17 +13,17 @@ declare module 'swagger-ui-react' {
         showExtensions?: boolean;
         showCommonExtensions?: boolean;
         tryItOutEnabled?: boolean;
-        requestInterceptor?: (request: any) => any;
-        responseInterceptor?: (response: any) => any;
-        onComplete?: (system: any) => void;
+        requestInterceptor?: (request: Record<string, unknown>) => Record<string, unknown>;
+        responseInterceptor?: (response: Record<string, unknown>) => Record<string, unknown>;
+        onComplete?: (system: Record<string, unknown>) => void;
         syntaxHighlight?: {
             activated?: boolean;
             theme?: string;
         };
         validatorUrl?: string | null;
         supportedSubmitMethods?: string[];
-        plugins?: any[];
-        presets?: any[];
+        plugins?: unknown[];
+        presets?: unknown[];
         layout?: string;
         filter?: string | boolean;
     }
