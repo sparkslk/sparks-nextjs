@@ -9,11 +9,15 @@ import { Calendar, Clock, User, ArrowLeft, RefreshCw, Check, X } from "lucide-re
 
 interface SessionRequest {
     id: string;
+    patient: {
+        name: string;
+        email?: string;
+        phone?: string;
+    };
     scheduledAt: string;
     duration: number;
     type: string;
     status: string;
-    patientName: string;
     notes?: string;
     createdAt: string;
 }
@@ -175,7 +179,7 @@ export default function TherapistRequestsPage() {
                                                 <div>
                                                     <CardTitle className="text-lg">{request.type}</CardTitle>
                                                     <CardDescription>
-                                                        from {request.patientName}
+                                                        from {request.patient.name}
                                                     </CardDescription>
                                                 </div>
                                             </div>
@@ -212,7 +216,7 @@ export default function TherapistRequestsPage() {
                                                 <div>
                                                     <p className="text-sm font-medium">Patient</p>
                                                     <p className="text-sm text-muted-foreground">
-                                                        {request.patientName}
+                                                        {request.patient.name}
                                                     </p>
                                                 </div>
                                             </div>

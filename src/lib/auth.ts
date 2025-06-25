@@ -54,6 +54,7 @@ export const authOptions: NextAuthOptions = {
     ],
     session: {
         strategy: "jwt",
+        maxAge: 24 * 60 * 60, // 24 hours
     },
     callbacks: {
         async signIn({ user, account, profile }) {
@@ -202,6 +203,18 @@ export const authOptions: NextAuthOptions = {
     pages: {
         signIn: "/login",
         error: "/login", // Redirect errors to login page
+        signOut: "/login", // Redirect after sign out
+    },
+    cookies: {
+        sessionToken: {
+            name: "next-auth.session-token",
+            options: {
+                httpOnly: true,
+                sameSite: "lax",
+                path: "/",
+                secure: process.env.NODE_ENV === "production",
+            },
+        },
     },
     debug: process.env.NODE_ENV === "development",
 };

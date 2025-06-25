@@ -27,26 +27,36 @@ interface StatCardProps {
 
 export function StatCard({ title, value, description, icon: Icon, trend, color = "default" }: StatCardProps) {
     const colorClasses = {
-        default: "bg-card",
-        primary: "bg-primary/10 border-primary/20",
-        success: "bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800",
-        warning: "bg-yellow-50 border-yellow-200 dark:bg-yellow-950 dark:border-yellow-800",
-        danger: "bg-red-50 border-red-200 dark:bg-red-950 dark:border-red-800"
+        default: "bg-card/95 backdrop-blur border-0 shadow-lg",
+        primary: "bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20 shadow-lg backdrop-blur",
+        success: "bg-gradient-to-r from-green-50/95 to-green-100/50 border-green-200/50 shadow-lg backdrop-blur dark:from-green-950/95 dark:to-green-900/50 dark:border-green-800/50",
+        warning: "bg-gradient-to-r from-yellow-50/95 to-yellow-100/50 border-yellow-200/50 shadow-lg backdrop-blur dark:from-yellow-950/95 dark:to-yellow-900/50 dark:border-yellow-800/50",
+        danger: "bg-gradient-to-r from-red-50/95 to-red-100/50 border-red-200/50 shadow-lg backdrop-blur dark:from-red-950/95 dark:to-red-900/50 dark:border-red-800/50"
+    };
+
+    const iconColorClasses = {
+        default: "text-primary",
+        primary: "text-primary",
+        success: "text-green-600 dark:text-green-400",
+        warning: "text-yellow-600 dark:text-yellow-400",
+        danger: "text-red-600 dark:text-red-400"
     };
 
     return (
-        <Card className={`transition-all hover:shadow-md ${colorClasses[color]}`}>
+        <Card className={`transition-all duration-300 hover:shadow-xl hover:scale-105 ${colorClasses[color]}`}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{title}</CardTitle>
-                <Icon className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+                <div className="p-2 bg-background/50 rounded-lg">
+                    <Icon className={`h-4 w-4 ${iconColorClasses[color]}`} />
+                </div>
             </CardHeader>
             <CardContent>
-                <div className="text-2xl font-bold">{value}</div>
+                <div className="text-2xl font-bold bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">{value}</div>
                 {description && (
-                    <p className="text-xs text-muted-foreground">{description}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{description}</p>
                 )}
                 {trend && (
-                    <div className={`flex items-center text-xs ${trend.isPositive ? 'text-green-600' : 'text-red-600'
+                    <div className={`flex items-center text-xs mt-2 ${trend.isPositive ? 'text-green-600' : 'text-red-600'
                         }`}>
                         <TrendingUp className={`mr-1 h-3 w-3 ${!trend.isPositive ? 'rotate-180' : ''
                             }`} />
@@ -68,18 +78,18 @@ interface QuickActionProps {
 
 export function QuickActionCard({ title, description, icon: Icon, onClick }: QuickActionProps) {
     return (
-        <Card className="cursor-pointer transition-all hover:shadow-md hover:scale-105" onClick={onClick}>
-            <CardHeader>
-                <div className="flex items-center space-x-2">
-                    <div className="p-2 bg-primary/10 rounded-lg">
-                        <Icon className="h-5 w-5 text-primary" />
+        <Card className="cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 border-0 shadow-lg bg-card/95 backdrop-blur group" onClick={onClick}>
+            <CardContent className="p-4">
+                <div className="flex flex-col items-center text-center space-y-3">
+                    <div className="p-3 bg-gradient-to-r from-primary/20 to-purple-500/20 rounded-full group-hover:from-primary/30 group-hover:to-purple-500/30 transition-all">
+                        <Icon className="h-6 w-6 text-primary" />
                     </div>
                     <div>
-                        <CardTitle className="text-base">{title}</CardTitle>
-                        <CardDescription className="text-sm">{description}</CardDescription>
+                        <CardTitle className="text-sm font-semibold">{title}</CardTitle>
+                        <CardDescription className="text-xs text-muted-foreground mt-1">{description}</CardDescription>
                     </div>
                 </div>
-            </CardHeader>
+            </CardContent>
         </Card>
     );
 }
@@ -115,45 +125,48 @@ export function RecentActivity({ activities, title = "Recent Activity" }: Recent
     const getTypeIcon = (type: string) => {
         switch (type) {
             case "session":
-                return <Calendar className="h-4 w-4" />;
+                return <Calendar className="h-4 w-4 text-primary" />;
             case "task":
-                return <CheckCircle className="h-4 w-4" />;
+                return <CheckCircle className="h-4 w-4 text-green-500" />;
             case "assessment":
-                return <Activity className="h-4 w-4" />;
+                return <Activity className="h-4 w-4 text-blue-500" />;
             default:
-                return <AlertCircle className="h-4 w-4" />;
+                return <AlertCircle className="h-4 w-4 text-muted-foreground" />;
         }
     };
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>{title}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                {activities.length === 0 ? (
-                    <p className="text-muted-foreground text-center py-4">No recent activity</p>
-                ) : (
-                    activities.map((activity) => (
-                        <div key={activity.id} className="flex items-start space-x-3 p-3 bg-muted/20 rounded-lg">
-                            <div className="flex-shrink-0 mt-1">
+        <div className="space-y-4">
+            {title && <h3 className="text-lg font-semibold">{title}</h3>}
+            {activities.length === 0 ? (
+                <div className="text-center py-8">
+                    <div className="w-16 h-16 bg-muted/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Activity className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                    <p className="text-muted-foreground">No recent activity</p>
+                </div>
+            ) : (
+                <div className="space-y-3">
+                    {activities.map((activity) => (
+                        <div key={activity.id} className="flex items-start space-x-4 p-4 bg-gradient-to-r from-muted/30 to-muted/10 rounded-lg border border-border/50 hover:shadow-md transition-all">
+                            <div className="flex-shrink-0 mt-1 p-2 bg-background/50 rounded-lg">
                                 {getTypeIcon(activity.type)}
                             </div>
                             <div className="flex-1 min-w-0">
-                                <div className="flex items-center justify-between">
+                                <div className="flex items-center justify-between mb-1">
                                     <p className="text-sm font-medium truncate">{activity.title}</p>
                                     <div className="flex items-center space-x-2">
                                         {activity.status && getStatusIcon(activity.status)}
-                                        <span className="text-xs text-muted-foreground">{activity.time}</span>
+                                        <span className="text-xs text-muted-foreground whitespace-nowrap">{activity.time}</span>
                                     </div>
                                 </div>
-                                <p className="text-xs text-muted-foreground mt-1">{activity.description}</p>
+                                <p className="text-xs text-muted-foreground">{activity.description}</p>
                             </div>
                         </div>
-                    ))
-                )}
-            </CardContent>
-        </Card>
+                    ))}
+                </div>
+            )}
+        </div>
     );
 }
 
