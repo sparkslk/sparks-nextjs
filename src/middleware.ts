@@ -70,9 +70,7 @@ export async function middleware(req: NextRequest) {
         // Redirect to their dashboard
         const dashboard = getRoleBasedDashboard(role);
         return NextResponse.redirect(new URL(dashboard, req.url));
-    }
-
-    // Patient onboarding: check if NORMAL_USER has a profile
+    }            // User onboarding: check if NORMAL_USER has a profile when accessing dashboard
     // (Removed API call from middleware. Move this logic to the dashboard page/server component.)
 
     return NextResponse.next();
