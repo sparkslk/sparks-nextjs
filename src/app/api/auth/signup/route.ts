@@ -5,6 +5,90 @@ import { $Enums } from "@prisma/client";
 
 const UserRole = $Enums.UserRole;
 
+/**
+ * @swagger
+ * /api/auth/signup:
+ *   post:
+ *     summary: User registration
+ *     description: Register a new user account with role-specific metadata
+ *     tags:
+ *       - Authentication
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - email
+ *               - password
+ *               - role
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Full name of the user
+ *                 example: "John Doe"
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: Email address
+ *                 example: "john.doe@example.com"
+ *               password:
+ *                 type: string
+ *                 minLength: 8
+ *                 description: Password (minimum 8 characters)
+ *                 example: "securePassword123"
+ *               role:
+ *                 type: string
+ *                 enum: ["NORMAL_USER", "PARENT_GUARDIAN", "THERAPIST", "MANAGER", "ADMIN"]
+ *                 description: User role in the system
+ *                 example: "THERAPIST"
+ *               metadata:
+ *                 type: object
+ *                 description: Role-specific metadata
+ *                 properties:
+ *                   licenseNumber:
+ *                     type: string
+ *                     description: Required for therapist registration
+ *                     example: "LIC123456"
+ *                   organizationCode:
+ *                     type: string
+ *                     description: Required for manager registration
+ *                     example: "ORG001"
+ *     responses:
+ *       201:
+ *         description: User registered successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "User registered successfully"
+ *                 userId:
+ *                   type: string
+ *                   example: "user_123456"
+ *       400:
+ *         description: Bad request - missing or invalid fields
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       409:
+ *         description: Conflict - user already exists
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 export async function POST(request: NextRequest) {
     try {
         const { name, email, password, role, metadata } = await request.json();

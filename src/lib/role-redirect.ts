@@ -40,7 +40,7 @@ export function getRoleBasedSignup(role: UserRole): string {
 
 export function isAuthorizedForRoute(userRole: UserRole | null, pathname: string): boolean {
     // Public routes that everyone can access
-    const publicRoutes = ["/", "/login", "/signup", "/setup-role", "/confirm-role", "/api/auth"];
+    const publicRoutes = ["/", "/login", "/signup", "/setup-role", "/confirm-role", "/api-docs", "/api/auth"];
     if (publicRoutes.some(route => pathname.startsWith(route))) {
         return true;
     }
