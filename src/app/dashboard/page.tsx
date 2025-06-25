@@ -23,7 +23,7 @@ import {
     List
 } from "lucide-react";
 
-interface PatientData {
+interface UserData {
     id: string;
     firstName: string;
     lastName: string;
@@ -56,62 +56,62 @@ interface TreatmentPlan {
 
 export default function DashboardPage() {
     const router = useRouter();
-    const [patientData, setPatientData] = useState<PatientData | null>(null);
+    const [userData, setUserData] = useState<UserData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const fetchPatientData = useCallback(async () => {
+    const fetchUserData = useCallback(async () => {
         try {
             const response = await fetch("/api/profile");
             if (!response.ok) {
-                throw new Error("Failed to fetch patient data");
+                throw new Error("Failed to fetch user data");
             }
             const data = await response.json();
 
             // Ensure data.profile exists
             if (!data.profile) {
-                setPatientData(null);
+                setUserData(null);
                 return;
             }
 
-            // Set patient data with safe default empty arrays for sessions and treatment plans
-            setPatientData({
+            // Set user data with safe default empty arrays for sessions and treatment plans
+            setUserData({
                 ...data.profile,
                 upcomingSessions: data.profile.upcomingSessions || [],
                 recentSessions: data.profile.recentSessions || [],
                 treatmentPlans: data.profile.treatmentPlans || []
             });
         } catch (error) {
-            console.error("Error fetching patient data:", error);
-            setError(error instanceof Error ? error.message : "Failed to load patient data");
+            console.error("Error fetching user data:", error);
+            setError(error instanceof Error ? error.message : "Failed to load user data");
         } finally {
             setLoading(false);
         }
     }, []);
 
     useEffect(() => {
-        // Fetch patient data on component mount
-        fetchPatientData();
-    }, [fetchPatientData]);
+        // Fetch user data on component mount
+        fetchUserData();
+    }, [fetchUserData]);
 
     const requestSession = () => {
         router.push("/sessions/request");
     };
 
-    // Always call the redirect useEffect, but only redirect if patientData is null and not loading or error
+    // Always call the redirect useEffect, but only redirect if userData is null and not loading or error
     useEffect(() => {
-        if (!loading && !error && !patientData) {
+        if (!loading && !error && !userData) {
             router.replace("/profile/create?reason=new_user");
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [loading, error, patientData]);
+    }, [loading, error, userData]);
 
     if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center">
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-purple-50/30">
                 <div className="text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                    <p className="mt-2 text-muted-foreground">Loading...</p>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+                    <p className="mt-4 text-muted-foreground">Loading your dashboard...</p>
                 </div>
             </div>
         );
@@ -119,7 +119,7 @@ export default function DashboardPage() {
 
     if (error) {
         return (
-            <DashboardLayout title="Patient Dashboard" subtitle="Welcome to your therapy portal">
+            <DashboardLayout title="Dashboard" subtitle="Welcome to your therapy portal">
                 <div className="flex flex-col items-center justify-center py-12">
                     <div className="text-center">
                         <h3 className="text-lg font-semibold mb-2">Unable to load dashboard</h3>
@@ -133,7 +133,7 @@ export default function DashboardPage() {
         );
     }
 
-    if (!patientData) {
+    if (!userData) {
         // While redirecting, render nothing
         return null;
     }
@@ -182,8 +182,8 @@ export default function DashboardPage() {
         }> = [];
 
         // Add recent sessions (safely handle empty array)
-        if (patientData?.recentSessions && Array.isArray(patientData.recentSessions)) {
-            patientData.recentSessions.slice(0, 3).forEach(session => {
+        if (userData?.recentSessions && Array.isArray(userData.recentSessions)) {
+            userData.recentSessions.slice(0, 3).forEach((session: SessionData) => {
                 activities.push({
                     id: `session-${session.id}`,
                     type: "session" as const,
@@ -200,29 +200,29 @@ export default function DashboardPage() {
 
     return (
         <DashboardLayout
-            title="Patient Dashboard"
-            subtitle={`Welcome back, ${patientData.firstName}!`}
+            title="Dashboard"
+            subtitle={`Welcome back, ${userData.firstName}!`}
         >
-            {/* Patient Info Card */}
-            <Card className="mb-8">
+            {/* User Info Card */}
+            <Card className="mb-8 border-0 shadow-lg bg-gradient-to-r from-card/95 to-card/80 backdrop-blur">
                 <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4 text-center sm:text-left">
+                            <div className="w-16 h-16 bg-gradient-to-r from-primary/20 to-purple-500/20 rounded-full flex items-center justify-center">
                                 <User className="h-8 w-8 text-primary" />
                             </div>
                             <div>
-                                <h2 className="text-2xl font-bold">
-                                    {patientData.firstName} {patientData.lastName}
+                                <h2 className="text-2xl font-bold bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">
+                                    {userData.firstName} {userData.lastName}
                                 </h2>
-                                {patientData.therapist && (
+                                {userData.therapist && (
                                     <p className="text-muted-foreground">
-                                        Primary Therapist: {patientData.therapist.name}
+                                        Primary Therapist: {userData.therapist.name}
                                     </p>
                                 )}
                             </div>
                         </div>
-                        <Button onClick={requestSession}>
+                        <Button onClick={requestSession} className="w-full sm:w-auto bg-primary hover:bg-primary/90">
                             <Calendar className="mr-2 h-4 w-4" />
                             Request Session
                         </Button>
@@ -234,21 +234,21 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <StatCard
                     title="Upcoming Sessions"
-                    value={patientData?.upcomingSessions?.length || 0}
+                    value={userData?.upcomingSessions?.length || 0}
                     description="Scheduled therapy sessions"
                     icon={Calendar}
                     color="primary"
                 />
                 <StatCard
                     title="Completed Sessions"
-                    value={patientData?.recentSessions?.filter(s => s?.status === 'COMPLETED')?.length || 0}
+                    value={userData?.recentSessions?.filter((s: SessionData) => s?.status === 'COMPLETED')?.length || 0}
                     description="This month"
                     icon={Heart}
                     color="success"
                 />
                 <StatCard
                     title="Active Plans"
-                    value={patientData?.treatmentPlans?.filter(p => p?.isActive)?.length || 0}
+                    value={userData?.treatmentPlans?.filter((p: TreatmentPlan) => p?.isActive)?.length || 0}
                     description="Treatment plans in progress"
                     icon={TrendingUp}
                     color="default"
@@ -257,8 +257,8 @@ export default function DashboardPage() {
 
             {/* Quick Actions */}
             <div className="mb-8">
-                <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <h2 className="text-xl font-semibold mb-4 bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">Quick Actions</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
                     {quickActions.map((action, index) => (
                         <QuickActionCard
                             key={index}
@@ -272,27 +272,32 @@ export default function DashboardPage() {
             </div>
 
             {/* Main Content Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                 {/* Upcoming Sessions */}
-                <div className="lg:col-span-1">
-                    <Card>
+                <div className="xl:col-span-1 order-2 xl:order-1">
+                    <Card className="border-0 shadow-lg bg-card/95 backdrop-blur">
                         <CardHeader>
-                            <CardTitle>Upcoming Sessions</CardTitle>
+                            <CardTitle className="flex items-center gap-2">
+                                <Calendar className="h-5 w-5 text-primary" />
+                                Upcoming Sessions
+                            </CardTitle>
                             <CardDescription>Your scheduled therapy appointments</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-3">
-                            {!patientData?.upcomingSessions || !Array.isArray(patientData.upcomingSessions) || patientData.upcomingSessions.length === 0 ? (
-                                <div className="text-center py-4">
-                                    <Clock className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                                    <p className="text-muted-foreground text-sm">No upcoming sessions</p>
-                                    <Button variant="outline" size="sm" className="mt-2" onClick={requestSession}>
+                            {!userData?.upcomingSessions || !Array.isArray(userData.upcomingSessions) || userData.upcomingSessions.length === 0 ? (
+                                <div className="text-center py-8">
+                                    <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <Clock className="h-8 w-8 text-muted-foreground" />
+                                    </div>
+                                    <p className="text-muted-foreground text-sm mb-4">No upcoming sessions</p>
+                                    <Button variant="outline" size="sm" onClick={requestSession} className="border-primary/20 hover:bg-primary/5">
                                         Request Session
                                     </Button>
                                 </div>
                             ) : (
-                                patientData.upcomingSessions.map((session) => (
-                                    <div key={session.id} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg">
-                                        <div>
+                                userData.upcomingSessions.map((session: SessionData) => (
+                                    <div key={session.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gradient-to-r from-muted/30 to-muted/10 rounded-lg border border-border/50 gap-3">
+                                        <div className="flex-1">
                                             <p className="font-medium">{session.type || 'Therapy Session'}</p>
                                             <p className="text-sm text-muted-foreground">
                                                 {new Date(session.scheduledAt).toLocaleDateString()} at{" "}
@@ -302,7 +307,7 @@ export default function DashboardPage() {
                                                 })}
                                             </p>
                                         </div>
-                                        <Badge variant="outline">{session.duration || 60} min</Badge>
+                                        <Badge variant="outline" className="border-primary/20 self-start sm:self-center">{session.duration || 60} min</Badge>
                                     </div>
                                 ))
                             )}
@@ -311,26 +316,40 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Recent Activity */}
-                <div className="lg:col-span-2">
-                    <RecentActivity
-                        activities={formatRecentActivities()}
-                        title="Recent Sessions"
-                    />
+                <div className="xl:col-span-2 order-1 xl:order-2">
+                    <Card className="border-0 shadow-lg bg-card/95 backdrop-blur">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Activity className="h-5 w-5 text-primary" />
+                                Recent Sessions
+                            </CardTitle>
+                            <CardDescription>Your recent therapy activity</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <RecentActivity
+                                activities={formatRecentActivities()}
+                                title=""
+                            />
+                        </CardContent>
+                    </Card>
                 </div>
             </div>
 
             {/* Treatment Plans */}
-            {patientData?.treatmentPlans && patientData.treatmentPlans.length > 0 && (
+            {userData?.treatmentPlans && userData.treatmentPlans.length > 0 && (
                 <div className="mt-8">
-                    <Card>
+                    <Card className="border-0 shadow-lg bg-card/95 backdrop-blur">
                         <CardHeader>
-                            <CardTitle>Treatment Plans</CardTitle>
+                            <CardTitle className="flex items-center gap-2">
+                                <Activity className="h-5 w-5 text-primary" />
+                                Treatment Plans
+                            </CardTitle>
                             <CardDescription>Your active treatment and therapy goals</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-4">
-                                {patientData.treatmentPlans.map((plan) => (
-                                    <div key={plan.id} className="p-4 bg-muted/20 rounded-lg">
+                                {userData.treatmentPlans.map((plan: TreatmentPlan) => (
+                                    <div key={plan.id} className="p-4 bg-gradient-to-r from-muted/30 to-muted/10 rounded-lg border border-border/50">
                                         <div className="flex items-center justify-between mb-2">
                                             <h4 className="font-medium">{plan.title}</h4>
                                             <Badge variant={plan.isActive ? "default" : "secondary"}>
@@ -343,7 +362,7 @@ export default function DashboardPage() {
                                         <div className="space-y-1">
                                             <p className="text-sm font-medium">Goals:</p>
                                             <ul className="text-sm text-muted-foreground space-y-1">
-                                                {plan.goals.map((goal, index) => (
+                                                {plan.goals.map((goal: string, index: number) => (
                                                     <li key={index} className="flex items-center">
                                                         <Activity className="h-3 w-3 mr-2" />
                                                         {goal}
