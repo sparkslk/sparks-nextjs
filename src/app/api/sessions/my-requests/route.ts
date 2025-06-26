@@ -2,6 +2,75 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireApiAuth } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
 
+/**
+ * @swagger
+ * /api/sessions/my-requests:
+ *   get:
+ *     summary: Get user's session requests
+ *     description: Retrieve all therapy session requests for the authenticated patient
+ *     tags:
+ *       - Sessions
+ *     security:
+ *       - sessionAuth: []
+ *     responses:
+ *       200:
+ *         description: Session requests retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                     description: Session request ID
+ *                   sessionType:
+ *                     type: string
+ *                     description: Type of therapy session
+ *                   preferredDateTime:
+ *                     type: string
+ *                     format: date-time
+ *                     description: Requested date and time
+ *                   status:
+ *                     type: string
+ *                     enum: ["PENDING", "APPROVED", "REJECTED", "COMPLETED"]
+ *                     description: Current status of the request
+ *                   notes:
+ *                     type: string
+ *                     description: Additional notes
+ *                   therapist:
+ *                     type: object
+ *                     properties:
+ *                       user:
+ *                         type: object
+ *                         properties:
+ *                           name:
+ *                             type: string
+ *                             description: Therapist name
+ *                   createdAt:
+ *                     type: string
+ *                     format: date-time
+ *                     description: Request creation time
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Patient profile not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 // Get all session requests for the logged-in patient
 export async function GET(req: NextRequest) {
     try {

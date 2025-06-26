@@ -272,6 +272,21 @@ export default function AdminDashboard() {
                         </CardContent>
                     </Card>
 
+                    <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => window.open('/api-docs', '_blank')}>
+                        <CardHeader>
+                            <CardTitle className="flex items-center">
+                                <Globe className="mr-2 h-5 w-5" />
+                                API Documentation
+                            </CardTitle>
+                            <CardDescription>
+                                Interactive Swagger documentation for all API endpoints
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Button className="w-full">View API Docs</Button>
+                        </CardContent>
+                    </Card>
+
                     <Card className="hover:shadow-lg transition-shadow cursor-pointer">
                         <CardHeader>
                             <CardTitle className="flex items-center">

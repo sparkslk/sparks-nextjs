@@ -3,6 +3,83 @@ import type { NextRequest } from 'next/server';
 import { requireApiAuth } from '@/lib/api-auth';
 import { prisma } from '@/lib/prisma';
 
+/**
+ * @swagger
+ * /api/therapist/dashboard:
+ *   get:
+ *     summary: Get therapist dashboard data
+ *     description: Retrieve dashboard information for the authenticated therapist including patients, sessions, and statistics
+ *     tags:
+ *       - Therapist
+ *       - Dashboard
+ *     security:
+ *       - sessionAuth: []
+ *     responses:
+ *       200:
+ *         description: Dashboard data retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 therapist:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       description: Therapist ID
+ *                     licenseNumber:
+ *                       type: string
+ *                       description: Therapist license number
+ *                     specializations:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       description: List of specializations
+ *                 totalPatients:
+ *                   type: number
+ *                   description: Total number of patients
+ *                 totalSessions:
+ *                   type: number
+ *                   description: Total number of sessions conducted
+ *                 pendingRequests:
+ *                   type: number
+ *                   description: Number of pending session requests
+ *                 recentSessions:
+ *                   type: array
+ *                   description: List of recent therapy sessions
+ *                   items:
+ *                     type: object
+ *                 upcomingAppointments:
+ *                   type: array
+ *                   description: List of upcoming appointments
+ *                   items:
+ *                     type: object
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Forbidden - user is not a therapist
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Therapist profile not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 export async function GET(req: NextRequest) {
     try {
         const session = await requireApiAuth(req, ['THERAPIST']);
