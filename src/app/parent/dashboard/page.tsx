@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
     Dialog,
@@ -16,7 +16,6 @@ import {
 
 
 import { Users, Plus, UserPlus } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { AddChildForm } from "@/components/parent/AddChildForm";
 import { ConnectChildForm } from "@/components/parent/ConnectChildForm";
 
@@ -48,7 +47,6 @@ interface ParentData {
 }
 
 export default function ParentDashboard() {
-    const router = useRouter();
     const [parentData, setParentData] = useState<ParentData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);

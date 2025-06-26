@@ -90,8 +90,6 @@ export function AddChildForm({ onSuccess }: AddChildFormProps) {
                 throw new Error(errorData.error || "Failed to add child");
             }
 
-            const result = await response.json();
-            // Child added successfully
             onSuccess();
         } catch (error) {
             console.error("Error adding child:", error);

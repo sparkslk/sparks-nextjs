@@ -35,6 +35,7 @@ export default function MyChildrenPage() {
 
   useEffect(() => {
     fetchChildren();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchChildren = async () => {
@@ -115,7 +116,7 @@ export default function MyChildrenPage() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <h3 className="text-lg font-semibold mb-2">No Children Found</h3>
-          <p className="text-gray-600 mb-4">You haven't added any children yet.</p>
+          <p className="text-gray-600 mb-4">You haven&apos;t added any children yet.</p>
           <Button onClick={() => window.location.href = '/parent/dashboard'}>
             Go to Dashboard
           </Button>
