@@ -5,9 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  MessageCircle,
-  FileText,
-  CheckCircle,
   TrendingUp
 } from "lucide-react";
 
@@ -15,112 +12,62 @@ interface Child {
   id: string;
   firstName: string;
   lastName: string;
-  age: number;
-  therapyType: string;
-  status: "Active" | "Inactive";
-  nextSession: string;
-  completedSessions: number;
-  totalSessions: number;
-  recentActivity: Array<{
-    id: string;
-    type: "session" | "report" | "message";
-    description: string;
-    timestamp: string;
-  }>;
+  dateOfBirth: string;
+  relationship: string;
+  isPrimary: boolean;
+  upcomingSessions: number;
+  progressReports: number;
   progressPercentage: number;
-  therapistName: string;
-  parentNote?: string;
+  lastSession: string | null;
+  therapist: {
+    name: string;
+    email: string;
+  } | null;
 }
 
 export default function MyChildrenPage() {
   const [children, setChildren] = useState<Child[]>([]);
   const [activeChildIndex, setActiveChildIndex] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [noteText, setNoteText] = useState("");
   const [animatedProgress, setAnimatedProgress] = useState<{ [key: string]: number }>({});
 
   useEffect(() => {
-    setTimeout(() => {
-      const childrenData: Child[] = [
-        {
-          id: "1",
-          firstName: "Amal",
-          lastName: "Perera",
-          age: 12,
-          therapyType: "Speech Therapy",
-          status: "Active",
-          nextSession: "Dec 15, 9:00 AM",
-          completedSessions: 15,
-          totalSessions: 20,
-          progressPercentage: 100,
-          therapistName: "Dr. Nirmal Silva",
-          parentNote:
-            "Amal had a good day today. Showed improved focus during our evening conversation. Mood was stable throughout the day. Ate well at dinner and seemed more engaged with family activities. Completed his homework without much resistance.",
-          recentActivity: [
-            {
-              id: "1",
-              type: "session",
-              description: "Completed morning routine",
-              timestamp: "Today"
-            },
-            {
-              id: "2",
-              type: "report",
-              description: "Therapy session attended",
-              timestamp: "Yesterday"
-            }
-          ]
-        },
-        {
-          id: "2",
-          firstName: "Sahan",
-          lastName: "Perera",
-          age: 8,
-          therapyType: "Occupational Therapy",
-          status: "Active",
-          nextSession: "Dec 16, 2:00 PM",
-          completedSessions: 12,
-          totalSessions: 20,
-          progressPercentage: 60,
-          therapistName: "Dr. Kamala Wijesinghe",
-          parentNote: "",
-          recentActivity: [
-            {
-              id: "3",
-              type: "session",
-              description: "Completed morning routine",
-              timestamp: "Today"
-            },
-            {
-              id: "4",
-              type: "report",
-              description: "Therapy session attended",
-              timestamp: "Yesterday"
-            }
-          ]
-        }
-      ];
+    fetchChildren();
+  }, []);
 
-      setChildren(childrenData);
-      setLoading(false);
+  const fetchChildren = async () => {
+    try {
+      const response = await fetch("/api/parent/children");
+      if (!response.ok) {
+        throw new Error("Failed to fetch children data");
+      }
+      const data = await response.json();
+      setChildren(data.children || []);
 
       // Initialize animated progress for each child
       const initialProgress: { [key: string]: number } = {};
-      childrenData.forEach(child => {
+      data.children?.forEach((child: Child) => {
         initialProgress[child.id] = 0;
       });
       setAnimatedProgress(initialProgress);
 
       // Animate progress circles
       setTimeout(() => {
-        childrenData.forEach((child, index) => {
+        data.children?.forEach((child: Child, index: number) => {
           setTimeout(() => {
-            animateProgress(child.id, child.progressPercentage);
+            animateProgress(child.id, child.progressPercentage || 0);
           }, index * 200); // Stagger animations
         });
       }, 100);
-    }, 1000);
-  }, []);
+    } catch (error) {
+      console.error("Error fetching children:", error);
+      setError("Failed to load children data");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const animateProgress = (childId: string, targetProgress: number) => {
     let currentProgress = 0;
@@ -143,15 +90,65 @@ export default function MyChildrenPage() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: '#8159A8' }}></div>
-          <p className="mt-2 text-gray-600">Loading...</p>
+          <p className="mt-2 text-gray-600">Loading children...</p>
         </div>
       </div>
     );
   }
 
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <h3 className="text-lg font-semibold mb-2">Unable to load children</h3>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <Button onClick={fetchChildren}>
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (children.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <h3 className="text-lg font-semibold mb-2">No Children Found</h3>
+          <p className="text-gray-600 mb-4">You haven't added any children yet.</p>
+          <Button onClick={() => window.location.href = '/parent/dashboard'}>
+            Go to Dashboard
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Calculate age from dateOfBirth
+  const calculateAge = (dateOfBirth: string) => {
+    const today = new Date();
+    const birthDate = new Date(dateOfBirth);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-6xl mx-auto px-6 py-8">
+        {/* Header Section */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">
+            My Children
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Monitor your children&apos;s therapy progress and communicate with their therapists
+          </p>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {children.map((child) => (
             <Card key={child.id} className="shadow-sm hover:shadow-md transition-shadow">
@@ -170,17 +167,17 @@ export default function MyChildrenPage() {
                       {child.firstName} {child.lastName}
                     </h4>
                     <p className="text-sm text-gray-600">
-                      {child.therapyType} • Age: {child.age}
+                      Relationship: {child.relationship} • Age: {calculateAge(child.dateOfBirth)}
                     </p>
                     <p className="text-sm text-gray-500">
-                      Therapist: {child.therapistName}
+                      Therapist: {child.therapist ? child.therapist.name : 'Not assigned'}
                     </p>
                   </div>
                   <Badge
-                    variant={child.status === "Active" ? "default" : "secondary"}
-                    className={child.status === "Active" ? "bg-green-100 text-green-800" : ""}
+                    variant="default"
+                    className="bg-green-100 text-green-800"
                   >
-                    {child.status}
+                    Active
                   </Badge>
                 </div>
 
@@ -222,26 +219,26 @@ export default function MyChildrenPage() {
 
                 <div className="mb-4 bg-gray-50 rounded-lg p-3">
                   <p className="text-sm text-gray-600 mb-1">
-                    Next Session: <span className="font-medium">{child.nextSession}</span>
+                    Patient ID: <span className="font-mono text-xs bg-white px-2 py-1 rounded border">{child.id}</span>
+                  </p>
+                  <p className="text-sm text-gray-600 mb-1">
+                    Upcoming Sessions: <span className="font-medium">{child.upcomingSessions}</span>
                   </p>
                   <p className="text-sm text-gray-600">
-                    Sessions: {child.completedSessions}/{child.totalSessions} completed
+                    Progress Reports: {child.progressReports} available
                   </p>
+                  {child.lastSession && (
+                    <p className="text-sm text-gray-600">
+                      Last Session: {new Date(child.lastSession).toLocaleDateString()}
+                    </p>
+                  )}
                 </div>
 
                 <div className="mb-4">
-                  <h5 className="text-sm font-medium text-gray-700 mb-2">Recent Activity</h5>
-                  <div className="space-y-2">
-                    {child.recentActivity.map((activity) => (
-                      <div key={activity.id} className="flex items-center text-sm text-gray-600">
-                        {activity.type === 'session' && <CheckCircle className="w-4 h-4 text-green-500 mr-2 flex-shrink-0" />}
-                        {activity.type === 'report' && <FileText className="w-4 h-4 text-blue-500 mr-2 flex-shrink-0" />}
-                        {activity.type === 'message' && <MessageCircle className="w-4 h-4 mr-2 flex-shrink-0" style={{ color: '#8159A8' }} />}
-                        <span className="flex-1">{activity.description}</span>
-                        <span className="text-xs text-gray-400">{activity.timestamp}</span>
-                      </div>
-                    ))}
-                  </div>
+                  <h5 className="text-sm font-medium text-gray-700 mb-2">Quick Actions</h5>
+                  <p className="text-sm text-gray-500 mb-2">
+                    {child.isPrimary ? 'You are the primary guardian for this child.' : 'You are connected as a guardian.'}
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
@@ -249,29 +246,33 @@ export default function MyChildrenPage() {
                     variant="outline"
                     size="sm"
                     className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                    disabled
                   >
-                    Medications
+                    View Sessions
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
                     className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                    disabled
                   >
-                    Tasks
+                    Reports
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
                     className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                    disabled
                   >
-                    Sessions
+                    Medical Info
                   </Button>
                   <Button
                     size="sm"
                     style={{ backgroundColor: '#8159A8' }}
                     className="text-white hover:opacity-90"
+                    disabled
                   >
-                    Message
+                    Contact Therapist
                   </Button>
                 </div>
               </CardContent>
@@ -280,44 +281,60 @@ export default function MyChildrenPage() {
         </div>
 
         {/* Parent Notes Section */}
-        <Card className="mt-10 shadow-sm">
-          <CardHeader className="border-b border-gray-100 pb-4">
-            <CardTitle className="text-lg font-semibold text-gray-900 mb-4">Parent Notes & Observations</CardTitle>
-            <div className="space-x-2">
-              {children.map((child, index) => (
+        {children.length > 0 && (
+          <Card className="mt-10 shadow-sm">
+            <CardHeader className="border-b border-gray-100 pb-4">
+              <CardTitle className="text-lg font-semibold text-gray-900 mb-4">Parent Notes & Observations</CardTitle>
+              <div className="space-x-2">
+                {children.map((child, index) => (
+                  <Button
+                    key={child.id}
+                    variant={activeChildIndex === index ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => {
+                      setActiveChildIndex(index);
+                      setNoteText(""); // Clear note when switching children
+                    }}
+                    className={activeChildIndex === index ? "bg-[#8159A8] hover:bg-[#8159A8]/90" : "text-[#8159A8] border-[#8159A8] hover:bg-[#8159A8]/10"}
+                  >
+                    {child.firstName}
+                  </Button>
+                ))}
+              </div>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <textarea
+                className="w-full border border-gray-300 rounded-lg p-3 text-sm text-gray-800 mb-4 focus:ring-2 focus:ring-[#8159A8] focus:border-[#8159A8] outline-none resize-none"
+                rows={4}
+                placeholder="Enter your observations about your child's progress, behavior, or any concerns you'd like to share with the therapist..."
+                value={noteText}
+                onChange={(e) => setNoteText(e.target.value)}
+              />
+              <div className="flex justify-between items-center">
+                <p className="text-xs text-gray-500">
+                  Share your observations to help your child&apos;s therapist provide better care
+                </p>
                 <Button
-                  key={child.id}
-                  variant={activeChildIndex === index ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setActiveChildIndex(index)}
-                  className={activeChildIndex === index ? "bg-[#8159A8] hover:bg-[#8159A8]/90" : "text-[#8159A8] border-[#8159A8] hover:bg-[#8159A8]/10"}
+                  style={{ backgroundColor: '#8159A8' }}
+                  className="text-white hover:opacity-90 px-6"
+                  disabled={!noteText.trim() || !children[activeChildIndex]?.therapist}
+                  onClick={() => {
+                    // TODO: Implement sending note to therapist
+                    alert(`Note for ${children[activeChildIndex]?.firstName} would be sent to their therapist.`);
+                    setNoteText("");
+                  }}
                 >
-                  {child.firstName}
+                  Send to Therapist
                 </Button>
-              ))}
-            </div>
-          </CardHeader>
-          <CardContent className="pt-6">
-            <textarea
-              className="w-full border border-gray-300 rounded-lg p-3 text-sm text-gray-800 mb-4 focus:ring-2 focus:ring-[#8159A8] focus:border-[#8159A8] outline-none resize-none"
-              rows={4}
-              placeholder="Enter your observations about your child's progress, behavior, or any concerns you'd like to share with the therapist..."
-              value={noteText}
-              onChange={(e) => setNoteText(e.target.value)}
-            />
-            <div className="flex justify-between items-center">
-              <p className="text-xs text-gray-500">
-                Share your observations to help your child&apos;s therapist provide better care
-              </p>
-              <Button
-                style={{ backgroundColor: '#8159A8' }}
-                className="text-white hover:opacity-90 px-6"
-              >
-                Send to Therapist
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+              </div>
+              {!children[activeChildIndex]?.therapist && (
+                <p className="text-xs text-amber-600 mt-2">
+                  No therapist assigned to {children[activeChildIndex]?.firstName}. Notes cannot be sent.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
