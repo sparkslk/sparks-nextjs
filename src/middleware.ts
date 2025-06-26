@@ -8,6 +8,7 @@ const PUBLIC_PATHS = [
     '/login',
     '/signup',
     '/therapist/signup',
+    '/dashboard-redirect',
     'api-docs',
     '/api/auth',
     '/api/auth/',
@@ -21,7 +22,11 @@ const PUBLIC_PATHS = [
 ];
 
 function isPublicPath(path: string) {
-    return PUBLIC_PATHS.some((publicPath) => path === publicPath || path.startsWith(publicPath + '/'));
+    const isPublic = PUBLIC_PATHS.some((publicPath) => path === publicPath || path.startsWith(publicPath + '/'));
+    if (process.env.NODE_ENV === "development") {
+        console.log("Middleware: isPublicPath check:", { path, isPublic });
+    }
+    return isPublic;
 }
 
 function isApiRoute(path: string) {
@@ -31,7 +36,14 @@ function isApiRoute(path: string) {
 export async function middleware(req: NextRequest) {
     const { pathname } = req.nextUrl;
 
+    if (process.env.NODE_ENV === "development") {
+        console.log("Middleware: Processing request for:", pathname);
+    }
+
     if (isPublicPath(pathname)) {
+        if (process.env.NODE_ENV === "development") {
+            console.log("Middleware: Public path, allowing through:", pathname);
+        }
         return NextResponse.next();
     }
 
