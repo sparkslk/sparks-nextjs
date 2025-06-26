@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatsCard } from "@/components/ui/stats-card";
 import { Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -81,39 +82,29 @@ export default function ParentDashboard() {
         <>
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow" style={{ borderLeftColor: '#8159A8' }}>
-                    <CardContent className="p-6">
-                        <div className="text-sm font-medium mb-1" style={{ color: '#8159A8' }}>Children Registered</div>
-                        <div className="text-3xl font-bold text-gray-900 mb-1">{parentData?.children.length || 0}</div>
-                        <div className="text-xs text-gray-500">Active accounts</div>
-                    </CardContent>
-                </Card>
+                <StatsCard
+                    title="Children Registered"
+                    value={parentData?.children.length || 0}
+                    description="Active accounts"
+                />
 
-                <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow" style={{ borderLeftColor: '#8159A8' }}>
-                    <CardContent className="p-6">
-                        <div className="text-sm font-medium mb-1" style={{ color: '#8159A8' }}>Next Appointment</div>
-                        <div className="text-3xl font-bold text-gray-900 mb-1">{parentData?.totalUpcomingSessions || 0}</div>
-                        <div className="text-xs text-gray-500">Days away</div>
-                    </CardContent>
-                </Card>
+                <StatsCard
+                    title="Next Appointment"
+                    value={parentData?.totalUpcomingSessions || 0}
+                    description="Days away"
+                />
 
-                <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow" style={{ borderLeftColor: '#8159A8' }}>
-                    <CardContent className="p-6">
-                        <div className="text-sm font-medium mb-1" style={{ color: '#8159A8' }}>Unread Messages</div>
-                        <div className="text-3xl font-bold text-gray-900 mb-1">{parentData?.unreadMessages || 0}</div>
-                        <div className="text-xs text-gray-500">From therapists</div>
-                    </CardContent>
-                </Card>
+                <StatsCard
+                    title="Unread Messages"
+                    value={parentData?.unreadMessages || 0}
+                    description="From therapists"
+                />
 
-                <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow" style={{ borderLeftColor: '#8159A8' }}>
-                    <CardContent className="p-6">
-                        <div className="text-sm font-medium mb-1" style={{ color: '#8159A8' }}>Progress Reports</div>
-                        <div className="text-3xl font-bold text-gray-900 mb-1">
-                            {parentData?.children.reduce((sum, child) => sum + child.progressReports, 0) || 0}
-                        </div>
-                        <div className="text-xs text-gray-500">New reports available</div>
-                    </CardContent>
-                </Card>
+                <StatsCard
+                    title="Progress Reports"
+                    value={parentData?.children.reduce((sum, child) => sum + child.progressReports, 0) || 0}
+                    description="New reports available"
+                />
             </div>
 
             {/* Main Content Grid */}
