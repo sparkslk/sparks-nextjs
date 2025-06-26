@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
+import { useSession } from "next-auth/react";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import {
     StatCard,
@@ -22,6 +23,8 @@ import {
     Activity,
     List
 } from "lucide-react";
+import { UserRole } from "@/lib/auth";
+import { userRoleNeedsProfile, userRoleHasDashboardAccess, getRedirectPathForRole } from "@/lib/profile-utils";
 
 interface UserData {
     id: string;
@@ -56,6 +59,7 @@ interface TreatmentPlan {
 
 export default function DashboardPage() {
     const router = useRouter();
+    const { data: session } = useSession();
     const [userData, setUserData] = useState<UserData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -98,13 +102,27 @@ export default function DashboardPage() {
         router.push("/sessions/request");
     };
 
-    // Always call the redirect useEffect, but only redirect if userData is null and not loading or error
+    // Handle role-based redirects and profile requirements
     useEffect(() => {
-        if (!loading && !error && !userData) {
-            router.replace("/profile/create?reason=new_user");
+        if (!loading && session?.user) {
+            const userRole = (session.user as { role?: UserRole }).role;
+            
+            // If user role doesn't need profile but accessed /dashboard, redirect to proper dashboard
+            if (userRole && userRoleHasDashboardAccess(userRole)) {
+                const correctPath = getRedirectPathForRole(userRole);
+                if (correctPath !== "/dashboard") {
+                    router.replace(correctPath);
+                    return;
+                }
+            }
+            
+            // Only redirect NORMAL_USER without profile to profile creation
+            if (!error && !userData && userRole && userRoleNeedsProfile(userRole)) {
+                router.replace("/profile/create?reason=new_user");
+            }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [loading, error, userData]);
+    }, [loading, error, userData, session]);
 
     if (loading) {
         return (

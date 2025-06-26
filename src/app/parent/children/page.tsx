@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -11,7 +10,6 @@ import {
   CheckCircle,
   TrendingUp
 } from "lucide-react";
-import ParentNavigation from "../navigation/parentNavigation";
 
 interface Child {
   id: string;
@@ -39,7 +37,7 @@ export default function MyChildrenPage() {
   const [activeChildIndex, setActiveChildIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [noteText, setNoteText] = useState("");
-  const [animatedProgress, setAnimatedProgress] = useState<{[key: string]: number}>({});
+  const [animatedProgress, setAnimatedProgress] = useState<{ [key: string]: number }>({});
 
   useEffect(() => {
     setTimeout(() => {
@@ -107,7 +105,7 @@ export default function MyChildrenPage() {
       setLoading(false);
 
       // Initialize animated progress for each child
-      const initialProgress: {[key: string]: number} = {};
+      const initialProgress: { [key: string]: number } = {};
       childrenData.forEach(child => {
         initialProgress[child.id] = 0;
       });
@@ -153,14 +151,13 @@ export default function MyChildrenPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <ParentNavigation />
       <div className="max-w-6xl mx-auto px-6 py-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {children.map((child) => (
             <Card key={child.id} className="shadow-sm hover:shadow-md transition-shadow">
               <CardContent className="p-6">
                 <div className="flex items-center space-x-4 mb-6">
-                  <div 
+                  <div
                     className="w-12 h-12 rounded-full flex items-center justify-center"
                     style={{ backgroundColor: '#EDE6F3' }}
                   >
@@ -179,7 +176,7 @@ export default function MyChildrenPage() {
                       Therapist: {child.therapistName}
                     </p>
                   </div>
-                  <Badge 
+                  <Badge
                     variant={child.status === "Active" ? "default" : "secondary"}
                     className={child.status === "Active" ? "bg-green-100 text-green-800" : ""}
                   >
@@ -192,11 +189,11 @@ export default function MyChildrenPage() {
                   <div className="relative w-24 h-24 mb-3">
                     <svg className="w-24 h-24 transform -rotate-90" viewBox="0 0 36 36">
                       {/* Background circle */}
-                      <path 
-                        d="M18 2.0845a15.9155 15.9155 0 0 1 0 31.831a15.9155 15.9155 0 0 1 0-31.831" 
-                        fill="none" 
-                        stroke="#e5e7eb" 
-                        strokeWidth="3" 
+                      <path
+                        d="M18 2.0845a15.9155 15.9155 0 0 1 0 31.831a15.9155 15.9155 0 0 1 0-31.831"
+                        fill="none"
+                        stroke="#e5e7eb"
+                        strokeWidth="3"
                       />
                       {/* Progress circle */}
                       <path
@@ -206,7 +203,7 @@ export default function MyChildrenPage() {
                         strokeWidth="3"
                         strokeDasharray={`${animatedProgress[child.id] || 0} ${100 - (animatedProgress[child.id] || 0)}`}
                         strokeLinecap="round"
-                        style={{ 
+                        style={{
                           transition: 'stroke-dasharray 0.5s ease-in-out'
                         }}
                       />
@@ -222,7 +219,7 @@ export default function MyChildrenPage() {
                     <p className="text-sm text-gray-500 font-medium">Overall Progress</p>
                   </div>
                 </div>
-                
+
                 <div className="mb-4 bg-gray-50 rounded-lg p-3">
                   <p className="text-sm text-gray-600 mb-1">
                     Next Session: <span className="font-medium">{child.nextSession}</span>
@@ -248,29 +245,29 @@ export default function MyChildrenPage() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     className="border-gray-300 text-gray-700 hover:bg-gray-50"
                   >
                     Medications
                   </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     className="border-gray-300 text-gray-700 hover:bg-gray-50"
                   >
                     Tasks
                   </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     className="border-gray-300 text-gray-700 hover:bg-gray-50"
                   >
                     Sessions
                   </Button>
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     style={{ backgroundColor: '#8159A8' }}
                     className="text-white hover:opacity-90"
                   >
@@ -312,7 +309,7 @@ export default function MyChildrenPage() {
               <p className="text-xs text-gray-500">
                 Share your observations to help your child&apos;s therapist provide better care
               </p>
-              <Button 
+              <Button
                 style={{ backgroundColor: '#8159A8' }}
                 className="text-white hover:opacity-90 px-6"
               >

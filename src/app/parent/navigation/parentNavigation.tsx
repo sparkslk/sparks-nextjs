@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Bell } from "lucide-react";
 import Image from "next/image";
+import { useEffect, useState } from "react";
 
 const tabs = [
     { name: 'Overview', path: '/parent/dashboard' },
@@ -16,17 +17,32 @@ const tabs = [
     { name: 'Resources', path: '/parent/resources' }
 ];
 
-interface ParentNavigationProps {
-    parentData?: {
-        children: Array<{
-            firstName: string;
-        }>;
-    };
+interface ParentData {
+    children: Array<{
+        firstName: string;
+    }>;
 }
 
-export default function ParentNavigation({ parentData }: ParentNavigationProps) {
+export default function ParentNavigation() {
     const router = useRouter();
     const pathname = usePathname();
+    const [parentData, setParentData] = useState<ParentData | null>(null);
+
+    useEffect(() => {
+        fetchParentData();
+    }, []);
+
+    const fetchParentData = async () => {
+        try {
+            const response = await fetch("/api/parent/dashboard");
+            if (response.ok) {
+                const data = await response.json();
+                setParentData(data);
+            }
+        } catch (error) {
+            console.error("Error fetching parent data:", error);
+        }
+    };
 
     const handleTabClick = (path: string) => {
         router.push(path);
@@ -61,9 +77,9 @@ export default function ParentNavigation({ parentData }: ParentNavigationProps) 
                             <Bell className="w-5 h-5 text-muted-foreground" />
                             <div className="text-right">
                                 <Badge variant="secondary" className="text-xs">
-                                    {parentData?.children[0]?.firstName || 'Parent Guardian'}
+                                    {parentData?.children?.[0]?.firstName || 'Parent Guardian'}
                                 </Badge>
-                                
+
                             </div>
                             <div className="w-8 h-8 rounded-full bg-primary"></div>
                             <Button variant="outline" onClick={handleSignOut}>
@@ -83,11 +99,10 @@ export default function ParentNavigation({ parentData }: ParentNavigationProps) 
                             <button
                                 key={tab.name}
                                 onClick={() => handleTabClick(tab.path)}
-                                className={`pb-2 px-1 text-sm font-medium border-b-2 transition-colors ${
-                                    getActiveTab() === tab.name
+                                className={`pb-2 px-1 text-sm font-medium border-b-2 transition-colors ${getActiveTab() === tab.name
                                         ? 'border-primary text-primary'
                                         : 'border-transparent text-muted-foreground hover:text-primary hover:border-primary/50'
-                                }`}
+                                    }`}
                             >
                                 {tab.name}
                             </button>
