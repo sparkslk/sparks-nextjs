@@ -199,8 +199,7 @@ export default function ParentDashboard() {
                             </p>
                             <Button 
                                 onClick={() => router.push("/parent/children/add")}
-                                style={{ backgroundColor: '#8159A8' }}
-                                className="text-white px-6 py-2 hover:opacity-90"
+                                className="text-white px-6 py-2 hover:opacity-90 bg-primary"
                             >
                                 Add Child
                             </Button>
