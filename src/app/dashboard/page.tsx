@@ -9,6 +9,7 @@ import {
     QuickActionCard,
     RecentActivity
 } from "@/components/dashboard/DashboardComponents";
+import { PatientIdCard } from "@/components/dashboard/PatientIdCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -106,7 +107,7 @@ export default function DashboardPage() {
     useEffect(() => {
         if (!loading && session?.user) {
             const userRole = (session.user as { role?: UserRole }).role;
-            
+
             // If user role doesn't need profile but accessed /dashboard, redirect to proper dashboard
             if (userRole && userRoleHasDashboardAccess(userRole)) {
                 const correctPath = getRedirectPathForRole(userRole);
@@ -115,7 +116,7 @@ export default function DashboardPage() {
                     return;
                 }
             }
-            
+
             // Only redirect NORMAL_USER without profile to profile creation
             if (!error && !userData && userRole && userRoleNeedsProfile(userRole)) {
                 router.replace("/profile/create?reason=new_user");
@@ -247,6 +248,15 @@ export default function DashboardPage() {
                     </div>
                 </CardContent>
             </Card>
+
+            {/* Patient ID Card */}
+            <div className="mb-8">
+                <PatientIdCard
+                    patientId={userData.id}
+                    firstName={userData.firstName}
+                    lastName={userData.lastName}
+                />
+            </div>
 
             {/* Statistics Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

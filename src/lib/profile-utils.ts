@@ -13,7 +13,7 @@ export function userRoleNeedsProfile(role: UserRole | null): boolean {
  */
 export function userRoleHasDashboardAccess(role: UserRole | null): boolean {
     if (!role) return false;
-    
+
     // These roles have their own dashboards and don't need patient profiles
     const rolesWithDashboardAccess: UserRole[] = [
         UserRole.PARENT_GUARDIAN,
@@ -21,7 +21,7 @@ export function userRoleHasDashboardAccess(role: UserRole | null): boolean {
         UserRole.MANAGER,
         UserRole.ADMIN
     ];
-    
+
     return rolesWithDashboardAccess.includes(role);
 }
 

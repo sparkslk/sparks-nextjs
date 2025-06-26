@@ -58,7 +58,7 @@ export default function CreateProfilePage() {
         // Check if user's role needs a profile
         if (status === "authenticated" && session?.user) {
             const userRole = (session.user as { role?: UserRole }).role;
-            
+
             // If user role doesn't need a profile, redirect to their dashboard
             if (userRole && !userRoleNeedsProfile(userRole)) {
                 const correctPath = getRedirectPathForRole(userRole);
