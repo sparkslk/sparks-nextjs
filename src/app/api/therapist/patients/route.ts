@@ -3,7 +3,7 @@ import { requireApiAuth } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
 import { $Enums } from "@prisma/client";
 
-export async function POST(request: NextRequest) {
+/* export async function POST(request: NextRequest) {
     try {
         const session = await requireApiAuth(request, ['THERAPIST']);
 
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
             { status: 500 }
         );
     }
-}
+} */
 
 export async function GET(req: NextRequest) {
     try {
@@ -108,24 +108,45 @@ export async function GET(req: NextRequest) {
             );
         }
 
-        // Get patients for this therapist
+        // Get patients for this specific therapist only
         const patients = await prisma.patient.findMany({
             where: {
-                primaryTherapistId: user.therapistProfile.id
+                primaryTherapistId: user.therapistProfile.id // This is the key filter
             },
             orderBy: {
                 createdAt: 'desc'
             },
             include: {
                 therapySessions: {
-                    orderBy: { scheduledAt: 'desc' },
-                    take: 1
+                    orderBy: { scheduledAt: 'desc' }
                 }
             }
         });
 
+        // Enhanced formatting to match your UI
         const formattedPatients = patients.map(patient => {
-            const lastSession = patient.therapySessions[0];
+            const allSessions = patient.therapySessions || [];
+            const pastSessions = allSessions.filter(session => 
+                new Date(session.scheduledAt) < new Date()
+            );
+            const futureSessions = allSessions.filter(session => 
+                new Date(session.scheduledAt) >= new Date()
+            );
+            
+            const lastSession = pastSessions.length > 0 ? pastSessions[0] : null;
+            const nextSession = futureSessions.length > 0 ? futureSessions[0] : null;
+            
+            // Determine status based on session activity
+            let status: "active" | "inactive" | "completed" = "inactive";
+            if (nextSession) {
+                status = "active";
+            } else if (lastSession) {
+                const daysSinceLastSession = Math.floor(
+                    (new Date().getTime() - new Date(lastSession.scheduledAt).getTime()) / (1000 * 60 * 60 * 24)
+                );
+                status = daysSinceLastSession <= 30 ? "active" : "inactive";
+            }
+
             return {
                 id: patient.id,
                 firstName: patient.firstName,
@@ -135,16 +156,21 @@ export async function GET(req: NextRequest) {
                 phone: patient.phone,
                 email: patient.email,
                 lastSession: lastSession ? lastSession.scheduledAt : null,
-                status: "active" // You can implement proper status logic later
+                nextSession: nextSession ? nextSession.scheduledAt : null,
+                status,
+                age: calculateAge(patient.dateOfBirth)
             };
         });
 
         return NextResponse.json(
-            { patients: formattedPatients },
+            { 
+                patients: formattedPatients,
+                totalCount: formattedPatients.length,
+                therapistId: user.therapistProfile.id // For debugging
+            },
             { status: 200 }
         );
     } catch (error) {
-        // Handle authentication/authorization errors
         if (error instanceof NextResponse) {
             return error;
         }
@@ -154,4 +180,15 @@ export async function GET(req: NextRequest) {
             { status: 500 }
         );
     }
+}
+
+function calculateAge(dateOfBirth: Date): number {
+    const today = new Date();
+    const birthDate = new Date(dateOfBirth);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+    }
+    return age;
 }
