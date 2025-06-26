@@ -20,22 +20,23 @@ export default withAuth(
             pathname === "/set-password" ||
             pathname.startsWith("/therapist/signup") ||
             pathname.startsWith("/manager/signup") ||
-            pathname.startsWith("/admin/signup") ||
-            pathname.startsWith("/api/auth") // Allow all auth API routes
+            pathname.startsWith("/admin/signup")
         ) {
             return NextResponse.next();
         }
 
         // Redirect to login if no token
         if (!token) {
-            return NextResponse.redirect(new URL("/login", request.url));
+            const loginUrl = new URL("/login", request.url);
+            return NextResponse.redirect(loginUrl);
         }
 
         const userRole = token.role as UserRole | null;
 
         // If user doesn't have a role set, redirect to confirm-role page
         if (!userRole && pathname !== "/confirm-role") {
-            return NextResponse.redirect(new URL("/confirm-role", request.url));
+            const confirmRoleUrl = new URL("/confirm-role", request.url);
+            return NextResponse.redirect(confirmRoleUrl);
         }
 
         // If user has a role, check authorization for the route
@@ -49,7 +50,8 @@ export default withAuth(
             if (!isAuthorizedForRoute(userRole, pathname)) {
                 // Redirect to their appropriate dashboard
                 const dashboardUrl = getRoleBasedDashboard(userRole);
-                return NextResponse.redirect(new URL(dashboardUrl, request.url));
+                const redirectUrl = new URL(dashboardUrl, request.url);
+                return NextResponse.redirect(redirectUrl);
             }
 
             // Patient onboarding: check if NORMAL_USER has a profile when accessing dashboard
@@ -64,9 +66,24 @@ export default withAuth(
     },
     {
         callbacks: {
-            authorized: ({ token }) => {
-                // Always return true to let the middleware function handle the logic
-                return true;
+            authorized: ({ token, req }) => {
+                // Allow access to public routes without token
+                const { pathname } = req.nextUrl;
+                if (
+                    pathname === "/" ||
+                    pathname === "/login" ||
+                    pathname === "/signup" ||
+                    pathname === "/confirm-role" ||
+                    pathname === "/set-password" ||
+                    pathname.startsWith("/therapist/signup") ||
+                    pathname.startsWith("/manager/signup") ||
+                    pathname.startsWith("/admin/signup")
+                ) {
+                    return true;
+                }
+
+                // For protected routes, require a token
+                return !!token;
             },
         },
     }
@@ -82,6 +99,6 @@ export const config = {
          * - favicon.ico (favicon file)
          * - public (public files)
          */
-        "/((?!_next/static|_next/image|favicon.ico|public).*)"
+        "/((?!api|_next/static|_next/image|favicon.ico|public).*)"
     ],
 };

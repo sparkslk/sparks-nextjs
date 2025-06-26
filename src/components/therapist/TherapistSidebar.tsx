@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { usePathname } from "next/navigation"
+import NotificationBell from "@/components/NotificationBell"
 import {
     Calendar,
     Users,
@@ -444,6 +445,7 @@ export function TherapistSidebar({ children }: TherapistSidebarProps) {
                             {pathname === "/therapist/messages" && "Messages"}
                         </h1>
                     </div>
+                    <NotificationBell />
                 </header>
                 <div className="flex-1 overflow-auto p-4">
                     {children}
