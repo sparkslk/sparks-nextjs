@@ -3,6 +3,84 @@ import { requireApiAuth } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
 import { SessionStatus, NotificationType } from "@prisma/client";
 
+/**
+ * @swagger
+ * /api/sessions/request:
+ *   post:
+ *     summary: Request a therapy session
+ *     description: Create a new therapy session request
+ *     tags:
+ *       - Sessions
+ *     security:
+ *       - sessionAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - therapistId
+ *               - sessionType
+ *               - preferredDateTime
+ *             properties:
+ *               therapistId:
+ *                 type: string
+ *                 description: ID of the requested therapist
+ *                 example: "therapist_123456"
+ *               sessionType:
+ *                 type: string
+ *                 enum: ["INITIAL_CONSULTATION", "INDIVIDUAL_THERAPY", "GROUP_THERAPY", "FOLLOW_UP"]
+ *                 description: Type of therapy session
+ *                 example: "INDIVIDUAL_THERAPY"
+ *               preferredDateTime:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Preferred date and time for the session
+ *                 example: "2025-07-01T10:00:00Z"
+ *               notes:
+ *                 type: string
+ *                 description: Additional notes or specific requests
+ *                 example: "Prefer morning sessions"
+ *     responses:
+ *       201:
+ *         description: Session request created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Session request created successfully"
+ *                 sessionId:
+ *                   type: string
+ *                   example: "session_123456"
+ *       400:
+ *         description: Bad request - missing or invalid fields
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Patient profile not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 export async function POST(request: NextRequest) {
     try {
         const session = await requireApiAuth(request);

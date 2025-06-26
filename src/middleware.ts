@@ -8,6 +8,7 @@ const PUBLIC_PATHS = [
     '/login',
     '/signup',
     '/therapist/signup',
+    'api-docs',
     '/api/auth',
     '/api/auth/',
     '/api/auth/callback',

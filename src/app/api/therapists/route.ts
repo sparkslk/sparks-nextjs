@@ -2,6 +2,66 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireApiAuth } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
 
+/**
+ * @swagger
+ * /api/therapists:
+ *   get:
+ *     summary: Get all therapists
+ *     description: Retrieve a list of all therapists with their details
+ *     tags:
+ *       - Therapists
+ *     security:
+ *       - sessionAuth: []
+ *     responses:
+ *       200:
+ *         description: List of therapists retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                     description: Therapist ID
+ *                   licenseNumber:
+ *                     type: string
+ *                     description: Therapist license number
+ *                   specializations:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                     description: List of specializations
+ *                   user:
+ *                     type: object
+ *                     properties:
+ *                       name:
+ *                         type: string
+ *                         description: Therapist name
+ *                       email:
+ *                         type: string
+ *                         format: email
+ *                         description: Therapist email
+ *                   organization:
+ *                     type: object
+ *                     properties:
+ *                       name:
+ *                         type: string
+ *                         description: Organization name
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 export async function GET(req: NextRequest) {
     try {
         await requireApiAuth(req);

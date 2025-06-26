@@ -2,6 +2,70 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireApiAuth } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
 
+/**
+ * @swagger
+ * /api/profile:
+ *   get:
+ *     summary: Get user profile
+ *     description: Retrieve the authenticated user's profile information
+ *     tags:
+ *       - Profile
+ *     security:
+ *       - sessionAuth: []
+ *     responses:
+ *       200:
+ *         description: Profile retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                   description: Patient ID
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     name:
+ *                       type: string
+ *                       description: User's full name
+ *                     email:
+ *                       type: string
+ *                       format: email
+ *                       description: User's email address
+ *                 primaryTherapist:
+ *                   type: object
+ *                   nullable: true
+ *                   description: Assigned primary therapist
+ *                 therapySessions:
+ *                   type: array
+ *                   description: List of therapy sessions
+ *                   items:
+ *                     type: object
+ *                 treatmentPlans:
+ *                   type: array
+ *                   description: List of treatment plans
+ *                   items:
+ *                     type: object
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Profile not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 export async function GET(req: NextRequest) {
     try {
         const session = await requireApiAuth(req);
@@ -121,6 +185,116 @@ export async function GET(req: NextRequest) {
     }
 }
 
+/**
+ * @swagger
+ * /api/profile:
+ *   post:
+ *     summary: Create user profile
+ *     description: Create a patient profile for the authenticated user
+ *     tags:
+ *       - Profile
+ *     security:
+ *       - sessionAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - firstName
+ *               - lastName
+ *               - phone
+ *               - email
+ *               - dateOfBirth
+ *               - gender
+ *             properties:
+ *               firstName:
+ *                 type: string
+ *                 description: First name
+ *                 example: "John"
+ *               lastName:
+ *                 type: string
+ *                 description: Last name
+ *                 example: "Doe"
+ *               phone:
+ *                 type: string
+ *                 description: Phone number
+ *                 example: "+1234567890"
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: Email address
+ *                 example: "john.doe@example.com"
+ *               address:
+ *                 type: string
+ *                 description: Home address
+ *                 example: "123 Main St, City, State"
+ *               dateOfBirth:
+ *                 type: string
+ *                 format: date
+ *                 description: Date of birth
+ *                 example: "1990-01-01"
+ *               gender:
+ *                 type: string
+ *                 enum: ["MALE", "FEMALE", "OTHER", "PREFER_NOT_TO_SAY"]
+ *                 description: Gender
+ *                 example: "MALE"
+ *               emergencyContact:
+ *                 type: object
+ *                 description: Emergency contact information
+ *                 properties:
+ *                   name:
+ *                     type: string
+ *                     example: "Jane Doe"
+ *                   relationship:
+ *                     type: string
+ *                     example: "Spouse"
+ *                   phone:
+ *                     type: string
+ *                     example: "+1234567891"
+ *               medicalHistory:
+ *                 type: object
+ *                 description: Medical history information
+ *     responses:
+ *       201:
+ *         description: Profile created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Profile created successfully"
+ *                 profileId:
+ *                   type: string
+ *                   example: "profile_123456"
+ *       400:
+ *         description: Bad request - missing or invalid fields
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       409:
+ *         description: Conflict - profile already exists
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 export async function POST(request: NextRequest) {
     try {
         const session = await requireApiAuth(request);
