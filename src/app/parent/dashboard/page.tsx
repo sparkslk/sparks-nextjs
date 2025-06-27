@@ -82,29 +82,37 @@ export default function ParentDashboard() {
         <>
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <StatsCard
-                    title="Children Registered"
-                    value={parentData?.children.length || 0}
-                    description="Active accounts"
-                />
+                <div onClick={() => router.push("/parent/children")} className="cursor-pointer">
+                    <StatsCard
+                        title="Children Registered"
+                        value={parentData?.children.length || 0}
+                        description="Active accounts"
+                    />
+                </div>
 
-                <StatsCard
-                    title="Next Appointment"
-                    value={parentData?.totalUpcomingSessions || 0}
-                    description="Days away"
-                />
+                <div onClick={() => router.push("/parent/appointments")} className="cursor-pointer">
+                    <StatsCard
+                        title="Next Appointment"
+                        value={parentData?.totalUpcomingSessions || 0}
+                        description="Days away"
+                    />
+                </div>
 
-                <StatsCard
-                    title="Unread Messages"
-                    value={parentData?.unreadMessages || 0}
-                    description="From therapists"
-                />
+                <div onClick={() => router.push("/parent/messages")} className="cursor-pointer">
+                    <StatsCard
+                        title="Unread Messages"
+                        value={parentData?.unreadMessages || 0}
+                        description="From therapists"
+                    />
+                </div>
 
-                <StatsCard
-                    title="Progress Reports"
-                    value={parentData?.children.reduce((sum, child) => sum + child.progressReports, 0) || 0}
-                    description="New reports available"
-                />
+                <div onClick={() => router.push("/parent/reports")} className="cursor-pointer">
+                    <StatsCard
+                        title="Progress Reports"
+                        value={parentData?.children.reduce((sum, child) => sum + child.progressReports, 0) || 0}
+                        description="New reports available"
+                    />
+                </div>
             </div>
 
             {/* Main Content Grid */}
