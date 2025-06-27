@@ -18,6 +18,7 @@ import {
 import { Users, Plus, UserPlus } from "lucide-react";
 import { AddChildForm } from "@/components/parent/AddChildForm";
 import { ConnectChildForm } from "@/components/parent/ConnectChildForm";
+import { StatsCard } from "@/components/ui/stats-card";
 
 interface ParentData {
     children: Array<{
@@ -140,11 +141,11 @@ export default function ParentDashboard() {
             {/* Header Section with Action Buttons */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
                 <div>
-                    <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">
-                        Parent Dashboard
-                    </h1>
-                    <p className="text-muted-foreground mt-1">
-                        Manage your children&apos;s therapy journey
+                    <p className="text-lg text-gray-600 font-medium">
+                        Monitor and manage your children&apos;s therapeutic progress
+                    </p>
+                    <p className="text-sm text-gray-500 mt-1">
+                        Track sessions, view reports, and stay connected with therapists
                     </p>
                 </div>
                 <div className="flex gap-2">
@@ -168,7 +169,7 @@ export default function ParentDashboard() {
 
                     <Dialog open={showAddChild} onOpenChange={setShowAddChild}>
                         <DialogTrigger asChild>
-                            <Button>
+                            <Button style={{ backgroundColor: '#8159A8' }} className="text-white hover:opacity-90">
                                 <Plus className="h-4 w-4 mr-2" />
                                 Add Child
                             </Button>
@@ -188,86 +189,122 @@ export default function ParentDashboard() {
             {/* Stats Grid - only show when we have children */}
             {parentData && parentData.children.length > 0 && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow" style={{ borderLeftColor: '#8159A8' }}>
-                        <CardContent className="p-6">
-                            <div className="text-sm font-medium mb-1" style={{ color: '#8159A8' }}>Children Registered</div>
-                            <div className="text-3xl font-bold text-gray-900 mb-1">{parentData.children.length}</div>
-                            <div className="text-xs text-gray-500">Active accounts</div>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow" style={{ borderLeftColor: '#8159A8' }}>
-                        <CardContent className="p-6">
-                            <div className="text-sm font-medium mb-1" style={{ color: '#8159A8' }}>Upcoming Sessions</div>
-                            <div className="text-3xl font-bold text-gray-900 mb-1">{parentData.totalUpcomingSessions}</div>
-                            <div className="text-xs text-gray-500">Scheduled sessions</div>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow" style={{ borderLeftColor: '#8159A8' }}>
-                        <CardContent className="p-6">
-                            <div className="text-sm font-medium mb-1" style={{ color: '#8159A8' }}>Unread Messages</div>
-                            <div className="text-3xl font-bold text-gray-900 mb-1">{parentData.unreadMessages}</div>
-                            <div className="text-xs text-gray-500">From therapists</div>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow" style={{ borderLeftColor: '#8159A8' }}>
-                        <CardContent className="p-6">
-                            <div className="text-sm font-medium mb-1" style={{ color: '#8159A8' }}>Progress Reports</div>
-                            <div className="text-3xl font-bold text-gray-900 mb-1">
-                                {parentData.children.reduce((sum, child) => sum + child.progressReports, 0)}
-                            </div>
-                            <div className="text-xs text-gray-500">New reports available</div>
-                        </CardContent>
-                    </Card>
+                    <StatsCard
+                        title="Children Registered"
+                        value={parentData.children.length}
+                        description="Active accounts"
+                    />
+                    
+                    <StatsCard
+                        title="Upcoming Sessions"
+                        value={parentData.totalUpcomingSessions}
+                        description="Scheduled sessions"
+                    />
+                    
+                    <StatsCard
+                        title="Unread Messages"
+                        value={parentData.unreadMessages}
+                        description="From therapists"
+                    />
+                    
+                    <StatsCard
+                        title="Progress Reports"
+                        value={parentData.children.reduce((sum, child) => sum + child.progressReports, 0)}
+                        description="New reports available"
+                    />
                 </div>
             )}
 
             {/* Main Content Grid - only show when we have children */}
             {parentData && parentData.children.length > 0 && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Children Progress */}
-                    <Card className="shadow-sm hover:shadow-md transition-shadow">
-                        <CardHeader className="border-b border-gray-100 pb-4">
-                            <CardTitle className="text-lg font-semibold text-gray-900">Children Progress</CardTitle>
+                    <Card className="shadow-lg hover:shadow-xl transition-all duration-300 border-0 bg-gradient-to-br from-white to-purple-50">
+                        <CardHeader className="border-b border-purple-100 pb-4">
+                            <CardTitle className="text-xl font-bold flex items-center gap-2 text-gray-900">
+                                <Users className="h-5 w-5" />
+                                Children Progress Overview
+                            </CardTitle>
+                            <p className="text-gray-600 text-sm mt-1">Track therapeutic progress and upcoming sessions</p>
                         </CardHeader>
                         <CardContent className="space-y-6 pt-6">
                             {parentData.children.map((child) => (
-                                <div key={child.id} className="bg-gray-50 rounded-lg p-4">
-                                    <div className="flex items-center justify-between mb-3">
-                                        <div>
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <h4 className="font-semibold text-gray-900">{child.firstName} {child.lastName}</h4>
-                                                {child.isPrimary && (
-                                                    <Badge variant="secondary">Primary Guardian</Badge>
-                                                )}
+                                <div key={child.id} className="bg-white rounded-xl p-6 border border-purple-100 shadow-sm hover:shadow-md transition-all duration-300">
+                                    <div className="flex items-start justify-between mb-4">
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-3 mb-2">
+                                                <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm" style={{ background: 'linear-gradient(to bottom right, #8159A8, #6b46a0)' }}>
+                                                    {child.firstName.charAt(0)}{child.lastName.charAt(0)}
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-bold text-gray-900 text-lg">{child.firstName} {child.lastName}</h4>
+                                                    <p className="text-sm text-gray-500">Age: {new Date().getFullYear() - new Date(child.dateOfBirth).getFullYear()} years</p>
+                                                </div>
                                             </div>
-                                            <div className="text-sm text-gray-600 space-y-1">
-                                                <p>Relationship: {child.relationship}</p>
-                                                <p>Upcoming Sessions: {child.upcomingSessions}</p>
-                                                <p>Patient ID: <span className="font-mono text-xs bg-white px-2 py-1 rounded border">{child.id}</span></p>
-                                                {child.therapist && (
-                                                    <p>Therapist: {child.therapist.name}</p>
-                                                )}
-                                            </div>
+                                            {child.isPrimary && (
+                                                <Badge variant="secondary" className="mb-3 text-purple-800 border-purple-200" style={{ backgroundColor: '#f3f0ff' }}>
+                                                    Primary Guardian
+                                                </Badge>
+                                            )}
                                         </div>
-                                        <span className="px-3 py-1 text-xs rounded-full font-medium" style={{ backgroundColor: '#8159A8', color: 'white' }}>
-                                            ACTIVE
-                                        </span>
-                                    </div>
-                                    <div className="mb-3">
-                                        <div className="w-full bg-gray-200 rounded-full h-2">
-                                            <div
-                                                className="h-2 rounded-full transition-all duration-300"
-                                                style={{
-                                                    width: `${child.progressPercentage || 0}%`,
-                                                    backgroundColor: '#8159A8'
-                                                }}
-                                            ></div>
+                                        <div className="flex flex-col items-end gap-2">
+                                            <span className="px-3 py-1 text-xs rounded-full font-bold bg-green-100 text-green-700 border border-green-200">
+                                                ACTIVE
+                                            </span>
+                                            <span className="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded font-mono">
+                                                {child.id}
+                                            </span>
                                         </div>
                                     </div>
-                                    <p className="text-sm text-gray-700 font-medium">Task Completion: {child.progressPercentage || 0}%</p>
+                                    
+                                    <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg p-3 border border-blue-200 mb-6">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                                                <span className="text-white text-xs font-bold">{child.upcomingSessions}</span>
+                                            </div>
+                                            <span className="text-sm font-semibold text-blue-800">Upcoming Sessions</span>
+                                        </div>
+                                        <p className="text-xs text-blue-600">Next 7 days</p>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-sm font-semibold text-gray-700">Overall Progress</span>
+                                            <span className="text-sm font-bold" style={{ color: '#8159A8' }}>{child.progressPercentage || 0 }%</span>
+                                        </div>
+                                        <div className="relative">
+                                            <div className="w-full bg-gray-200 rounded-full h-3 shadow-inner">
+                                                <div
+                                                    className="h-3 rounded-full transition-all duration-500 ease-out shadow-sm"
+                                                    style={{
+                                                        width: `${child.progressPercentage || 0}%`,
+                                                        background: 'linear-gradient(to right, #8159A8, #6b46a0)'
+                                                    }}
+                                                ></div>
+                                            </div>
+                                            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-transparent via-white to-transparent opacity-30 h-3"></div>
+                                        </div>
+                                    </div>
+
+                                    {child.therapist && (
+                                        <div className="mt-4 pt-4 border-t border-gray-100">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-8 h-8 bg-gradient-to-br from-green-400 to-green-500 rounded-full flex items-center justify-center text-white font-bold text-xs">
+                                                    {child.therapist.name.split(' ').map(n => n.charAt(0)).join('')}
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-800">Dr. {child.therapist.name}</p>
+                                                    <p className="text-xs text-gray-500">Assigned Therapist</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {child.lastSession && (
+                                        <div className="mt-3 text-xs text-gray-500 bg-gray-50 rounded-lg p-2">
+                                            <span className="font-medium">Last Session:</span> {child.lastSession}
+                                        </div>
+                                    )}
                                 </div>
                             ))}
                         </CardContent>
@@ -324,7 +361,8 @@ export default function ParentDashboard() {
                             </Button>
                             <Button
                                 onClick={() => setShowAddChild(true)}
-                                className="text-white px-6 py-2 hover:opacity-90 bg-primary"
+                                className="text-white px-6 py-2 hover:opacity-90"
+                                style={{ backgroundColor: '#8159A8' }}
                             >
                                 <Plus className="h-4 w-4 mr-2" />
                                 Add New Child

@@ -107,7 +107,16 @@ export async function GET(req: NextRequest) {
         // Calculate total upcoming sessions across all children
         const totalUpcomingSessions = children.reduce((sum, child) => sum + child.upcomingSessions, 0);
 
-        // Format recent updates from notifications
+        // Get parent's name from user table
+        const parentUser = await prisma.user.findUnique({
+            where: { id: session.user.id },
+            select: { name: true }
+        });
+
+        console.log("Parent User Query Result:", parentUser);
+        console.log("Session User ID:", session.user.id);
+
+        // Format recent updates from notificationsfications
         const recentUpdates = notifications.map(notification => ({
             id: notification.id,
             message: notification.message,
@@ -124,7 +133,8 @@ export async function GET(req: NextRequest) {
             children,
             totalUpcomingSessions,
             unreadMessages,
-            recentUpdates
+            recentUpdates,
+            parentName: parentUser?.name
         };
 
         return NextResponse.json(parentData);
