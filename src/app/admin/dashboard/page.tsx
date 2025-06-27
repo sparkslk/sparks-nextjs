@@ -1,5 +1,6 @@
 "use client";
 
+import React from 'react';
 import { signOut } from "next-auth/react";
 import { useEffect, useState } from "react";
 import Image from "next/image";
@@ -45,6 +46,57 @@ interface AdminData {
         type: "success" | "warning" | "info";
     }>;
 }
+
+const mockSessionData = [
+  {
+    id: 1,
+    doctorName: "Dr. Nimal Perera",
+    sessionDetails: "Session with Saman W. • 60 mins • Completed",
+    amount: "Rs. 800",
+    commission: "10% commission"
+  },
+  {
+    id: 2,
+    doctorName: "Dr. Kamala Silva",
+    sessionDetails: "Session with Priya R. • 45 mins • In Progress",
+    amount: "Rs. 600",
+    commission: "10% commission"
+  },
+  {
+    id: 3,
+    doctorName: "Dr. Ruwan Fernando",
+    sessionDetails: "Session with Nuwan K. • 90 mins • Completed",
+    amount: "Rs. 1,200",
+    commission: "10% commission"
+  }
+];
+
+const mockDonationData = [
+  {
+    id: 1,
+    donorName: "Malini Wickramasinghe",
+    timeAgo: "2 hours ago",
+    amount: "Rs. 15,000"
+  },
+  {
+    id: 2,
+    donorName: "Chandana Rajapaksa",
+    timeAgo: "5 hours ago",
+    amount: "Rs. 7,500"
+  },
+  {
+    id: 3,
+    donorName: "Sanduni Perera",
+    timeAgo: "1 day ago",
+    amount: "Rs. 30,000"
+  },
+  {
+    id: 4,
+    donorName: "Anonymous",
+    timeAgo: "2 days ago",
+    amount: "Rs. 22,500"
+  }
+];
 
 export default function AdminDashboard() {
     const [adminData, setAdminData] = useState<AdminData | null>(null);
@@ -101,47 +153,15 @@ export default function AdminDashboard() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5">
-            {/* Header */}
-            <header className="bg-card/95 backdrop-blur border-b">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center py-4">
-                        <div className="flex items-center space-x-4">
-                            <Image
-                                src="/images/sparkslogo.png"
-                                alt="SPARKS Logo"
-                                width={40}
-                                height={40}
-                                className="rounded-lg"
-                            />
-                            <div>
-                                <h1 className="text-xl font-bold text-foreground">Admin Portal</h1>
-                                <p className="text-sm text-muted-foreground">SPARKS System Administration</p>
-                            </div>
-                        </div>
-                        <div className="flex items-center space-x-4">
-                            <div className="text-right">
-                                <p className="text-sm font-medium">Admin</p>
-                                <Badge variant="destructive" className="text-xs">
-                                    Administrator
-                                </Badge>
-                            </div>
-                            <Button variant="outline" onClick={handleSignOut}>
-                                Sign Out
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            </header>
-
+        <div className="min-h-screen" style={{ backgroundColor: '#F5F3FB' }}>
             {/* Main Content */}
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {/* Welcome Section */}
                 <div className="mb-8">
-                    <h2 className="text-3xl font-bold text-foreground mb-2">
-                        System Administration
-                    </h2>
-                    <p className="text-lg text-muted-foreground">
+                    <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">
+                        Admin Dashboard
+                    </h1>
+                    <p className="text-muted-foreground mt-1">
                         Manage the entire SPARKS platform and all system operations.
                     </p>
                 </div>
@@ -195,9 +215,69 @@ export default function AdminDashboard() {
                     </Card>
                 </div>
 
+                <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6 ">
+                    {/* Recent Session Oversight */}
+                    <Card>
+                        <CardHeader>
+                        <CardTitle>Recent Session Oversight</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                        <div className="space-y-4">
+                            {mockSessionData.map((session) => (
+                            <div key={session.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <div className="flex-1">
+                                <h4 className="font-semibold text-sm">{session.doctorName}</h4>
+                                <p className="text-xs text-muted-foreground">{session.sessionDetails}</p>
+                                </div>
+                                <div className="text-right">
+                                <p className="font-semibold text-green-600">{session.amount}</p>
+                                <p className="text-xs text-muted-foreground">{session.commission}</p>
+                                </div>
+                            </div>
+                            ))}
+                        </div>
+                        <div className="mt-4 flex gap-2">
+                            <Button className="hover:opacity-90 bg-primary text-white">
+                            View All Sessions
+                            </Button>
+                            <Button variant="outline">
+                            Generate Report
+                            </Button>
+                        </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Recent Donations */}
+                    <Card>
+                        <CardHeader>
+                        <CardTitle>Recent Donations</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                        <div className="space-y-4">
+                            {mockDonationData.map((donation) => (
+                            <div key={donation.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <div className="flex-1">
+                                <h4 className="font-semibold text-sm">{donation.donorName}</h4>
+                                <p className="text-xs text-muted-foreground">{donation.timeAgo}</p>
+                                </div>
+                                <div className="text-right">
+                                <p className="font-semibold text-purple-600">{donation.amount}</p>
+                                </div>
+                            </div>
+                            ))}
+                        </div>
+                        <div className="mt-4">
+                            <Button className="hover:opacity-90 bg-primary text-white">
+                            View All Donations
+                            </Button>
+                        </div>
+                        </CardContent>
+                    </Card>
+                </div>
+
                 {/* Admin Action Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {/*<Card className="hover:shadow-lg transition-shadow cursor-pointer">
                         <CardHeader>
                             <CardTitle className="flex items-center">
                                 <Users className="mr-2 h-5 w-5" />
@@ -210,7 +290,7 @@ export default function AdminDashboard() {
                         <CardContent>
                             <Button className="w-full">Manage Users</Button>
                         </CardContent>
-                    </Card>
+                    </Card>*/}
 
                     <Card className="hover:shadow-lg transition-shadow cursor-pointer">
                         <CardHeader>
@@ -357,7 +437,7 @@ export default function AdminDashboard() {
                     </Card>
                 </div>
 
-                {/* User Statistics */}
+                {/* User Statistics 
                 <div className="mt-8">
                     <Card>
                         <CardHeader>
@@ -389,7 +469,7 @@ export default function AdminDashboard() {
                             </div>
                         </CardContent>
                     </Card>
-                </div>
+                </div>*/}
             </main>
         </div>
     );
