@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { User, ArrowLeft } from "lucide-react";
+import { UserRole } from "@/lib/auth";
+import { userRoleNeedsProfile, getRedirectPathForRole } from "@/lib/profile-utils";
 
 export default function CreateProfilePage() {
     const { data: session, status } = useSession();
@@ -53,11 +55,23 @@ export default function CreateProfilePage() {
             return;
         }
 
+        // Check if user's role needs a profile
+        if (status === "authenticated" && session?.user) {
+            const userRole = (session.user as { role?: UserRole }).role;
+
+            // If user role doesn't need a profile, redirect to their dashboard
+            if (userRole && !userRoleNeedsProfile(userRole)) {
+                const correctPath = getRedirectPathForRole(userRole);
+                router.push(correctPath);
+                return;
+            }
+        }
+
         // Check if user already has a profile
         if (status === "authenticated") {
             checkExistingProfile();
         }
-    }, [status, router, checkExistingProfile]);
+    }, [status, router, checkExistingProfile, session]);
 
     // Pre-populate email from session
     useEffect(() => {

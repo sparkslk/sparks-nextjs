@@ -11,6 +11,11 @@ export default withAuth(
         const { pathname } = request.nextUrl;
         const token = request.nextauth.token;
 
+        // Skip middleware for API routes (except auth routes that need protection)
+        if (pathname.startsWith('/api/') && !pathname.startsWith('/api/auth/')) {
+            return NextResponse.next();
+        }
+
         // Allow access to public routes and auth routes
         if (
             pathname === "/" ||
@@ -18,6 +23,7 @@ export default withAuth(
             pathname === "/signup" ||
             pathname === "/confirm-role" ||
             pathname === "/set-password" ||
+            pathname === "/api-docs" ||
             pathname.startsWith("/therapist/signup") ||
             pathname.startsWith("/manager/signup") ||
             pathname.startsWith("/admin/signup")
@@ -69,12 +75,19 @@ export default withAuth(
             authorized: ({ token, req }) => {
                 // Allow access to public routes without token
                 const { pathname } = req.nextUrl;
+
+                // Skip auth for API routes (except auth routes)
+                if (pathname.startsWith('/api/') && !pathname.startsWith('/api/auth/')) {
+                    return true;
+                }
+
                 if (
                     pathname === "/" ||
                     pathname === "/login" ||
                     pathname === "/signup" ||
                     pathname === "/confirm-role" ||
                     pathname === "/set-password" ||
+                    pathname === "/api-docs" ||
                     pathname.startsWith("/therapist/signup") ||
                     pathname.startsWith("/manager/signup") ||
                     pathname.startsWith("/admin/signup")

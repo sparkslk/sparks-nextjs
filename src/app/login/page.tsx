@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { signIn, getSession, useSession } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -60,14 +60,9 @@ export default function LoginPage() {
                     setError("Invalid credentials. Please try again.");
                 }
             } else {
-                // Get the session to check user role and redirect appropriately
-                const session = await getSession();
-                if (session?.user) {
-                    const userRole = (session.user as { role?: UserRole }).role as UserRole;
-                    const dashboardUrl = getRoleBasedDashboard(userRole);
-                    router.push(dashboardUrl);
-                    router.refresh();
-                }
+                // Always redirect to dashboard-redirect, let it handle role-based routing
+                router.push("/dashboard-redirect");
+                router.refresh();
             }
         } catch {
             setError("An error occurred. Please try again.");

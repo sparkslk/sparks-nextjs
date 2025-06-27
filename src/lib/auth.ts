@@ -169,12 +169,9 @@ export const authOptions: NextAuthOptions = {
                 console.log("Redirect callback:", { url, baseUrl });
             }
 
-            // If redirecting to sign-in page, redirect to dashboard instead
-            if (url.includes('/login') || url.includes('/signin')) {
-                if (process.env.NODE_ENV === "development") {
-                    console.log("Redirect: Preventing redirect to login, going to dashboard");
-                }
-                return `${baseUrl}/dashboard`;
+            // Always redirect to dashboard-redirect after login/signin
+            if (url.includes('/login') || url.includes('/signin') || url.includes('/dashboard')) {
+                return `${baseUrl}/dashboard-redirect`;
             }
 
             // Allows relative callback URLs
@@ -193,11 +190,11 @@ export const authOptions: NextAuthOptions = {
                 return url;
             }
 
-            // For OAuth callbacks, redirect to dashboard (middleware will handle role-based routing)
+            // For OAuth callbacks, redirect to dashboard-redirect
             if (process.env.NODE_ENV === "development") {
-                console.log("Redirect: Default redirect to dashboard");
+                console.log("Redirect: Default redirect to dashboard-redirect");
             }
-            return `${baseUrl}/dashboard`;
+            return `${baseUrl}/dashboard-redirect`;
         },
     },
     pages: {

@@ -25,6 +25,11 @@ export async function GET(req: NextRequest) {
                                     gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) // Last 30 days
                                 }
                             }
+                        },
+                        primaryTherapist: {
+                            include: {
+                                user: true
+                            }
                         }
                     }
                 }
@@ -56,23 +61,62 @@ export async function GET(req: NextRequest) {
             }
         });
 
-        // Format children data
-        const children = parentGuardianRelations.map(relation => ({
-            id: relation.patient.id,
-            firstName: relation.patient.firstName,
-            lastName: relation.patient.lastName,
-            upcomingSessions: relation.patient.therapySessions.length,
-            progressReports: relation.patient.assessments.length
-        }));
+        // Format children data with complete information
+        const children = await Promise.all(
+            parentGuardianRelations.map(async (relation) => {
+                // Calculate progress percentage based on completed sessions vs total scheduled
+                const totalSessions = await prisma.therapySession.count({
+                    where: { patientId: relation.patient.id }
+                });
+                const completedSessions = await prisma.therapySession.count({
+                    where: {
+                        patientId: relation.patient.id,
+                        status: 'COMPLETED'
+                    }
+                });
+                const progressPercentage = totalSessions > 0 ? Math.round((completedSessions / totalSessions) * 100) : 0;
 
-        // Calculate total upcoming sessions
+                // Get last session date
+                const lastSession = await prisma.therapySession.findFirst({
+                    where: {
+                        patientId: relation.patient.id,
+                        status: 'COMPLETED'
+                    },
+                    orderBy: { scheduledAt: 'desc' }
+                });
+
+                return {
+                    id: relation.patient.id,
+                    firstName: relation.patient.firstName,
+                    lastName: relation.patient.lastName,
+                    dateOfBirth: relation.patient.dateOfBirth?.toISOString() || '',
+                    relationship: relation.relationship,
+                    isPrimary: relation.isPrimary,
+                    upcomingSessions: relation.patient.therapySessions.length,
+                    progressReports: relation.patient.assessments.length,
+                    progressPercentage,
+                    lastSession: lastSession?.scheduledAt?.toISOString() || null,
+                    therapist: relation.patient.primaryTherapist ? {
+                        name: relation.patient.primaryTherapist.user.name || 'Unknown Therapist',
+                        email: relation.patient.primaryTherapist.user.email || ''
+                    } : null
+                };
+            })
+        );
+
+        // Calculate total upcoming sessions across all children
         const totalUpcomingSessions = children.reduce((sum, child) => sum + child.upcomingSessions, 0);
 
-        // Format recent updates
+        // Format recent updates from notifications
         const recentUpdates = notifications.map(notification => ({
             id: notification.id,
             message: notification.message,
-            timestamp: new Date(notification.createdAt).toLocaleString(),
+            timestamp: new Date(notification.createdAt).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            }),
             type: notification.isUrgent ? "warning" as const : "info" as const
         }));
 

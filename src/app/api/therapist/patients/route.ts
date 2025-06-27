@@ -3,7 +3,73 @@ import { requireApiAuth } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
 import { $Enums } from "@prisma/client";
 
-/* export async function POST(request: NextRequest) {
+/**
+ * @swagger
+ * /api/therapist/patients:
+ *   post:
+ *     summary: Assign patient to therapist
+ *     description: Assign a patient to the authenticated therapist
+ *     tags:
+ *       - Therapist
+ *       - Patients
+ *     security:
+ *       - sessionAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - patientId
+ *             properties:
+ *               patientId:
+ *                 type: string
+ *                 description: ID of the patient to assign
+ *                 example: "patient_123456"
+ *     responses:
+ *       200:
+ *         description: Patient assigned successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Patient assigned successfully"
+ *       400:
+ *         description: Bad request - missing patient ID or patient already assigned
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Forbidden - user is not a therapist
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Patient or therapist profile not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+export async function POST(request: NextRequest) {
     try {
         const session = await requireApiAuth(request, ['THERAPIST']);
 
@@ -89,8 +155,82 @@ import { $Enums } from "@prisma/client";
             { status: 500 }
         );
     }
-} */
+}
 
+/**
+ * @swagger
+ * /api/therapist/patients:
+ *   get:
+ *     summary: Get therapist's patients
+ *     description: Retrieve all patients assigned to the authenticated therapist
+ *     tags:
+ *       - Therapist
+ *       - Patients
+ *     security:
+ *       - sessionAuth: []
+ *     responses:
+ *       200:
+ *         description: Patients retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                     description: Patient ID
+ *                   firstName:
+ *                     type: string
+ *                     description: Patient first name
+ *                   lastName:
+ *                     type: string
+ *                     description: Patient last name
+ *                   email:
+ *                     type: string
+ *                     format: email
+ *                     description: Patient email
+ *                   phone:
+ *                     type: string
+ *                     description: Patient phone number
+ *                   dateOfBirth:
+ *                     type: string
+ *                     format: date
+ *                     description: Patient date of birth
+ *                   gender:
+ *                     type: string
+ *                     description: Patient gender
+ *                   therapySessions:
+ *                     type: array
+ *                     description: List of therapy sessions
+ *                     items:
+ *                       type: object
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Forbidden - user is not a therapist
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Therapist profile not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 export async function GET(req: NextRequest) {
     try {
         const session = await requireApiAuth(req, ['THERAPIST']);

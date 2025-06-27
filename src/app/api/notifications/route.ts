@@ -2,6 +2,73 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireApiAuth } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
 
+/**
+ * @swagger
+ * /api/notifications:
+ *   get:
+ *     summary: Get user notifications
+ *     description: Retrieve notifications for the authenticated user
+ *     tags:
+ *       - Notifications
+ *     security:
+ *       - sessionAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: unreadOnly
+ *         schema:
+ *           type: boolean
+ *         description: Filter to show only unread notifications
+ *         example: true
+ *     responses:
+ *       200:
+ *         description: Notifications retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                     description: Notification ID
+ *                   title:
+ *                     type: string
+ *                     description: Notification title
+ *                   message:
+ *                     type: string
+ *                     description: Notification message
+ *                   type:
+ *                     type: string
+ *                     enum: ["INFO", "WARNING", "ERROR", "SUCCESS"]
+ *                     description: Notification type
+ *                   isRead:
+ *                     type: boolean
+ *                     description: Whether the notification has been read
+ *                   createdAt:
+ *                     type: string
+ *                     format: date-time
+ *                     description: Creation timestamp
+ *                   sender:
+ *                     type: object
+ *                     nullable: true
+ *                     properties:
+ *                       name:
+ *                         type: string
+ *                         description: Sender's name
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 // Get notifications for the authenticated user
 export async function GET(req: NextRequest) {
     try {

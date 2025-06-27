@@ -100,7 +100,8 @@ export default function SignupPage() {
             });
 
             if (signInResult?.ok) {
-                router.push("/dashboard");
+                // Always redirect to dashboard-redirect, let it handle role-based routing
+                router.push("/dashboard-redirect");
                 router.refresh();
             } else {
                 // If auto sign-in fails, redirect to login
