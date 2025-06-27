@@ -10,7 +10,7 @@ interface StatsCardProps {
 
 export function StatsCard({ title, description, value, subtitle, onExternalClick }: StatsCardProps) {
   return (
-    <div className="w-full text-black border grid grid-cols-2 justify-center p-4 gap-4 rounded-lg shadow-md" style={{ background: 'radial-gradient(circle, #fdfdfd, #f5f5f5)', borderColor: '#e5e7eb' }}>
+    <div className="w-full text-black border grid grid-cols-2 justify-center p-4 gap-4 rounded-lg shadow-md bg-gradient-to-br from-gray-100 to-gray-200 border-gray-300">
       <div className="col-span-2 text-lg font-bold capitalize rounded-md" style={{ color: '#4b5563' }}>
         {title}
       </div>
