@@ -9,7 +9,7 @@ export default function ParentLayout({
 }) {
     return (
         <NotificationProvider>
-            <div className="min-h-screen bg-gray-50">
+            <div className="min-h-screen" style={{ backgroundColor: '#F5F3FB' }}>
                 <ParentNavigation />
                 <main className="max-w-7xl mx-auto px-6 py-8">
                     {children}
