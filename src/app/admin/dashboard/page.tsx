@@ -1,12 +1,10 @@
 "use client";
 
 import React from 'react';
-import { signOut } from "next-auth/react";
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+//import { Badge } from "@/components/ui/badge";
 import {
     Users,
     Settings,
@@ -121,10 +119,6 @@ export default function AdminDashboard() {
         } finally {
             setLoading(false);
         }
-    };
-
-    const handleSignOut = async () => {
-        await signOut({ callbackUrl: "/login" });
     };
 
     if (loading) {
