@@ -234,7 +234,7 @@ export default function ParentDashboard() {
                         </CardHeader>
                         <CardContent className="space-y-6 pt-6">
                             {parentData.children.map((child) => (
-                                <div key={child.id} className="bg-white rounded-xl p-6 border border-purple-100 shadow-sm hover:shadow-md transition-all duration-300">
+                                <div key={child.id} className="bg-white rounded-xl p-6 border border-purple-100 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer hover:scale-105 active:scale-95">
                                     <div className="flex items-start justify-between mb-4">
                                         <div className="flex-1">
                                             <div className="flex items-center gap-3 mb-2">
