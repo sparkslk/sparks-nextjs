@@ -15,8 +15,9 @@ export async function GET(req: NextRequest) {
                         therapySessions: {
                             where: {
                                 scheduledAt: {
-                                    gte: new Date()
-                                }
+                                    gte: new Date() // Only future sessions from current date/time
+                                },
+                                status: 'APPROVED' // Only approved upcoming sessions
                             }
                         },
                         assessments: {
@@ -74,6 +75,8 @@ export async function GET(req: NextRequest) {
                         status: 'COMPLETED'
                     }
                 });
+                
+                // Calculate progress percentage (as decimal from 0-100)
                 const progressPercentage = totalSessions > 0 ? Math.round((completedSessions / totalSessions) * 100) : 0;
 
                 // Get last session date

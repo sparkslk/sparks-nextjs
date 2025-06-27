@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import Image from "next/image";
 import {
     Dialog,
     DialogContent,
@@ -193,24 +194,28 @@ export default function ParentDashboard() {
                         title="Children Registered"
                         value={parentData.children.length}
                         description="Active accounts"
+                        iconType="users"
                     />
                     
                     <StatsCard
                         title="Upcoming Sessions"
                         value={parentData.totalUpcomingSessions}
                         description="Scheduled sessions"
+                        iconType="calendar"
                     />
                     
                     <StatsCard
                         title="Unread Messages"
                         value={parentData.unreadMessages}
                         description="From therapists"
+                        iconType="message"
                     />
                     
                     <StatsCard
                         title="Progress Reports"
                         value={parentData.children.reduce((sum, child) => sum + child.progressReports, 0)}
                         description="New reports available"
+                        iconType="file"
                     />
                 </div>
             )}
@@ -313,7 +318,7 @@ export default function ParentDashboard() {
                     {/* Recent Updates */}
                     <Card className="shadow-sm hover:shadow-md transition-shadow">
                         <CardHeader className="border-b border-gray-100 pb-4">
-                            <CardTitle className="text-lg font-semibold text-gray-900">Recent Messages</CardTitle>
+                            <CardTitle className="text-lg font-semibold text-gray-900">Recent Updates</CardTitle>
                         </CardHeader>
                         <CardContent className="pt-6">
                             {parentData && parentData.recentUpdates.length > 0 ? (
@@ -329,11 +334,18 @@ export default function ParentDashboard() {
                                     ))}
                                 </div>
                             ) : (
-                                <div className="text-center py-8">
-                                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                        <Users className="h-8 w-8 text-gray-400" />
-                                    </div>
-                                    <p className="text-gray-500">No recent updates</p>
+                                <div className="text-center py-12">
+                                    <Image 
+                                        src="/images/NoMsg.png" 
+                                        alt="No messages" 
+                                        width={400}
+                                        height={400}
+                                        className="mx-auto mb-6 opacity-60"
+                                    />
+                                    <h3 className="text-lg font-semibold mb-2 text-gray-900">All caught up!</h3>
+                                    <p className="text-gray-500 max-w-sm mx-auto">
+                                        You&apos;re all up to date.
+                                    </p>
                                 </div>
                             )}
                         </CardContent>
