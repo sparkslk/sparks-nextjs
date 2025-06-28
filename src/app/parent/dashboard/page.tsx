@@ -14,9 +14,7 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 
-
-
-import { Users, Plus, UserPlus } from "lucide-react";
+import { Users, Plus, UserPlus, RefreshCw, AlertCircle, HelpCircle } from "lucide-react";
 import { AddChildForm } from "@/components/parent/AddChildForm";
 import { ConnectChildForm } from "@/components/parent/ConnectChildForm";
 import { StatsCard } from "@/components/ui/stats-card";
@@ -54,6 +52,8 @@ export default function ParentDashboard() {
     const [error, setError] = useState<string | null>(null);
     const [showAddChild, setShowAddChild] = useState(false);
     const [showConnectChild, setShowConnectChild] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
+    const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
     useEffect(() => {
         fetchParentData();
@@ -61,18 +61,26 @@ export default function ParentDashboard() {
 
     const fetchParentData = async () => {
         try {
+            setError(null);
             const response = await fetch("/api/parent/dashboard");
             if (!response.ok) {
-                throw new Error("Failed to fetch parent data");
+                throw new Error(`Failed to load dashboard data (${response.status})`);
             }
             const data = await response.json();
             setParentData(data);
+            setLastUpdated(new Date());
         } catch (error) {
             console.error("Error fetching parent data:", error);
-            setError("Failed to load dashboard data");
+            setError(error instanceof Error ? error.message : "Failed to load dashboard data");
         } finally {
             setLoading(false);
         }
+    };
+
+    const refreshData = async () => {
+        setRefreshing(true);
+        await fetchParentData();
+        setRefreshing(false);
     };
 
     const fetchChildren = async () => {
@@ -116,8 +124,9 @@ export default function ParentDashboard() {
         return (
             <div className="min-h-screen flex items-center justify-center">
                 <div className="text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: '#8159A8' }}></div>
-                    <p className="mt-2 text-gray-600">Loading...</p>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mb-4 mx-auto"></div>
+                    <h3 className="text-lg font-semibold mb-2 text-gray-900">Loading Dashboard</h3>
+                    <p className="text-gray-600">Fetching your children&apos;s progress data...</p>
                 </div>
             </div>
         );
@@ -126,12 +135,22 @@ export default function ParentDashboard() {
     if (error) {
         return (
             <div className="min-h-screen flex items-center justify-center">
-                <div className="text-center">
-                    <h3 className="text-lg font-semibold mb-2">Unable to load dashboard</h3>
+                <div className="text-center max-w-md mx-auto">
+                    <AlertCircle className="h-16 w-16 text-red-500 mb-4 mx-auto" />
+                    <h3 className="text-lg font-semibold mb-2 text-gray-900">Unable to load dashboard</h3>
                     <p className="text-gray-600 mb-4">{error}</p>
-                    <Button onClick={() => window.location.reload()}>
-                        Try Again
-                    </Button>
+                    <div className="flex gap-3 justify-center">
+                        <Button onClick={() => window.location.reload()} variant="outline">
+                            <RefreshCw className="h-4 w-4 mr-2" />
+                            Try Again
+                        </Button>
+                        <Button onClick={refreshData} disabled={refreshing}>
+                            {refreshing ? "Refreshing..." : "Refresh Data"}
+                        </Button>
+                    </div>
+                    <p className="text-sm text-gray-500 mt-4">
+                        If the problem persists, please contact support.
+                    </p>
                 </div>
             </div>
         );
@@ -141,18 +160,36 @@ export default function ParentDashboard() {
         <>
             {/* Header Section with Action Buttons */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
-                <div>
-                    <p className="text-lg text-gray-600 font-medium">
-                        Monitor and manage your children&apos;s therapeutic progress
-                    </p>
-                    <p className="text-sm text-gray-500 mt-1">
-                        Track sessions, view reports, and stay connected with therapists
-                    </p>
+                <div className="flex items-start gap-3">
+                    <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                            <h1 className="text-2xl font-bold text-gray-900">Parent Dashboard</h1>
+                            <div className="relative group">
+                                <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" />
+                                <div className="absolute left-6 top-0 bg-gray-900 text-white text-sm rounded-lg px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 whitespace-nowrap">
+                                    View and manage your children&apos;s therapy progress
+                                </div>
+                            </div>
+                        </div>
+                        <p className="text-lg text-gray-600 font-medium">
+                            Monitor and manage your children&apos;s therapeutic progress
+                        </p>
+                        {lastUpdated && (
+                            <p className="text-xs text-gray-400 mt-2 flex items-center gap-1">
+                                <RefreshCw className="h-3 w-3" />
+                                Last updated: {lastUpdated.toLocaleTimeString()}
+                            </p>
+                        )}
+                    </div>
                 </div>
                 <div className="flex gap-2">
                     <Dialog open={showConnectChild} onOpenChange={setShowConnectChild}>
                         <DialogTrigger asChild>
-                            <Button variant="outline">
+                            <Button 
+                                variant="outline"
+                                className="transition-all duration-200 hover:shadow-md"
+                                aria-label="Connect to an existing child's account"
+                            >
                                 <UserPlus className="h-4 w-4 mr-2" />
                                 Connect Child
                             </Button>
@@ -170,7 +207,11 @@ export default function ParentDashboard() {
 
                     <Dialog open={showAddChild} onOpenChange={setShowAddChild}>
                         <DialogTrigger asChild>
-                            <Button style={{ backgroundColor: '#8159A8' }} className="text-white hover:opacity-90">
+                            <Button 
+                                style={{ backgroundColor: '#8159A8' }} 
+                                className="text-white hover:opacity-90 transition-all duration-200 hover:shadow-md"
+                                aria-label="Add a new child to your account"
+                            >
                                 <Plus className="h-4 w-4 mr-2" />
                                 Add Child
                             </Button>
@@ -224,17 +265,29 @@ export default function ParentDashboard() {
             {parentData && parentData.children.length > 0 && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Children Progress */}
-                    <Card className="shadow-lg hover:shadow-xl transition-all duration-300 border-0 bg-gradient-to-br from-white to-purple-50">
-                        <CardHeader className="border-b border-purple-100 pb-4">
+                    <Card className="shadow-sm hover:shadow-md transition-shadow">
+                        <CardHeader className="border-b border-gray-100 pb-4">
                             <CardTitle className="text-xl font-bold flex items-center gap-2 text-gray-900">
                                 <Users className="h-5 w-5" />
                                 Children Progress Overview
                             </CardTitle>
-                            <p className="text-gray-600 text-sm mt-1">Track therapeutic progress and upcoming sessions</p>
                         </CardHeader>
                         <CardContent className="space-y-6 pt-6">
                             {parentData.children.map((child) => (
-                                <div key={child.id} className="bg-white rounded-xl p-6 border border-purple-100 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer hover:scale-105 active:scale-95">
+                                <div 
+                                    key={child.id} 
+                                    className="bg-white rounded-xl p-6 border border-purple-100 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer hover:scale-105 active:scale-95 focus-within:ring-2 focus-within:ring-opacity-50"
+                                    style={{ '--tw-ring-color': '#8159A8' } as React.CSSProperties}
+                                    tabIndex={0}
+                                    role="button"
+                                    aria-label={`View details for ${child.firstName} ${child.lastName}`}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                            e.preventDefault();
+                                            // Navigate to child details
+                                        }
+                                    }}
+                                >
                                     <div className="flex items-start justify-between mb-4">
                                         <div className="flex-1">
                                             <div className="flex items-center gap-3 mb-2">
@@ -367,6 +420,7 @@ export default function ParentDashboard() {
                                 onClick={() => setShowConnectChild(true)}
                                 variant="outline"
                                 className="px-6 py-2"
+                                aria-label="Connect to an existing child's therapy account"
                             >
                                 <UserPlus className="h-4 w-4 mr-2" />
                                 Connect Existing Child
@@ -375,10 +429,17 @@ export default function ParentDashboard() {
                                 onClick={() => setShowAddChild(true)}
                                 className="text-white px-6 py-2 hover:opacity-90"
                                 style={{ backgroundColor: '#8159A8' }}
+                                aria-label="Add a new child to start therapy services"
                             >
                                 <Plus className="h-4 w-4 mr-2" />
                                 Add New Child
                             </Button>
+                        </div>
+                        <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                            <p className="text-sm text-blue-800 font-medium mb-1">Need help getting started?</p>
+                            <p className="text-xs text-blue-600">
+                                If your child is already receiving services, ask your therapist for their Patient ID to connect their account.
+                            </p>
                         </div>
                     </CardContent>
                 </Card>
