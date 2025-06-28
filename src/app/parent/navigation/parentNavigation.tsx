@@ -11,6 +11,7 @@ import { useEffect, useState } from "react";
 const tabs = [
     { name: 'Overview', path: '/parent/dashboard' },
     { name: 'My Children', path: '/parent/children' },
+    { name: 'Find Therapists', path: '/parent/findTherapist' },
     { name: 'Messages', path: '/parent/messages' },
     { name: 'Appointments', path: '/parent/appointments' },
     { name: 'Resources', path: '/parent/resources' }
