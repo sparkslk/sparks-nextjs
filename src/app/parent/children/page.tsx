@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -326,18 +327,16 @@ export default function MyChildrenPage() {
 
         {/* Connect with Therapist Notice - Show if no therapists assigned */}
         {children.length > 0 && !children.some(child => child.therapist) && (
-          <Card className="mt-10 shadow-sm border-2 border-dashed border-gray-300">
-            <CardContent className="p-8 text-center">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ backgroundColor: '#EDE6F3' }}>
-                <svg 
-                  className="w-8 h-8" 
-                  style={{ color: '#8159A8' }}
-                  fill="none" 
-                  stroke="currentColor" 
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-                </svg>
+          <Card className="mt-5 shadow-sm border-2 border-dashed border-gray-300">
+            <CardContent className="p-4 text-center">
+              <div className="w-50 h-50 mx-auto flex items-center justify-center">
+                <Image 
+                  src="/images/doctor.png" 
+                  alt="Doctor" 
+                  width={120}
+                  height={120}
+                  className="object-contain"
+                />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">
                 Connect with a Therapist
