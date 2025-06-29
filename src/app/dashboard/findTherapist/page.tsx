@@ -8,8 +8,7 @@ import {
     TherapistSearchBar,
     TherapistFilters,
     TherapistCard,
-    TherapistEmptyState,
-    LoadingSpinner
+    TherapistEmptyState
 } from "@/components/FindTherapist";
 
 interface Therapist {
@@ -37,12 +36,6 @@ interface Therapist {
     location?: string;
     tags: string[];
     isCurrentTherapist?: boolean;
-}
-
-interface PatientTherapist {
-    id: string;
-    name: string;
-    email: string;
 }
 
 export default function FindTherapistPage() {
@@ -98,6 +91,100 @@ export default function FindTherapistPage() {
         fetchCurrentTherapist();
     }, []);
 
+    // Mock data as fallback
+    const mockTherapists: Therapist[] = [
+        {
+            id: "1",
+            name: "Dr. Ben Carter",
+            title: "Clinical Psychologist",
+            specialties: ["Anxiety & Depression", "Trauma Therapy", "ADHD & Behavioral Issues"],
+            rating: 4.9,
+            reviewCount: 137,
+            experience: "12+ years experience",
+            sessionTypes: { inPerson: false, online: true },
+            availability: {
+                nextSlot: "Available Today",
+                timeSlot: "Next: Today 2:00 PM",
+                timeCategory: "today"
+            },
+            cost: { isFree: false, priceRange: "Rs. 800-1200/session" },
+            languages: ["English", "Spanish"],
+            tags: ["English", "Spanish"]
+        },
+        {
+            id: "2",
+            name: "Sarah Miller, LCSW",
+            title: "Licensed Clinical Social Worker",
+            specialties: ["Depression & Anxiety", "Trauma & PTSD", "Life Transitions"],
+            rating: 4.8,
+            reviewCount: 89,
+            experience: "8+ years experience",
+            sessionTypes: { inPerson: false, online: true },
+            availability: {
+                nextSlot: "Available Tomorrow",
+                timeSlot: "Next: Tomorrow 10:30 AM",
+                timeCategory: "tomorrow"
+            },
+            cost: { isFree: true, priceRange: "Free consultation" },
+            languages: ["English"],
+            tags: ["English"]
+        },
+        {
+            id: "3",
+            name: "Dr. Amanda Rodriguez",
+            title: "Licensed Psychologist",
+            specialties: ["Family Therapy", "Couples Counseling", "Child Psychology"],
+            rating: 4.7,
+            reviewCount: 156,
+            experience: "15+ years experience",
+            sessionTypes: { inPerson: true, online: true },
+            availability: {
+                nextSlot: "Available This Week",
+                timeSlot: "Next: Friday 3:30 PM",
+                timeCategory: "thisWeek"
+            },
+            cost: { isFree: false, priceRange: "Rs. 1000-1500/session" },
+            languages: ["English", "Spanish"],
+            tags: ["English", "Spanish"]
+        },
+        {
+            id: "4",
+            name: "Michael Thompson, PhD",
+            title: "Clinical Psychologist",
+            specialties: ["ADHD & Behavioral Issues", "Autism Spectrum", "Learning Disabilities"],
+            rating: 4.9,
+            reviewCount: 203,
+            experience: "20+ years experience",
+            sessionTypes: { inPerson: false, online: true },
+            availability: {
+                nextSlot: "Available Next Week",
+                timeSlot: "Next: Monday 11:00 AM",
+                timeCategory: "nextWeek"
+            },
+            cost: { isFree: false, priceRange: "Rs. 1200-1800/session" },
+            languages: ["English"],
+            tags: ["English"]
+        },
+        {
+            id: "5",
+            name: "Dr. Lisa Chen",
+            title: "Psychiatrist",
+            specialties: ["Anxiety & Depression", "Bipolar Disorder", "Medication Management"],
+            rating: 4.8,
+            reviewCount: 92,
+            experience: "10+ years experience",
+            sessionTypes: { inPerson: true, online: true },
+            availability: {
+                nextSlot: "Available This Week",
+                timeSlot: "Next: Wednesday 4:00 PM",
+                timeCategory: "thisWeek"
+            },
+            cost: { isFree: false, priceRange: "Rs. 1500-2000/session" },
+            languages: ["English", "Mandarin"],
+            tags: ["English", "Mandarin"]
+        }
+    ];
+
     // Fetch therapists from API
     useEffect(() => {
         const fetchTherapists = async () => {
@@ -107,7 +194,12 @@ export default function FindTherapistPage() {
                     const data = await response.json();
 
                     // Convert API data to Therapist interface format
-                    const formattedTherapists: Therapist[] = data.therapists?.map((therapist: any) => ({
+                    const formattedTherapists: Therapist[] = data.therapists?.map((therapist: {
+                        id: string;
+                        name: string;
+                        specialization?: string[];
+                        experience?: number;
+                    }) => ({
                         id: therapist.id,
                         name: therapist.name,
                         title: "Licensed Therapist",
@@ -148,7 +240,7 @@ export default function FindTherapistPage() {
         };
 
         fetchTherapists();
-    }, []);
+    }, [mockTherapists]);
 
     // Helper functions for random data generation
     const getRandomAvailability = () => {
@@ -165,82 +257,6 @@ export default function FindTherapistPage() {
         const categories: ("today" | "tomorrow" | "thisWeek" | "nextWeek")[] = ["today", "tomorrow", "thisWeek", "nextWeek"];
         return categories[Math.floor(Math.random() * categories.length)];
     };
-
-    // Mock data as fallback
-    const mockTherapists: Therapist[] = [
-        {
-            id: "1",
-            name: "Dr. Ben Carter",
-            title: "Clinical Psychologist",
-            specialties: ["Anxiety & Depression", "Trauma Therapy", "ADHD & Behavioral Issues"],
-            rating: 4.9,
-            reviewCount: 137,
-            experience: "12+ years experience",
-            sessionTypes: { inPerson: false, online: true },
-            availability: {
-                nextSlot: "Available Today",
-                timeSlot: "Next: Today 2:00 PM",
-                timeCategory: "today"
-            },
-            cost: { isFree: false, priceRange: "Rs. 800-1200/session" },
-            languages: ["English", "Spanish"],
-            tags: ["English", "Spanish"]
-        },
-        {
-            id: "2",
-            name: "Sarah Miller, LCSW",
-            title: "Licensed Clinical Social Worker",
-            specialties: ["Depression & Anxiety", "Trauma & PTSD", "Life Transitions"],
-            rating: 4.8,
-            reviewCount: 89,
-            experience: "8+ years experience",
-            sessionTypes: { inPerson: false, online: true },
-            availability: {
-                nextSlot: "Available Tomorrow",
-                timeSlot: "Next: Tomorrow 10:30 AM",
-                timeCategory: "tomorrow"
-            },
-            cost: { isFree: true, priceRange: "Free consultation" },
-            languages: ["English", "Mandarin"],
-            tags: ["English", "Mandarin"]
-        },
-        {
-            id: "3",
-            name: "Dr. David Lee",
-            title: "Psychiatrist",
-            specialties: ["ADHD & Behavioral Issues", "Medication Management", "Autism Spectrum"],
-            rating: 4.7,
-            reviewCount: 156,
-            experience: "15+ years experience",
-            sessionTypes: { inPerson: false, online: true },
-            availability: {
-                nextSlot: "Available This Week",
-                timeSlot: "Next: Friday 3:30 PM",
-                timeCategory: "thisWeek"
-            },
-            cost: { isFree: false, priceRange: "Rs. 1000-1500/session" },
-            languages: ["English"],
-            tags: ["English", "Mandarin"]
-        },
-        {
-            id: "4",
-            name: "Maria Gonzalez, MFT",
-            title: "Marriage & Family Therapist",
-            specialties: ["Individual Therapy", "Couples Counseling", "Teen Therapy"],
-            rating: 4.9,
-            reviewCount: 203,
-            experience: "10+ years experience",
-            sessionTypes: { inPerson: false, online: true },
-            availability: {
-                nextSlot: "Available Next Week",
-                timeSlot: "Next: Monday 11:00 AM",
-                timeCategory: "nextWeek"
-            },
-            cost: { isFree: true, priceRange: "Community funded" },
-            languages: ["English", "Spanish"],
-            tags: ["English", "Spanish"]
-        }
-    ];
 
     // Filter therapists based on search and filters
     useEffect(() => {
