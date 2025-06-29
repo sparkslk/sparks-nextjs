@@ -165,6 +165,12 @@ export default function DashboardPage() {
             onClick: requestSession
         },
         {
+            title: "Find Therapist",
+            description: "Browse and connect with therapists",
+            icon: User,
+            onClick: () => router.push("/dashboard/findTherapist")
+        },
+        {
             title: "My Requests",
             description: "View your session requests",
             icon: List,
