@@ -4,7 +4,9 @@ import React from 'react';
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { StatsCard } from "@/components/ui/stats-card";
+//import { StatsCard } from "@/components/ui/stats-card";
+import { DonationModal } from '@/components/ui/donation-modal';
+import { SessionModal } from '@/components/ui/therapySession-modal';
 //import { Badge } from "@/components/ui/badge";
 import {
     Users,
@@ -17,6 +19,7 @@ import {
     AlertTriangle,
     RefreshCw
 } from "lucide-react";
+import { Session } from 'inspector/promises';
 
 interface AdminData {
     systemStatus: "online" | "offline" | "maintenance";
@@ -103,6 +106,8 @@ export default function AdminDashboard() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+    const [showDonationModal, setShowDonationModal] = useState(false);
+    const [showSessionModal, setShowSessionModal] = useState(false);
 
     useEffect(() => {
         fetchAdminData();
@@ -124,6 +129,22 @@ export default function AdminDashboard() {
             setLoading(false);
         }
     };
+
+    // Map mockDonationData to match DonationModal's expected fields
+    const mappedDonationData = mockDonationData.map((donation) => ({
+        id: donation.id.toString(),
+        name: donation.donorName,
+        amount: Number(donation.amount.replace(/[^\d]/g, "")),
+        timeAgo: donation.timeAgo,
+    }));
+    // Map mockSessionData to match SessionModal's expected fields
+    const mappedSessionData = mockSessionData.map((session) => ({
+        id: session.id.toString(),
+        name: session.doctorName,
+        sessionDetails: session.sessionDetails,
+        amount: session.amount.replace(/[^\d]/g, ""),
+        commission: session.commission,
+    }));
 
     if (loading) {
         return (
@@ -250,7 +271,7 @@ export default function AdminDashboard() {
                             ))}
                         </div>
                         <div className="mt-4 flex gap-2">
-                            <Button className="hover:opacity-90" style={{ backgroundColor: '#8159A8', color: 'white' }}>
+                            <Button className="hover:opacity-90" style={{ backgroundColor: '#8159A8', color: 'white' }} onClick={() => setShowSessionModal(true)}>
                             View All Sessions
                             </Button>
                             <Button variant="outline">
@@ -280,7 +301,7 @@ export default function AdminDashboard() {
                             ))}
                         </div>
                         <div className="mt-4">
-                            <Button className="hover:opacity-90" style={{ backgroundColor: '#8159A8', color: 'white' }}>
+                            <Button className="hover:opacity-90" style={{ backgroundColor: '#8159A8', color: 'white' }} onClick={() => setShowDonationModal(true)}>
                             View All Donations
                             </Button>
                         </div>
@@ -489,6 +510,17 @@ export default function AdminDashboard() {
                         </CardContent>
                     </Card>
                 </div>*/}
+
+                <DonationModal 
+                    isOpen={showDonationModal} 
+                    onClose={() => setShowDonationModal(false)} 
+                    donations={mappedDonationData} 
+                />
+                <SessionModal
+                    isOpen={showSessionModal}
+                    onClose={() => setShowSessionModal(false)}
+                    sessions={mappedSessionData}
+                />
             </main>
         </div>
     );
