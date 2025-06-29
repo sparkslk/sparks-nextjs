@@ -3,6 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -60,7 +61,7 @@ export default function BlogManagementPage() {
           publishedAt: "2024-06-15",
           status: "published",
           views: 243,
-          image: "books",
+          image: "/images/blogs/adhd-guide.jpg",
           slug: "understanding-adhd-in-adults",
         },
         {
@@ -73,7 +74,7 @@ export default function BlogManagementPage() {
           publishedAt: "2024-06-10",
           status: "published",
           views: 189,
-          image: "target",
+          image: "/images/blogs/focus-techniques.jpg",
           slug: "focus-techniques-for-adhd",
         },
         {
@@ -86,7 +87,7 @@ export default function BlogManagementPage() {
           publishedAt: null,
           status: "draft",
           views: 0,
-          image: "parents",
+          image: "/images/blogs/parenting-guide.jpg",
           slug: "supporting-your-adhd-child",
         },
         {
@@ -99,7 +100,7 @@ export default function BlogManagementPage() {
           publishedAt: "2024-06-05",
           status: "published",
           views: 212,
-          image: "medication",
+          image: "/images/blogs/medication-guide.jpg",
           slug: "adhd-medication-guide",
         },
         {
@@ -112,7 +113,7 @@ export default function BlogManagementPage() {
           publishedAt: "2024-05-28",
           status: "published",
           views: 166,
-          image: "workplace",
+          image: "/images/blogs/workplace-adhd.jpg",
           slug: "adhd-workplace-strategies",
         },
       ];
@@ -143,23 +144,6 @@ export default function BlogManagementPage() {
     .reduce((sum, blog) => sum + blog.views, 0);
   const avgEngagement =
     blogs.length > 0 ? Math.round(totalViews / publishedCount) : 0;
-
-  const getIconForBlog = (imageName: string) => {
-    switch (imageName) {
-      case "books":
-        return "📚";
-      case "target":
-        return "🎯";
-      case "parents":
-        return "👪";
-      case "medication":
-        return "💊";
-      case "workplace":
-        return "💼";
-      default:
-        return "📝";
-    }
-  };
 
   const handleNewBlog = () => {
     router.push("/therapist/blogs/new");
@@ -267,14 +251,30 @@ export default function BlogManagementPage() {
                   onClick={() => router.push(`/therapist/blogs/${blog.id}`)}
                 >
                   <div
-                    className={`${
-                      blog.status === "draft" ? "bg-amber-100" : "bg-[#8159A8]"
-                    } p-6 flex justify-center items-center text-3xl`}
-                    style={{ height: "140px" }}
+                    className={`relative w-full ${
+                      blog.status === "draft" ? "bg-amber-100" : "bg-white"
+                    }`}
+                    style={{ height: "180px" }}
                   >
-                    <span className="transform hover:scale-110 transition-transform duration-300">
-                      {getIconForBlog(blog.image)}
-                    </span>
+                    <Image
+                      src={blog.image}
+                      alt={blog.title}
+                      fill
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      className="object-cover"
+                      onError={(e) => {
+                        // Fallback image if the real one fails to load
+                        e.currentTarget.src =
+                          "/images/blogs/blog-placeholder.jpg";
+                      }}
+                    />
+                    {blog.status === "draft" && (
+                      <div className="absolute inset-0 bg-amber-500/20 flex items-center justify-center">
+                        <Badge className="bg-amber-100 text-amber-800 text-sm px-3 py-1">
+                          Draft
+                        </Badge>
+                      </div>
+                    )}
                   </div>
 
                   <div className="p-5 space-y-3">

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -47,6 +48,19 @@ export default function NewBlogPage() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+
+      // Validate file size (limit to ~5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert("Image is too large. Please select an image under 5MB.");
+        return;
+      }
+
+      // Validate file type
+      if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+        alert("Please select a JPEG, PNG or WEBP image.");
+        return;
+      }
+
       const reader = new FileReader();
 
       reader.onload = (event) => {
@@ -229,11 +243,11 @@ export default function NewBlogPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="image">Featured Image</Label>
+                <Label htmlFor="image">Featured Image (Required)</Label>
                 <div className="flex items-center space-x-4">
                   <div
                     className={`
-                      border-2 border-dashed rounded-lg p-4 text-center w-full h-40
+                      relative border-2 border-dashed rounded-lg overflow-hidden w-full 
                       ${
                         formData.imagePreview
                           ? "border-[#8159A8]"
@@ -241,13 +255,15 @@ export default function NewBlogPage() {
                       }
                       hover:border-[#8159A8] transition-colors duration-300
                     `}
+                    style={{ height: "220px" }}
                   >
                     {formData.imagePreview ? (
-                      <div className="relative h-full">
-                        <img
+                      <>
+                        <Image
                           src={formData.imagePreview}
                           alt="Preview"
-                          className="max-h-full mx-auto object-contain"
+                          fill
+                          className="object-cover"
                         />
                         <button
                           type="button"
@@ -258,34 +274,39 @@ export default function NewBlogPage() {
                               imagePreview: null,
                             })
                           }
-                          className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 text-xs"
+                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 w-8 h-8 flex items-center justify-center hover:bg-red-600 transition-colors"
                         >
-                          X
+                          ✕
                         </button>
-                      </div>
+                      </>
                     ) : (
-                      <div className="flex flex-col items-center justify-center h-full">
-                        <ImagePlus className="h-10 w-10 text-gray-400" />
+                      <label
+                        htmlFor="image"
+                        className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer"
+                      >
+                        <ImagePlus className="h-12 w-12 text-gray-400" />
                         <p className="mt-2 text-sm text-gray-600">
                           Click or drag to upload an image
                         </p>
-                      </div>
+                        <p className="text-xs text-gray-500 mt-2">
+                          JPEG, PNG or WEBP (max 5MB)
+                        </p>
+                      </label>
                     )}
                     <input
                       id="image"
                       type="file"
-                      accept="image/*"
+                      accept="image/jpeg,image/png,image/webp"
                       className="hidden"
                       onChange={handleImageChange}
+                      required
                     />
                   </div>
                 </div>
-                <label
-                  htmlFor="image"
-                  className="block text-xs text-gray-500 cursor-pointer hover:text-[#8159A8] transition-colors"
-                >
-                  Recommended size: 1200 x 630 pixels
-                </label>
+                <p className="text-xs text-gray-500">
+                  High-quality featured image will make your blog more engaging.
+                  Recommended size: 1200 x 630 pixels.
+                </p>
               </div>
             </CardContent>
           </Card>

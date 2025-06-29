@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -135,7 +136,7 @@ Many adults with ADHD lead successful, fulfilling lives. Strategies include:
           publishedAt: "2024-06-15",
           status: "published",
           views: 243,
-          image: "books",
+          image: "/images/blogs/adhd-guide.jpg",
           slug: "understanding-adhd-in-adults",
           category: "adhd",
           tags: ["ADHD", "Adults", "Mental Health", "Treatment"],
@@ -154,7 +155,7 @@ Many adults with ADHD lead successful, fulfilling lives. Strategies include:
           publishedAt: "2024-06-10",
           status: "published",
           views: 189,
-          image: "target",
+          image: "/images/blogs/focus-techniques.jpg",
           slug: "focus-techniques-for-adhd",
           category: "adhd",
           tags: ["ADHD", "Focus", "Productivity", "Techniques"],
@@ -173,7 +174,7 @@ Many adults with ADHD lead successful, fulfilling lives. Strategies include:
           publishedAt: null,
           status: "draft",
           views: 0,
-          image: "parents",
+          image: "/images/blogs/parenting-guide.jpg",
           slug: "supporting-your-adhd-child",
           category: "parenting",
           tags: ["ADHD", "Parenting", "Children", "Support"],
@@ -230,23 +231,6 @@ Many adults with ADHD lead successful, fulfilling lives. Strategies include:
       setError("Failed to publish blog. Please try again later.");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const getIconForBlog = (imageName: string) => {
-    switch (imageName) {
-      case "books":
-        return "📚";
-      case "target":
-        return "🎯";
-      case "parents":
-        return "👪";
-      case "medication":
-        return "💊";
-      case "workplace":
-        return "💼";
-      default:
-        return "📝";
     }
   };
 
@@ -367,16 +351,31 @@ Many adults with ADHD lead successful, fulfilling lives. Strategies include:
           <div className="col-span-3 space-y-6">
             <Card className="shadow-sm overflow-hidden">
               <div
-                className={`${
-                  blog.status === "draft" ? "bg-amber-100" : "bg-[#8159A8]/10"
-                } p-10 flex justify-center items-center`}
-                style={{ minHeight: "200px" }}
+                className={`relative w-full ${
+                  blog.status === "draft" ? "bg-amber-100" : "bg-white"
+                }`}
+                style={{ height: "300px" }}
               >
-                <span className="text-6xl">{getIconForBlog(blog.image)}</span>
+                <Image
+                  src={blog.image}
+                  alt={blog.title}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 75vw"
+                  className="object-cover"
+                  onError={(e) => {
+                    e.currentTarget.src = "/images/blogs/blog-placeholder.jpg";
+                  }}
+                />
+                {blog.status === "draft" && (
+                  <div className="absolute inset-0 bg-amber-500/20 flex items-center justify-center">
+                    <Badge className="bg-amber-100 text-amber-800 text-sm px-4 py-1.5 text-lg">
+                      Draft
+                    </Badge>
+                  </div>
+                )}
               </div>
               <CardContent className="p-6">
                 <div className="prose prose-purple max-w-none">
-                  {/* In a real app, you would use a markdown renderer here */}
                   <div className="whitespace-pre-line">
                     {blog.content.split("\n").map((line, i) => {
                       if (line.startsWith("# ")) {
