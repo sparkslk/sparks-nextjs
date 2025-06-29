@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import ParentNavigation from "../navigation/parentNavigation";
+
 
 interface ChatMessage {
   id: string;
@@ -177,7 +177,7 @@ export default function ParentMessagesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <ParentNavigation />
+     
       
       <div className="max-w-6xl mx-auto px-6 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-120px)]">

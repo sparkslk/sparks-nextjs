@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,12 +16,10 @@ import {
 } from "@/components/ui/select";
 import {
     Search,
-    Plus,
     User,
     Eye,
     MessageCircle,
-    Edit3,
-    Calendar
+    Edit3
 } from "lucide-react";
 
 interface Patient {
@@ -39,7 +37,7 @@ interface Patient {
 }
 
 export default function PatientsPage() {
-    const { data: session, status } = useSession();
+    const { status } = useSession();
     const router = useRouter();
     const [patients, setPatients] = useState<Patient[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
@@ -48,6 +46,72 @@ export default function PatientsPage() {
     const [sessionFilter, setSessionFilter] = useState("all");
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    const fetchPatients = useCallback(async () => {
+        const fallbackPatients: Patient[] = [
+            {
+                id: "PT-2024-001",
+                firstName: "Vihanga",
+                lastName: "Dharmasena",
+                dateOfBirth: "2001-03-15",
+                gender: "Male",
+                phone: "+94 77 123 4567",
+                email: "vihanga.d@email.com",
+                lastSession: "2025-06-18",
+                nextSession: "2025-06-25",
+                status: "active",
+                age: 24,
+            },
+            {
+                id: "PT-2024-002",
+                firstName: "Aryan",
+                lastName: "Senarathne",
+                dateOfBirth: "2012-08-12",
+                gender: "Male",
+                phone: "+94 77 123 7890",
+                email: "aryan@email.com",
+                lastSession: "2025-06-18",
+                nextSession: "2025-06-25",
+                status: "active",
+                age: 12,
+            },
+        ];
+
+        try {
+            setLoading(true);
+            setError(null);
+
+            const response = await fetch("/api/therapist/patients", {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            });
+
+            if (!response.ok) {
+                if (response.status === 404) {
+                    throw new Error("Therapist profile not found. Please contact support.");
+                }
+                throw new Error(`Failed to fetch patients: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            console.log("Fetched patients:", data);
+
+            // Use fallback if fetched data is empty or invalid
+            if (!data.patients || data.patients.length === 0) {
+                console.warn("No patients found from API. Using fallback data.");
+                setPatients(fallbackPatients);
+            } else {
+                setPatients(data.patients);
+            }
+        } catch (error) {
+            console.error("Error fetching patients:", error);
+            setError(error instanceof Error ? error.message : "Failed to fetch patients");
+        } finally {
+            setLoading(false);
+        }
+    }, []);
 
     useEffect(() => {
         if (status === "unauthenticated") {
@@ -58,74 +122,7 @@ export default function PatientsPage() {
         if (status === "authenticated") {
             fetchPatients();
         }
-    }, [status, router]);
-
-    const fallbackPatients: Patient[] = [
-    {
-        id: "PT-2024-001",
-        firstName: "Vihanga",
-        lastName: "Dharmasena",
-        dateOfBirth: "2001-03-15",
-        gender: "Male",
-        phone: "+94 77 123 4567",
-        email: "vihanga.d@email.com",
-        lastSession: "2025-06-18",
-        nextSession: "2025-06-25",
-        status: "active",
-        age: 24,
-    },
-    {
-        id: "PT-2024-002",
-        firstName: "Aryan",
-        lastName: "Senarathne",
-        dateOfBirth: "2012-08-12",
-        gender: "Male",
-        phone: "+94 77 123 7890",
-        email: "aryan@email.com",
-        lastSession: "2025-06-18",
-        nextSession: "2025-06-25",
-        status: "active",
-        age: 12,
-    },
-];
-
-const fetchPatients = async () => {
-    try {
-        setLoading(true);
-        setError(null);
-
-        const response = await fetch("/api/therapist/patients", {
-            method: "GET",
-            headers: {
-                "Content-Type": "application/json",
-            },
-        });
-
-        if (!response.ok) {
-            if (response.status === 404) {
-                throw new Error("Therapist profile not found. Please contact support.");
-            }
-            throw new Error(`Failed to fetch patients: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        console.log("Fetched patients:", data);
-
-        // Use fallback if fetched data is empty or invalid
-        if (!data.patients || data.patients.length === 0) {
-            console.warn("No patients found from API. Using fallback data.");
-            setPatients(fallbackPatients);
-        } else {
-            setPatients(data.patients);
-        }
-    } catch (error) {
-        console.error("Error fetching patients:", error);
-        setError(error instanceof Error ? error.message : "Failed to fetch patients");
-    } finally {
-        setLoading(false);
-    }
-};
-
+    }, [status, router, fetchPatients]);
 
     // Filter patients based on search and filters
     const filteredPatients = patients.filter(patient => {
@@ -135,7 +132,7 @@ const fetchPatients = async () => {
             patient.id.toLowerCase().includes(searchTerm.toLowerCase());
 
         // Age group filter
-        const matchesAgeGroup = ageGroupFilter === "all" || 
+        const matchesAgeGroup = ageGroupFilter === "all" ||
             (ageGroupFilter === "child" && patient.age < 18) ||
             (ageGroupFilter === "adult" && patient.age >= 18 && patient.age < 65) ||
             (ageGroupFilter === "senior" && patient.age >= 65);
@@ -145,11 +142,11 @@ const fetchPatients = async () => {
 
         // Session filter
         const matchesSession = sessionFilter === "all" ||
-            (sessionFilter === "recent" && patient.lastSession && 
-             new Date(patient.lastSession) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)) ||
+            (sessionFilter === "recent" && patient.lastSession &&
+                new Date(patient.lastSession) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)) ||
             (sessionFilter === "upcoming" && patient.nextSession) ||
             (sessionFilter === "overdue" && !patient.nextSession && patient.lastSession &&
-             new Date(patient.lastSession) < new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
+                new Date(patient.lastSession) < new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
 
         return matchesSearch && matchesAgeGroup && matchesStatus && matchesSession;
     });
@@ -162,7 +159,7 @@ const fetchPatients = async () => {
         };
 
         const statusConfig = config[status as keyof typeof config] || config.inactive;
-        
+
         return (
             <Badge variant={statusConfig.variant} className={statusConfig.className}>
                 {status.charAt(0).toUpperCase() + status.slice(1)}
@@ -214,7 +211,7 @@ const fetchPatients = async () => {
                             View and manage your patients
                         </p>
                     </div>
-                    <Button 
+                    <Button
                         onClick={clearAllFilters}
                         variant="outline"
                         className="text-purple-600"
@@ -235,7 +232,7 @@ const fetchPatients = async () => {
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
-                    
+
                     <Select value={ageGroupFilter} onValueChange={setAgeGroupFilter}>
                         <SelectTrigger>
                             <SelectValue placeholder="Age group" />
@@ -289,7 +286,7 @@ const fetchPatients = async () => {
                     <h2 className="text-xl font-semibold mb-4">
                         Patients List ({filteredPatients.length})
                     </h2>
-                    
+
                     <div className="space-y-3">
                         {filteredPatients.length === 0 ? (
                             <Card>
@@ -297,8 +294,8 @@ const fetchPatients = async () => {
                                     <User className="h-12 w-12 text-muted-foreground mb-4" />
                                     <h3 className="text-lg font-semibold mb-2">No patients found</h3>
                                     <p className="text-muted-foreground text-center mb-4">
-                                        {patients.length === 0 
-                                            ? "You don't have any patients assigned yet." 
+                                        {patients.length === 0
+                                            ? "You don't have any patients assigned yet."
                                             : "No patients match your current filters."
                                         }
                                     </p>
@@ -333,17 +330,17 @@ const fetchPatients = async () => {
                                                 <div className="text-sm">
                                                     <p className="font-medium">Last Session:</p>
                                                     <p className="text-muted-foreground">
-                                                        {patient.lastSession 
+                                                        {patient.lastSession
                                                             ? new Date(patient.lastSession).toLocaleDateString()
                                                             : "No sessions yet"
                                                         }
                                                     </p>
                                                 </div>
-                                                
+
                                                 <div className="text-sm">
                                                     <p className="font-medium">Next Session:</p>
                                                     <p className="text-muted-foreground">
-                                                        {patient.nextSession 
+                                                        {patient.nextSession
                                                             ? new Date(patient.nextSession).toLocaleDateString()
                                                             : "Not scheduled"
                                                         }
@@ -353,22 +350,22 @@ const fetchPatients = async () => {
                                                 {getStatusBadge(patient.status)}
 
                                                 <div className="flex items-center space-x-2">
-                                                    <Button 
-                                                        variant="ghost" 
+                                                    <Button
+                                                        variant="ghost"
                                                         size="icon"
                                                         onClick={() => router.push(`/therapist/patients/${patient.id}`)}
                                                     >
                                                         <Eye className="h-4 w-4" />
                                                     </Button>
-                                                    <Button 
-                                                        variant="ghost" 
+                                                    <Button
+                                                        variant="ghost"
                                                         size="icon"
                                                         onClick={() => router.push(`/therapist/patients/${patient.id}/notes`)}
                                                     >
                                                         <MessageCircle className="h-4 w-4" />
                                                     </Button>
-                                                    <Button 
-                                                        variant="ghost" 
+                                                    <Button
+                                                        variant="ghost"
                                                         size="icon"
                                                         onClick={() => router.push(`/therapist/appointments/new?patientId=${patient.id}`)}
                                                     >
