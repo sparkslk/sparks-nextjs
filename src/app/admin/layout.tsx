@@ -1,8 +1,8 @@
 import { NotificationProvider } from "@/contexts/NotificationContext"
 import { NotificationSidebar } from "@/components/NotificationSidebar"
-import ParentNavigation from "./navigation/parentNavigation"
+import AdminNavigation from "./navigation/adminNavigation"
 
-export default function ParentLayout({
+export default function AdminLayout({
     children,
 }: {
     children: React.ReactNode
@@ -10,7 +10,7 @@ export default function ParentLayout({
     return (
         <NotificationProvider>
             <div className="min-h-screen" style={{ backgroundColor: '#F5F3FB' }}>
-                <ParentNavigation />
+                <AdminNavigation />
                 <main className="max-w-7xl mx-auto px-6 py-8">
                     {children}
                 </main>

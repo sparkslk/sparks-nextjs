@@ -2,12 +2,14 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
+import { useSession } from "next-auth/react";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import {
     StatCard,
     QuickActionCard,
     RecentActivity
 } from "@/components/dashboard/DashboardComponents";
+import { PatientIdCard } from "@/components/dashboard/PatientIdCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +24,8 @@ import {
     Activity,
     List
 } from "lucide-react";
+import { UserRole } from "@/lib/auth";
+import { userRoleNeedsProfile, userRoleHasDashboardAccess, getRedirectPathForRole } from "@/lib/profile-utils";
 
 interface UserData {
     id: string;
@@ -56,6 +60,7 @@ interface TreatmentPlan {
 
 export default function DashboardPage() {
     const router = useRouter();
+    const { data: session } = useSession();
     const [userData, setUserData] = useState<UserData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -98,13 +103,27 @@ export default function DashboardPage() {
         router.push("/sessions/request");
     };
 
-    // Always call the redirect useEffect, but only redirect if userData is null and not loading or error
+    // Handle role-based redirects and profile requirements
     useEffect(() => {
-        if (!loading && !error && !userData) {
-            router.replace("/profile/create?reason=new_user");
+        if (!loading && session?.user) {
+            const userRole = (session.user as { role?: UserRole }).role;
+
+            // If user role doesn't need profile but accessed /dashboard, redirect to proper dashboard
+            if (userRole && userRoleHasDashboardAccess(userRole)) {
+                const correctPath = getRedirectPathForRole(userRole);
+                if (correctPath !== "/dashboard") {
+                    router.replace(correctPath);
+                    return;
+                }
+            }
+
+            // Only redirect NORMAL_USER without profile to profile creation
+            if (!error && !userData && userRole && userRoleNeedsProfile(userRole)) {
+                router.replace("/profile/create?reason=new_user");
+            }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [loading, error, userData]);
+    }, [loading, error, userData, session]);
 
     if (loading) {
         return (
@@ -144,6 +163,12 @@ export default function DashboardPage() {
             description: "Schedule a new therapy session",
             icon: Calendar,
             onClick: requestSession
+        },
+        {
+            title: "Find Therapist",
+            description: "Browse and connect with therapists",
+            icon: User,
+            onClick: () => router.push("/dashboard/findTherapist")
         },
         {
             title: "My Requests",
@@ -229,6 +254,15 @@ export default function DashboardPage() {
                     </div>
                 </CardContent>
             </Card>
+
+            {/* Patient ID Card */}
+            <div className="mb-8">
+                <PatientIdCard
+                    patientId={userData.id}
+                    firstName={userData.firstName}
+                    lastName={userData.lastName}
+                />
+            </div>
 
             {/* Statistics Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

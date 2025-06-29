@@ -174,6 +174,7 @@ export async function POST(request: NextRequest) {
                 },
             });
         }
+        // Do NOT create ParentGuardian record at signup. This should be done when a parent adds a child (patient) later.
 
         // Remove password from response
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
