@@ -4,7 +4,6 @@
 import { useRouter, usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Bell } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
@@ -12,6 +11,7 @@ import { useEffect, useState } from "react";
 const tabs = [
     { name: 'Overview', path: '/parent/dashboard' },
     { name: 'My Children', path: '/parent/children' },
+    { name: 'Find Therapists', path: '/parent/findTherapist' },
     { name: 'Messages', path: '/parent/messages' },
     { name: 'Appointments', path: '/parent/appointments' },
     { name: 'Resources', path: '/parent/resources' }
@@ -20,7 +20,9 @@ const tabs = [
 interface ParentData {
     children: Array<{
         firstName: string;
+        lastName: string;
     }>;
+    parentName: string;
 }
 
 export default function ParentNavigation() {
@@ -74,14 +76,13 @@ export default function ParentNavigation() {
                             <span className="text-muted-foreground font-medium">SPARKS</span>
                         </div>
                         <div className="flex items-center space-x-4">
-                            <Bell className="w-5 h-5 text-muted-foreground" />
                             <div className="text-right">
-                                <Badge variant="secondary" className="text-xs">
-                                    {parentData?.children?.[0]?.firstName || 'Parent Guardian'}
-                                </Badge>
-
+                                <span className="text-md font-semibold" style={{ color: '#8159A8' }}>
+                                    {parentData?.parentName}
+                                </span>
                             </div>
-                            <div className="w-8 h-8 rounded-full bg-primary"></div>
+                            <Bell className="w-5 h-5 text-muted-foreground" />
+                            <div className="w-8 h-8 rounded-full" style={{ backgroundColor: '#8159A8' }}></div>
                             <Button variant="outline" onClick={handleSignOut}>
                                 Sign Out
                             </Button>
@@ -100,9 +101,10 @@ export default function ParentNavigation() {
                                 key={tab.name}
                                 onClick={() => handleTabClick(tab.path)}
                                 className={`pb-2 px-1 text-sm font-medium border-b-2 transition-colors ${getActiveTab() === tab.name
-                                        ? 'border-primary text-primary'
-                                        : 'border-transparent text-muted-foreground hover:text-primary hover:border-primary/50'
+                                        ? 'text-muted-foreground hover:text-muted-foreground'
+                                        : 'border-transparent text-muted-foreground hover:text-muted-foreground'
                                     }`}
+                                style={getActiveTab() === tab.name ? { borderBottomColor: '#8159A8', color: '#8159A8' } : {}}
                             >
                                 {tab.name}
                             </button>

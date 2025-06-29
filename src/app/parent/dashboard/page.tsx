@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import Image from "next/image";
 import {
     Dialog,
     DialogContent,
@@ -13,11 +14,10 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 
-
-
-import { Users, Plus, UserPlus } from "lucide-react";
+import { Users, Plus, UserPlus, RefreshCw, AlertCircle, HelpCircle } from "lucide-react";
 import { AddChildForm } from "@/components/parent/AddChildForm";
 import { ConnectChildForm } from "@/components/parent/ConnectChildForm";
+import { StatsCard } from "@/components/ui/stats-card";
 
 interface ParentData {
     children: Array<{
@@ -52,6 +52,8 @@ export default function ParentDashboard() {
     const [error, setError] = useState<string | null>(null);
     const [showAddChild, setShowAddChild] = useState(false);
     const [showConnectChild, setShowConnectChild] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
+    const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
     useEffect(() => {
         fetchParentData();
@@ -59,18 +61,26 @@ export default function ParentDashboard() {
 
     const fetchParentData = async () => {
         try {
+            setError(null);
             const response = await fetch("/api/parent/dashboard");
             if (!response.ok) {
-                throw new Error("Failed to fetch parent data");
+                throw new Error(`Failed to load dashboard data (${response.status})`);
             }
             const data = await response.json();
             setParentData(data);
+            setLastUpdated(new Date());
         } catch (error) {
             console.error("Error fetching parent data:", error);
-            setError("Failed to load dashboard data");
+            setError(error instanceof Error ? error.message : "Failed to load dashboard data");
         } finally {
             setLoading(false);
         }
+    };
+
+    const refreshData = async () => {
+        setRefreshing(true);
+        await fetchParentData();
+        setRefreshing(false);
     };
 
     const fetchChildren = async () => {
@@ -114,8 +124,9 @@ export default function ParentDashboard() {
         return (
             <div className="min-h-screen flex items-center justify-center">
                 <div className="text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: '#8159A8' }}></div>
-                    <p className="mt-2 text-gray-600">Loading...</p>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mb-4 mx-auto"></div>
+                    <h3 className="text-lg font-semibold mb-2 text-gray-900">Loading Dashboard</h3>
+                    <p className="text-gray-600">Fetching your children&apos;s progress data...</p>
                 </div>
             </div>
         );
@@ -124,12 +135,22 @@ export default function ParentDashboard() {
     if (error) {
         return (
             <div className="min-h-screen flex items-center justify-center">
-                <div className="text-center">
-                    <h3 className="text-lg font-semibold mb-2">Unable to load dashboard</h3>
+                <div className="text-center max-w-md mx-auto">
+                    <AlertCircle className="h-16 w-16 text-red-500 mb-4 mx-auto" />
+                    <h3 className="text-lg font-semibold mb-2 text-gray-900">Unable to load dashboard</h3>
                     <p className="text-gray-600 mb-4">{error}</p>
-                    <Button onClick={() => window.location.reload()}>
-                        Try Again
-                    </Button>
+                    <div className="flex gap-3 justify-center">
+                        <Button onClick={() => window.location.reload()} variant="outline">
+                            <RefreshCw className="h-4 w-4 mr-2" />
+                            Try Again
+                        </Button>
+                        <Button onClick={refreshData} disabled={refreshing}>
+                            {refreshing ? "Refreshing..." : "Refresh Data"}
+                        </Button>
+                    </div>
+                    <p className="text-sm text-gray-500 mt-4">
+                        If the problem persists, please contact support.
+                    </p>
                 </div>
             </div>
         );
@@ -139,18 +160,36 @@ export default function ParentDashboard() {
         <>
             {/* Header Section with Action Buttons */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
-                <div>
-                    <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">
-                        Parent Dashboard
-                    </h1>
-                    <p className="text-muted-foreground mt-1">
-                        Manage your children&apos;s therapy journey
-                    </p>
+                <div className="flex items-start gap-3">
+                    <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                            <h1 className="text-2xl font-bold text-gray-900">Parent Dashboard</h1>
+                            <div className="relative group">
+                                <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" />
+                                <div className="absolute left-6 top-0 bg-gray-900 text-white text-sm rounded-lg px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 whitespace-nowrap">
+                                    View and manage your children&apos;s therapy progress
+                                </div>
+                            </div>
+                        </div>
+                        <p className="text-lg text-gray-600 font-medium">
+                            Monitor and manage your children&apos;s therapeutic progress
+                        </p>
+                        {lastUpdated && (
+                            <p className="text-xs text-gray-400 mt-2 flex items-center gap-1">
+                                <RefreshCw className="h-3 w-3" />
+                                Last updated: {lastUpdated.toLocaleTimeString()}
+                            </p>
+                        )}
+                    </div>
                 </div>
                 <div className="flex gap-2">
                     <Dialog open={showConnectChild} onOpenChange={setShowConnectChild}>
                         <DialogTrigger asChild>
-                            <Button variant="outline">
+                            <Button 
+                                variant="outline"
+                                className="transition-all duration-200 hover:shadow-md"
+                                aria-label="Connect to an existing child's account"
+                            >
                                 <UserPlus className="h-4 w-4 mr-2" />
                                 Connect Child
                             </Button>
@@ -168,7 +207,11 @@ export default function ParentDashboard() {
 
                     <Dialog open={showAddChild} onOpenChange={setShowAddChild}>
                         <DialogTrigger asChild>
-                            <Button>
+                            <Button 
+                                style={{ backgroundColor: '#8159A8' }} 
+                                className="text-white hover:opacity-90 transition-all duration-200 hover:shadow-md"
+                                aria-label="Add a new child to your account"
+                            >
                                 <Plus className="h-4 w-4 mr-2" />
                                 Add Child
                             </Button>
@@ -188,86 +231,138 @@ export default function ParentDashboard() {
             {/* Stats Grid - only show when we have children */}
             {parentData && parentData.children.length > 0 && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow" style={{ borderLeftColor: '#8159A8' }}>
-                        <CardContent className="p-6">
-                            <div className="text-sm font-medium mb-1" style={{ color: '#8159A8' }}>Children Registered</div>
-                            <div className="text-3xl font-bold text-gray-900 mb-1">{parentData.children.length}</div>
-                            <div className="text-xs text-gray-500">Active accounts</div>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow" style={{ borderLeftColor: '#8159A8' }}>
-                        <CardContent className="p-6">
-                            <div className="text-sm font-medium mb-1" style={{ color: '#8159A8' }}>Upcoming Sessions</div>
-                            <div className="text-3xl font-bold text-gray-900 mb-1">{parentData.totalUpcomingSessions}</div>
-                            <div className="text-xs text-gray-500">Scheduled sessions</div>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow" style={{ borderLeftColor: '#8159A8' }}>
-                        <CardContent className="p-6">
-                            <div className="text-sm font-medium mb-1" style={{ color: '#8159A8' }}>Unread Messages</div>
-                            <div className="text-3xl font-bold text-gray-900 mb-1">{parentData.unreadMessages}</div>
-                            <div className="text-xs text-gray-500">From therapists</div>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow" style={{ borderLeftColor: '#8159A8' }}>
-                        <CardContent className="p-6">
-                            <div className="text-sm font-medium mb-1" style={{ color: '#8159A8' }}>Progress Reports</div>
-                            <div className="text-3xl font-bold text-gray-900 mb-1">
-                                {parentData.children.reduce((sum, child) => sum + child.progressReports, 0)}
-                            </div>
-                            <div className="text-xs text-gray-500">New reports available</div>
-                        </CardContent>
-                    </Card>
+                    <StatsCard
+                        title="Children Registered"
+                        value={parentData.children.length}
+                        description="Active accounts"
+                        iconType="users"
+                    />
+                    
+                    <StatsCard
+                        title="Upcoming Sessions"
+                        value={parentData.totalUpcomingSessions}
+                        description="Scheduled sessions"
+                        iconType="calendar"
+                    />
+                    
+                    <StatsCard
+                        title="Unread Messages"
+                        value={parentData.unreadMessages}
+                        description="From therapists"
+                        iconType="message"
+                    />
+                    
+                    <StatsCard
+                        title="Progress Reports"
+                        value={parentData.children.reduce((sum, child) => sum + child.progressReports, 0)}
+                        description="New reports available"
+                        iconType="file"
+                    />
                 </div>
             )}
 
             {/* Main Content Grid - only show when we have children */}
             {parentData && parentData.children.length > 0 && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Children Progress */}
                     <Card className="shadow-sm hover:shadow-md transition-shadow">
                         <CardHeader className="border-b border-gray-100 pb-4">
-                            <CardTitle className="text-lg font-semibold text-gray-900">Children Progress</CardTitle>
+                            <CardTitle className="text-xl font-bold flex items-center gap-2 text-gray-900">
+                                <Users className="h-5 w-5" />
+                                Children Progress Overview
+                            </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-6 pt-6">
                             {parentData.children.map((child) => (
-                                <div key={child.id} className="bg-gray-50 rounded-lg p-4">
-                                    <div className="flex items-center justify-between mb-3">
-                                        <div>
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <h4 className="font-semibold text-gray-900">{child.firstName} {child.lastName}</h4>
-                                                {child.isPrimary && (
-                                                    <Badge variant="secondary">Primary Guardian</Badge>
-                                                )}
+                                <div 
+                                    key={child.id} 
+                                    className="bg-white rounded-xl p-6 border border-purple-100 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer hover:scale-105 active:scale-95 focus-within:ring-2 focus-within:ring-opacity-50"
+                                    style={{ '--tw-ring-color': '#8159A8' } as React.CSSProperties}
+                                    tabIndex={0}
+                                    role="button"
+                                    aria-label={`View details for ${child.firstName} ${child.lastName}`}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                            e.preventDefault();
+                                            // Navigate to child details
+                                        }
+                                    }}
+                                >
+                                    <div className="flex items-start justify-between mb-4">
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-3 mb-2">
+                                                <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm" style={{ background: 'linear-gradient(to bottom right, #8159A8, #6b46a0)' }}>
+                                                    {child.firstName.charAt(0)}{child.lastName.charAt(0)}
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-bold text-gray-900 text-lg">{child.firstName} {child.lastName}</h4>
+                                                    <p className="text-sm text-gray-500">Age: {new Date().getFullYear() - new Date(child.dateOfBirth).getFullYear()} years</p>
+                                                </div>
                                             </div>
-                                            <div className="text-sm text-gray-600 space-y-1">
-                                                <p>Relationship: {child.relationship}</p>
-                                                <p>Upcoming Sessions: {child.upcomingSessions}</p>
-                                                <p>Patient ID: <span className="font-mono text-xs bg-white px-2 py-1 rounded border">{child.id}</span></p>
-                                                {child.therapist && (
-                                                    <p>Therapist: {child.therapist.name}</p>
-                                                )}
+                                            {child.isPrimary && (
+                                                <Badge variant="secondary" className="mb-3 text-purple-800 border-purple-200" style={{ backgroundColor: '#f3f0ff' }}>
+                                                    Primary Guardian
+                                                </Badge>
+                                            )}
+                                        </div>
+                                        <div className="flex flex-col items-end gap-2">
+                                            <span className="px-3 py-1 text-xs rounded-full font-bold bg-green-100 text-green-700 border border-green-200">
+                                                ACTIVE
+                                            </span>
+                                            <span className="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded font-mono">
+                                                {child.id}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg p-3 border border-blue-200 mb-6">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                                                <span className="text-white text-xs font-bold">{child.upcomingSessions}</span>
+                                            </div>
+                                            <span className="text-sm font-semibold text-blue-800">Upcoming Sessions</span>
+                                        </div>
+                                        <p className="text-xs text-blue-600">Next 7 days</p>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-sm font-semibold text-gray-700">Overall Progress</span>
+                                            <span className="text-sm font-bold" style={{ color: '#8159A8' }}>{child.progressPercentage || 0 }%</span>
+                                        </div>
+                                        <div className="relative">
+                                            <div className="w-full bg-gray-200 rounded-full h-3 shadow-inner">
+                                                <div
+                                                    className="h-3 rounded-full transition-all duration-500 ease-out shadow-sm"
+                                                    style={{
+                                                        width: `${child.progressPercentage || 0}%`,
+                                                        background: 'linear-gradient(to right, #8159A8, #6b46a0)'
+                                                    }}
+                                                ></div>
+                                            </div>
+                                            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-transparent via-white to-transparent opacity-30 h-3"></div>
+                                        </div>
+                                    </div>
+
+                                    {child.therapist && (
+                                        <div className="mt-4 pt-4 border-t border-gray-100">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-8 h-8 bg-gradient-to-br from-green-400 to-green-500 rounded-full flex items-center justify-center text-white font-bold text-xs">
+                                                    {child.therapist.name.split(' ').map(n => n.charAt(0)).join('')}
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-800">Dr. {child.therapist.name}</p>
+                                                    <p className="text-xs text-gray-500">Assigned Therapist</p>
+                                                </div>
                                             </div>
                                         </div>
-                                        <span className="px-3 py-1 text-xs rounded-full font-medium" style={{ backgroundColor: '#8159A8', color: 'white' }}>
-                                            ACTIVE
-                                        </span>
-                                    </div>
-                                    <div className="mb-3">
-                                        <div className="w-full bg-gray-200 rounded-full h-2">
-                                            <div
-                                                className="h-2 rounded-full transition-all duration-300"
-                                                style={{
-                                                    width: `${child.progressPercentage || 0}%`,
-                                                    backgroundColor: '#8159A8'
-                                                }}
-                                            ></div>
+                                    )}
+
+                                    {child.lastSession && (
+                                        <div className="mt-3 text-xs text-gray-500 bg-gray-50 rounded-lg p-2">
+                                            <span className="font-medium">Last Session:</span> {child.lastSession}
                                         </div>
-                                    </div>
-                                    <p className="text-sm text-gray-700 font-medium">Task Completion: {child.progressPercentage || 0}%</p>
+                                    )}
                                 </div>
                             ))}
                         </CardContent>
@@ -276,7 +371,7 @@ export default function ParentDashboard() {
                     {/* Recent Updates */}
                     <Card className="shadow-sm hover:shadow-md transition-shadow">
                         <CardHeader className="border-b border-gray-100 pb-4">
-                            <CardTitle className="text-lg font-semibold text-gray-900">Recent Messages</CardTitle>
+                            <CardTitle className="text-lg font-semibold text-gray-900">Recent Updates</CardTitle>
                         </CardHeader>
                         <CardContent className="pt-6">
                             {parentData && parentData.recentUpdates.length > 0 ? (
@@ -292,11 +387,18 @@ export default function ParentDashboard() {
                                     ))}
                                 </div>
                             ) : (
-                                <div className="text-center py-8">
-                                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                        <Users className="h-8 w-8 text-gray-400" />
-                                    </div>
-                                    <p className="text-gray-500">No recent updates</p>
+                                <div className="text-center py-12">
+                                    <Image 
+                                        src="/images/NoMsg.png" 
+                                        alt="No messages" 
+                                        width={400}
+                                        height={400}
+                                        className="mx-auto mb-6 opacity-60"
+                                    />
+                                    <h3 className="text-lg font-semibold mb-2 text-gray-900">All caught up!</h3>
+                                    <p className="text-gray-500 max-w-sm mx-auto">
+                                        You&apos;re all up to date.
+                                    </p>
                                 </div>
                             )}
                         </CardContent>
@@ -318,17 +420,26 @@ export default function ParentDashboard() {
                                 onClick={() => setShowConnectChild(true)}
                                 variant="outline"
                                 className="px-6 py-2"
+                                aria-label="Connect to an existing child's therapy account"
                             >
                                 <UserPlus className="h-4 w-4 mr-2" />
                                 Connect Existing Child
                             </Button>
                             <Button
                                 onClick={() => setShowAddChild(true)}
-                                className="text-white px-6 py-2 hover:opacity-90 bg-primary"
+                                className="text-white px-6 py-2 hover:opacity-90"
+                                style={{ backgroundColor: '#8159A8' }}
+                                aria-label="Add a new child to start therapy services"
                             >
                                 <Plus className="h-4 w-4 mr-2" />
                                 Add New Child
                             </Button>
+                        </div>
+                        <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                            <p className="text-sm text-blue-800 font-medium mb-1">Need help getting started?</p>
+                            <p className="text-xs text-blue-600">
+                                If your child is already receiving services, ask your therapist for their Patient ID to connect their account.
+                            </p>
                         </div>
                     </CardContent>
                 </Card>

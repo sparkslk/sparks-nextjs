@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -225,9 +226,6 @@ export default function MyChildrenPage() {
                   <p className="text-sm text-gray-600 mb-1">
                     Upcoming Sessions: <span className="font-medium">{child.upcomingSessions}</span>
                   </p>
-                  <p className="text-sm text-gray-600">
-                    Progress Reports: {child.progressReports} available
-                  </p>
                   {child.lastSession && (
                     <p className="text-sm text-gray-600">
                       Last Session: {new Date(child.lastSession).toLocaleDateString()}
@@ -236,7 +234,6 @@ export default function MyChildrenPage() {
                 </div>
 
                 <div className="mb-4">
-                  <h5 className="text-sm font-medium text-gray-700 mb-2">Quick Actions</h5>
                   <p className="text-sm text-gray-500 mb-2">
                     {child.isPrimary ? 'You are the primary guardian for this child.' : 'You are connected as a guardian.'}
                   </p>
@@ -247,7 +244,6 @@ export default function MyChildrenPage() {
                     variant="outline"
                     size="sm"
                     className="border-gray-300 text-gray-700 hover:bg-gray-50"
-                    disabled
                   >
                     View Sessions
                   </Button>
@@ -255,7 +251,6 @@ export default function MyChildrenPage() {
                     variant="outline"
                     size="sm"
                     className="border-gray-300 text-gray-700 hover:bg-gray-50"
-                    disabled
                   >
                     Reports
                   </Button>
@@ -263,7 +258,6 @@ export default function MyChildrenPage() {
                     variant="outline"
                     size="sm"
                     className="border-gray-300 text-gray-700 hover:bg-gray-50"
-                    disabled
                   >
                     Medical Info
                   </Button>
@@ -271,7 +265,6 @@ export default function MyChildrenPage() {
                     size="sm"
                     style={{ backgroundColor: '#8159A8' }}
                     className="text-white hover:opacity-90"
-                    disabled
                   >
                     Contact Therapist
                   </Button>
@@ -281,13 +274,13 @@ export default function MyChildrenPage() {
           ))}
         </div>
 
-        {/* Parent Notes Section */}
-        {children.length > 0 && (
+        {/* Parent Notes Section - Only show if any child has a therapist */}
+        {children.length > 0 && children.some(child => child.therapist) && (
           <Card className="mt-10 shadow-sm">
             <CardHeader className="border-b border-gray-100 pb-4">
               <CardTitle className="text-lg font-semibold text-gray-900 mb-4">Parent Notes & Observations</CardTitle>
               <div className="space-x-2">
-                {children.map((child, index) => (
+                {children.filter(child => child.therapist).map((child, index) => (
                   <Button
                     key={child.id}
                     variant={activeChildIndex === index ? "default" : "outline"}
@@ -318,21 +311,49 @@ export default function MyChildrenPage() {
                 <Button
                   style={{ backgroundColor: '#8159A8' }}
                   className="text-white hover:opacity-90 px-6"
-                  disabled={!noteText.trim() || !children[activeChildIndex]?.therapist}
+                  disabled={!noteText.trim()}
                   onClick={() => {
                     // TODO: Implement sending note to therapist
-                    alert(`Note for ${children[activeChildIndex]?.firstName} would be sent to their therapist.`);
+                    alert(`Note for ${children.filter(child => child.therapist)[activeChildIndex]?.firstName} would be sent to their therapist.`);
                     setNoteText("");
                   }}
                 >
                   Send to Therapist
                 </Button>
               </div>
-              {!children[activeChildIndex]?.therapist && (
-                <p className="text-xs text-amber-600 mt-2">
-                  No therapist assigned to {children[activeChildIndex]?.firstName}. Notes cannot be sent.
-                </p>
-              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Connect with Therapist Notice - Show if no therapists assigned */}
+        {children.length > 0 && !children.some(child => child.therapist) && (
+          <Card className="mt-5 shadow-sm border-2 border-dashed border-gray-300">
+            <CardContent className="p-4 text-center">
+              <div className="w-50 h-50 mx-auto flex items-center justify-center">
+                <Image 
+                  src="/images/doctor.png" 
+                  alt="Doctor" 
+                  width={120}
+                  height={120}
+                  className="object-contain"
+                />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                Connect with a Therapist
+              </h3>
+              <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                To start sharing notes and observations about your child&apos;s progress, you&apos;ll need to connect with a qualified therapist first.
+              </p>
+              <Button
+                style={{ backgroundColor: '#8159A8' }}
+                className="text-white hover:opacity-90 px-8 py-2"
+                onClick={() => window.location.href = '/parent/findTherapist'}
+              >
+                Find a Therapist
+              </Button>
+              <p className="text-sm text-gray-500 mt-3">
+                Browse our network of licensed mental health professionals
+              </p>
             </CardContent>
           </Card>
         )}
