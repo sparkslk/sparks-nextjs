@@ -262,7 +262,7 @@ export default function PatientDetailsPage() {
 
                   <div className="space-y-4">
                     <div>
-                      <h5 className="font-medium text-gray-700 mb-2">� Session Notes</h5>
+                      <h5 className="font-medium text-gray-700 mb-2">Session Notes</h5>
                       <p className="text-gray-600 text-sm">{session.notes}</p>
                     </div>
 
