@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { PlusIcon } from "lucide-react";
+import { DeleteConfirmationModal } from "@/components/ui/delete-confirmation-modal";
 
 interface Blog {
   id: string;
@@ -31,6 +32,8 @@ export default function BlogManagementPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("all");
   const [error, setError] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [blogToDelete, setBlogToDelete] = useState<Blog | null>(null);
 
   useEffect(() => {
     if (authStatus === "unauthenticated") {
@@ -137,12 +140,37 @@ export default function BlogManagementPage() {
     router.push(`/therapist/blogs/${id}/edit`);
   };
 
-  const handleArchiveBlog = (e: React.MouseEvent, id: string) => {
+  const handleArchiveBlog = (e: React.MouseEvent, blog: Blog) => {
     e.stopPropagation(); // Prevent the card click event from triggering
-    // Archive logic would go here
-    console.log(`Archiving blog ${id}`);
-    // For now we'll just show an alert
-    alert(`Blog ${id} would be archived. This is a placeholder.`);
+    setBlogToDelete(blog);
+    setShowDeleteModal(true);
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteModal(false);
+    setBlogToDelete(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!blogToDelete) return;
+
+    try {
+      // Archive/delete logic would go here
+      console.log(`Archiving blog ${blogToDelete.id}`);
+
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // Remove the blog from the list or change its status
+      setBlogs(blogs.filter((blog) => blog.id !== blogToDelete.id));
+
+      // Close the dialog
+      setShowDeleteModal(false);
+      setBlogToDelete(null);
+    } catch (error) {
+      console.error("Error archiving blog:", error);
+      alert("Failed to archive blog. Please try again.");
+    }
   };
 
   const filteredBlogs = blogs.filter((blog) => {
@@ -173,6 +201,18 @@ export default function BlogManagementPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#F5F3FB] via-white to-[#F5F3FB] p-6">
+      {/* Delete confirmation modal - updated to Archive */}
+      <DeleteConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={handleCancelDelete}
+        onDelete={handleConfirmDelete}
+        title="Archive Blog Post?"
+        description="Are you sure you want to archive"
+        itemName={blogToDelete?.title}
+        buttonLabel="Archive Blog" // Updated label
+        buttonVariant="outline" // Use outline variant for less destructive action
+      />
+
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
@@ -360,7 +400,7 @@ export default function BlogManagementPage() {
                         variant="ghost"
                         size="sm"
                         className="text-gray-600 hover:text-[#8159A8]"
-                        onClick={(e) => handleArchiveBlog(e, blog.id)}
+                        onClick={(e) => handleArchiveBlog(e, blog)}
                       >
                         Archive
                       </Button>

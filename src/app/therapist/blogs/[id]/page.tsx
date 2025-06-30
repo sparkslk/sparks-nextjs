@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Edit, Trash2, Eye, BarChart3 } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { DeleteConfirmationModal } from "@/components/ui/delete-confirmation-modal";
 
 interface Blog {
   id: string;
@@ -33,6 +34,7 @@ export default function BlogDetailPage({ params }: { params: { id: string } }) {
   const [blog, setBlog] = useState<Blog | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   useEffect(() => {
     if (authStatus === "unauthenticated") {
@@ -189,16 +191,20 @@ Many adults with ADHD lead successful, fulfilling lives. Strategies include:
     }
   };
 
-  const handleDelete = async () => {
-    const confirm = window.confirm(
-      "Are you sure you want to delete this blog?"
-    );
-    if (!confirm) return;
+  const handleDeleteClick = () => {
+    setShowDeleteModal(true);
+  };
 
+  const handleCancelDelete = () => {
+    setShowDeleteModal(false);
+  };
+
+  const handleConfirmDelete = async () => {
     setLoading(true);
     try {
       // This would be an API call in a real app
       await new Promise((resolve) => setTimeout(resolve, 1000));
+      setShowDeleteModal(false);
       router.push("/therapist/blogs");
     } catch (err) {
       console.error("Error deleting blog:", err);
@@ -277,6 +283,16 @@ Many adults with ADHD lead successful, fulfilling lives. Strategies include:
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#F5F3FB] via-white to-[#F5F3FB] p-6">
+      {/* Delete confirmation modal */}
+      <DeleteConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={handleCancelDelete}
+        onDelete={handleConfirmDelete}
+        title="Delete Blog Post?"
+        description="Are you sure you want to delete"
+        itemName={blog?.title}
+      />
+
       <div className="max-w-5xl mx-auto space-y-6">
         {/* Navigation */}
         <Button
@@ -338,7 +354,7 @@ Many adults with ADHD lead successful, fulfilling lives. Strategies include:
             </Button>
             <Button
               variant="outline"
-              onClick={handleDelete}
+              onClick={handleDeleteClick}
               className="text-red-600 hover:bg-red-50 hover:border-red-300 transition-all duration-300"
             >
               <Trash2 className="mr-2 h-4 w-4" />
