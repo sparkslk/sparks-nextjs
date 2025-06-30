@@ -24,7 +24,6 @@ interface Blog {
   slug: string;
   category: string;
   tags: string[];
-  readTime: number;
   authorName: string;
 }
 
@@ -140,8 +139,7 @@ Many adults with ADHD lead successful, fulfilling lives. Strategies include:
           slug: "understanding-adhd-in-adults",
           category: "adhd",
           tags: ["ADHD", "Adults", "Mental Health", "Treatment"],
-          readTime: 8,
-          authorName: "Dr. Sarah Johnson",
+          authorName: "Dr. Kanchana Weerasinghe",
         });
       } else if (params.id === "2") {
         setBlog({
@@ -159,7 +157,6 @@ Many adults with ADHD lead successful, fulfilling lives. Strategies include:
           slug: "focus-techniques-for-adhd",
           category: "adhd",
           tags: ["ADHD", "Focus", "Productivity", "Techniques"],
-          readTime: 5,
           authorName: "Dr. Sarah Johnson",
         });
       } else if (params.id === "3") {
@@ -178,7 +175,6 @@ Many adults with ADHD lead successful, fulfilling lives. Strategies include:
           slug: "supporting-your-adhd-child",
           category: "parenting",
           tags: ["ADHD", "Parenting", "Children", "Support"],
-          readTime: 7,
           authorName: "Dr. Sarah Johnson",
         });
       } else {
@@ -439,31 +435,11 @@ Many adults with ADHD lead successful, fulfilling lives. Strategies include:
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Read time</span>
-                  <span className="font-semibold">{blog.readTime} min</span>
-                </div>
-                <div className="flex justify-between">
                   <span className="text-gray-600">Created</span>
                   <span className="font-semibold">
                     {new Date(blog.createdAt).toLocaleDateString()}
                   </span>
                 </div>
-
-                <Button
-                  variant="outline"
-                  className="w-full mt-4 text-[#8159A8] border-[#8159A8] hover:bg-[#8159A8] hover:text-white transition-all duration-300"
-                >
-                  <BarChart3 className="mr-2 h-4 w-4" />
-                  View Analytics
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full border-[#8159A8] hover:bg-[#8159A8] hover:text-white transition-all duration-300"
-                  onClick={handlePreviewOnPublicSite}
-                >
-                  <Eye className="mr-2 h-4 w-4" />
-                  Preview on Public Site
-                </Button>
               </CardContent>
             </Card>
 
