@@ -234,6 +234,11 @@ Many adults with ADHD lead successful, fulfilling lives. Strategies include:
     }
   };
 
+  const handlePreviewOnPublicSite = () => {
+    // Open blog in a new tab on the public-facing site
+    window.open(`/blogs/${blog?.slug}`, "_blank");
+  };
+
   if (authStatus === "loading" || loading) {
     return <LoadingSpinner message="Loading blog details..." />;
   }
@@ -454,10 +459,10 @@ Many adults with ADHD lead successful, fulfilling lives. Strategies include:
                 <Button
                   variant="outline"
                   className="w-full border-[#8159A8] hover:bg-[#8159A8] hover:text-white transition-all duration-300"
-                  onClick={() => window.open(`/blogs/${blog.slug}`, "_blank")}
+                  onClick={handlePreviewOnPublicSite}
                 >
                   <Eye className="mr-2 h-4 w-4" />
-                  Preview Blog
+                  Preview on Public Site
                 </Button>
               </CardContent>
             </Card>

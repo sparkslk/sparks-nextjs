@@ -127,6 +127,24 @@ export default function BlogManagementPage() {
     }
   };
 
+  const handleViewBlog = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation(); // Prevent the card click event from triggering
+    router.push(`/therapist/blogs/${id}`);
+  };
+
+  const handleEditBlog = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation(); // Prevent the card click event from triggering
+    router.push(`/therapist/blogs/${id}/edit`);
+  };
+
+  const handleArchiveBlog = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation(); // Prevent the card click event from triggering
+    // Archive logic would go here
+    console.log(`Archiving blog ${id}`);
+    // For now we'll just show an alert
+    alert(`Blog ${id} would be archived. This is a placeholder.`);
+  };
+
   const filteredBlogs = blogs.filter((blog) => {
     if (activeTab === "all") return true;
     if (activeTab === "published") return blog.status === "published";
@@ -324,10 +342,7 @@ export default function BlogManagementPage() {
                         variant="ghost"
                         size="sm"
                         className="text-gray-600 hover:text-[#8159A8]"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          router.push(`/therapist/blogs/${blog.id}/edit`);
-                        }}
+                        onClick={(e) => handleEditBlog(e, blog.id)}
                       >
                         Edit
                       </Button>
@@ -336,10 +351,7 @@ export default function BlogManagementPage() {
                         variant="ghost"
                         size="sm"
                         className="text-gray-600 hover:text-[#8159A8]"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          router.push(`/blogs/${blog.slug}`);
-                        }}
+                        onClick={(e) => handleViewBlog(e, blog.id)}
                       >
                         View
                       </Button>
@@ -348,10 +360,7 @@ export default function BlogManagementPage() {
                         variant="ghost"
                         size="sm"
                         className="text-gray-600 hover:text-[#8159A8]"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // Archive logic
-                        }}
+                        onClick={(e) => handleArchiveBlog(e, blog.id)}
                       >
                         Archive
                       </Button>
