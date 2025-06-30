@@ -140,7 +140,7 @@ export default function MyChildrenPage() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#F5F3FB' }}>
-      <div className="max-w-6xl mx-auto px-6 py-8">
+      <div className="max-w-6xl mx-auto px-6 py-1">
         {/* Header Section */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">
@@ -245,6 +245,7 @@ export default function MyChildrenPage() {
                     size="sm"
                     className="border-gray-300 text-gray-700 hover:bg-gray-50"
                   >
+                    <span className="mr-2">📅</span>
                     View Sessions
                   </Button>
                   <Button
@@ -252,6 +253,7 @@ export default function MyChildrenPage() {
                     size="sm"
                     className="border-gray-300 text-gray-700 hover:bg-gray-50"
                   >
+                    <span className="mr-2">📊</span>
                     Reports
                   </Button>
                   <Button
@@ -259,13 +261,15 @@ export default function MyChildrenPage() {
                     size="sm"
                     className="border-gray-300 text-gray-700 hover:bg-gray-50"
                   >
-                    Medical Info
+                    <span className="mr-2">💊</span>
+                    Medications
                   </Button>
                   <Button
                     size="sm"
                     style={{ backgroundColor: '#8159A8' }}
                     className="text-white hover:opacity-90"
                   >
+                    <span className="mr-2">📞</span>
                     Contact Therapist
                   </Button>
                 </div>
