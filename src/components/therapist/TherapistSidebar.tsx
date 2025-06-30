@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { usePathname } from "next/navigation";
+import Link from "next/link";
 import NotificationBell from "@/components/NotificationBell";
 import {
   Calendar,
@@ -279,7 +280,7 @@ export function TherapistSidebar({ children }: TherapistSidebarProps) {
                       isActive={pathname === item.url}
                       className="w-full"
                     >
-                      <a href={item.url} className="flex items-center gap-2">
+                      <Link href={item.url} className="flex items-center gap-2">
                         <item.icon className="size-4" />
                         <span>{item.title}</span>
                         {item.badge === "pending" && pendingRequests > 0 && (
@@ -287,7 +288,7 @@ export function TherapistSidebar({ children }: TherapistSidebarProps) {
                             {pendingRequests}
                           </Badge>
                         )}
-                      </a>
+                      </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}
@@ -317,7 +318,7 @@ export function TherapistSidebar({ children }: TherapistSidebarProps) {
                                 asChild
                                 isActive={pathname === subItem.url}
                               >
-                                <a href={subItem.url}>{subItem.title}</a>
+                                <Link href={subItem.url}>{subItem.title}</Link>
                               </SidebarMenuSubButton>
                             </SidebarMenuSubItem>
                           ))}
@@ -338,10 +339,10 @@ export function TherapistSidebar({ children }: TherapistSidebarProps) {
                 {menuItems.analytics.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild isActive={pathname === item.url}>
-                      <a href={item.url} className="flex items-center gap-2">
+                      <Link href={item.url} className="flex items-center gap-2">
                         <item.icon className="size-4" />
                         <span>{item.title}</span>
-                      </a>
+                      </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}
@@ -357,7 +358,7 @@ export function TherapistSidebar({ children }: TherapistSidebarProps) {
                 {menuItems.communication.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild isActive={pathname === item.url}>
-                      <a href={item.url} className="flex items-center gap-2">
+                      <Link href={item.url} className="flex items-center gap-2">
                         <item.icon className="size-4" />
                         <span>{item.title}</span>
                         {item.badge && (
@@ -365,7 +366,7 @@ export function TherapistSidebar({ children }: TherapistSidebarProps) {
                             {item.badge}
                           </Badge>
                         )}
-                      </a>
+                      </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}
@@ -422,22 +423,22 @@ export function TherapistSidebar({ children }: TherapistSidebarProps) {
                   sideOffset={4}
                 >
                   <DropdownMenuItem asChild>
-                    <a
+                    <Link
                       href="/therapist/profile"
                       className="flex items-center gap-2"
                     >
                       <User className="size-4" />
                       Profile
-                    </a>
+                    </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <a
+                    <Link
                       href="/therapist/settings"
                       className="flex items-center gap-2"
                     >
                       <Settings className="size-4" />
                       Settings
-                    </a>
+                    </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={handleSignOut}

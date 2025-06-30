@@ -2,25 +2,25 @@
 
 import { useState, useEffect } from "react";
 
+const MOBILE_BREAKPOINT = 768;
+
 export function useIsMobile(): boolean {
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    // Function to check if the viewport is mobile-sized
-    const checkIfMobile = () => {
-      setIsMobile(window.innerWidth < 768);
+    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
+    const onChange = (event: MediaQueryListEvent) => {
+      setIsMobile(event.matches);
     };
 
-    // Check initially
-    checkIfMobile();
+    // Set initial value
+    setIsMobile(mql.matches);
 
-    // Add event listener for window resize
-    window.addEventListener("resize", checkIfMobile);
+    // Listen for changes
+    mql.addEventListener("change", onChange);
 
     // Cleanup
-    return () => {
-      window.removeEventListener("resize", checkIfMobile);
-    };
+    return () => mql.removeEventListener("change", onChange);
   }, []);
 
   return isMobile;
