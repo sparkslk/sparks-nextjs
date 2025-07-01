@@ -102,8 +102,6 @@ export async function GET(
         sessionType: session.type || 'Therapy Session',
         notes: session.progressNotes || '',
         objectives: Array.isArray(session.objectives) ? session.objectives : [],
-        homework: session.progressNotes || '', // Using progressNotes as fallback
-        nextSteps: session.progressNotes || '' // Using progressNotes as fallback
       };
     });
 
