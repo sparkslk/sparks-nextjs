@@ -200,6 +200,7 @@ export default function SessionDetailsModal({ isOpen, onClose, childName, childI
                             size="sm"
                             style={{ backgroundColor: '#8159A8' }}
                             className="text-white hover:opacity-90"
+                            onClick={() => handleJoinSession(session.id)}
                           >
                             Join Session
                           </Button>
