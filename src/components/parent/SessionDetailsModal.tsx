@@ -105,6 +105,37 @@ export default function SessionDetailsModal({ isOpen, onClose, childName, childI
     return `${displayHour}:${minutes} ${ampm}`;
   };
 
+  const handleJoinSession = async (sessionId: string) => {
+    try {
+      // Find the session to get session details
+      const session = sessions.find(s => s.id === sessionId);
+      if (!session) {
+        console.error('Session not found');
+        return;
+      }
+
+      // Check if session is upcoming and within reasonable time frame
+      const sessionDateTime = new Date(`${session.date}T${session.time}`);
+      const now = new Date();
+      const timeDifference = sessionDateTime.getTime() - now.getTime();
+      const minutesDifference = timeDifference / (1000 * 60);
+
+      // Allow joining 15 minutes before session time
+      if (minutesDifference > 15) {
+        alert('Session has not started yet. You can join 15 minutes before the scheduled time.');
+        return;
+      }
+
+      // Redirect to session room or video call
+      // This could be a video call service like Zoom, Teams, or a custom implementation
+      window.open(`/session/${sessionId}`, '_blank');
+      
+    } catch (error) {
+      console.error('Error joining session:', error);
+      alert('Failed to join session. Please try again.');
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
