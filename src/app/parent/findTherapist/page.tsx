@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import {
     TherapistSearchBar,
@@ -249,20 +248,28 @@ export default function FindTherapistPage() {
     }
 
     return (
-        <DashboardLayout
-            title={currentTherapist ? 'Your Therapist & Explore More' : 'Find a Therapist'}
-            subtitle={currentTherapist
-                ? 'Manage your current therapist relationship and find additional support'
-                : 'Find the right mental health professional for your needs'
-            }
-        >
-            <div className="space-y-6">
-                {/* Available Therapists Info */}
-                <div>
-                    <p className="text-sm text-muted-foreground">
-                        {filteredTherapists.length} therapists available
+        <div className="min-h-screen" style={{ backgroundColor: '#F5F3FB' }}>
+            <div className="max-w-6xl mx-auto px-6 py-1">
+                {/* Header Section */}
+                <div className="mb-2">
+                    <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">
+                        {currentTherapist ? 'Your Therapist & Explore More' : 'Find a Therapist'}
+                    </h1>
+                    <p className="text-muted-foreground mt-1">
+                        {currentTherapist
+                            ? 'Manage your current therapist relationship and find additional support'
+                            : 'Find the right mental health professional for your needs'
+                        }
                     </p>
                 </div>
+
+                <div className="space-y-6">
+                    {/* Available Therapists Info */}
+                    <div>
+                        <p className="text-sm text-muted-foreground">
+                            {filteredTherapists.length} therapists available
+                        </p>
+                    </div>
 
                 {/* No Current Therapist Message */}
                 {!currentTherapist && (
@@ -401,7 +408,8 @@ export default function FindTherapistPage() {
                 {filteredTherapists.length === 0 && (
                     <TherapistEmptyState onClearFilters={clearAllFilters} />
                 )}
+                </div>
             </div>
-        </DashboardLayout>
+        </div>
     );
 }
