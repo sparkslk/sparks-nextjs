@@ -275,17 +275,6 @@ export async function GET(req: NextRequest) {
             
             const lastSession = pastSessions.length > 0 ? pastSessions[0] : null;
             const nextSession = futureSessions.length > 0 ? futureSessions[0] : null;
-            
-            // Determine status based on session activity
-            let status: "active" | "inactive" | "completed" = "inactive";
-            if (nextSession) {
-                status = "active";
-            } else if (lastSession) {
-                const daysSinceLastSession = Math.floor(
-                    (new Date().getTime() - new Date(lastSession.scheduledAt).getTime()) / (1000 * 60 * 60 * 24)
-                );
-                status = daysSinceLastSession <= 30 ? "active" : "inactive";
-            }
 
             return {
                 id: patient.id,
@@ -295,9 +284,9 @@ export async function GET(req: NextRequest) {
                 gender: patient.gender,
                 phone: patient.phone,
                 email: patient.email,
-                lastSession: lastSession ? lastSession.scheduledAt : null,
-                nextSession: nextSession ? nextSession.scheduledAt : null,
-                status,
+                lastSession: lastSession ? lastSession.scheduledAt : "-",
+                nextSession: nextSession ? nextSession.scheduledAt : "-",
+                status: "approved" as const, // Set all statuses to approved for now
                 age: calculateAge(patient.dateOfBirth)
             };
         });
