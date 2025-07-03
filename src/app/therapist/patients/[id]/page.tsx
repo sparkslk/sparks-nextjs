@@ -354,7 +354,7 @@ export default function PatientDetailsPage() {
           {sessionHistory && sessionHistory.length > 0 ? (
             <div className="space-y-6">
               {/* Session History Header */}
-              <div className="bg-transpaent">
+              <div className="bg-transparent">
                 <div className="flex justify-between items-center">
                   <div>
                     <h3 className="text-2xl font-bold mb-2 text-[#8159A8]">Session History</h3>
@@ -583,7 +583,7 @@ export default function PatientDetailsPage() {
           {medications && medications.length > 0 ? (
             <div className="space-y-6">
               {/* Medications Header */}
-              <div className="bg-transpaent">
+              <div className="bg-transparent">
                 <div className="flex justify-between items-center">
                   <div>
                     <h3 className="text-2xl font-bold mb-2 text-[#8159A8]">Current Medications</h3>
@@ -668,7 +668,7 @@ export default function PatientDetailsPage() {
           {medicalHistory ? (
             <div className="space-y-6">
               {/* Medical History Header */}
-              <div className="bg-transpaent">
+              <div className="bg-transparent">
                 <div className="flex justify-between items-center">
                   <div>
                     <h3 className="text-2xl font-bold mb-2 text-[#8159A8]">Medical History</h3>
