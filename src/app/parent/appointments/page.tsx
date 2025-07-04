@@ -241,6 +241,21 @@ export default function AppointmentsPage() {
                 <CardContent>
                   {upcomingAppointments.length > 0 || pastAppointments.length > 0 ? (
                     <div className="space-y-6">
+                      {/* Therapist Information */}
+                      {(upcomingAppointments.length > 0 || pastAppointments.length > 0) && (
+                        <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                          <p className="text-sm text-blue-800">
+                            {child.firstName}&apos;s therapist is{' '}
+                            <span className="font-semibold">
+                              {upcomingAppointments.length > 0 
+                                ? upcomingAppointments[0].therapist
+                                : pastAppointments[0].therapist
+                              }
+                            </span>
+                          </p>
+                        </div>
+                      )}
+                      
                       {/* Upcoming Sessions */}
                       <div>
                         <h3 className="font-semibold text-gray-900 mb-3">Upcoming Sessions</h3>
