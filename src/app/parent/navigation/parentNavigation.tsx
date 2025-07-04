@@ -169,7 +169,10 @@ export default function ParentNavigation() {
             )}
 
             {/* Navigation Section */}
-            <div className="bg-background border-b border-border">
+            <div className="bg-background border-b border-border shadow-lg" style={{ 
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15), 0 8px 24px rgba(129,89,168,0.1)',
+                transform: 'translateY(-2px)'
+            }}>
                 <div className="max-w-7xl mx-auto px-6 py-4">
                     {/* Desktop Navigation Tabs */}
                     <div className="hidden md:flex space-x-8">
@@ -177,11 +180,15 @@ export default function ParentNavigation() {
                             <button
                                 key={tab.name}
                                 onClick={() => handleTabClick(tab.path)}
-                                className={`pb-2 px-1 text-sm font-medium border-b-2 transition-colors ${getActiveTab() === tab.name
-                                        ? 'text-muted-foreground hover:text-muted-foreground'
-                                        : 'border-transparent text-muted-foreground hover:text-muted-foreground'
+                                className={`pb-2 px-4 py-2 text-sm font-medium border-b-2 transition-all duration-200 ease-in-out transform ${getActiveTab() === tab.name
+                                        ? 'text-muted-foreground hover:text-muted-foreground translate-y-1 shadow-inner bg-gray-100 rounded-t-lg'
+                                        : 'border-transparent text-muted-foreground hover:text-muted-foreground hover:translate-y-0.5'
                                     }`}
-                                style={getActiveTab() === tab.name ? { borderBottomColor: '#8159A8', color: '#8159A8' } : {}}
+                                style={getActiveTab() === tab.name ? { 
+                                    borderBottomColor: '#8159A8', 
+                                    color: '#8159A8',
+                                    boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)'
+                                } : {}}
                             >
                                 {tab.name}
                             </button>
@@ -195,11 +202,14 @@ export default function ParentNavigation() {
                                 <button
                                     key={tab.name}
                                     onClick={() => handleTabClick(tab.path)}
-                                    className={`py-2 px-3 text-sm font-medium rounded-md transition-colors ${getActiveTab() === tab.name
-                                            ? 'text-white'
-                                            : 'text-muted-foreground hover:text-muted-foreground hover:bg-accent'
+                                    className={`py-2 px-3 text-sm font-medium rounded-md transition-all duration-200 ease-in-out transform ${getActiveTab() === tab.name
+                                            ? 'text-white translate-y-1 shadow-inner'
+                                            : 'text-muted-foreground hover:text-muted-foreground hover:bg-accent hover:translate-y-0.5'
                                         }`}
-                                    style={getActiveTab() === tab.name ? { backgroundColor: '#8159A8' } : {}}
+                                    style={getActiveTab() === tab.name ? { 
+                                        backgroundColor: '#8159A8',
+                                        boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.3)'
+                                    } : {}}
                                 >
                                     {tab.name}
                                 </button>
