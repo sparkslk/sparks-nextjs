@@ -199,7 +199,7 @@ export default function AppointmentsPage() {
         </div>
 
         {/* Children Cards */}
-        <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {children.map((child) => {
             const upcomingAppointments = getChildAppointments(child.id, 'upcoming');
             const pastAppointments = getChildAppointments(child.id, 'past');
@@ -243,17 +243,19 @@ export default function AppointmentsPage() {
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-white border-0 hover:opacity-90 transition-all duration-300 shadow-md text-xs px-3 py-1"
-                        style={{ backgroundColor: '#8159A8' }}
-                      >
-                        <Plus className="w-3 h-3 mr-1" />
-                        Book Session
-                      </Button>
-                    </div>
+                    {child.therapist && (
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-white border-0 hover:opacity-90 transition-all duration-300 shadow-md text-xs px-3 py-1"
+                          style={{ backgroundColor: '#8159A8' }}
+                        >
+                          <Plus className="w-3 h-3 mr-1" />
+                          Book Session
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </CardHeader>
 
