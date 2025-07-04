@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, User } from "lucide-react";
+import { Calendar, Clock, User, CalendarDays, MapPin, Video,  CheckCircle, Star, MessageCircle,  Plus } from "lucide-react";
 
 interface Child {
   id: string;
@@ -163,24 +163,39 @@ export default function AppointmentsPage() {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#F5F3FB' }}>
-      <div className="max-w-6xl mx-auto px-6 py-8">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">
-              Appointments
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              Manage your children&apos;s therapy appointments
-            </p>
+    <div className="min-h-screen">
+      <div className="max-w-7xl mx-auto px-6 py-6">
+        {/* Enhanced Header */}
+        <div className="mb-6">
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-purple-200/30 p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 rounded-lg shadow-md" style={{ backgroundColor: '#8159A8' }}>
+                  <Calendar className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold text-transparent bg-clip-text" style={{ backgroundImage: 'linear-gradient(to right, #8159A8, #6B4C93)' }}>
+                    Appointments
+                  </h1>
+                  <p className="mt-1 text-sm" style={{ color: '#8159A8' }}>
+                    Manage your children&apos;s therapy sessions with ease
+                  </p>
+                </div>
+              </div>
+              <div className="hidden md:flex items-center space-x-4">
+                <div className="text-right">
+                  <p className="text-xs" style={{ color: '#8159A8' }}>Total Children</p>
+                  <p className="text-lg font-bold" style={{ color: '#8159A8' }}>{children.length}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs" style={{ color: '#8159A8' }}>Upcoming Sessions</p>
+                  <p className="text-lg font-bold" style={{ color: '#8159A8' }}>
+                    {appointments.filter(apt => apt.status === 'upcoming').length}
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
-          <Button 
-            style={{ backgroundColor: '#8159A8' }}
-            className="text-white hover:opacity-90"
-          >
-            Explore Therapists
-          </Button>
         </div>
 
         {/* Children Cards */}
@@ -190,49 +205,53 @@ export default function AppointmentsPage() {
             const pastAppointments = getChildAppointments(child.id, 'past');
 
             return (
-              <Card key={child.id} className="shadow-sm">
-                <CardHeader className="pb-4">
+              <Card key={child.id} className="appointments-card bg-white/80 backdrop-blur-sm shadow-lg border border-white/20 hover:shadow-xl transition-all duration-300">
+                <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <div
-                        className="w-12 h-12 rounded-full flex items-center justify-center"
-                        style={{ backgroundColor: '#EDE6F3' }}
-                      >
-                        <span className="font-semibold text-lg" style={{ color: '#8159A8' }}>
-                          {child.firstName[0]}{child.lastName[0]}
-                        </span>
+                    <div className="flex items-center space-x-3">
+                      <div className="relative">
+                        <div className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg" style={{ backgroundColor: '#8159A8' }}>
+                          <span className="font-bold text-white text-sm">
+                            {child.firstName?.[0]?.toUpperCase()}{child.lastName?.[0]?.toUpperCase()}
+                          </span>
+                        </div>
+                        {child.therapist && (
+                          <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
+                            <CheckCircle className="w-2.5 h-2.5 text-white" />
+                          </div>
+                        )}
                       </div>
                       <div>
-                        <CardTitle className="text-xl">
+                        <CardTitle className="text-lg font-bold text-gray-900">
                           {child.firstName} {child.lastName}
                         </CardTitle>
                         {child.therapist && (
-                          <div className="flex items-center space-x-4 mt-1">
-                            <p className="text-sm text-gray-600">
-                              <span className="font-medium">Current Therapist:</span> {child.therapist.name}
-                            </p>
-                            <p className="text-sm text-gray-600">
-                              <span className="font-medium">Specialization:</span> {child.therapist.specialization}
-                            </p>
+                          <div className="flex items-center space-x-3 mt-1">
+                            <div className="flex items-center space-x-1">
+                              <User className="w-3 h-3" style={{ color: '#8159A8' }} />
+                              <span className="text-xs font-medium text-gray-700">
+                                {child.therapist.name}
+                              </span>
+                            </div>
+                            <div className="flex items-center space-x-1">
+                              <Star className="w-3 h-3 text-amber-500" />
+                              <span className="text-xs text-gray-600">
+                                {child.therapist.specialization}
+                              </span>
+                            </div>
                           </div>
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center space-x-3">
+                    <div className="flex items-center space-x-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        style={{ backgroundColor: '#8159A8', color: 'white' }}
-                        className="hover:opacity-90"
+                        className="text-white border-0 hover:opacity-90 transition-all duration-300 shadow-md text-xs px-3 py-1"
+                        style={{ backgroundColor: '#8159A8' }}
                       >
+                        <Plus className="w-3 h-3 mr-1" />
                         Book Session
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="border-gray-300 text-gray-700 hover:bg-gray-50"
-                      >
-                        View Details
                       </Button>
                     </div>
                   </div>
@@ -240,39 +259,52 @@ export default function AppointmentsPage() {
 
                 <CardContent>
                   {upcomingAppointments.length > 0 || pastAppointments.length > 0 ? (
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                       {/* Therapist Information */}
                       {(upcomingAppointments.length > 0 || pastAppointments.length > 0) && (
-                        <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                          <p className="text-sm text-blue-800">
-                            {child.firstName}&apos;s therapist is{' '}
-                            <span className="font-semibold">
-                              {upcomingAppointments.length > 0 
-                                ? upcomingAppointments[0].therapist
-                                : pastAppointments[0].therapist
-                              }
-                            </span>
-                          </p>
+                        <div className="therapist-info p-3 bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg border" style={{ borderColor: '#8159A8' }}>
+                          <div className="flex items-center space-x-2">
+                            <User className="w-3 h-3" style={{ color: '#8159A8' }} />
+                            <p className="text-xs" style={{ color: '#8159A8' }}>
+                              {child.firstName}&apos;s therapist is{' '}
+                              <span className="font-semibold">
+                                {upcomingAppointments.length > 0 
+                                  ? upcomingAppointments[0].therapist
+                                  : pastAppointments[0].therapist
+                                }
+                              </span>
+                            </p>
+                          </div>
                         </div>
                       )}
                       
                       {/* Upcoming Sessions */}
                       <div>
-                        <h3 className="font-semibold text-gray-900 mb-3">Upcoming Sessions</h3>
+                        <div className="flex items-center space-x-2 mb-3">
+                          <CalendarDays className="w-4 h-4 text-green-600" />
+                          <h3 className="font-semibold text-gray-900 text-sm">Upcoming Sessions</h3>
+                        </div>
                         {upcomingAppointments.length > 0 ? (
                           <div className="space-y-3">
                             {upcomingAppointments.map((appointment) => (
                               <div
                                 key={appointment.id}
-                                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                                className="session-card upcoming flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200 hover:shadow-md transition-all duration-300"
                               >
-                                <div className="flex items-center space-x-4">
-                                  <div className="text-sm">
-                                    <p className="font-medium text-gray-900">
+                                <div className="flex items-center space-x-3">
+                                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                                    {appointment.mode === 'Virtual' ? (
+                                      <Video className="w-5 h-5 text-green-600" />
+                                    ) : (
+                                      <MapPin className="w-5 h-5 text-green-600" />
+                                    )}
+                                  </div>
+                                  <div className="text-xs">
+                                    <p className="font-medium text-gray-900 text-sm">
                                       {formatDate(appointment.date)} - {appointment.type}
                                     </p>
-                                    <p className="text-gray-600 flex items-center">
-                                      <Clock className="w-4 h-4 mr-1" />
+                                    <p className="text-gray-600 flex items-center text-xs">
+                                      <Clock className="w-3 h-3 mr-1" />
                                       {appointment.time} • {appointment.duration} min
                                     </p>
                                     {appointment.therapist && (
@@ -281,8 +313,11 @@ export default function AppointmentsPage() {
                                       </p>
                                     )}
                                     {appointment.mode && (
-                                      <p className="text-gray-600 text-xs">
-                                        <span className="font-medium">Mode:</span> {appointment.mode}
+                                      <p className="text-gray-600 text-xs flex items-center">
+                                        <span className="font-medium">Mode:</span> 
+                                        <span className="ml-1">{appointment.mode}</span>
+                                        {appointment.mode === 'Virtual' && <Video className="w-3 h-3 ml-1" />}
+                                        {appointment.mode === 'In-Person' && <MapPin className="w-3 h-3 ml-1" />}
                                       </p>
                                     )}
                                     {appointment.specializations && appointment.specializations.length > 0 && (
@@ -301,14 +336,15 @@ export default function AppointmentsPage() {
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                                    style={{ color: '#8159A8', borderColor: '#8159A8' }}
+                                    className="hover:bg-purple-50 text-xs px-2 py-1"
                                   >
                                     Reschedule
                                   </Button>
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    className="text-red-600 border-red-600 hover:bg-red-50"
+                                    className="text-red-600 border-red-600 hover:bg-red-50 text-xs px-2 py-1"
                                   >
                                     Cancel
                                   </Button>
@@ -317,27 +353,36 @@ export default function AppointmentsPage() {
                             ))}
                           </div>
                         ) : (
-                          <p className="text-gray-500 text-sm">No upcoming sessions scheduled</p>
+                        <div className="p-3 bg-gradient-to-r from-gray-50 to-blue-50 rounded-lg text-center border border-gray-200">
+                            <Calendar className="w-6 h-6 mx-auto mb-2 text-gray-400" />
+                            <p className="text-gray-500 text-xs">No upcoming sessions scheduled</p>
+                          </div>
                         )}
                       </div>
 
                       {/* Past Sessions */}
                       <div>
-                        <h3 className="font-semibold text-gray-900 mb-3">Past Sessions</h3>
+                        <div className="flex items-center space-x-2 mb-3">
+                          <CheckCircle className="w-4 h-4 text-gray-600" />
+                          <h3 className="font-semibold text-gray-900 text-sm">Past Sessions</h3>
+                        </div>
                         {pastAppointments.length > 0 ? (
                           <div className="space-y-3">
                             {pastAppointments.map((appointment) => (
                               <div
                                 key={appointment.id}
-                                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                                className="session-card past flex items-center justify-between p-3 bg-gradient-to-r from-gray-50 to-slate-50 rounded-lg border border-gray-200 hover:shadow-md transition-all duration-300"
                               >
-                                <div className="flex items-center space-x-4">
-                                  <div className="text-sm">
-                                    <p className="font-medium text-gray-900">
+                                <div className="flex items-center space-x-3">
+                                  <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+                                    <CheckCircle className="w-5 h-5 text-gray-600" />
+                                  </div>
+                                  <div className="text-xs">
+                                    <p className="font-medium text-gray-900 text-sm">
                                       {formatDate(appointment.date)} - {appointment.type}
                                     </p>
-                                    <p className="text-gray-600 flex items-center">
-                                      <Clock className="w-4 h-4 mr-1" />
+                                    <p className="text-gray-600 flex items-center text-xs">
+                                      <Clock className="w-3 h-3 mr-1" />
                                       {appointment.time} • {appointment.duration} min
                                     </p>
                                     {appointment.therapist && (
@@ -346,8 +391,11 @@ export default function AppointmentsPage() {
                                       </p>
                                     )}
                                     {appointment.mode && (
-                                      <p className="text-gray-600 text-xs">
-                                        <span className="font-medium">Mode:</span> {appointment.mode}
+                                      <p className="text-gray-600 text-xs flex items-center">
+                                        <span className="font-medium">Mode:</span> 
+                                        <span className="ml-1">{appointment.mode}</span>
+                                        {appointment.mode === 'Virtual' && <Video className="w-3 h-3 ml-1" />}
+                                        {appointment.mode === 'In-Person' && <MapPin className="w-3 h-3 ml-1" />}
                                       </p>
                                     )}
                                     {appointment.specializations && appointment.specializations.length > 0 && (
@@ -371,8 +419,10 @@ export default function AppointmentsPage() {
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                                    style={{ color: '#8159A8', borderColor: '#8159A8' }}
+                                    className="hover:bg-purple-50 text-xs px-2 py-1"
                                   >
+                                    <MessageCircle className="w-3 h-3 mr-1" />
                                     View Review
                                   </Button>
                                 </div>
@@ -380,25 +430,30 @@ export default function AppointmentsPage() {
                             ))}
                           </div>
                         ) : (
-                          <p className="text-gray-500 text-sm">No past sessions</p>
+                          <div className="p-3 bg-gradient-to-r from-gray-50 to-slate-50 rounded-lg text-center border border-gray-200">
+                            <CheckCircle className="w-6 h-6 mx-auto mb-2 text-gray-400" />
+                            <p className="text-gray-500 text-xs">No past sessions</p>
+                          </div>
                         )}
                       </div>
                     </div>
                   ) : (
-                    <div className="text-center py-8">
-                      <User className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    <div className="text-center py-6">
+                      <div className="w-12 h-12 mx-auto mb-3 bg-gradient-to-r from-gray-100 to-gray-200 rounded-full flex items-center justify-center">
+                        <User className="w-6 h-6 text-gray-400" />
+                      </div>
+                      <h3 className="text-base font-semibold text-gray-900 mb-2">
                         No Sessions Found
                       </h3>
-                      <p className="text-gray-600 mb-4">
+                      <p className="text-gray-600 mb-4 text-sm">
                         {child.therapist 
                           ? "No sessions have been scheduled yet."
                           : "To schedule appointments, you need to connect with a therapist first."
                         }
                       </p>
                       <Button
+                        className="text-white hover:opacity-90 transition-all duration-300 shadow-md text-sm"
                         style={{ backgroundColor: '#8159A8' }}
-                        className="text-white hover:opacity-90"
                         onClick={() => window.location.href = '/parent/findTherapist'}
                       >
                         {child.therapist ? "Book Session" : "Find a Therapist"}
@@ -413,16 +468,18 @@ export default function AppointmentsPage() {
 
         {children.length === 0 && (
           <div className="text-center py-12">
-            <Calendar className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            <div className="w-12 h-12 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ backgroundColor: '#8159A8' }}>
+              <Calendar className="w-6 h-6 text-white" />
+            </div>
+            <h3 className="text-base font-semibold text-gray-900 mb-2">
               No Children Found
             </h3>
-            <p className="text-gray-600 mb-4">
+            <p className="text-gray-600 mb-4 text-sm">
               Add children to your account to manage their appointments.
             </p>
             <Button
+              className="text-white hover:opacity-90 transition-all duration-300 shadow-md text-sm"
               style={{ backgroundColor: '#8159A8' }}
-              className="text-white hover:opacity-90"
               onClick={() => window.location.href = '/parent/children'}
             >
               Add Child
