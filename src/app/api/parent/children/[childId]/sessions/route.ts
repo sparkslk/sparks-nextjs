@@ -85,7 +85,9 @@ export async function GET(
       
       // Get therapist details
       const therapist = therapistMap.get(session.therapistId);
+      console.log(`Therapist for session ${session.id}:`, therapist);
       const therapistName = therapist?.name || 'Assigned Therapist';
+      console.log(`Therapist name: ${therapistName}`);
       
       return {
         id: session.id,
