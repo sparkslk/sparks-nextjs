@@ -324,9 +324,9 @@ export default function AppointmentsPage() {
                                       <Clock className="w-3 h-3 mr-1" />
                                       {appointment.time} • {appointment.duration} min
                                     </p>
-                                    {child.therapist && (
+                                    {appointment.therapist && (
                                       <p className="text-gray-600 text-xs mt-1">
-                                        <span className="font-medium">Therapist:</span> {child.therapist.name}
+                                        <span className="font-medium">Therapist:</span> {appointment.therapist}
                                       </p>
                                     )}
                                     {appointment.mode && (
@@ -402,9 +402,9 @@ export default function AppointmentsPage() {
                                       <Clock className="w-3 h-3 mr-1" />
                                       {appointment.time} • {appointment.duration} min
                                     </p>
-                                    {child.therapist && (
+                                    {appointment.therapist && (
                                       <p className="text-gray-600 text-xs mt-1">
-                                        <span className="font-medium">Therapist:</span> {child.therapist.name}
+                                        <span className="font-medium">Therapist:</span> {appointment.therapist}
                                       </p>
                                     )}
                                     {appointment.mode && (
