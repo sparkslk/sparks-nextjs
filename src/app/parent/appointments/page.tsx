@@ -3,17 +3,22 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, User, CalendarDays, MapPin, Video,  CheckCircle, Star, MessageCircle,  Plus } from "lucide-react";
+import { Calendar, Clock, User, CalendarDays, MapPin, Video,  CheckCircle,  MessageCircle,  Plus } from "lucide-react";
 
 interface Child {
   id: string;
   firstName: string;
   lastName: string;
   therapist: {
-    name: string;
-    email: string;
-    phone?: string;
+    userId: string;
+    name?: string; // Display name for the therapist
+    licenseNumber: string;
     specialization: string;
+    experience: number;
+    bio?: string;
+    availability?: Record<string, unknown> | null; // jsonb type
+    organizationId?: string;
+    rating: number; // Average rating
   } | null;
 }
 
@@ -41,6 +46,8 @@ export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedTherapist, setSelectedTherapist] = useState<Child['therapist'] | null>(null);
+  const [showTherapistModal, setShowTherapistModal] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -54,6 +61,7 @@ export default function AppointmentsPage() {
         throw new Error("Failed to fetch children data");
       }
       const childrenData = await childrenResponse.json();
+      console.log("Fetched children data:", childrenData);
       setChildren(childrenData.children || []);
 
       // Fetch sessions for each child using the individual child sessions API
@@ -228,17 +236,17 @@ export default function AppointmentsPage() {
                         {child.therapist && (
                           <div className="flex items-center space-x-3 mt-1">
                             <div className="flex items-center space-x-1">
-                              <User className="w-3 h-3" style={{ color: '#8159A8' }} />
-                              <span className="text-xs font-medium text-gray-700">
+                              {/* <User className="w-3 h-3" style={{ color: '#8159A8' }} /> */}
+                              {/* <span className="text-xs font-medium text-gray-700">
                                 {child.therapist.name}
-                              </span>
+                              </span> */}
                             </div>
-                            <div className="flex items-center space-x-1">
+                            {/* <div className="flex items-center space-x-1">
                               <Star className="w-3 h-3 text-amber-500" />
                               <span className="text-xs text-gray-600">
                                 {child.therapist.specialization}
                               </span>
-                            </div>
+                            </div> */}
                           </div>
                         )}
                       </div>
@@ -263,18 +271,25 @@ export default function AppointmentsPage() {
                   {upcomingAppointments.length > 0 || pastAppointments.length > 0 ? (
                     <div className="space-y-4">
                       {/* Therapist Information */}
-                      {(upcomingAppointments.length > 0 || pastAppointments.length > 0) && (
-                        <div className="therapist-info p-3 bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg border" style={{ borderColor: '#8159A8' }}>
+                      {child.therapist && (upcomingAppointments.length > 0 || pastAppointments.length > 0) && (
+                        <div 
+                          className="therapist-info p-3 bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg border cursor-pointer hover:shadow-md transition-all duration-300" 
+                          style={{ borderColor: '#8159A8' }}
+                          onClick={() => {
+                            console.log("Clicked therapist:", child.therapist);
+                            console.log("Child:", child);
+                            setSelectedTherapist(child.therapist);
+                            setShowTherapistModal(true);
+                          }}
+                        >
                           <div className="flex items-center space-x-2">
                             <User className="w-3 h-3" style={{ color: '#8159A8' }} />
                             <p className="text-xs" style={{ color: '#8159A8' }}>
                               {child.firstName}&apos;s therapist is{' '}
                               <span className="font-semibold">
-                                {upcomingAppointments.length > 0 
-                                  ? upcomingAppointments[0].therapist
-                                  : pastAppointments[0].therapist
-                                }
+                                {child.therapist.name || 'Unknown Therapist'}
                               </span>
+                              <span className="ml-2 text-xs opacity-70">(Click for details)</span>
                             </p>
                           </div>
                         </div>
@@ -309,9 +324,9 @@ export default function AppointmentsPage() {
                                       <Clock className="w-3 h-3 mr-1" />
                                       {appointment.time} • {appointment.duration} min
                                     </p>
-                                    {appointment.therapist && (
+                                    {child.therapist && (
                                       <p className="text-gray-600 text-xs mt-1">
-                                        <span className="font-medium">Therapist:</span> {appointment.therapist}
+                                        <span className="font-medium">Therapist:</span> {child.therapist.name}
                                       </p>
                                     )}
                                     {appointment.mode && (
@@ -387,9 +402,9 @@ export default function AppointmentsPage() {
                                       <Clock className="w-3 h-3 mr-1" />
                                       {appointment.time} • {appointment.duration} min
                                     </p>
-                                    {appointment.therapist && (
+                                    {child.therapist && (
                                       <p className="text-gray-600 text-xs mt-1">
-                                        <span className="font-medium">Therapist:</span> {appointment.therapist}
+                                        <span className="font-medium">Therapist:</span> {child.therapist.name}
                                       </p>
                                     )}
                                     {appointment.mode && (
@@ -489,6 +504,124 @@ export default function AppointmentsPage() {
           </div>
         )}
       </div>
+
+      {/* Therapist Details Modal */}
+      {showTherapistModal && selectedTherapist && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold text-gray-900">Therapist Profile</h2>
+                <button
+                  onClick={() => setShowTherapistModal(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Profile Photo */}
+              <div className="flex justify-center mb-6">
+                <div className="relative">
+                  <div className="w-24 h-24 rounded-full flex items-center justify-center shadow-lg" style={{ backgroundColor: '#8159A8' }}>
+                    <span className="font-bold text-white text-2xl">
+                      {selectedTherapist.name ? 
+                        selectedTherapist.name.split(' ').map((name: string) => name[0]).join('').toUpperCase() :
+                        'T'
+                      }
+                    </span>
+                  </div>
+                  <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-3 border-white flex items-center justify-center">
+                    <CheckCircle className="w-3 h-3 text-white" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Therapist Information */}
+              <div className="space-y-4">
+                <div className="text-center">
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    {selectedTherapist.name || 'Therapist'}
+                  </h3>
+      
+                  <p className="text-sm" style={{ color: '#8159A8' }}>{selectedTherapist.specialization}</p>
+                  <div className="flex items-center justify-center mt-2">
+                    <div className="flex items-center">
+                      {[...Array(5)].map((_, i) => (
+                        <svg 
+                          key={i} 
+                          className={`w-4 h-4 ${i < Math.floor(selectedTherapist.rating) ? 'text-yellow-400' : 'text-gray-300'}`} 
+                          fill="currentColor" 
+                          viewBox="0 0 20 20"
+                        >
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.958a1 1 0 00.95.69h4.161c.969 0 1.371 1.24.588 1.81l-3.367 2.446a1 1 0 00-.364 1.118l1.287 3.958c.3.921-.755 1.688-1.54 1.118l-3.366-2.446a1 1 0 00-1.176 0l-3.366 2.446c-.784.57-1.838-.197-1.54-1.118l1.287-3.958a1 1 0 00-.364-1.118L2.055 9.385c-.783-.57-.38-1.81.588-1.81h4.161a1 1 0 00.95-.69l1.286-3.958z" />
+                        </svg>
+                      ))}
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-600 text-center mt-2">Experience: {selectedTherapist.experience} years</p>
+                </div>
+
+                {/* Bio */}
+                {selectedTherapist.bio && (
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <h4 className="font-medium text-gray-900 mb-2">About</h4>
+                    <p className="text-sm text-gray-600">{selectedTherapist.bio}</p>
+                  </div>
+                )}
+
+                <div className="border-t border-gray-200 pt-4 space-y-4">
+                  {/* Contact Information */}
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#F5F3FB' }}>
+                        <svg className="w-4 h-4" style={{ color: '#8159A8' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">License Number</p>
+                        <p className="text-sm text-gray-600">{selectedTherapist.licenseNumber}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#F5F3FB' }}>
+                        <User className="w-4 h-4" style={{ color: '#8159A8' }} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">Specialization</p>
+                        <p className="text-sm text-gray-600">{selectedTherapist.specialization}</p>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex space-x-3 pt-4 border-t border-gray-200">
+                  <Button
+                    className="flex-1 text-white hover:opacity-90 transition-all duration-300"
+                    style={{ backgroundColor: '#8159A8' }}
+                    onClick={() => {
+                      // Since there's no phone number in the schema, we can show contact info
+                      alert('Contact information: License #' + selectedTherapist.licenseNumber);
+                    }}
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
+                    Call Therapist
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
