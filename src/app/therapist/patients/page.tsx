@@ -28,10 +28,10 @@ interface Patient {
     lastName: string;
     dateOfBirth: string;
     gender: string;
-    phone?: string;
-    email?: string;
-    lastSession?: string;
-    nextSession?: string;
+    phone: string;
+    email: string;
+    lastSession: string; // Will be ISO date string or "-"
+    nextSession: string; // Will be ISO date string or "-"
     status: "active" | "inactive" | "completed";
     age: number;
 }
@@ -48,35 +48,6 @@ export default function PatientsPage() {
     const [error, setError] = useState<string | null>(null);
 
     const fetchPatients = useCallback(async () => {
-        const fallbackPatients: Patient[] = [
-            {
-                id: "PT-2024-001",
-                firstName: "Vihanga",
-                lastName: "Dharmasena",
-                dateOfBirth: "2001-03-15",
-                gender: "Male",
-                phone: "+94 77 123 4567",
-                email: "vihanga.d@email.com",
-                lastSession: "2025-06-18",
-                nextSession: "2025-06-25",
-                status: "active",
-                age: 24,
-            },
-            {
-                id: "PT-2024-002",
-                firstName: "Aryan",
-                lastName: "Senarathne",
-                dateOfBirth: "2012-08-12",
-                gender: "Male",
-                phone: "+94 77 123 7890",
-                email: "aryan@email.com",
-                lastSession: "2025-06-18",
-                nextSession: "2025-06-25",
-                status: "active",
-                age: 12,
-            },
-        ];
-
         try {
             setLoading(true);
             setError(null);
@@ -98,16 +69,14 @@ export default function PatientsPage() {
             const data = await response.json();
             console.log("Fetched patients:", data);
 
-            // Use fallback if fetched data is empty or invalid
-            if (!data.patients || data.patients.length === 0) {
-                console.warn("No patients found from API. Using fallback data.");
-                setPatients(fallbackPatients);
-            } else {
-                setPatients(data.patients);
-            }
+            // Set the patients from the API response
+            setPatients(data.patients || []);
+            
         } catch (error) {
             console.error("Error fetching patients:", error);
             setError(error instanceof Error ? error.message : "Failed to fetch patients");
+            // Don't set fallback data, let the error be shown
+            setPatients([]);
         } finally {
             setLoading(false);
         }
@@ -128,7 +97,8 @@ export default function PatientsPage() {
     const filteredPatients = patients.filter(patient => {
         // Search filter
         const matchesSearch = `${patient.firstName} ${patient.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            patient.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            patient.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            patient.phone.toLowerCase().includes(searchTerm.toLowerCase()) ||
             patient.id.toLowerCase().includes(searchTerm.toLowerCase());
 
         // Age group filter
@@ -142,10 +112,10 @@ export default function PatientsPage() {
 
         // Session filter
         const matchesSession = sessionFilter === "all" ||
-            (sessionFilter === "recent" && patient.lastSession &&
+            (sessionFilter === "recent" && patient.lastSession !== "-" &&
                 new Date(patient.lastSession) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)) ||
-            (sessionFilter === "upcoming" && patient.nextSession) ||
-            (sessionFilter === "overdue" && !patient.nextSession && patient.lastSession &&
+            (sessionFilter === "upcoming" && patient.nextSession !== "-") ||
+            (sessionFilter === "overdue" && patient.nextSession === "-" && patient.lastSession !== "-" &&
                 new Date(patient.lastSession) < new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
 
         return matchesSearch && matchesAgeGroup && matchesStatus && matchesSession;
@@ -330,7 +300,7 @@ export default function PatientsPage() {
                                                 <div className="text-sm">
                                                     <p className="font-medium">Last Session:</p>
                                                     <p className="text-muted-foreground">
-                                                        {patient.lastSession
+                                                        {patient.lastSession !== "-"
                                                             ? new Date(patient.lastSession).toLocaleDateString()
                                                             : "No sessions yet"
                                                         }
@@ -340,7 +310,7 @@ export default function PatientsPage() {
                                                 <div className="text-sm">
                                                     <p className="font-medium">Next Session:</p>
                                                     <p className="text-muted-foreground">
-                                                        {patient.nextSession
+                                                        {patient.nextSession !== "-"
                                                             ? new Date(patient.nextSession).toLocaleDateString()
                                                             : "Not scheduled"
                                                         }
