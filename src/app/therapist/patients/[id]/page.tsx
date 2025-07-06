@@ -341,100 +341,130 @@ export default function PatientDetailsPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#f7f5fb] p-6">
-      <Button variant="outline" onClick={() => router.back()} className="mb-6">
+    <div className="min-h-screen bg-[#f7f5fb] p-3 sm:p-6">
+      <Button variant="outline" onClick={() => router.back()} className="mb-4 sm:mb-6">
         ← Back to Patients
       </Button>
 
       {/* Header */}
-      <div className="bg-white rounded-xl shadow-md p-6 mb-6 flex items-center justify-between">
-        <div className="flex items-center gap-6">
-          <div className="bg-[#a174c6] text-white text-xl font-semibold w-16 h-16 rounded-full flex items-center justify-center">
-            {patient.initials}
-          </div>
-          <div>
-            <h2 className="text-xl font-bold text-[#8159A8]">
-              {patient.firstName} {patient.lastName}
-            </h2>
-            <div className="text-sm text-gray-600 flex flex-col md:flex-row md:gap-4">
-              <span>Age: {patient.age}</span>
-              <span>ID: {patient.id}</span>
-              <span>Last Session: {patient.lastSession}</span>
-              <span>Next Session: {patient.nextSession}</span>
+      <div className="bg-white rounded-xl shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
+        {/* Mobile Layout */}
+        <div className="flex flex-col space-y-4 sm:hidden">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="bg-[#a174c6] text-white text-lg font-semibold w-12 h-12 rounded-full flex items-center justify-center">
+                {patient.initials}
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-[#8159A8]">
+                  {patient.firstName} {patient.lastName}
+                </h2>
+                <p className="text-xs text-gray-600">Age: {patient.age}</p>
+              </div>
+            </div>
+            <div className="bg-green-100 text-green-700 font-medium px-3 py-1 rounded-full text-xs">
+              {patient.status}
             </div>
           </div>
+          <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
+            <span>ID: {patient.id}</span>
+            <span>Last: {patient.lastSession}</span>
+            <span className="col-span-2">Next: {patient.nextSession}</span>
+          </div>
         </div>
-        <div className="bg-green-100 text-green-700 font-medium px-4 py-1 rounded-full text-sm">
-          {patient.status}
+
+        {/* Desktop Layout */}
+        <div className="hidden sm:flex items-center justify-between">
+          <div className="flex items-center gap-4 lg:gap-6">
+            <div className="bg-[#a174c6] text-white text-xl font-semibold w-12 h-12 lg:w-16 lg:h-16 rounded-full flex items-center justify-center">
+              {patient.initials}
+            </div>
+            <div>
+              <h2 className="text-lg lg:text-xl font-bold text-[#8159A8]">
+                {patient.firstName} {patient.lastName}
+              </h2>
+              <div className="text-sm text-gray-600 flex flex-col md:flex-row md:gap-4">
+                <span>Age: {patient.age}</span>
+                <span>ID: {patient.id}</span>
+                <span>Last Session: {patient.lastSession}</span>
+                <span>Next Session: {patient.nextSession}</span>
+              </div>
+            </div>
+          </div>
+          <div className="bg-green-100 text-green-700 font-medium px-3 lg:px-4 py-1 rounded-full text-sm">
+            {patient.status}
+          </div>
         </div>
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="info" value={tab} onValueChange={setTab} className="bg-white p-4 rounded-xl shadow-md">
-        <TabsList className="flex border-b gap-4 px-2 pb-2">
-          <TabsTrigger value="info">Information</TabsTrigger>
-          <TabsTrigger value="sessions">Session History</TabsTrigger>
-          <TabsTrigger value="medications">Medications</TabsTrigger>
-          <TabsTrigger value="history">Medical History</TabsTrigger>
-          <TabsTrigger value="tasks">Assigned Tasks</TabsTrigger>
-          <TabsTrigger value="docs">Uploaded Documents</TabsTrigger>
+      <Tabs defaultValue="info" value={tab} onValueChange={setTab} className="bg-white p-3 sm:p-4 rounded-xl shadow-md">
+        <TabsList className="flex flex-wrap border-b gap-1 sm:gap-2 px-1 sm:px-2 pb-2">
+          <TabsTrigger value="info" className="text-xs sm:text-sm flex-shrink-0">Infomation</TabsTrigger>
+          <TabsTrigger value="sessions" className="text-xs sm:text-sm flex-shrink-0">Sessions</TabsTrigger>
+          <TabsTrigger value="medications" className="text-xs sm:text-sm flex-shrink-0">Medication</TabsTrigger>
+          <TabsTrigger value="history" className="text-xs sm:text-sm flex-shrink-0">Medical History</TabsTrigger>
+          <TabsTrigger value="tasks" className="text-xs sm:text-sm flex-shrink-0">Tasks</TabsTrigger>
+          <TabsTrigger value="docs" className="text-xs sm:text-sm flex-shrink-0">Documents</TabsTrigger>
         </TabsList>
 
         {/* Tab Panels */}
-        <TabsContent value="info" className="pt-6">
+        <TabsContent value="info" className="pt-4 sm:pt-6">
           {/* Personal Info */}
-          <section className="mb-6">
-            <h3 className="text-lg font-semibold text-[#8159A8] mb-2 border-b border-[#8159A8]">Personal Information</h3>
-            {/* <p><strong>Full Name:</strong> {patient.firstName} {patient.lastName}</p> */}
-            <p><strong>Date of Birth:</strong> {patient.dateOfBirth} ({patient.age} years)</p>
-            <p><strong>Gender:</strong> {patient.gender}</p>
-            <p><strong>Phone:</strong> {patient.phone}</p>
-            <p><strong>Email:</strong> {patient.email}</p>
-            <p><strong>Address:</strong> {patient.address}</p>
+          <section className="mb-4 sm:mb-6">
+            <h3 className="text-base sm:text-lg font-semibold text-[#8159A8] mb-2 border-b border-[#8159A8]">Personal Information</h3>
+            <div className="space-y-2 text-sm sm:text-base">
+              <p><strong>Date of Birth:</strong> {patient.dateOfBirth} ({patient.age} years)</p>
+              <p><strong>Gender:</strong> {patient.gender}</p>
+              <p><strong>Phone:</strong> {patient.phone}</p>
+              <p><strong>Email:</strong> <span className="break-all">{patient.email}</span></p>
+              <p><strong>Address:</strong> {patient.address}</p>
+            </div>
           </section>
 
-  
-
           {/* Emergency Contact Info */}
-          <section className="mb-6">
-            <h3 className="text-lg font-semibold text-[#8159A8] mb-2 border-b border-[#8159A8]">Emergency Contact</h3>
-            <p><strong>Name:</strong> {patient.emergencyContact.name}</p>
-            <p><strong>Relationship:</strong> {patient.emergencyContact.relation}</p>
-            <p><strong>Phone:</strong> {patient.emergencyContact.phone}</p>
+          <section className="mb-4 sm:mb-6">
+            <h3 className="text-base sm:text-lg font-semibold text-[#8159A8] mb-2 border-b border-[#8159A8]">Emergency Contact</h3>
+            <div className="space-y-2 text-sm sm:text-base">
+              <p><strong>Name:</strong> {patient.emergencyContact.name}</p>
+              <p><strong>Relationship:</strong> {patient.emergencyContact.relation}</p>
+              <p><strong>Phone:</strong> {patient.emergencyContact.phone}</p>
+            </div>
           </section>
 
           {/* Treatment Info */}
           <section>
-            <h3 className="text-lg font-semibold text-[#8159A8] mb-2 border-b border-[#8159A8]">Treatment Information</h3>
-            <p><strong>Registration Date:</strong> {patient.registeredDate}</p>
-            <p><strong>Treatment Status:</strong> {patient.status}</p>
-            {/* <p><strong>Next Session:</strong> {patient.nextSession}</p> */}
+            <h3 className="text-base sm:text-lg font-semibold text-[#8159A8] mb-2 border-b border-[#8159A8]">Treatment Information</h3>
+            <div className="space-y-2 text-sm sm:text-base">
+              <p><strong>Registration Date:</strong> {patient.registeredDate}</p>
+              <p><strong>Treatment Status:</strong> {patient.status}</p>
+            </div>
           </section>
         </TabsContent>
 
-        <TabsContent value="sessions" className="pt-6">
+        <TabsContent value="sessions" className="pt-4 sm:pt-6">
           {sessionHistory && sessionHistory.length > 0 ? (
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               {/* Session History Header */}
               <div className="bg-transparent">
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-4 sm:space-y-0">
                   <div>
-                    <h3 className="text-2xl font-bold mb-2 text-[#8159A8]">Session History</h3>
-                    <p className="text-gray-600">Track progress and therapy milestones</p>
+                    <h3 className="text-xl sm:text-2xl font-bold mb-2 text-[#8159A8]">Session History</h3>
+                    <p className="text-gray-600 text-sm sm:text-base">Track progress and therapy milestones</p>
                   </div>
-                  <div className="text-right">
-                    <div className="grid grid-cols-3 gap-4 text-center">
-                      <div className="bg-gray-50 rounded-lg p-3 border">
-                        <div className="text-2xl font-bold text-[#8159A8]">{sessionHistory.length}</div>
-                        <div className="text-sm text-gray-600">Total Sessions</div>
+                  <div className="w-full sm:w-auto">
+                    <div className="grid grid-cols-3 gap-2 sm:gap-4 text-center">
+                      <div className="bg-gray-50 rounded-lg p-2 sm:p-3 border">
+                        <div className="text-lg sm:text-2xl font-bold text-[#8159A8]">{sessionHistory.length}</div>
+                        <div className="text-xs sm:text-sm text-gray-600">Total Sessions</div>
                       </div>
-                      <div className="bg-gray-50 rounded-lg p-3 border">
-                        <div className="text-2xl font-bold text-[#8159A8]">95%</div>
-                        <div className="text-sm text-gray-600">Attendance</div>
+                      <div className="bg-gray-50 rounded-lg p-2 sm:p-3 border">
+                        <div className="text-lg sm:text-2xl font-bold text-[#8159A8]">95%</div>
+                        <div className="text-xs sm:text-sm text-gray-600">Attendance</div>
                       </div>
-                      <div className="bg-gray-50 rounded-lg p-3 border">
-                        <div className="text-2xl font-bold text-[#8159A8]">18</div>
-                        <div className="text-sm text-gray-600">Jun 2025</div>
+                      <div className="bg-gray-50 rounded-lg p-2 sm:p-3 border">
+                        <div className="text-lg sm:text-2xl font-bold text-[#8159A8]">18</div>
+                        <div className="text-xs sm:text-sm text-gray-600">Jun 2025</div>
                       </div>
                     </div>
                   </div>
@@ -456,7 +486,7 @@ export default function PatientDetailsPage() {
                           session.progress === 'Excellent' ? 'bg-green-500' : 
                           session.progress === 'Good' ? 'bg-blue-500' : 'bg-yellow-500'
                         }`}>
-                          #{session.id}
+                          #
                         </div>
                       </div>
 
