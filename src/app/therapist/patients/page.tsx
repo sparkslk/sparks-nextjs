@@ -172,7 +172,7 @@ export default function PatientsPage() {
                 {/* Header */}
                 <div className="flex items-center justify-between mb-8">
                     <div>
-                        <h1 className="text-3xl font-bold text-[#8159A8]">Patient Management</h1>
+                        <h1 className="text-3xl font-bold text-primary">Patient Management</h1>
                         <p className="text-muted-foreground mt-1">
                             View and manage your patients
                         </p>

@@ -95,6 +95,10 @@ const getMenuItems = (pendingRequests: number) => ({
       icon: Calendar,
       items: [
         {
+          title: "All Sessions",
+          url: "/therapist/sessions",
+        },
+        {
           title: "Set Availability",
           url: "/therapist/setAvailability",
         },
@@ -102,10 +106,7 @@ const getMenuItems = (pendingRequests: number) => ({
           title: "Schedule New",
           url: "/therapist/appointments/new",
         },
-        {
-          title: "All Sessions",
-          url: "/therapist/sessions",
-        },
+        
         {
           title: "Session Notes",
           url: "/therapist/sessions/notes",
