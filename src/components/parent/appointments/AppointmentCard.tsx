@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, User, CalendarDays, MapPin, Video, CheckCircle, MessageCircle, Plus } from "lucide-react";
+import { Calendar, Clock, User, CalendarDays, MapPin, Video, CheckCircle, MessageCircle } from "lucide-react";
 import { Child, Appointment } from "@/types/appointments";
 
 interface AppointmentCardProps {
@@ -49,19 +49,7 @@ export default function AppointmentCard({
               )}
             </div>
           </div>
-          {child.therapist && (
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-white border-0 hover:opacity-90 transition-all duration-300 shadow-md text-xs px-3 py-1"
-                style={{ backgroundColor: '#8159A8' }}
-              >
-                <Plus className="w-3 h-3 mr-1" />
-                Book Session
-              </Button>
-            </div>
-          )}
+
         </div>
       </CardHeader>
 
