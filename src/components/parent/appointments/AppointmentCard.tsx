@@ -11,6 +11,7 @@ interface AppointmentCardProps {
   pastAppointments: Appointment[];
   onTherapistClick: (therapist: Child['therapist']) => void;
   formatDate: (dateString: string) => string;
+  isHighlighted?: boolean;
 }
 
 export default function AppointmentCard({ 
@@ -18,10 +19,15 @@ export default function AppointmentCard({
   upcomingAppointments, 
   pastAppointments, 
   onTherapistClick, 
-  formatDate 
+  formatDate,
+  isHighlighted = false
 }: AppointmentCardProps) {
   return (
-    <Card className="appointments-card bg-white/80 backdrop-blur-sm shadow-lg border border-white/20 hover:shadow-xl transition-all duration-300">
+    <Card className={`appointments-card bg-white/80 backdrop-blur-sm shadow-lg border hover:shadow-xl transition-all duration-300 ${
+      isHighlighted 
+        ? 'border-purple-500 ring-2 ring-purple-500/20 shadow-purple-200/50' 
+        : 'border-white/20'
+    }`}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
@@ -31,10 +37,16 @@ export default function AppointmentCard({
                   {child.firstName?.[0]?.toUpperCase()}{child.lastName?.[0]?.toUpperCase()}
                 </span>
               </div>
+              {isHighlighted && (
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-purple-500 rounded-full animate-pulse"></div>
+              )}
             </div>
             <div>
               <CardTitle className="text-lg font-bold text-gray-900">
                 {child.firstName} {child.lastName}
+                {isHighlighted && (
+                  <span className="ml-2 text-xs text-purple-600 font-normal">(Selected)</span>
+                )}
               </CardTitle>
             </div>
           </div>

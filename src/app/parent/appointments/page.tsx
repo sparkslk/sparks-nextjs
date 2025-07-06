@@ -14,9 +14,20 @@ export default function AppointmentsPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedTherapist, setSelectedTherapist] = useState<Child['therapist'] | null>(null);
   const [showTherapistModal, setShowTherapistModal] = useState(false);
+  const [highlightedChildId, setHighlightedChildId] = useState<string | null>(null);
+  const [showZoomedCard, setShowZoomedCard] = useState(false);
 
   useEffect(() => {
     fetchData();
+    
+    // Check for highlighted child from URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    const highlightChild = urlParams.get('highlightChild');
+    if (highlightChild) {
+      setHighlightedChildId(highlightChild);
+      // Show zoomed card after a short delay to allow page to load
+      setTimeout(() => setShowZoomedCard(true), 500);
+    }
   }, []);
 
   const fetchData = async () => {
@@ -113,6 +124,19 @@ export default function AppointmentsPage() {
     });
   };
 
+  const handleBackgroundClick = () => {
+    setShowZoomedCard(false);
+    setHighlightedChildId(null);
+    // Remove URL params
+    const url = new URL(window.location.href);
+    url.searchParams.delete('highlightChild');
+    window.history.replaceState({}, '', url.toString());
+  };
+
+  const getHighlightedChild = () => {
+    return children.find(child => child.id === highlightedChildId);
+  };
+
   if (loading) {
     return <EmptyState type="loading" />;
   }
@@ -122,7 +146,7 @@ export default function AppointmentsPage() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen relative">
       <div className="max-w-7xl mx-auto px-6 py-6">
         {/* Enhanced Header */}
         <AppointmentsHeader 
@@ -148,6 +172,7 @@ export default function AppointmentsPage() {
                   setShowTherapistModal(true);
                 }}
                 formatDate={formatDate}
+                isHighlighted={child.id === highlightedChildId && !showZoomedCard}
               />
             );
           })}
@@ -155,6 +180,41 @@ export default function AppointmentsPage() {
 
         {children.length === 0 && <EmptyState type="no-children" />}
       </div>
+
+      {/* Zoomed Card Overlay */}
+      {showZoomedCard && highlightedChildId && (
+        <div 
+          className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={handleBackgroundClick}
+        >
+          <div 
+            className="w-full max-w-2xl transform transition-all duration-300 ease-out scale-105"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {(() => {
+              const highlightedChild = getHighlightedChild();
+              if (!highlightedChild) return null;
+              
+              const upcomingAppointments = getChildAppointments(highlightedChild.id, 'upcoming');
+              const pastAppointments = getChildAppointments(highlightedChild.id, 'past');
+              
+              return (
+                <AppointmentCard
+                  child={highlightedChild}
+                  upcomingAppointments={upcomingAppointments}
+                  pastAppointments={pastAppointments}
+                  onTherapistClick={(therapist) => {
+                    setSelectedTherapist(therapist);
+                    setShowTherapistModal(true);
+                  }}
+                  formatDate={formatDate}
+                  isHighlighted={false}
+                />
+              );
+            })()}
+          </div>
+        </div>
+      )}
 
       {/* Therapist Details Modal */}
       <TherapistModal
