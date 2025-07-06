@@ -65,7 +65,12 @@ export async function GET(req: NextRequest) {
                             orderBy: { scheduledAt: 'desc' }
                         },
                         primaryTherapist: {
-                            include: {
+                            select: {
+                                id: true,
+                                specialization: true,
+                                licenseNumber: true,
+                                experience: true,
+                                bio: true,
                                 user: {
                                     select: {
                                         name: true,
@@ -92,8 +97,13 @@ export async function GET(req: NextRequest) {
             upcomingSessions: relation.patient.therapySessions.length,
             lastSession: relation.patient.therapySessions[0]?.scheduledAt || null,
             therapist: relation.patient.primaryTherapist ? {
+                id: relation.patient.primaryTherapist.id,
                 name: relation.patient.primaryTherapist.user.name,
-                email: relation.patient.primaryTherapist.user.email
+                email: relation.patient.primaryTherapist.user.email,
+                specialization: relation.patient.primaryTherapist.specialization,
+                licenseNumber: relation.patient.primaryTherapist.licenseNumber,
+                experience: relation.patient.primaryTherapist.experience,
+                bio: relation.patient.primaryTherapist.bio
             } : null
         }));
 
