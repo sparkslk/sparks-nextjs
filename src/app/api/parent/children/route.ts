@@ -93,7 +93,6 @@ export async function GET(req: NextRequest) {
             lastName: relation.patient.lastName,
             dateOfBirth: relation.patient.dateOfBirth,
             gender: relation.patient.gender,
-            phone: relation.patient.phone,
             email: relation.patient.email,
             relationship: relation.relationship,
             isPrimary: relation.isPrimary,
@@ -161,8 +160,7 @@ export async function GET(req: NextRequest) {
  *               gender:
  *                 type: string
  *                 enum: ["MALE", "FEMALE", "OTHER", "PREFER_NOT_TO_SAY"]
- *               phone:
- *                 type: string
+ *
  *               email:
  *                 type: string
  *                 format: email
@@ -186,7 +184,6 @@ export async function POST(request: NextRequest) {
             lastName,
             dateOfBirth,
             gender,
-            phone,
             email,
             address,
             relationship,
@@ -218,7 +215,6 @@ export async function POST(request: NextRequest) {
                 lastName,
                 dateOfBirth: new Date(dateOfBirth),
                 gender: gender as $Enums.Gender,
-                phone: phone || null,
                 email: email || null,
                 address: address || null,
                 emergencyContact: emergencyContact || undefined,
