@@ -257,9 +257,9 @@ export async function GET(req: NextRequest) {
         
         // Get patients for this specific therapist with their therapy sessions
         const patients = await prisma.patient.findMany({
-            /* where: {
+             where: {
                 primaryTherapistId: user.therapistProfile.id
-            }, */
+            },
             orderBy: {
                 lastName: 'asc' // Order by last name alphabetically
             },
