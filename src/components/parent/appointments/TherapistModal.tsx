@@ -60,7 +60,7 @@ export default function TherapistModal({ therapist, isOpen, onClose }: Therapist
                   {[...Array(5)].map((_, i) => (
                     <svg 
                       key={i} 
-                      className={`w-4 h-4 ${i < Math.floor(therapist.rating) ? 'text-yellow-400' : 'text-gray-300'}`} 
+                      className={`w-4 h-4 ${i < Math.floor(therapist.rating || 0) ? 'text-yellow-400' : 'text-gray-300'}`} 
                       fill="currentColor" 
                       viewBox="0 0 20 20"
                     >
@@ -80,6 +80,39 @@ export default function TherapistModal({ therapist, isOpen, onClose }: Therapist
               </div>
             )}
 
+            {/* Additional Information */}
+            <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+              <h4 className="font-medium text-gray-900 mb-2">Therapist Details</h4>
+              
+              {therapist.userId && (
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium text-gray-700">User ID:</span>
+                  <span className="text-sm text-gray-600">{therapist.userId}</span>
+                </div>
+              )}
+              
+              {therapist.organizationId && (
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium text-gray-700">Organization ID:</span>
+                  <span className="text-sm text-gray-600">{therapist.organizationId}</span>
+                </div>
+              )}
+              
+              <div className="flex justify-between">
+                <span className="text-sm font-medium text-gray-700">License Number:</span>
+                <span className="text-sm text-gray-600">{therapist.licenseNumber}</span>
+              </div>
+              
+              {therapist.availability && (
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium text-gray-700">Availability:</span>
+                  <span className="text-sm text-gray-600">
+                    {Object.keys(therapist.availability).length > 0 ? 'Available' : 'Not Available'}
+                  </span>
+                </div>
+              )}
+            </div>
+
             <div className="border-t border-gray-200 pt-4 space-y-4">
               {/* Contact Information */}
               <div className="space-y-3">
@@ -90,8 +123,8 @@ export default function TherapistModal({ therapist, isOpen, onClose }: Therapist
                     </svg>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-900">License Number</p>
-                    <p className="text-sm text-gray-600">{therapist.licenseNumber}</p>
+                    <p className="text-sm font-medium text-gray-900">Contact</p>
+                    <p className="text-sm text-gray-600">Available via platform</p>
                   </div>
                 </div>
 
@@ -100,7 +133,7 @@ export default function TherapistModal({ therapist, isOpen, onClose }: Therapist
                     <User className="w-4 h-4" style={{ color: '#8159A8' }} />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-900">Specialization</p>
+                    <p className="text-sm font-medium text-gray-900">Professional Focus</p>
                     <p className="text-sm text-gray-600">{therapist.specialization}</p>
                   </div>
                 </div>
