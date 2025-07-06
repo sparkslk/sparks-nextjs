@@ -31,11 +31,6 @@ export default function AppointmentCard({
                   {child.firstName?.[0]?.toUpperCase()}{child.lastName?.[0]?.toUpperCase()}
                 </span>
               </div>
-              {child.therapist && (
-                <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
-                  <CheckCircle className="w-2.5 h-2.5 text-white" />
-                </div>
-              )}
             </div>
             <div>
               <CardTitle className="text-lg font-bold text-gray-900">
@@ -62,7 +57,7 @@ export default function AppointmentCard({
             {/* Therapist Information */}
             {child.therapist && (upcomingAppointments.length > 0 || pastAppointments.length > 0) && (
               <div 
-                className="therapist-info p-3 bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg border cursor-pointer hover:shadow-md transition-all duration-300" 
+                className="therapist-info p-3 bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg border cursor-pointer shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 transform" 
                 style={{ borderColor: '#8159A8' }}
                 onClick={() => onTherapistClick(child.therapist)}
               >
@@ -73,7 +68,7 @@ export default function AppointmentCard({
                     <span className="font-semibold">
                       {child.therapist.name || 'Unknown Therapist'}
                     </span>
-                    <span className="ml-2 text-xs opacity-70">(Click for details)</span>
+                    {/* <span className="ml-2 text-xs opacity-70">(Click for details)</span> */}
                   </p>
                 </div>
               </div>

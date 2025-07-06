@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { CheckCircle, User, Calendar } from "lucide-react";
+import { User, Calendar } from "lucide-react";
 import { Child } from "@/types/appointments";
 
 interface TherapistModalProps {
@@ -51,9 +51,6 @@ export default function TherapistModal({ therapist, isOpen, onClose }: Therapist
                       'T'
                     }
                   </span>
-                </div>
-                <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-3 border-white flex items-center justify-center">
-                  <CheckCircle className="w-3 h-3 text-white" />
                 </div>
               </div>
             </div>
