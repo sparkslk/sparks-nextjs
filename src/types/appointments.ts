@@ -3,15 +3,18 @@ export interface Child {
   firstName: string;
   lastName: string;
   therapist: {
+    id?: string;
     userId: string;
     name?: string;
+    email?: string;
+    phone?: string;
     licenseNumber: string;
-    specialization: string;
+    specialization: string | string[];
     experience: number;
     bio?: string;
     availability?: Record<string, unknown> | null;
     organizationId?: string;
-    rating: number;
+    rating?: number;
   } | null;
 }
 

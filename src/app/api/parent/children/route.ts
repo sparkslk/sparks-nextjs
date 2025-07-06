@@ -67,10 +67,13 @@ export async function GET(req: NextRequest) {
                         primaryTherapist: {
                             select: {
                                 id: true,
+                                userId: true,
+                                organizationId: true,
                                 specialization: true,
                                 licenseNumber: true,
                                 experience: true,
                                 bio: true,
+                                availability: true,
                                 user: {
                                     select: {
                                         name: true,
@@ -98,12 +101,16 @@ export async function GET(req: NextRequest) {
             lastSession: relation.patient.therapySessions[0]?.scheduledAt || null,
             therapist: relation.patient.primaryTherapist ? {
                 id: relation.patient.primaryTherapist.id,
+                userId: relation.patient.primaryTherapist.userId,
                 name: relation.patient.primaryTherapist.user.name,
                 email: relation.patient.primaryTherapist.user.email,
                 specialization: relation.patient.primaryTherapist.specialization,
                 licenseNumber: relation.patient.primaryTherapist.licenseNumber,
-                experience: relation.patient.primaryTherapist.experience,
-                bio: relation.patient.primaryTherapist.bio
+                experience: relation.patient.primaryTherapist.experience || 0,
+                bio: relation.patient.primaryTherapist.bio,
+                rating: 4.5, // Default rating since not in schema
+                availability: relation.patient.primaryTherapist.availability,
+                organizationId: relation.patient.primaryTherapist.organizationId
             } : null
         }));
 

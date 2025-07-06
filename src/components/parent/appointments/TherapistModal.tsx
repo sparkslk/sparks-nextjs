@@ -82,7 +82,7 @@ export default function TherapistModal({ therapist, isOpen, onClose }: Therapist
 
             {/* Additional Information */}
             <div className="bg-gray-50 p-4 rounded-lg space-y-3">
-              <h4 className="font-medium text-gray-900 mb-2">Therapist Details</h4>
+              {/* <h4 className="font-medium text-gray-900 mb-2">Therapist Details</h4> */}
               
               {therapist.userId && (
                 <div className="flex justify-between">
