@@ -38,9 +38,21 @@ export default function AppointmentCard({
               )}
             </div>
             <div>
-              <CardTitle className="text-lg font-bold text-gray-900">
-                {child.firstName} {child.lastName}
-              </CardTitle>
+              <div className="flex items-center space-x-3">
+                <CardTitle className="text-lg font-bold text-gray-900">
+                  {child.firstName} {child.lastName}
+                </CardTitle>
+                {child.therapist && (
+                  <Button
+                    size="sm"
+                    className="text-white hover:opacity-90 transition-all duration-300 shadow-md text-xs px-3 py-1"
+                    style={{ backgroundColor: '#8159A8' }}
+                    onClick={() => window.location.href = '/parent/bookSession'}
+                  >
+                    Book Session
+                  </Button>
+                )}
+              </div>
               {child.therapist && (
                 <div className="flex items-center space-x-3 mt-1">
                   <div className="flex items-center space-x-1">
