@@ -254,12 +254,11 @@ export default function MyChildrenPage() {
                       size="sm"
                       className="border-gray-300 text-gray-700 hover:bg-gray-50"
                       onClick={() => {
-                        setSelectedChild(child);
-                        setSessionModalOpen(true);
+                        window.location.href = `/parent/appointments?highlightChild=${child.id}&childName=${encodeURIComponent(child.firstName + ' ' + child.lastName)}`;
                       }}
                     >
                       <span className="mr-2">📅</span>
-                      View Sessions
+                      Appointments
                     </Button>
                     <Button
                       variant="outline"

@@ -110,7 +110,7 @@ export default function FindTherapistPage() {
                         name: therapist.name,
                         title: "Licensed Therapist",
                         specialties: therapist.specialization || ["General Psychology"],
-                        rating: 4.5 + Math.random() * 0.5, // Random rating between 4.5-5.0
+                        rating: Math.round((4.5 + Math.random() * 0.5) * 10) / 10, // Random rating between 4.5-5.0, rounded to 1 decimal
                         reviewCount: Math.floor(Math.random() * 200) + 50, // Random review count
                         experience: therapist.experience ? `${therapist.experience}+ years experience` : "Licensed Professional",
                         sessionTypes: { inPerson: false, online: true },
