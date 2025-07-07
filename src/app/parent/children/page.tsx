@@ -142,7 +142,7 @@ export default function MyChildrenPage() {
   };
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#F5F3FB' }}>
+    <div className="min-h-screen" >
       <div className="max-w-6xl mx-auto px-6 py-1">
         {/* Header Section */}
         <div className="mb-8">
