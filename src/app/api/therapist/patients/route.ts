@@ -241,6 +241,10 @@ export async function GET(req: NextRequest) {
             include: { therapistProfile: true }
         });
 
+        console.log("Session user ID:", session.user.id);
+        console.log("User found:", user);
+        console.log("Therapist profile:", user?.therapistProfile);
+
         if (!user?.therapistProfile) {
             return NextResponse.json(
                 { error: "Therapist profile not found" },
@@ -248,46 +252,81 @@ export async function GET(req: NextRequest) {
             );
         }
 
-        // Get patients for this specific therapist only
+        // Debug: Log the therapist ID
+        console.log("Therapist ID:", user.therapistProfile.id);
+        
+        // Get patients for this specific therapist with their therapy sessions
         const patients = await prisma.patient.findMany({
-            where: {
-                primaryTherapistId: user.therapistProfile.id // This is the key filter
+             where: {
+                primaryTherapistId: user.therapistProfile.id
             },
             orderBy: {
-                createdAt: 'desc'
+                lastName: 'asc' // Order by last name alphabetically
             },
             include: {
                 therapySessions: {
-                    orderBy: { scheduledAt: 'desc' }
+                    orderBy: { scheduledAt: 'desc' },
+                    select: {
+                        id: true,
+                        scheduledAt: true,
+                        status: true,
+                        duration: true,
+                        type: true
+                    }
                 }
             }
         });
 
-        // Enhanced formatting to match your UI
+        // Debug: Log the number of patients found
+        console.log("Number of patients found:", patients.length);
+
+        // Enhanced formatting with proper session handling
         const formattedPatients = patients.map(patient => {
             const allSessions = patient.therapySessions || [];
-            const pastSessions = allSessions.filter(session => 
-                new Date(session.scheduledAt) < new Date()
-            );
-            const futureSessions = allSessions.filter(session => 
-                new Date(session.scheduledAt) >= new Date()
+            const now = new Date();
+            
+            // Filter sessions based on scheduled time and status
+            const completedSessions = allSessions.filter(session => 
+                (new Date(session.scheduledAt) < now && 
+                 (session.status === 'COMPLETED' || session.status === 'SCHEDULED')) ||
+                session.status === 'COMPLETED'
             );
             
-            const lastSession = pastSessions.length > 0 ? pastSessions[0] : null;
-            const nextSession = futureSessions.length > 0 ? futureSessions[0] : null;
+            const upcomingSessions = allSessions.filter(session => 
+                new Date(session.scheduledAt) >= now && 
+                (session.status === 'SCHEDULED' || session.status === 'APPROVED')
+            );
+            
+            // Get the most recent completed session and next upcoming session
+            const lastSession = completedSessions.length > 0 ? completedSessions[0] : null;
+            const nextSession = upcomingSessions.length > 0 ? 
+                upcomingSessions.sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())[0] : null;
+
+            // Determine patient status based on session activity
+            let status: "active" | "inactive" | "completed" = "inactive";
+            if (nextSession) {
+                status = "active";
+            } else if (lastSession && new Date(lastSession.scheduledAt) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)) {
+                status = "active"; // Had a session within last 30 days
+            } else if (completedSessions.length > 0) {
+                status = "completed";
+            }
 
             return {
                 id: patient.id,
                 firstName: patient.firstName,
                 lastName: patient.lastName,
-                dateOfBirth: patient.dateOfBirth,
+                dateOfBirth: patient.dateOfBirth.toISOString().split('T')[0], // Format as YYYY-MM-DD
                 gender: patient.gender,
-                phone: patient.phone,
-                email: patient.email,
-                lastSession: lastSession ? lastSession.scheduledAt : "-",
-                nextSession: nextSession ? nextSession.scheduledAt : "-",
-                status: "approved" as const, // Set all statuses to approved for now
-                age: calculateAge(patient.dateOfBirth)
+                phone: patient.phone || "-",
+                email: patient.email || "-",
+                lastSession: lastSession ? lastSession.scheduledAt.toISOString().split('T')[0] : "-",
+                nextSession: nextSession ? nextSession.scheduledAt.toISOString().split('T')[0] : "-",
+                status: status,
+                age: calculateAge(patient.dateOfBirth),
+                totalSessions: allSessions.length,
+                completedSessions: completedSessions.length,
+                upcomingSessions: upcomingSessions.length
             };
         });
 
@@ -295,7 +334,7 @@ export async function GET(req: NextRequest) {
             { 
                 patients: formattedPatients,
                 totalCount: formattedPatients.length,
-                therapistId: user.therapistProfile.id // For debugging
+                therapistId: user.therapistProfile.id
             },
             { status: 200 }
         );

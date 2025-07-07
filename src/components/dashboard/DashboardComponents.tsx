@@ -196,12 +196,12 @@ export function UpcomingAppointments({ appointments }: UpcomingAppointmentsProps
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Upcoming Appointments</CardTitle>
-                <CardDescription>Your next scheduled sessions</CardDescription>
+                <CardTitle>Upcoming Sessions</CardTitle>
+                <CardDescription>Your next scheduled therapy sessions</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
                 {appointments.length === 0 ? (
-                    <p className="text-muted-foreground text-center py-4">No upcoming appointments</p>
+                    <p className="text-muted-foreground text-center py-4">No upcoming sessions</p>
                 ) : (
                     appointments.map((appointment) => (
                         <div key={appointment.id} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg">
@@ -216,9 +216,13 @@ export function UpcomingAppointments({ appointments }: UpcomingAppointmentsProps
                         </div>
                     ))
                 )}
-                <Button variant="outline" className="w-full mt-4">
+                <Button 
+                    variant="outline" 
+                    className="w-full mt-4"
+                    onClick={() => window.location.href = '/therapist/sessions'}
+                >
                     <Calendar className="mr-2 h-4 w-4" />
-                    View All Appointments
+                    View All Sessions
                 </Button>
             </CardContent>
         </Card>
