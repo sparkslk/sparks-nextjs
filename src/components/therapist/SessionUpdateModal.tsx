@@ -22,12 +22,7 @@ interface Session {
   duration: number;
   type: string;
   status: string;
-  location?: string;
-  notes?: string;
-  objectives: string[];
-  patientMood?: number;
-  engagement?: number;
-  progressNotes?: string;
+  
   // Clinical documentation fields
   attendanceStatus?: string;
   overallProgress?: string;
@@ -47,10 +42,10 @@ interface SessionUpdateModalProps {
 
 export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated }: SessionUpdateModalProps) {
   // Clinical Documentation Fields
-  const [attendanceStatus, setAttendanceStatus] = useState("PRESENT");
-  const [overallProgress, setOverallProgress] = useState("FAIR");
-  const [patientEngagement, setPatientEngagement] = useState("MEDIUM");
-  const [riskAssessment, setRiskAssessment] = useState("NONE");
+  const [attendanceStatus, setAttendanceStatus] = useState("");
+  const [overallProgress, setOverallProgress] = useState("");
+  const [patientEngagement, setPatientEngagement] = useState("");
+  const [riskAssessment, setRiskAssessment] = useState("");
   const [focusAreas, setFocusAreas] = useState<string[]>([]);
   const [sessionNotes, setSessionNotes] = useState("");
   const [nextSessionGoals, setNextSessionGoals] = useState("");
@@ -101,14 +96,38 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
         const sessionData = data.session;
         setDetailedSession(sessionData);
         
-        // Initialize clinical documentation fields - use DB values if they exist, otherwise use defaults
-        const newAttendanceStatus = sessionData.attendanceStatus ?? "PRESENT";
-        const newOverallProgress = sessionData.overallProgress ?? "FAIR";
-        const newPatientEngagement = sessionData.patientEngagement ?? "MEDIUM";
-        const newRiskAssessment = sessionData.riskAssessment ?? "NONE";
+        // Initialize clinical documentation fields - use DB values if they exist, otherwise use empty strings for placeholders
+        // Important: Use nullish coalescing (??) to only use empty strings when field is null/undefined
+        // This preserves actual database values including existing enum values
+        const newAttendanceStatus = sessionData.attendanceStatus ?? "";
+        const newOverallProgress = sessionData.overallProgress ?? "";
+        const newPatientEngagement = sessionData.patientEngagement ?? "";
+        const newRiskAssessment = sessionData.riskAssessment ?? "";
         const newFocusAreas = sessionData.primaryFocusAreas ?? [];
         const newSessionNotes = sessionData.sessionNotes ?? (sessionData.notes || "");
         const newNextSessionGoals = sessionData.nextSessionGoals ?? "";
+        
+        // Debug log to check what's being received from API
+        console.log("Session data from API:", {
+          attendanceStatus: sessionData.attendanceStatus,
+          overallProgress: sessionData.overallProgress,
+          patientEngagement: sessionData.patientEngagement,
+          riskAssessment: sessionData.riskAssessment,
+          primaryFocusAreas: sessionData.primaryFocusAreas,
+          sessionNotes: sessionData.sessionNotes,
+          nextSessionGoals: sessionData.nextSessionGoals
+        });
+        
+        // Debug log to check what values are being set
+        console.log("Values being set in modal:", {
+          newAttendanceStatus,
+          newOverallProgress,
+          newPatientEngagement,
+          newRiskAssessment,
+          newFocusAreas,
+          newSessionNotes,
+          newNextSessionGoals
+        });
         
         setAttendanceStatus(newAttendanceStatus);
         setOverallProgress(newOverallProgress);
@@ -132,13 +151,14 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
   };
 
   const initializeWithDefaults = () => {
-    // Use basic session data if available, otherwise use defaults
-    setAttendanceStatus(session?.attendanceStatus ?? "PRESENT");
-    setOverallProgress(session?.overallProgress ?? "FAIR");
-    setPatientEngagement(session?.patientEngagement ?? "MEDIUM");
-    setRiskAssessment(session?.riskAssessment ?? "NONE");
+    // Use basic session data if available, otherwise use empty strings for placeholders
+    // Use nullish coalescing to preserve actual database values
+    setAttendanceStatus(session?.attendanceStatus ?? "");
+    setOverallProgress(session?.overallProgress ?? "");
+    setPatientEngagement(session?.patientEngagement ?? "");
+    setRiskAssessment(session?.riskAssessment ?? "");
     setFocusAreas(session?.primaryFocusAreas ?? []);
-    setSessionNotes(session?.sessionNotes ?? (session?.notes || ""));
+    setSessionNotes(session?.sessionNotes ?? "");
     setNextSessionGoals(session?.nextSessionGoals ?? "");
     // Clear the error since we're using fallback
     setSubmitError(null);
@@ -161,6 +181,12 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
   const handleSubmit = async (saveOnly = false) => {
     if (!session) return;
 
+    // Validate required fields
+    if (!attendanceStatus) {
+      setSubmitError('Please select an attendance status');
+      return;
+    }
+
     setIsSubmitting(true);
     setSubmitError(null);
     setSubmitSuccess(false);
@@ -168,14 +194,14 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
     try {
       const updateData = {
         sessionId: session.id,
-        // Clinical documentation fields
+        // Clinical documentation fields - send only if they have values
         attendanceStatus,
-        overallProgress,
-        patientEngagement,
-        riskAssessment,
+        overallProgress: overallProgress || null,
+        patientEngagement: patientEngagement || null,
+        riskAssessment: riskAssessment || null,
         focusAreas,
-        sessionNotes,
-        nextSessionGoals,
+        sessionNotes: sessionNotes || null,
+        nextSessionGoals: nextSessionGoals || null,
         saveOnly // Pass the save mode to the API
       };
 
@@ -265,16 +291,28 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
           {/* Clinical Documentation */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Clinical Documentation</CardTitle>
+              <CardTitle className="text-lg flex items-center justify-between">
+                Clinical Documentation
+                {detailedSession && (
+                  <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                    Data loaded from database
+                  </span>
+                )}
+              </CardTitle>
+              <p className="text-sm text-gray-600">
+                <span className="text-red-500">*</span> Required fields. Other fields are optional.
+              </p>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-2 gap-6">
                 {/* Attendance Status */}
                 <div>
-                  <Label htmlFor="attendanceStatus">Attendance Status</Label>
+                  <Label htmlFor="attendanceStatus">
+                    Attendance Status <span className="text-red-500">*</span>
+                  </Label>
                   <Select value={attendanceStatus} onValueChange={setAttendanceStatus}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue />
+                    <SelectTrigger className={`mt-1 ${!attendanceStatus ? 'border-red-200' : ''}`}>
+                      <SelectValue placeholder="Select attendance status" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="PRESENT">Present</SelectItem>
@@ -283,6 +321,9 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
                       <SelectItem value="CANCELLED">Cancelled</SelectItem>
                     </SelectContent>
                   </Select>
+                  {!attendanceStatus && (
+                    <p className="text-xs text-red-500 mt-1">This field is required</p>
+                  )}
                 </div>
 
                 {/* Overall Progress */}
@@ -290,7 +331,7 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
                   <Label htmlFor="overallProgress">Overall Progress</Label>
                   <Select value={overallProgress} onValueChange={setOverallProgress}>
                     <SelectTrigger className="mt-1">
-                      <SelectValue />
+                      <SelectValue placeholder="Select overall progress" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="EXCELLENT">Excellent</SelectItem>
@@ -307,7 +348,7 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
                   <Label htmlFor="patientEngagement">Patient Engagement</Label>
                   <Select value={patientEngagement} onValueChange={setPatientEngagement}>
                     <SelectTrigger className="mt-1">
-                      <SelectValue />
+                      <SelectValue placeholder="Select patient engagement level" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="HIGH">High</SelectItem>
@@ -330,7 +371,7 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
                   </Label>
                   <Select value={riskAssessment} onValueChange={setRiskAssessment}>
                     <SelectTrigger className="mt-1">
-                      <SelectValue />
+                      <SelectValue placeholder="Select risk assessment level" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="NONE">None</SelectItem>
@@ -339,7 +380,7 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
                       <SelectItem value="HIGH">High</SelectItem>
                     </SelectContent>
                   </Select>
-                  {riskAssessment !== 'NONE' && (
+                  {riskAssessment !== 'NONE' && riskAssessment !== '' && (
                     <p className="text-xs text-gray-600 mt-1">
                       {riskAssessment === 'HIGH' && '⚠️ High risk - Immediate attention may be required'}
                       {riskAssessment === 'MEDIUM' && '⚠️ Medium risk - Monitor closely and follow up'}

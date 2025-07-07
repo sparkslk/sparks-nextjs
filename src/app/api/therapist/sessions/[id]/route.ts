@@ -7,7 +7,10 @@ export async function GET(
     { params }: { params: { id: string } }
 ) {
     try {
+        console.log("GET /api/therapist/sessions/[id] - Starting request for session ID:", params.id);
+        
         const session = await requireApiAuth(request, ['THERAPIST']);
+        console.log("Authentication successful for user:", session.user.id);
 
         // Get therapist profile
         const user = await prisma.user.findUnique({
@@ -16,12 +19,14 @@ export async function GET(
         });
 
         if (!user?.therapistProfile) {
+            console.log("Therapist profile not found for user:", session.user.id);
             return NextResponse.json(
                 { error: "Therapist profile not found" },
                 { status: 404 }
             );
         }
 
+        console.log("Therapist profile found:", user.therapistProfile.id);
         const sessionId = params.id;
 
         // Get detailed session information
@@ -102,17 +107,7 @@ export async function GET(
             orderBy: {
                 scheduledAt: 'desc'
             },
-            take: 10, // Get last 10 sessions
-            select: {
-                id: true,
-                scheduledAt: true,
-                duration: true,
-                type: true,
-                status: true,
-                notes: true,
-                patientMood: true,
-                engagement: true
-            }
+            take: 10 // Get last 10 sessions
         });
 
         const detailedSession = {
@@ -123,14 +118,14 @@ export async function GET(
             duration: therapySession.duration,
             type: therapySession.type,
             status: therapySession.status,
-            // Clinical documentation fields from the schema (using type assertion for now)
-            attendanceStatus: (therapySession as any).attendanceStatus,
-            overallProgress: (therapySession as any).overallProgress,
-            patientEngagement: (therapySession as any).patientEngagement,
-            riskAssessment: (therapySession as any).riskAssessment,
-            primaryFocusAreas: (therapySession as any).primaryFocusAreas,
-            sessionNotes: (therapySession as any).sessionNotes,
-            nextSessionGoals: (therapySession as any).nextSessionGoals,
+            // Clinical documentation fields from the database - use raw query to get actual values
+            attendanceStatus: (therapySession as any).attendanceStatus || null,
+            overallProgress: (therapySession as any).overallProgress || null,
+            patientEngagement: (therapySession as any).patientEngagement || null,
+            riskAssessment: (therapySession as any).riskAssessment || null,
+            primaryFocusAreas: (therapySession as any).primaryFocusAreas || [],
+            sessionNotes: (therapySession as any).sessionNotes || null,
+            nextSessionGoals: (therapySession as any).nextSessionGoals || null,
             patient: {
                 id: therapySession.patient.id,
                 firstName: therapySession.patient.firstName,
@@ -145,7 +140,20 @@ export async function GET(
                 assessments: therapySession.patient.assessments,
                 treatmentPlans: therapySession.patient.treatmentPlans
             },
-            sessionHistory
+            sessionHistory: sessionHistory.map(session => ({
+                id: session.id,
+                scheduledAt: session.scheduledAt,
+                duration: session.duration,
+                type: session.type,
+                status: session.status,
+                attendanceStatus: (session as any).attendanceStatus,
+                overallProgress: (session as any).overallProgress,
+                patientEngagement: (session as any).patientEngagement,
+                riskAssessment: (session as any).riskAssessment,
+                primaryFocusAreas: (session as any).primaryFocusAreas,
+                sessionNotes: (session as any).sessionNotes,
+                nextSessionGoals: (session as any).nextSessionGoals
+            }))
         };
 
         return NextResponse.json(
@@ -213,27 +221,83 @@ export async function PUT(
             saveOnly
         } = await request.json();
 
-        // Update the therapy session with new documentation
-        const updatedSession = await prisma.therapySession.update({
+        console.log("Received update data:", {
+            attendanceStatus,
+            overallProgress,
+            patientEngagement,
+            riskAssessment,
+            focusAreas,
+            sessionNotes,
+            nextSessionGoals,
+            saveOnly
+        });
+
+        // Determine session status based on attendance and save mode
+        let newStatus = existingSession.status;
+        if (attendanceStatus === "NO_SHOW") {
+            newStatus = "NO_SHOW";
+        } else if (attendanceStatus === "CANCELLED") {
+            newStatus = "CANCELLED";
+        } else if ((attendanceStatus === "PRESENT" || attendanceStatus === "LATE") && !saveOnly) {
+            newStatus = "COMPLETED";
+        }
+
+        // Update the therapy session with new documentation using raw SQL with proper null handling
+        const updateQuery = `
+            UPDATE "TherapySession" 
+            SET 
+                "attendanceStatus" = $1,
+                "overallProgress" = $2,
+                "patientEngagement" = $3,
+                "riskAssessment" = $4,
+                "primaryFocusAreas" = $5,
+                "sessionNotes" = $6,
+                "nextSessionGoals" = $7,
+                "status" = $8,
+                "updatedAt" = $9
+            WHERE "id" = $10
+        `;
+        
+        console.log("About to update session with query:", updateQuery);
+        console.log("Parameters:", [
+            attendanceStatus || null,
+            overallProgress || null,
+            patientEngagement || null,
+            riskAssessment || null,
+            JSON.stringify(focusAreas || []),
+            sessionNotes || null,
+            nextSessionGoals || null,
+            newStatus,
+            new Date(),
+            sessionId
+        ]);
+        
+        await prisma.$executeRawUnsafe(
+            updateQuery,
+            attendanceStatus || null,
+            overallProgress || null,
+            patientEngagement || null,
+            riskAssessment || null,
+            JSON.stringify(focusAreas || []),
+            sessionNotes || null,
+            nextSessionGoals || null,
+            newStatus,
+            new Date(),
+            sessionId
+        );
+
+        console.log("Session updated successfully with ID:", sessionId);
+
+        // Get the updated session for response
+        const updatedSession = await prisma.therapySession.findUnique({
             where: { id: sessionId },
-            data: {
-                // Clinical documentation fields
-                ...(attendanceStatus && { attendanceStatus: attendanceStatus as any }),
-                ...(overallProgress && { overallProgress: overallProgress as any }),
-                ...(patientEngagement && { patientEngagement: patientEngagement as any }),
-                ...(riskAssessment && { riskAssessment: riskAssessment as any }),
-                primaryFocusAreas: focusAreas || [],
-                ...(sessionNotes && { sessionNotes: sessionNotes }),
-                ...(nextSessionGoals && { nextSessionGoals: nextSessionGoals }),
-                // Only update status if not saving only
-                ...(!saveOnly && {
-                    // Update status based on attendance if needed
-                    ...(attendanceStatus === "NO_SHOW" && { status: "NO_SHOW" }),
-                    ...(attendanceStatus === "CANCELLED" && { status: "CANCELLED" }),
-                    // Mark as completed if session is documented and attendance was present or late
-                    ...((attendanceStatus === "PRESENT" || attendanceStatus === "LATE") && { status: "COMPLETED" })
-                }),
-                updatedAt: new Date()
+            include: {
+                patient: {
+                    select: {
+                        firstName: true,
+                        lastName: true
+                    }
+                }
             }
         });
 
@@ -278,22 +342,21 @@ export async function PUT(
             }
         });
 
+        if (!sessionWithPatient) {
+            return NextResponse.json(
+                { error: "Session not found after update" },
+                { status: 404 }
+            );
+        }
+
         return NextResponse.json(
             {
-                message: saveOnly ? "Session documentation saved successfully" : "Session documented and marked as completed",
+                message: "Session documentation saved successfully",
                 session: {
-                    id: sessionWithPatient!.id,
-                    patientName: `${sessionWithPatient!.patient.firstName} ${sessionWithPatient!.patient.lastName}`,
-                    scheduledAt: sessionWithPatient!.scheduledAt,
-                    status: sessionWithPatient!.status,
-                    // Include clinical documentation fields in response
-                    attendanceStatus: (sessionWithPatient as any).attendanceStatus,
-                    overallProgress: (sessionWithPatient as any).overallProgress,
-                    patientEngagement: (sessionWithPatient as any).patientEngagement,
-                    riskAssessment: (sessionWithPatient as any).riskAssessment,
-                    primaryFocusAreas: (sessionWithPatient as any).primaryFocusAreas,
-                    sessionNotes: (sessionWithPatient as any).sessionNotes,
-                    nextSessionGoals: (sessionWithPatient as any).nextSessionGoals
+                    id: sessionWithPatient.id,
+                    patientName: `${sessionWithPatient.patient.firstName} ${sessionWithPatient.patient.lastName}`,
+                    scheduledAt: sessionWithPatient.scheduledAt,
+                    status: sessionWithPatient.status
                 }
             },
             { status: 200 }
