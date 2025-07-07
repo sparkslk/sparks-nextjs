@@ -65,7 +65,15 @@ export async function GET(req: NextRequest) {
                             orderBy: { scheduledAt: 'desc' }
                         },
                         primaryTherapist: {
-                            include: {
+                            select: {
+                                id: true,
+                                userId: true,
+                                organizationId: true,
+                                specialization: true,
+                                licenseNumber: true,
+                                experience: true,
+                                bio: true,
+                                availability: true,
                                 user: {
                                     select: {
                                         name: true,
@@ -85,15 +93,23 @@ export async function GET(req: NextRequest) {
             lastName: relation.patient.lastName,
             dateOfBirth: relation.patient.dateOfBirth,
             gender: relation.patient.gender,
-            phone: relation.patient.phone,
             email: relation.patient.email,
             relationship: relation.relationship,
             isPrimary: relation.isPrimary,
             upcomingSessions: relation.patient.therapySessions.length,
             lastSession: relation.patient.therapySessions[0]?.scheduledAt || null,
             therapist: relation.patient.primaryTherapist ? {
+                id: relation.patient.primaryTherapist.id,
+                userId: relation.patient.primaryTherapist.userId,
                 name: relation.patient.primaryTherapist.user.name,
-                email: relation.patient.primaryTherapist.user.email
+                email: relation.patient.primaryTherapist.user.email,
+                specialization: relation.patient.primaryTherapist.specialization,
+                licenseNumber: relation.patient.primaryTherapist.licenseNumber,
+                experience: relation.patient.primaryTherapist.experience || 0,
+                bio: relation.patient.primaryTherapist.bio,
+                rating: 4.5, // Default rating since not in schema
+                availability: relation.patient.primaryTherapist.availability,
+                organizationId: relation.patient.primaryTherapist.organizationId
             } : null
         }));
 
@@ -144,8 +160,7 @@ export async function GET(req: NextRequest) {
  *               gender:
  *                 type: string
  *                 enum: ["MALE", "FEMALE", "OTHER", "PREFER_NOT_TO_SAY"]
- *               phone:
- *                 type: string
+ *
  *               email:
  *                 type: string
  *                 format: email
@@ -169,7 +184,6 @@ export async function POST(request: NextRequest) {
             lastName,
             dateOfBirth,
             gender,
-            phone,
             email,
             address,
             relationship,
@@ -201,7 +215,6 @@ export async function POST(request: NextRequest) {
                 lastName,
                 dateOfBirth: new Date(dateOfBirth),
                 gender: gender as $Enums.Gender,
-                phone: phone || null,
                 email: email || null,
                 address: address || null,
                 emergencyContact: emergencyContact || undefined,

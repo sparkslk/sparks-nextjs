@@ -4,9 +4,10 @@
 import { useRouter, usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
-import { Bell } from "lucide-react";
+import { User, Settings, LogOut } from "lucide-react";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useState} from "react";
+import NotificationBell from "@/components/NotificationBell";
 
 const tabs = [
     { name: 'Overview', path: '/parent/dashboard' },
@@ -51,7 +52,30 @@ export default function ParentNavigation() {
     };
 
     const handleSignOut = async () => {
-        await signOut({ callbackUrl: "/login" });
+        try {
+            // Clear all potential session storage
+            sessionStorage.clear();
+            localStorage.clear();
+
+            // Call custom logout API to clear cookies
+            await fetch('/api/auth/logout', {
+                method: 'POST',
+                credentials: 'include'
+            });
+
+            // Sign out with proper cleanup
+            await signOut({
+                callbackUrl: "/login",
+                redirect: true
+            });
+        } catch (error) {
+            console.error('Logout error:', error);
+            // Fallback to regular signOut if custom logout fails
+            await signOut({
+                callbackUrl: "/login",
+                redirect: true
+            });
+        }
     };
 
     const getActiveTab = () => {
@@ -81,9 +105,17 @@ export default function ParentNavigation() {
                                     {parentData?.parentName}
                                 </span>
                             </div>
-                            <Bell className="w-5 h-5 text-muted-foreground" />
-                            <div className="w-8 h-8 rounded-full" style={{ backgroundColor: '#8159A8' }}></div>
+                            <NotificationBell />
+                            <Button variant="ghost" size="icon" className="hover:bg-accent">
+                                <Settings className="h-5 w-5" />
+                            </Button>
+                            <div className="flex items-center space-x-2">
+                                <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#8159A8' }}>
+                                    <User className="h-4 w-4 text-white" />
+                                </div>
+                            </div>
                             <Button variant="outline" onClick={handleSignOut}>
+                                <LogOut className="h-4 w-4 mr-2" />
                                 Sign Out
                             </Button>
                         </div>
