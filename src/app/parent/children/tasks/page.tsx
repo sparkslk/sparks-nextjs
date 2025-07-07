@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, CheckCircle, Clock, AlertTriangle } from "lucide-react";
+import { ArrowLeft, CheckCircle, Clock, AlertTriangle, Calendar, User, Target, Filter } from "lucide-react";
 
 interface Task {
   id: string;
@@ -32,6 +32,9 @@ export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [filterType, setFilterType] = useState<'all' | 'daily' | 'therapist' | 'weekly'>('all');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'completed' | 'overdue'>('all');
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     const fetchTasks = async () => {
@@ -119,18 +122,44 @@ export default function TasksPage() {
     return new Date(dueDate) < new Date() && tasks.find(t => t.dueDate === dueDate)?.status !== 'COMPLETED';
   };
 
-  // Filter tasks by categories
-  const dailyTasks = tasks.filter(task => 
-    task.isRecurring && task.recurringPattern === 'daily'
-  );
+  // Filter tasks by categories and applied filters
+  const getFilteredTasks = () => {
+    let filteredTasks = tasks;
 
-  const therapistTasks = tasks.filter(task => 
-    !task.isRecurring || task.recurringPattern !== 'daily'
-  );
+    // Filter by type
+    if (filterType === 'daily') {
+      filteredTasks = tasks.filter(task => 
+        task.isRecurring && task.recurringPattern === 'daily'
+      );
+    } else if (filterType === 'therapist') {
+      filteredTasks = tasks.filter(task => 
+        !task.isRecurring || task.recurringPattern !== 'daily'
+      );
+    } else if (filterType === 'weekly') {
+      filteredTasks = tasks.filter(task => 
+        task.isRecurring && task.recurringPattern === 'weekly'
+      );
+    }
 
-  const weeklyGoals = tasks.filter(task => 
-    task.isRecurring && task.recurringPattern === 'weekly'
-  );
+    // Filter by status
+    if (filterStatus === 'pending') {
+      filteredTasks = filteredTasks.filter(task => 
+        task.status === 'PENDING' || task.status === 'IN_PROGRESS'
+      );
+    } else if (filterStatus === 'completed') {
+      filteredTasks = filteredTasks.filter(task => 
+        task.status === 'COMPLETED'
+      );
+    } else if (filterStatus === 'overdue') {
+      filteredTasks = filteredTasks.filter(task => 
+        task.status === 'OVERDUE' || isOverdue(task.dueDate)
+      );
+    }
+
+    return filteredTasks;
+  };
+
+  const filteredTasks = getFilteredTasks();
 
   if (loading) {
     return (
@@ -145,7 +174,7 @@ export default function TasksPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F5F3FB' }}>
+      <div className="flex items-center justify-center" style={{ backgroundColor: '#F5F3FB' }}>
         <div className="text-center">
           <h3 className="text-lg font-semibold mb-2">Unable to load tasks</h3>
           <p className="text-gray-600 mb-4">{error}</p>
@@ -158,24 +187,253 @@ export default function TasksPage() {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#F5F3FB' }}>
-      <div className="max-w-4xl mx-auto px-6 py-6">
+    <div className="" >
+      <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Header */}
-        <div className="flex items-center mb-6">
-          <Button
-            variant="ghost"
-            onClick={() => window.history.back()}
-            className="mr-4"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
-          </Button>
+        <div className="mb-6">
+          <div className="flex justify-start mb-4">
+            <Button
+              variant="ghost"
+              onClick={() => window.history.back()}
+              className="flex items-center px-3 py-2 text-[#8159A8] hover:text-[#8159A8]/80 hover:bg-[#8159A8]/10"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Children
+            </Button>
+          </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
               Tasks for {childName}
             </h1>
             <p className="text-gray-600">Track daily activities and therapy goals</p>
           </div>
+        </div>
+
+        {/* Filter Section */}
+        <div className="mb-6">
+          <Card className="shadow-lg border-0" style={{ background: 'linear-gradient(135deg, #ffffff 0%, #f8f6fc 100%)' }}>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Filter className="w-5 h-5 text-[#8159A8]" />
+                  <h3 className="text-lg font-semibold text-gray-800">Filter Tasks</h3>
+                  {(filterType !== 'all' || filterStatus !== 'all') && (
+                    <Badge variant="secondary" className="bg-[#8159A8]/10 text-[#8159A8] text-xs">
+                      {filteredTasks.length} filtered
+                    </Badge>
+                  )}
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowFilters(!showFilters)}
+                  className="text-[#8159A8] hover:bg-[#8159A8]/10"
+                >
+                  {showFilters ? 'Hide Filters' : 'Show Filters'}
+                </Button>
+              </div>
+            </CardHeader>
+            
+            {showFilters && (
+              <CardContent className="space-y-6 pt-0">
+                {/* Task Type Filters */}
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
+                    <Target className="w-4 h-4 mr-2 text-[#8159A8]" />
+                    Task Type
+                  </h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    <button
+                      onClick={() => setFilterType('all')}
+                      className={`relative p-3 rounded-lg border-2 transition-all duration-200 hover:shadow-md ${
+                        filterType === 'all' 
+                          ? 'border-[#8159A8] bg-[#8159A8]/5 shadow-md' 
+                          : 'border-gray-200 bg-white hover:border-[#8159A8]/30'
+                      }`}
+                    >
+                      <div className="flex flex-col items-center text-center">
+                        <div className={`w-6 h-6 rounded-md flex items-center justify-center mb-1 ${
+                          filterType === 'all' ? 'bg-[#8159A8] text-white' : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          📋
+                        </div>
+                        <span className={`text-xs font-medium ${
+                          filterType === 'all' ? 'text-[#8159A8]' : 'text-gray-700'
+                        }`}>
+                          All Tasks
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {tasks.length}
+                        </span>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() => setFilterType('daily')}
+                      className={`relative p-3 rounded-lg border-2 transition-all duration-200 hover:shadow-md ${
+                        filterType === 'daily' 
+                          ? 'border-[#8159A8] bg-[#8159A8]/5 shadow-md' 
+                          : 'border-gray-200 bg-white hover:border-[#8159A8]/30'
+                      }`}
+                    >
+                      <div className="flex flex-col items-center text-center">
+                        <div className={`w-6 h-6 rounded-md flex items-center justify-center mb-1 ${
+                          filterType === 'daily' ? 'bg-[#8159A8] text-white' : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          <Calendar className="w-3 h-3" />
+                        </div>
+                        <span className={`text-xs font-medium ${
+                          filterType === 'daily' ? 'text-[#8159A8]' : 'text-gray-700'
+                        }`}>
+                          Daily Tasks
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {tasks.filter(t => t.isRecurring && t.recurringPattern === 'daily').length}
+                        </span>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() => setFilterType('therapist')}
+                      className={`relative p-3 rounded-lg border-2 transition-all duration-200 hover:shadow-md ${
+                        filterType === 'therapist' 
+                          ? 'border-[#8159A8] bg-[#8159A8]/5 shadow-md' 
+                          : 'border-gray-200 bg-white hover:border-[#8159A8]/30'
+                      }`}
+                    >
+                      <div className="flex flex-col items-center text-center">
+                        <div className={`w-6 h-6 rounded-md flex items-center justify-center mb-1 ${
+                          filterType === 'therapist' ? 'bg-[#8159A8] text-white' : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          <User className="w-3 h-3" />
+                        </div>
+                        <span className={`text-xs font-medium ${
+                          filterType === 'therapist' ? 'text-[#8159A8]' : 'text-gray-700'
+                        }`}>
+                          Therapist Tasks
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {tasks.filter(t => !t.isRecurring || t.recurringPattern !== 'daily').length}
+                        </span>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() => setFilterType('weekly')}
+                      className={`relative p-3 rounded-lg border-2 transition-all duration-200 hover:shadow-md ${
+                        filterType === 'weekly' 
+                          ? 'border-[#8159A8] bg-[#8159A8]/5 shadow-md' 
+                          : 'border-gray-200 bg-white hover:border-[#8159A8]/30'
+                      }`}
+                    >
+                      <div className="flex flex-col items-center text-center">
+                        <div className={`w-6 h-6 rounded-md flex items-center justify-center mb-1 ${
+                          filterType === 'weekly' ? 'bg-[#8159A8] text-white' : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          <Target className="w-3 h-3" />
+                        </div>
+                        <span className={`text-xs font-medium ${
+                          filterType === 'weekly' ? 'text-[#8159A8]' : 'text-gray-700'
+                        }`}>
+                          Weekly Goals
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {tasks.filter(t => t.isRecurring && t.recurringPattern === 'weekly').length}
+                        </span>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Status Filters */}
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
+                    <Clock className="w-4 h-4 mr-2 text-[#8159A8]" />
+                    Task Status
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => setFilterStatus('all')}
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+                        filterStatus === 'all'
+                          ? 'bg-[#8159A8] text-white shadow-md'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      All Statuses ({tasks.length})
+                    </button>
+                    <button
+                      onClick={() => setFilterStatus('pending')}
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 flex items-center ${
+                        filterStatus === 'pending'
+                          ? 'bg-yellow-500 text-white shadow-md'
+                          : 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100 border border-yellow-200'
+                      }`}
+                    >
+                      <Clock className="w-3 h-3 mr-1" />
+                      Pending ({tasks.filter(t => t.status === 'PENDING' || t.status === 'IN_PROGRESS').length})
+                    </button>
+                    <button
+                      onClick={() => setFilterStatus('completed')}
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 flex items-center ${
+                        filterStatus === 'completed'
+                          ? 'bg-green-500 text-white shadow-md'
+                          : 'bg-green-50 text-green-700 hover:bg-green-100 border border-green-200'
+                      }`}
+                    >
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                      Completed ({tasks.filter(t => t.status === 'COMPLETED').length})
+                    </button>
+                    <button
+                      onClick={() => setFilterStatus('overdue')}
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 flex items-center ${
+                        filterStatus === 'overdue'
+                          ? 'bg-red-500 text-white shadow-md'
+                          : 'bg-red-50 text-red-700 hover:bg-red-100 border border-red-200'
+                      }`}
+                    >
+                      <AlertTriangle className="w-3 h-3 mr-1" />
+                      Overdue ({tasks.filter(t => t.status === 'OVERDUE' || isOverdue(t.dueDate)).length})
+                    </button>
+                  </div>
+                </div>
+
+                {/* Active Filters Summary */}
+                {(filterType !== 'all' || filterStatus !== 'all') && (
+                  <div className="pt-4 border-t border-gray-200">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm font-medium text-gray-700">Active filters:</span>
+                        {filterType !== 'all' && (
+                          <Badge variant="secondary" className="bg-[#8159A8]/10 text-[#8159A8]">
+                            {filterType === 'daily' ? 'Daily Tasks' :
+                             filterType === 'therapist' ? 'Therapist Tasks' :
+                             'Weekly Goals'}
+                          </Badge>
+                        )}
+                        {filterStatus !== 'all' && (
+                          <Badge variant="secondary" className="bg-[#8159A8]/10 text-[#8159A8]">
+                            {filterStatus.charAt(0).toUpperCase() + filterStatus.slice(1)}
+                          </Badge>
+                        )}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setFilterType('all');
+                          setFilterStatus('all');
+                        }}
+                        className="text-gray-500 hover:text-gray-700"
+                      >
+                        Clear all
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            )}
+          </Card>
         </div>
 
         {/* Summary Cards */}
@@ -217,81 +475,60 @@ export default function TasksPage() {
           </Card>
         </div>
 
-        {/* Daily Tasks */}
-        <Card className="mb-6">
+        {/* Filtered Tasks */}
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
-              <span>Daily Tasks</span>
-              <Badge variant="secondary">{dailyTasks.length} tasks</Badge>
+              <span>
+                {filterType === 'all' ? 'All Tasks' :
+                 filterType === 'daily' ? 'Daily Tasks' :
+                 filterType === 'therapist' ? 'Therapist Assigned Tasks' :
+                 'Weekly Goals'}
+              </span>
+              <Badge variant="secondary">{filteredTasks.length} tasks</Badge>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {dailyTasks.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">No daily tasks assigned</p>
-            ) : (
-              <div className="space-y-3">
-                {dailyTasks.map((task) => (
-                  <div key={task.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                        task.status === 'COMPLETED' ? 'bg-green-500' : 'bg-gray-300'
-                      }`}>
-                        {task.status === 'COMPLETED' && <CheckCircle className="w-4 h-4 text-white" />}
-                      </div>
-                      <div>
-                        <p className={`font-medium ${task.status === 'COMPLETED' ? 'line-through text-gray-500' : ''}`}>
-                          {task.title}
-                        </p>
-                        <p className="text-sm text-gray-600">Due: {formatDate(task.dueDate)}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Badge className={getStatusColor(task.status)}>
-                        {task.status.toLowerCase()}
-                      </Badge>
-                      {task.status !== 'COMPLETED' && (
-                        <Button
-                          size="sm"
-                          onClick={() => markTaskComplete(task.id)}
-                          className="bg-[#8159A8] hover:bg-[#8159A8]/90"
-                        >
-                          Mark Complete
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Therapist Assigned Tasks */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>Therapist Assigned Tasks</span>
-              <Badge variant="secondary">{therapistTasks.length} tasks</Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {therapistTasks.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">No therapist tasks assigned</p>
+            {filteredTasks.length === 0 ? (
+              <p className="text-gray-500 text-center py-4">No tasks match the current filters</p>
             ) : (
               <div className="space-y-4">
-                {therapistTasks.map((task) => (
-                  <div key={task.id} className="border border-gray-200 rounded-lg p-4">
+                {filteredTasks.map((task) => (
+                  <div key={task.id} className={`border rounded-lg p-4 ${
+                    task.isRecurring && task.recurringPattern === 'daily' ? 'bg-gray-50' :
+                    task.isRecurring && task.recurringPattern === 'weekly' ? 'bg-blue-50' :
+                    'border-gray-200'
+                  }`}>
                     <div className="flex items-start justify-between mb-2">
-                      <div className="flex-1">
-                        <h4 className={`font-semibold ${task.status === 'COMPLETED' ? 'line-through text-gray-500' : ''}`}>
-                          {task.title}
-                        </h4>
-                        <p className="text-sm text-gray-600 mt-1">{task.description}</p>
-                        {task.instructions && (
-                          <p className="text-sm text-blue-600 mt-2">
-                            <strong>Instructions:</strong> {task.instructions}
-                          </p>
-                        )}
+                      <div className="flex items-start space-x-3">
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center mt-1 ${
+                          task.status === 'COMPLETED' ? 'bg-green-500' : 'bg-gray-300'
+                        }`}>
+                          {task.status === 'COMPLETED' && <CheckCircle className="w-4 h-4 text-white" />}
+                        </div>
+                        <div className="flex-1">
+                          <h4 className={`font-semibold ${task.status === 'COMPLETED' ? 'line-through text-gray-500' : ''}`}>
+                            {task.title}
+                          </h4>
+                          {task.description && (
+                            <p className="text-sm text-gray-600 mt-1">{task.description}</p>
+                          )}
+                          {task.instructions && (
+                            <p className="text-sm text-blue-600 mt-2">
+                              <strong>Instructions:</strong> {task.instructions}
+                            </p>
+                          )}
+                          <div className="flex items-center space-x-4 mt-2">
+                            <p className="text-xs text-gray-500">
+                              Due: {formatDate(task.dueDate)}
+                            </p>
+                            {task.isRecurring && (
+                              <Badge variant="outline" className="text-xs">
+                                {task.recurringPattern}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
                       </div>
                       <div className="flex flex-col items-end space-y-2">
                         <Badge className={getStatusColor(task.status)}>
@@ -304,7 +541,7 @@ export default function TasksPage() {
                     </div>
                     <div className="flex items-center justify-between mt-3">
                       <p className="text-sm text-gray-500">
-                        Assigned: {formatDate(task.createdAt)} • Due: {formatDate(task.dueDate)}
+                        Assigned: {formatDate(task.createdAt)}
                       </p>
                       {task.status !== 'COMPLETED' && (
                         <Button
@@ -326,55 +563,6 @@ export default function TasksPage() {
                         </p>
                       </div>
                     )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Weekly Goals */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>Weekly Goals</span>
-              <Badge variant="secondary">{weeklyGoals.length} goals</Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {weeklyGoals.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">No weekly goals set</p>
-            ) : (
-              <div className="space-y-3">
-                {weeklyGoals.map((goal) => (
-                  <div key={goal.id} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                        goal.status === 'COMPLETED' ? 'bg-blue-500' : 'bg-gray-300'
-                      }`}>
-                        {goal.status === 'COMPLETED' && <CheckCircle className="w-4 h-4 text-white" />}
-                      </div>
-                      <div>
-                        <p className={`font-medium ${goal.status === 'COMPLETED' ? 'line-through text-gray-500' : ''}`}>
-                          {goal.title}
-                        </p>
-                        <p className="text-sm text-gray-600">{goal.description}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Badge className={getStatusColor(goal.status)}>
-                        {goal.status.toLowerCase()}
-                      </Badge>
-                      {goal.status !== 'COMPLETED' && (
-                        <Button
-                          size="sm"
-                          onClick={() => markTaskComplete(goal.id)}
-                          className="bg-[#8159A8] hover:bg-[#8159A8]/90"
-                        >
-                          Mark Complete
-                        </Button>
-                      )}
-                    </div>
                   </div>
                 ))}
               </div>
