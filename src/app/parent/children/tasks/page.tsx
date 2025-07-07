@@ -103,12 +103,6 @@ export default function TasksPage() {
     }
   };
 
-  const getPriorityColor = (priority: number) => {
-    if (priority >= 3) return 'text-red-600';
-    if (priority === 2) return 'text-yellow-600';
-    return 'text-green-600';
-  };
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
@@ -156,6 +150,9 @@ export default function TasksPage() {
       );
     }
 
+    // Sort by priority (higher priority first)
+    filteredTasks.sort((a, b) => b.priority - a.priority);
+
     return filteredTasks;
   };
 
@@ -187,7 +184,14 @@ export default function TasksPage() {
   }
 
   return (
-    <div className="" >
+    <div className="">
+      <style jsx>{`
+        @keyframes draw {
+          to {
+            stroke-dashoffset: 0;
+          }
+        }
+      `}</style>
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Header */}
         <div className="mb-6">
@@ -500,10 +504,37 @@ export default function TasksPage() {
                   }`}>
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-start space-x-3">
-                        <div className={`w-6 h-6 rounded-full flex items-center justify-center mt-1 ${
-                          task.status === 'COMPLETED' ? 'bg-green-500' : 'bg-gray-300'
-                        }`}>
-                          {task.status === 'COMPLETED' && <CheckCircle className="w-4 h-4 text-white" />}
+                        <div className="flex items-center mt-1 relative">
+                          <input
+                            type="radio"
+                            checked={task.status === 'COMPLETED'}
+                            onChange={() => task.status !== 'COMPLETED' && markTaskComplete(task.id)}
+                            disabled={task.status === 'COMPLETED'}
+                            className={`w-5 h-5 rounded-full transition-all duration-300 ${
+                              task.status === 'COMPLETED' 
+                                ? 'bg-green-500 border-green-500 cursor-not-allowed' 
+                                : 'border-2 border-gray-300 hover:border-[#8159A8] cursor-pointer'
+                            } ${task.status === 'COMPLETED' ? 'accent-green-500' : 'accent-[#8159A8]'}`}
+                          />
+                          {task.status === 'COMPLETED' && (
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none">
+                                <path
+                                  d="M20 6L9 17L4 12"
+                                  stroke="#22c55e"
+                                  strokeWidth="3"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  className="animate-[draw_0.6s_ease-in-out_forwards]"
+                                  style={{
+                                    strokeDasharray: '20',
+                                    strokeDashoffset: '20',
+                                    animation: 'draw 0.6s ease-in-out forwards'
+                                  }}
+                                />
+                              </svg>
+                            </div>
+                          )}
                         </div>
                         <div className="flex-1">
                           <h4 className={`font-semibold ${task.status === 'COMPLETED' ? 'line-through text-gray-500' : ''}`}>
@@ -533,24 +564,12 @@ export default function TasksPage() {
                         <Badge className={getStatusColor(task.status)}>
                           {task.status.toLowerCase()}
                         </Badge>
-                        <span className={`text-sm ${getPriorityColor(task.priority)}`}>
-                          Priority: {task.priority}
-                        </span>
                       </div>
                     </div>
                     <div className="flex items-center justify-between mt-3">
                       <p className="text-sm text-gray-500">
                         Assigned: {formatDate(task.createdAt)}
                       </p>
-                      {task.status !== 'COMPLETED' && (
-                        <Button
-                          size="sm"
-                          onClick={() => markTaskComplete(task.id)}
-                          className="bg-[#8159A8] hover:bg-[#8159A8]/90"
-                        >
-                          Mark Complete
-                        </Button>
-                      )}
                     </div>
                     {task.completedAt && task.completionNotes && (
                       <div className="mt-3 p-2 bg-green-50 rounded border-l-4 border-green-400">
