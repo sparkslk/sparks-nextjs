@@ -211,30 +211,29 @@ export default function TasksPage() {
 
         {/* Filter Section */}
         <div className="mb-6">
-          <Card className="shadow-lg border-0" style={{ background: 'linear-gradient(135deg, #ffffff 0%, #f8f6fc 100%)' }}>
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Filter className="w-5 h-5 text-[#8159A8]" />
-                  <h3 className="text-lg font-semibold text-gray-800">Filter Tasks</h3>
-                  {(filterType !== 'all' || filterStatus !== 'all') && (
-                    <Badge variant="secondary" className="bg-[#8159A8]/10 text-[#8159A8] text-xs">
-                      {filteredTasks.length} filtered
-                    </Badge>
-                  )}
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowFilters(!showFilters)}
-                  className="text-[#8159A8] hover:bg-[#8159A8]/10"
-                >
-                  {showFilters ? 'Hide Filters' : 'Show Filters'}
-                </Button>
-              </div>
-            </CardHeader>
-            
-            {showFilters && (
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowFilters(!showFilters)}
+                className="flex items-center space-x-2 border-[#8159A8] text-[#8159A8] hover:bg-[#8159A8]/10 shadow-sm"
+              >
+                <Filter className="w-4 h-4" />
+                <span>Filters</span>
+              </Button>
+              {(filterType !== 'all' || filterStatus !== 'all') && (
+                <Badge variant="secondary" className="bg-[#8159A8]/10 text-[#8159A8] text-xs">
+                  {filteredTasks.length} filtered
+                </Badge>
+              )}
+            </div>
+          </div>
+          
+          {showFilters && (
+            <Card className="shadow-lg border-0 mb-4" style={{ background: 'linear-gradient(135deg, #ffffff 0%, #f8f6fc 100%)' }}>
+              <CardHeader className="pb-2">
+                <h3 className="text-lg font-semibold text-gray-800">Filter Options</h3>
+              </CardHeader>
               <CardContent className="space-y-6 pt-0">
                 {/* Task Type Filters */}
                 <div>
@@ -432,8 +431,8 @@ export default function TasksPage() {
                   </div>
                 )}
               </CardContent>
-            )}
-          </Card>
+            </Card>
+          )}
         </div>
 
         {/* Summary Cards */}
