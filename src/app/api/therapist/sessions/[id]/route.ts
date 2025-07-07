@@ -123,12 +123,14 @@ export async function GET(
             duration: therapySession.duration,
             type: therapySession.type,
             status: therapySession.status,
-            location: therapySession.location,
-            notes: therapySession.notes,
-            objectives: therapySession.objectives,
-            patientMood: therapySession.patientMood,
-            engagement: therapySession.engagement,
-            progressNotes: therapySession.progressNotes,
+            // Clinical documentation fields from the schema (using type assertion for now)
+            attendanceStatus: (therapySession as any).attendanceStatus,
+            overallProgress: (therapySession as any).overallProgress,
+            patientEngagement: (therapySession as any).patientEngagement,
+            riskAssessment: (therapySession as any).riskAssessment,
+            primaryFocusAreas: (therapySession as any).primaryFocusAreas,
+            sessionNotes: (therapySession as any).sessionNotes,
+            nextSessionGoals: (therapySession as any).nextSessionGoals,
             patient: {
                 id: therapySession.patient.id,
                 firstName: therapySession.patient.firstName,
@@ -156,6 +158,152 @@ export async function GET(
             return error;
         }
         console.error("Error fetching session details:", error);
+        return NextResponse.json(
+            { error: "Internal server error" },
+            { status: 500 }
+        );
+    }
+}
+
+export async function PUT(
+    request: NextRequest,
+    { params }: { params: { id: string } }
+) {
+    try {
+        const session = await requireApiAuth(request, ['THERAPIST']);
+
+        // Get therapist profile
+        const user = await prisma.user.findUnique({
+            where: { id: session.user.id },
+            include: { therapistProfile: true }
+        });
+
+        if (!user?.therapistProfile) {
+            return NextResponse.json(
+                { error: "Therapist profile not found" },
+                { status: 404 }
+            );
+        }
+
+        const sessionId = params.id;
+
+        // Verify the session belongs to this therapist
+        const existingSession = await prisma.therapySession.findFirst({
+            where: {
+                id: sessionId,
+                therapistId: user.therapistProfile.id
+            }
+        });
+
+        if (!existingSession) {
+            return NextResponse.json(
+                { error: "Session not found or not authorized" },
+                { status: 404 }
+            );
+        }
+
+        const {
+            attendanceStatus,
+            overallProgress,
+            patientEngagement,
+            riskAssessment,
+            focusAreas,
+            sessionNotes,
+            nextSessionGoals,
+            saveOnly
+        } = await request.json();
+
+        // Update the therapy session with new documentation
+        const updatedSession = await prisma.therapySession.update({
+            where: { id: sessionId },
+            data: {
+                // Clinical documentation fields
+                ...(attendanceStatus && { attendanceStatus: attendanceStatus as any }),
+                ...(overallProgress && { overallProgress: overallProgress as any }),
+                ...(patientEngagement && { patientEngagement: patientEngagement as any }),
+                ...(riskAssessment && { riskAssessment: riskAssessment as any }),
+                primaryFocusAreas: focusAreas || [],
+                ...(sessionNotes && { sessionNotes: sessionNotes }),
+                ...(nextSessionGoals && { nextSessionGoals: nextSessionGoals }),
+                // Only update status if not saving only
+                ...(!saveOnly && {
+                    // Update status based on attendance if needed
+                    ...(attendanceStatus === "NO_SHOW" && { status: "NO_SHOW" }),
+                    ...(attendanceStatus === "CANCELLED" && { status: "CANCELLED" }),
+                    // Mark as completed if session is documented and attendance was present or late
+                    ...((attendanceStatus === "PRESENT" || attendanceStatus === "LATE") && { status: "COMPLETED" })
+                }),
+                updatedAt: new Date()
+            }
+        });
+
+        // Create a session assessment record for clinical documentation
+        await prisma.assessment.create({
+            data: {
+                patientId: existingSession.patientId,
+                therapistId: user.therapistProfile.id,
+                assessmentDate: new Date(),
+                type: "PROGRESS",
+                title: "Session Documentation",
+                description: `Session documentation from ${new Date().toLocaleDateString()}`,
+                // Store clinical assessment data as JSON in questions field
+                questions: JSON.stringify({
+                    attendanceStatus,
+                    overallProgress,
+                    patientEngagement,
+                    riskAssessment,
+                    focusAreas,
+                    sessionNotes,
+                    nextSessionGoals,
+                    sessionId: sessionId
+                }),
+                // Store responses as empty for this type of assessment
+                responses: JSON.stringify({
+                    documented: true,
+                    documentedAt: new Date().toISOString()
+                })
+            }
+        });
+
+        // Get updated session with patient info for response
+        const sessionWithPatient = await prisma.therapySession.findUnique({
+            where: { id: sessionId },
+            include: {
+                patient: {
+                    select: {
+                        firstName: true,
+                        lastName: true
+                    }
+                }
+            }
+        });
+
+        return NextResponse.json(
+            {
+                message: saveOnly ? "Session documentation saved successfully" : "Session documented and marked as completed",
+                session: {
+                    id: sessionWithPatient!.id,
+                    patientName: `${sessionWithPatient!.patient.firstName} ${sessionWithPatient!.patient.lastName}`,
+                    scheduledAt: sessionWithPatient!.scheduledAt,
+                    status: sessionWithPatient!.status,
+                    // Include clinical documentation fields in response
+                    attendanceStatus: (sessionWithPatient as any).attendanceStatus,
+                    overallProgress: (sessionWithPatient as any).overallProgress,
+                    patientEngagement: (sessionWithPatient as any).patientEngagement,
+                    riskAssessment: (sessionWithPatient as any).riskAssessment,
+                    primaryFocusAreas: (sessionWithPatient as any).primaryFocusAreas,
+                    sessionNotes: (sessionWithPatient as any).sessionNotes,
+                    nextSessionGoals: (sessionWithPatient as any).nextSessionGoals
+                }
+            },
+            { status: 200 }
+        );
+    } catch (error) {
+        // Handle authentication/authorization errors
+        if (error instanceof NextResponse) {
+            return error;
+        }
+        console.error("Error updating session:", error);
         return NextResponse.json(
             { error: "Internal server error" },
             { status: 500 }
