@@ -46,16 +46,18 @@ export default function AppointmentCard({
       <CardHeader className="pb-3 px-3 sm:px-6">
         <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-0">
           <div className="flex items-center space-x-3">
-            <div className="relative">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg" style={{ backgroundColor: '#8159A8' }}>
-                <span className="font-bold text-white text-sm">
-                  {child.firstName?.[0]?.toUpperCase()}{child.lastName?.[0]?.toUpperCase()}
-                </span>
+            {child.id !== "all" && (
+              <div className="relative">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg" style={{ backgroundColor: '#8159A8' }}>
+                  <span className="font-bold text-white text-sm">
+                    {child.firstName?.[0]?.toUpperCase()}{child.lastName?.[0]?.toUpperCase()}
+                  </span>
+                </div>
+                {isHighlighted && (
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-purple-500 rounded-full animate-pulse"></div>
+                )}
               </div>
-              {isHighlighted && (
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-purple-500 rounded-full animate-pulse"></div>
-              )}
-            </div>
+            )}
             <div>
               <CardTitle className="text-base sm:text-lg font-bold text-gray-900">
                 {child.firstName} {child.lastName}

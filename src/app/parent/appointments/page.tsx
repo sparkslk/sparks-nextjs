@@ -6,6 +6,8 @@ import AppointmentCard from "@/components/parent/appointments/AppointmentCard";
 import TherapistModal from "@/components/parent/appointments/TherapistModal";
 import EmptyState from "@/components/parent/appointments/EmptyState";
 import { Child, Appointment } from "@/types/appointments";
+// import { Select } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
 export default function AppointmentsPage() {
   const [children, setChildren] = useState<Child[]>([]);
@@ -16,6 +18,7 @@ export default function AppointmentsPage() {
   const [showTherapistModal, setShowTherapistModal] = useState(false);
   const [highlightedChildId, setHighlightedChildId] = useState<string | null>(null);
   const [showZoomedCard, setShowZoomedCard] = useState(false);
+  const [selectedChildId, setSelectedChildId] = useState<string | "all">("all");
 
   useEffect(() => {
     fetchData();
@@ -154,14 +157,43 @@ export default function AppointmentsPage() {
           upcomingSessionsCount={appointments.filter(apt => ['APPROVED', 'REQUESTED'].includes(apt.status)).length}
         />
 
-        {/* Children Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-          {children.map((child) => {
+        {/* Child Selection Dropdown */}
+        <div className="mb-6 flex flex-col sm:flex-row items-center gap-4">
+          <Label htmlFor="child-select" className="text-sm font-medium text-gray-700">Select Child:</Label>
+          <select
+            id="child-select"
+            className="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-400"
+            value={selectedChildId}
+            onChange={e => setSelectedChildId(e.target.value)}
+          >
+            <option value="all">All Appoinments</option>
+            {children.map(child => (
+              <option key={child.id} value={child.id}>
+                {child.firstName} {child.lastName}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Appointment Card(s) */}
+        {selectedChildId === "all" ? (
+          <AppointmentCard
+            key="all"
+            child={{ id: "all", firstName: "All", lastName: "Children", therapist: null }}
+            upcomingAppointments={appointments.filter(apt => ['APPROVED', 'REQUESTED'].includes(apt.status))}
+            pastAppointments={appointments.filter(apt => apt.status === 'COMPLETED')}
+            cancelledAppointments={appointments.filter(apt => apt.status === 'CANCELLED')}
+            onTherapistClick={() => {}}
+            formatDate={formatDate}
+            isHighlighted={false}
+          />
+        ) : (
+          (() => {
+            const child = children.find(c => c.id === selectedChildId);
+            if (!child) return null;
             const upcomingAppointments = getChildAppointments(child.id, ['APPROVED', 'REQUESTED']);
-            console.log(`Upcoming appointments for child ${child.id}:`, upcomingAppointments);
             const pastAppointments = getChildAppointments(child.id, ['COMPLETED']);
             const cancelledAppointments = getChildAppointments(child.id, ['CANCELLED']);
-
             return (
               <AppointmentCard
                 key={child.id}
@@ -170,7 +202,6 @@ export default function AppointmentsPage() {
                 pastAppointments={pastAppointments}
                 cancelledAppointments={cancelledAppointments}
                 onTherapistClick={(therapist) => {
-                  console.log("Clicked therapist:", therapist);
                   setSelectedTherapist(therapist);
                   setShowTherapistModal(true);
                 }}
@@ -178,8 +209,8 @@ export default function AppointmentsPage() {
                 isHighlighted={child.id === highlightedChildId && !showZoomedCard}
               />
             );
-          })}
-        </div>
+          })()
+        )}
 
         {children.length === 0 && <EmptyState type="no-children" />}
       </div>
