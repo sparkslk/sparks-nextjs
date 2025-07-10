@@ -8,8 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
-import { Calendar, Clock, User, FileText, Pill, CheckSquare, Plus, Trash2, Save } from "lucide-react";
+import { Calendar, Clock, User, FileText, CheckSquare, Save, AlertTriangle, Target } from "lucide-react";
 import { format } from "date-fns";
 
 interface Session {
@@ -20,28 +22,15 @@ interface Session {
   duration: number;
   type: string;
   status: string;
-  location?: string;
-  notes?: string;
-  objectives: string[];
-  patientMood?: number;
-  engagement?: number;
-  progressNotes?: string;
-}
-
-interface Medication {
-  id?: string;
-  name: string;
-  dosage: string;
-  frequency: string;
-  instructions?: string;
-}
-
-interface Task {
-  id?: string;
-  title: string;
-  description: string;
-  dueDate?: string;
-  priority: 'low' | 'medium' | 'high';
+  
+  // Clinical documentation fields
+  attendanceStatus?: string;
+  overallProgress?: string;
+  patientEngagement?: string;
+  riskAssessment?: string;
+  primaryFocusAreas?: string[];
+  sessionNotes?: string;
+  nextSessionGoals?: string;
 }
 
 interface SessionUpdateModalProps {
@@ -52,70 +41,171 @@ interface SessionUpdateModalProps {
 }
 
 export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated }: SessionUpdateModalProps) {
+  // Clinical Documentation Fields
+  const [attendanceStatus, setAttendanceStatus] = useState("");
+  const [overallProgress, setOverallProgress] = useState("");
+  const [patientEngagement, setPatientEngagement] = useState("");
+  const [riskAssessment, setRiskAssessment] = useState("");
+  const [focusAreas, setFocusAreas] = useState<string[]>([]);
   const [sessionNotes, setSessionNotes] = useState("");
-  const [progressNotes, setProgressNotes] = useState("");
-  const [patientMood, setPatientMood] = useState<number[]>([5]);
-  const [engagement, setEngagement] = useState<number[]>([5]);
-  const [medications, setMedications] = useState<Medication[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [nextSessionGoals, setNextSessionGoals] = useState("");
+  
+  // Form state
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [loadingSessionDetails, setLoadingSessionDetails] = useState(false);
+  const [detailedSession, setDetailedSession] = useState<Session | null>(null);
+
+  // Focus areas options
+  const focusAreaOptions = [
+    "Anxiety Management",
+    "Depression Treatment", 
+    "Behavioral Interventions",
+    "Cognitive Restructuring",
+    "Social Skills",
+    "Communication Skills",
+    "Emotional Regulation",
+    "Stress Management",
+    "Trauma Processing",
+    "Mindfulness/Relaxation",
+    "Goal Setting",
+    "Medication Compliance"
+  ];
 
   useEffect(() => {
-    if (session) {
-      setSessionNotes(session.notes || "");
-      setProgressNotes(session.progressNotes || "");
-      setPatientMood([session.patientMood || 5]);
-      setEngagement([session.engagement || 5]);
-      // Initialize empty arrays for medications and tasks
-      setMedications([]);
-      setTasks([]);
+    if (session && isOpen) {
+      // Reset states when session changes
+      setSubmitError(null);
+      setSubmitSuccess(false);
+      setDetailedSession(null);
+      
+      // Try to fetch detailed session data, but fallback gracefully if it fails
+      fetchSessionDetails();
     }
-  }, [session]);
+  }, [session, isOpen]);
 
-  const addMedication = () => {
-    setMedications([...medications, { name: "", dosage: "", frequency: "" }]);
+  const fetchSessionDetails = async () => {
+    if (!session) return;
+    
+    setLoadingSessionDetails(true);
+    try {
+      const response = await fetch(`/api/therapist/sessions/${session.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        const sessionData = data.session;
+        setDetailedSession(sessionData);
+        
+        // Initialize clinical documentation fields - use DB values if they exist, otherwise use empty strings for placeholders
+        // Important: Use nullish coalescing (??) to only use empty strings when field is null/undefined
+        // This preserves actual database values including existing enum values
+        const newAttendanceStatus = sessionData.attendanceStatus ?? "";
+        const newOverallProgress = sessionData.overallProgress ?? "";
+        const newPatientEngagement = sessionData.patientEngagement ?? "";
+        const newRiskAssessment = sessionData.riskAssessment ?? "";
+        const newFocusAreas = sessionData.primaryFocusAreas ?? [];
+        const newSessionNotes = sessionData.sessionNotes ?? (sessionData.notes || "");
+        const newNextSessionGoals = sessionData.nextSessionGoals ?? "";
+        
+        // Debug log to check what's being received from API
+        console.log("Session data from API:", {
+          attendanceStatus: sessionData.attendanceStatus,
+          overallProgress: sessionData.overallProgress,
+          patientEngagement: sessionData.patientEngagement,
+          riskAssessment: sessionData.riskAssessment,
+          primaryFocusAreas: sessionData.primaryFocusAreas,
+          sessionNotes: sessionData.sessionNotes,
+          nextSessionGoals: sessionData.nextSessionGoals
+        });
+        
+        // Debug log to check what values are being set
+        console.log("Values being set in modal:", {
+          newAttendanceStatus,
+          newOverallProgress,
+          newPatientEngagement,
+          newRiskAssessment,
+          newFocusAreas,
+          newSessionNotes,
+          newNextSessionGoals
+        });
+        
+        setAttendanceStatus(newAttendanceStatus);
+        setOverallProgress(newOverallProgress);
+        setPatientEngagement(newPatientEngagement);
+        setRiskAssessment(newRiskAssessment);
+        setFocusAreas(newFocusAreas);
+        setSessionNotes(newSessionNotes);
+        setNextSessionGoals(newNextSessionGoals);
+      } else {
+        console.error('Failed to fetch session details');
+        // Fallback: Initialize with defaults if API fails
+        initializeWithDefaults();
+      }
+    } catch (error) {
+      console.error('Error fetching session details:', error);
+      // Fallback: Initialize with defaults if API fails
+      initializeWithDefaults();
+    } finally {
+      setLoadingSessionDetails(false);
+    }
   };
 
-  const updateMedication = (index: number, field: keyof Medication, value: string) => {
-    const updatedMedications = [...medications];
-    updatedMedications[index] = { ...updatedMedications[index], [field]: value };
-    setMedications(updatedMedications);
+  const initializeWithDefaults = () => {
+    // Use basic session data if available, otherwise use empty strings for placeholders
+    // Use nullish coalescing to preserve actual database values
+    setAttendanceStatus(session?.attendanceStatus ?? "");
+    setOverallProgress(session?.overallProgress ?? "");
+    setPatientEngagement(session?.patientEngagement ?? "");
+    setRiskAssessment(session?.riskAssessment ?? "");
+    setFocusAreas(session?.primaryFocusAreas ?? []);
+    setSessionNotes(session?.sessionNotes ?? "");
+    setNextSessionGoals(session?.nextSessionGoals ?? "");
+    // Clear the error since we're using fallback
+    setSubmitError(null);
   };
 
-  const removeMedication = (index: number) => {
-    setMedications(medications.filter((_, i) => i !== index));
+  const toggleFocusArea = (area: string) => {
+    setFocusAreas(prev => {
+      if (prev.includes(area)) {
+        return prev.filter(item => item !== area);
+      } else {
+        // Limit to 3 focus areas max
+        if (prev.length >= 3) {
+          return [...prev.slice(1), area];
+        }
+        return [...prev, area];
+      }
+    });
   };
 
-  const addTask = () => {
-    setTasks([...tasks, { title: "", description: "", priority: "medium" }]);
-  };
-
-  const updateTask = (index: number, field: keyof Task, value: string) => {
-    const updatedTasks = [...tasks];
-    updatedTasks[index] = { ...updatedTasks[index], [field]: value };
-    setTasks(updatedTasks);
-  };
-
-  const removeTask = (index: number) => {
-    setTasks(tasks.filter((_, i) => i !== index));
-  };
-
-  const handleSubmit = async () => {
+  const handleSubmit = async (saveOnly = false) => {
     if (!session) return;
 
+    // Validate required fields
+    if (!attendanceStatus) {
+      setSubmitError('Please select an attendance status');
+      return;
+    }
+
     setIsSubmitting(true);
+    setSubmitError(null);
+    setSubmitSuccess(false);
+    
     try {
       const updateData = {
         sessionId: session.id,
-        notes: sessionNotes,
-        progressNotes,
-        patientMood: patientMood[0],
-        engagement: engagement[0],
-        medications: medications.filter(med => med.name && med.dosage),
-        tasks: tasks.filter(task => task.title && task.description),
+        // Clinical documentation fields - send only if they have values
+        attendanceStatus,
+        overallProgress: overallProgress || null,
+        patientEngagement: patientEngagement || null,
+        riskAssessment: riskAssessment || null,
+        focusAreas,
+        sessionNotes: sessionNotes || null,
+        nextSessionGoals: nextSessionGoals || null,
+        saveOnly // Pass the save mode to the API
       };
 
-      const response = await fetch(`/api/therapist/sessions/${session.id}/update`, {
+      const response = await fetch(`/api/therapist/sessions/${session.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -124,13 +214,26 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
       });
 
       if (response.ok) {
+        setSubmitSuccess(true);
         onSessionUpdated();
-        onClose();
+        // Close modal after a brief delay to show success message, only if marking as completed
+        if (!saveOnly) {
+          setTimeout(() => {
+            onClose();
+          }, 1500);
+        } else {
+          // For save only, close after shorter delay or let user manually close
+          setTimeout(() => {
+            setSubmitSuccess(false);
+          }, 2000);
+        }
       } else {
-        console.error('Failed to update session');
+        const errorData = await response.json();
+        setSubmitError(errorData.error || 'Failed to update session');
       }
     } catch (error) {
       console.error('Error updating session:', error);
+      setSubmitError('Network error occurred. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -138,17 +241,25 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
 
   if (!session) return null;
 
+  const currentSession = detailedSession || session;
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="w-5 h-5" />
-            Update Session - {session.patientName}
+            Document Session - {currentSession.patientName}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
+        {loadingSessionDetails ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <span className="ml-2">Loading session details...</span>
+          </div>
+        ) : (
+          <div className="space-y-6">
           {/* Session Info */}
           <Card>
             <CardHeader>
@@ -158,22 +269,166 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4" />
-                  <span>{format(new Date(session.scheduledAt), "MMM dd, yyyy")}</span>
+                  <span>{format(new Date(currentSession.scheduledAt), "MMM dd, yyyy")}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Clock className="w-4 h-4" />
-                  <span>{format(new Date(session.scheduledAt), "hh:mm a")} ({session.duration} min)</span>
+                  <span>{format(new Date(currentSession.scheduledAt), "hh:mm a")} ({currentSession.duration} min)</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <User className="w-4 h-4" />
-                  <span>{session.type}</span>
+                  <span>{currentSession.type}</span>
                 </div>
                 <div>
                   <Badge className="bg-blue-100 text-blue-800">
-                    {session.status}
+                    {currentSession.status}
                   </Badge>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Clinical Documentation */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center justify-between">
+                Clinical Documentation
+                {detailedSession && (
+                  <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                    Data loaded from database
+                  </span>
+                )}
+              </CardTitle>
+              <p className="text-sm text-gray-600">
+                <span className="text-red-500">*</span> Required fields. Other fields are optional.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-2 gap-6">
+                {/* Attendance Status */}
+                <div>
+                  <Label htmlFor="attendanceStatus">
+                    Attendance Status <span className="text-red-500">*</span>
+                  </Label>
+                  <Select value={attendanceStatus} onValueChange={setAttendanceStatus}>
+                    <SelectTrigger className={`mt-1 ${!attendanceStatus ? 'border-red-200' : ''}`}>
+                      <SelectValue placeholder="Select attendance status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="PRESENT">Present</SelectItem>
+                      <SelectItem value="LATE">Late</SelectItem>
+                      <SelectItem value="NO_SHOW">No Show</SelectItem>
+                      <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {!attendanceStatus && (
+                    <p className="text-xs text-red-500 mt-1">This field is required</p>
+                  )}
+                </div>
+
+                {/* Overall Progress */}
+                <div>
+                  <Label htmlFor="overallProgress">Overall Progress</Label>
+                  <Select value={overallProgress} onValueChange={setOverallProgress}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select overall progress" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="EXCELLENT">Excellent</SelectItem>
+                      <SelectItem value="GOOD">Good</SelectItem>
+                      <SelectItem value="FAIR">Fair</SelectItem>
+                      <SelectItem value="POOR">Poor</SelectItem>
+                      <SelectItem value="CONCERNING">Concerning</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Patient Engagement */}
+                <div>
+                  <Label htmlFor="patientEngagement">Patient Engagement</Label>
+                  <Select value={patientEngagement} onValueChange={setPatientEngagement}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select patient engagement level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="HIGH">High</SelectItem>
+                      <SelectItem value="MEDIUM">Medium</SelectItem>
+                      <SelectItem value="LOW">Low</SelectItem>
+                      <SelectItem value="RESISTANT">Resistant</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Risk Assessment */}
+                <div>
+                  <Label htmlFor="riskAssessment" className="flex items-center gap-2">
+                    <AlertTriangle className={`w-4 h-4 ${
+                      riskAssessment === 'HIGH' ? 'text-red-500' : 
+                      riskAssessment === 'MEDIUM' ? 'text-orange-500' : 
+                      riskAssessment === 'LOW' ? 'text-yellow-500' : 'text-gray-400'
+                    }`} />
+                    Risk Assessment
+                  </Label>
+                  <Select value={riskAssessment} onValueChange={setRiskAssessment}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select risk assessment level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="NONE">None</SelectItem>
+                      <SelectItem value="LOW">Low</SelectItem>
+                      <SelectItem value="MEDIUM">Medium</SelectItem>
+                      <SelectItem value="HIGH">High</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {riskAssessment !== 'NONE' && riskAssessment !== '' && (
+                    <p className="text-xs text-gray-600 mt-1">
+                      {riskAssessment === 'HIGH' && '⚠️ High risk - Immediate attention may be required'}
+                      {riskAssessment === 'MEDIUM' && '⚠️ Medium risk - Monitor closely and follow up'}
+                      {riskAssessment === 'LOW' && 'ℹ️ Low risk - Minimal risk identified'}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Primary Focus Areas */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Target className="w-5 h-5" />
+                Primary Focus Areas
+              </CardTitle>
+              <p className="text-sm text-gray-600">Select 2-3 key areas addressed in this session</p>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-3">
+                {focusAreaOptions.map((area) => (
+                  <div key={area} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={area}
+                      checked={focusAreas.includes(area)}
+                      onCheckedChange={() => toggleFocusArea(area)}
+                      disabled={!focusAreas.includes(area) && focusAreas.length >= 3}
+                    />
+                    <Label htmlFor={area} className="text-sm cursor-pointer">
+                      {area}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+              {focusAreas.length > 0 && (
+                <div className="mt-4">
+                  <p className="text-sm font-medium">Selected Focus Areas:</p>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {focusAreas.map((area) => (
+                      <Badge key={area} variant="secondary" className="text-xs">
+                        {area}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -184,253 +439,85 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="sessionNotes">Session Notes</Label>
+                <Label htmlFor="sessionNotes">Brief Observations and Mood Assessment</Label>
                 <Textarea
                   id="sessionNotes"
                   value={sessionNotes}
                   onChange={(e) => setSessionNotes(e.target.value)}
-                  placeholder="Enter session notes, observations, and key points discussed..."
+                  placeholder="Document key observations, patient mood, significant topics discussed, and clinical insights..."
                   className="min-h-[120px]"
                 />
               </div>
               <div>
-                <Label htmlFor="progressNotes">Progress Notes</Label>
+                <Label htmlFor="nextSessionGoals">Next Session Goals</Label>
                 <Textarea
-                  id="progressNotes"
-                  value={progressNotes}
-                  onChange={(e) => setProgressNotes(e.target.value)}
-                  placeholder="Document patient progress, improvements, and areas of concern..."
+                  id="nextSessionGoals"
+                  value={nextSessionGoals}
+                  onChange={(e) => setNextSessionGoals(e.target.value)}
+                  placeholder="Outline focus areas and goals for the upcoming session..."
                   className="min-h-[100px]"
                 />
               </div>
             </CardContent>
           </Card>
 
-          {/* Assessment */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Session Assessment</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div>
-                <Label className="flex items-center justify-between">
-                  Patient Mood
-                  <span className="text-sm text-gray-500">{patientMood[0]}/10</span>
-                </Label>
-                <Slider
-                  value={patientMood}
-                  onValueChange={setPatientMood}
-                  max={10}
-                  min={1}
-                  step={1}
-                  className="mt-2"
-                />
-                <div className="flex justify-between text-xs text-gray-500 mt-1">
-                  <span>Very Low</span>
-                  <span>Excellent</span>
-                </div>
+          {/* Success/Error Messages */}
+          {submitSuccess && (
+            <div className="bg-green-50 border border-green-200 rounded-md p-4">
+              <div className="flex items-center">
+                <CheckSquare className="w-5 h-5 text-green-600 mr-2" />
+                <p className="text-green-800 font-medium">Session documentation saved successfully!</p>
               </div>
-              <div>
-                <Label className="flex items-center justify-between">
-                  Patient Engagement
-                  <span className="text-sm text-gray-500">{engagement[0]}/10</span>
-                </Label>
-                <Slider
-                  value={engagement}
-                  onValueChange={setEngagement}
-                  max={10}
-                  min={1}
-                  step={1}
-                  className="mt-2"
-                />
-                <div className="flex justify-between text-xs text-gray-500 mt-1">
-                  <span>Very Low</span>
-                  <span>Highly Engaged</span>
-                </div>
+            </div>
+          )}
+          
+          {submitError && (
+            <div className="bg-red-50 border border-red-200 rounded-md p-4">
+              <div className="flex items-center">
+                <AlertTriangle className="w-5 h-5 text-red-600 mr-2" />
+                <p className="text-red-800 font-medium">{submitError}</p>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Medications */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center justify-between">
-                <span className="flex items-center gap-2">
-                  <Pill className="w-5 h-5" />
-                  Medications
-                </span>
-                <Button variant="outline" size="sm" onClick={addMedication}>
-                  <Plus className="w-4 h-4 mr-1" />
-                  Add Medication
-                </Button>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {medications.length === 0 ? (
-                <p className="text-gray-500 text-center py-4">No medications added yet.</p>
-              ) : (
-                <div className="space-y-4">
-                  {medications.map((medication, index) => (
-                    <div key={index} className="border rounded-lg p-4">
-                      <div className="grid grid-cols-2 gap-4 mb-3">
-                        <div>
-                          <Label htmlFor={`med-name-${index}`}>Medication Name</Label>
-                          <Input
-                            id={`med-name-${index}`}
-                            value={medication.name}
-                            onChange={(e) => updateMedication(index, 'name', e.target.value)}
-                            placeholder="e.g., Sertraline"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor={`med-dosage-${index}`}>Dosage</Label>
-                          <Input
-                            id={`med-dosage-${index}`}
-                            value={medication.dosage}
-                            onChange={(e) => updateMedication(index, 'dosage', e.target.value)}
-                            placeholder="e.g., 50mg"
-                          />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor={`med-frequency-${index}`}>Frequency</Label>
-                          <Input
-                            id={`med-frequency-${index}`}
-                            value={medication.frequency}
-                            onChange={(e) => updateMedication(index, 'frequency', e.target.value)}
-                            placeholder="e.g., Once daily"
-                          />
-                        </div>
-                        <div className="flex items-end">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => removeMedication(index)}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                      <div className="mt-3">
-                        <Label htmlFor={`med-instructions-${index}`}>Instructions</Label>
-                        <Textarea
-                          id={`med-instructions-${index}`}
-                          value={medication.instructions || ""}
-                          onChange={(e) => updateMedication(index, 'instructions', e.target.value)}
-                          placeholder="Special instructions or notes..."
-                          rows={2}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Tasks */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center justify-between">
-                <span className="flex items-center gap-2">
-                  <CheckSquare className="w-5 h-5" />
-                  Assigned Tasks
-                </span>
-                <Button variant="outline" size="sm" onClick={addTask}>
-                  <Plus className="w-4 h-4 mr-1" />
-                  Add Task
-                </Button>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {tasks.length === 0 ? (
-                <p className="text-gray-500 text-center py-4">No tasks assigned yet.</p>
-              ) : (
-                <div className="space-y-4">
-                  {tasks.map((task, index) => (
-                    <div key={index} className="border rounded-lg p-4">
-                      <div className="grid grid-cols-2 gap-4 mb-3">
-                        <div>
-                          <Label htmlFor={`task-title-${index}`}>Task Title</Label>
-                          <Input
-                            id={`task-title-${index}`}
-                            value={task.title}
-                            onChange={(e) => updateTask(index, 'title', e.target.value)}
-                            placeholder="e.g., Daily mood tracking"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor={`task-due-${index}`}>Due Date</Label>
-                          <Input
-                            id={`task-due-${index}`}
-                            type="date"
-                            value={task.dueDate || ""}
-                            onChange={(e) => updateTask(index, 'dueDate', e.target.value)}
-                          />
-                        </div>
-                      </div>
-                      <div className="mb-3">
-                        <Label htmlFor={`task-description-${index}`}>Description</Label>
-                        <Textarea
-                          id={`task-description-${index}`}
-                          value={task.description}
-                          onChange={(e) => updateTask(index, 'description', e.target.value)}
-                          placeholder="Detailed task description and instructions..."
-                          rows={3}
-                        />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <Label htmlFor={`task-priority-${index}`}>Priority</Label>
-                          <select
-                            id={`task-priority-${index}`}
-                            value={task.priority}
-                            onChange={(e) => updateTask(index, 'priority', e.target.value as 'low' | 'medium' | 'high')}
-                            className="ml-2 border rounded px-2 py-1"
-                          >
-                            <option value="low">Low</option>
-                            <option value="medium">Medium</option>
-                            <option value="high">High</option>
-                          </select>
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => removeTask(index)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+            </div>
+          )}
 
           {/* Action Buttons */}
           <div className="flex justify-end gap-3 pt-4 border-t">
             <Button variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button onClick={handleSubmit} disabled={isSubmitting}>
+            <Button 
+              variant="secondary" 
+              onClick={() => handleSubmit(true)} 
+              disabled={isSubmitting}
+            >
               {isSubmitting ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Updating...
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2"></div>
+                  Saving...
                 </>
               ) : (
                 <>
                   <Save className="w-4 h-4 mr-2" />
-                  Update Session
+                  Save
+                </>
+              )}
+            </Button>
+            <Button onClick={() => handleSubmit(false)} disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Saving Documentation...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Save and Mark as Completed
                 </>
               )}
             </Button>
           </div>
         </div>
+        )}
       </DialogContent>
     </Dialog>
   );
