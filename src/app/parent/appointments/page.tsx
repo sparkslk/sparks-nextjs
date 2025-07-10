@@ -147,7 +147,7 @@ export default function AppointmentsPage() {
 
   return (
     <div className="min-h-screen relative">
-      <div className="max-w-7xl mx-auto px-6 py-6">
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 py-4 md:py-6">
         {/* Enhanced Header */}
         <AppointmentsHeader 
           childrenCount={children.length}
@@ -155,7 +155,7 @@ export default function AppointmentsPage() {
         />
 
         {/* Children Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
           {children.map((child) => {
             const upcomingAppointments = getChildAppointments(child.id, ['APPROVED', 'REQUESTED']);
             console.log(`Upcoming appointments for child ${child.id}:`, upcomingAppointments);
@@ -187,11 +187,11 @@ export default function AppointmentsPage() {
       {/* Zoomed Card Overlay */}
       {showZoomedCard && highlightedChildId && (
         <div 
-          className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4"
           onClick={handleBackgroundClick}
         >
           <div 
-            className="w-full max-w-2xl transform transition-all duration-300 ease-out scale-105"
+            className="w-full max-w-lg sm:max-w-xl md:max-w-2xl transform transition-all duration-300 ease-out scale-105"
             onClick={(e) => e.stopPropagation()}
           >
             {(() => {
