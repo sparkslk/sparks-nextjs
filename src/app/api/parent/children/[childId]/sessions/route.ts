@@ -8,7 +8,7 @@ export async function GET(
 ) {
   try {
     const session = await requireApiAuth(request, ['PARENT_GUARDIAN']);
-    const { childId } = params;
+    const { childId } = await params;
 
     // Verify that the parent has access to this child
     const parentGuardianRelation = await prisma.parentGuardian.findFirst({
@@ -77,11 +77,13 @@ export async function GET(
       }
     });
 
+    console.log(`Fetched ${sessions.length} sessions for child ${childId}`);
+
     // Transform database data to match frontend interface
     const transformedSessions = sessions.map(session => {
       const sessionDate = new Date(session.scheduledAt);
-      const now = new Date();
-      const status = sessionDate > now ? 'upcoming' : 'past';
+      // const now = new Date();
+      const status =session.status
       
       // Get therapist details
       const therapist = therapistMap.get(session.therapistId);
@@ -102,8 +104,8 @@ export async function GET(
         status: status,
         duration: session.duration || 60,
         sessionType: session.type || 'Therapy Session',
-        notes: session.progressNotes || '',
-        objectives: Array.isArray(session.objectives) ? session.objectives : [],
+        notes: '', // No progressNotes property exists on session
+        objectives: [],
       };
     });
 

@@ -77,7 +77,7 @@ export default function AppointmentsPage() {
                 hour12: true 
               }),
               type: session.sessionType,
-              status: session.status as 'upcoming' | 'past',
+              status: session.status,
               childId: session.childId,
               duration: session.duration,
               sessionStatus: session.status,
@@ -111,8 +111,8 @@ export default function AppointmentsPage() {
     }
   };
 
-  const getChildAppointments = (childId: string, status: 'upcoming' | 'past') => {
-    return appointments.filter(apt => apt.childId === childId && apt.status === status);
+  const getChildAppointments = (childId: string, statuses: Array<'APPROVED' | 'REQUESTED' | 'COMPLETED' | 'CANCELLED'>) => {
+    return appointments.filter(apt => apt.childId === childId && statuses.includes(apt.status as 'APPROVED' | 'REQUESTED' | 'COMPLETED' | 'CANCELLED'));
   };
 
   const formatDate = (dateString: string) => {
@@ -151,14 +151,16 @@ export default function AppointmentsPage() {
         {/* Enhanced Header */}
         <AppointmentsHeader 
           childrenCount={children.length}
-          upcomingSessionsCount={appointments.filter(apt => apt.status === 'upcoming').length}
+          upcomingSessionsCount={appointments.filter(apt => ['APPROVED', 'REQUESTED'].includes(apt.status)).length}
         />
 
         {/* Children Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {children.map((child) => {
-            const upcomingAppointments = getChildAppointments(child.id, 'upcoming');
-            const pastAppointments = getChildAppointments(child.id, 'past');
+            const upcomingAppointments = getChildAppointments(child.id, ['APPROVED', 'REQUESTED']);
+            console.log(`Upcoming appointments for child ${child.id}:`, upcomingAppointments);
+            const pastAppointments = getChildAppointments(child.id, ['COMPLETED']);
+            const cancelledAppointments = getChildAppointments(child.id, ['CANCELLED']);
 
             return (
               <AppointmentCard
@@ -166,6 +168,7 @@ export default function AppointmentsPage() {
                 child={child}
                 upcomingAppointments={upcomingAppointments}
                 pastAppointments={pastAppointments}
+                cancelledAppointments={cancelledAppointments}
                 onTherapistClick={(therapist) => {
                   console.log("Clicked therapist:", therapist);
                   setSelectedTherapist(therapist);
@@ -195,14 +198,16 @@ export default function AppointmentsPage() {
               const highlightedChild = getHighlightedChild();
               if (!highlightedChild) return null;
               
-              const upcomingAppointments = getChildAppointments(highlightedChild.id, 'upcoming');
-              const pastAppointments = getChildAppointments(highlightedChild.id, 'past');
+              const upcomingAppointments = getChildAppointments(highlightedChild.id, ['APPROVED', 'REQUESTED']);
+              const pastAppointments = getChildAppointments(highlightedChild.id, ['COMPLETED']);
+              const cancelledAppointments = getChildAppointments(highlightedChild.id, ['CANCELLED']);
               
               return (
                 <AppointmentCard
                   child={highlightedChild}
                   upcomingAppointments={upcomingAppointments}
                   pastAppointments={pastAppointments}
+                  cancelledAppointments={cancelledAppointments}
                   onTherapistClick={(therapist) => {
                     setSelectedTherapist(therapist);
                     setShowTherapistModal(true);

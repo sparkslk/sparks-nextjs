@@ -9,6 +9,7 @@ interface AppointmentCardProps {
   child: Child;
   upcomingAppointments: Appointment[];
   pastAppointments: Appointment[];
+  cancelledAppointments: Appointment[];
   onTherapistClick: (therapist: Child['therapist']) => void;
   formatDate: (dateString: string) => string;
   isHighlighted?: boolean;
@@ -18,6 +19,7 @@ export default function AppointmentCard({
   child, 
   upcomingAppointments, 
   pastAppointments, 
+  cancelledAppointments,
   onTherapistClick, 
   formatDate,
   isHighlighted = false
@@ -237,6 +239,8 @@ export default function AppointmentCard({
                     </div>
                   ))}
                 </div>
+                
+                
               ) : (
                 <div className="p-3 bg-gradient-to-r from-gray-50 to-slate-50 rounded-lg text-center border border-gray-200">
                   <CheckCircle className="w-6 h-6 mx-auto mb-2 text-gray-400" />
@@ -244,7 +248,72 @@ export default function AppointmentCard({
                 </div>
               )}
             </div>
+            {/* Cancelled Sessions */}
+            <div>
+              <div className="flex items-center space-x-2 mb-3">
+                <Calendar className="w-4 h-4 text-red-600" />
+                <h3 className="font-semibold text-gray-900 text-sm">Cancelled Sessions</h3>
+              </div>
+              {cancelledAppointments.length > 0 ? (
+                <div className="space-y-3">
+                  {cancelledAppointments.map((appointment) => (
+                    <div
+                      key={appointment.id}
+                      className="session-card cancelled flex items-center justify-between p-3 bg-gradient-to-r from-red-50 to-pink-50 rounded-lg border border-red-200 hover:shadow-md transition-all duration-300"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                          <Calendar className="w-5 h-5 text-red-600" />
+                        </div>
+                        <div className="text-xs">
+                          <p className="font-medium text-gray-900 text-sm">
+                            {formatDate(appointment.date)} - {appointment.type}
+                          </p>
+                          <p className="text-gray-600 flex items-center text-xs">
+                            <Clock className="w-3 h-3 mr-1" />
+                            {appointment.time} • {appointment.duration} min
+                          </p>
+                          {appointment.therapist && (
+                            <p className="text-gray-600 text-xs mt-1">
+                              <span className="font-medium">Therapist:</span> {appointment.therapist}
+                            </p>
+                          )}
+                          {appointment.mode && (
+                            <p className="text-gray-600 text-xs flex items-center">
+                              <span className="font-medium">Mode:</span> 
+                              <span className="ml-1">{appointment.mode}</span>
+                              {appointment.mode === 'Virtual' && <Video className="w-3 h-3 ml-1" />}
+                              {appointment.mode === 'In-Person' && <MapPin className="w-3 h-3 ml-1" />}
+                            </p>
+                          )}
+                          {appointment.specializations && appointment.specializations.length > 0 && (
+                            <p className="text-gray-600 text-xs">
+                              <span className="font-medium">Specializations:</span> {appointment.specializations.join(', ')}
+                            </p>
+                          )}
+                          {appointment.notes && (
+                            <p className="text-gray-600 text-xs mt-1">
+                              <span className="font-medium">Notes:</span> {appointment.notes}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xs text-red-500 font-semibold">Cancelled</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-3 bg-gradient-to-r from-gray-50 to-pink-50 rounded-lg text-center border border-red-200">
+                  <Calendar className="w-6 h-6 mx-auto mb-2 text-red-400" />
+                  <p className="text-gray-500 text-xs">No cancelled sessions</p>
+                </div>
+              )}
+            </div>
           </div>
+          
+ 
         ) : (
           <div className="text-center py-6">
             <div className="w-12 h-12 mx-auto mb-3 bg-gradient-to-r from-gray-100 to-gray-200 rounded-full flex items-center justify-center">

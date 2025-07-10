@@ -23,7 +23,7 @@ export interface Appointment {
   date: string;
   time: string;
   type: string;
-  status: 'upcoming' | 'past';
+  status: string;
   childId: string;
   duration: number;
   sessionStatus: string;
