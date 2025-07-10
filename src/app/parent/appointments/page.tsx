@@ -236,7 +236,8 @@ export default function AppointmentsPage() {
           onClick={handleBackgroundClick}
         >
           <div 
-            className="w-full max-w-lg sm:max-w-xl md:max-w-2xl transform transition-all duration-300 ease-out scale-105"
+            className="relative w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl bg-white rounded-2xl shadow-2xl flex flex-col items-center justify-center p-0 sm:p-0"
+            style={{ boxShadow: '0 8px 32px rgba(129,89,168,0.15)' }}
             onClick={(e) => e.stopPropagation()}
           >
             {(() => {

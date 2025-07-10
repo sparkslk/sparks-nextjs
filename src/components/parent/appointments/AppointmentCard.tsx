@@ -145,48 +145,53 @@ export default function AppointmentCard({
                     {filteredUpcoming.map((appointment) => (
                       <div
                         key={appointment.id}
-                        className="session-card upcoming flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200 hover:shadow-md transition-all duration-300"
+                        className="session-card upcoming flex items-center justify-between p-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl border border-green-200 shadow transition-all duration-300 transform hover:scale-105 hover:shadow-2xl text-lg"
+                        style={{ minHeight: '110px' }}
                       >
-                        <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                        <div className="flex items-center space-x-6">
+                          <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center">
                             {appointment.mode === 'Virtual' ? (
-                              <Video className="w-5 h-5 text-green-600" />
+                              <Video className="w-7 h-7" style={{ color: '#8159A8' }} />
                             ) : (
-                              <Calendar className="w-5 h-5 text-green-600" />
+                              <Calendar className="w-7 h-7" style={{ color: '#8159A8' }} />
                             )}
                           </div>
-                          <div className="flex flex-row gap-8 items-center">
-                            <div className="flex flex-col items-center">
-                              <span className="text-[10px] text-gray-500 flex items-center gap-1"><Calendar className="w-3 h-3" />Date</span>
-                              <span className="font-semibold text-gray-900 text-sm">{formatDate(appointment.date)}</span>
+                          <div className="flex flex-row gap-12 items-center">
+                            <div className="flex flex-row items-center gap-2">
+                              <Calendar className="w-5 h-5" style={{ color: '#8159A8' }} />
+                              <span className="text-sm text-gray-500">Date:</span>
+                              <span className="font-semibold text-gray-900 text-sm ml-1">{formatDate(appointment.date)}</span>
                             </div>
-                            <div className="flex flex-col items-center">
-                              <span className="text-[10px] text-gray-500 flex items-center gap-1"><Clock className="w-3 h-3" />Time</span>
-                              <span className="font-semibold text-gray-900 text-sm">{appointment.time}</span>
+                            <div className="flex flex-row items-center gap-2">
+                              <Clock className="w-5 h-5" style={{ color: '#8159A8' }} />
+                              <span className="text-sm text-gray-500">Time:</span>
+                              <span className="font-semibold text-gray-900 text-sm ml-1">{appointment.time}</span>
                             </div>
-                            <div className="flex flex-col items-center">
-                              <span className="text-[10px] text-gray-500 flex items-center gap-1"><User className="w-3 h-3" />Type</span>
-                              <span className="font-semibold text-gray-900 text-sm">{appointment.type}</span>
+                            <div className="flex flex-row items-center gap-2">
+                              <User className="w-5 h-5" style={{ color: '#8159A8' }} />
+                              <span className="text-sm text-gray-500">Type:</span>
+                              <span className="font-semibold text-gray-900 text-sm ml-1">{appointment.type}</span>
                             </div>
-                            <div className="flex flex-col items-center">
-                              <span className="text-[10px] text-gray-500 flex items-center gap-1"><CheckCircle className="w-3 h-3" />Duration</span>
-                              <span className="font-semibold text-gray-900 text-sm">{appointment.duration} min</span>
+                            <div className="flex flex-row items-center gap-2">
+                              <CheckCircle className="w-5 h-5" style={{ color: '#8159A8' }} />
+                              <span className="text-sm text-gray-500">Duration:</span>
+                              <span className="font-semibold text-gray-900 text-sm ml-1">{appointment.duration} min</span>
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center space-x-3">
                           <Button
                             variant="outline"
                             size="sm"
                             style={{ color: '#8159A8', borderColor: '#8159A8' }}
-                            className="hover:bg-purple-50 text-xs px-2 py-1"
+                            className="hover:bg-purple-50 text-base px-4 py-2"
                           >
                             Reschedule
                           </Button>
                           <Button
                             variant="outline"
                             size="sm"
-                            className="text-red-600 border-red-600 hover:bg-red-50 text-xs px-2 py-1"
+                            className="text-red-600 border-red-600 hover:bg-red-50 text-base px-4 py-2"
                           >
                             Cancel
                           </Button>
@@ -213,39 +218,44 @@ export default function AppointmentCard({
                     {filteredPast.map((appointment) => (
                       <div
                         key={appointment.id}
-                        className="session-card past flex items-center justify-between p-3 bg-gradient-to-r from-gray-50 to-slate-50 rounded-lg border border-gray-200 hover:shadow-md transition-all duration-300"
+                        className="session-card past flex items-center justify-between p-6 bg-gradient-to-r from-gray-50 to-slate-50 rounded-2xl border border-gray-200 shadow transition-all duration-300 transform hover:scale-105 hover:shadow-2xl text-lg"
+                        style={{ minHeight: '110px' }}
                       >
-                        <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
-                            <CheckCircle className="w-5 h-5 text-gray-600" />
+                        <div className="flex items-center space-x-6">
+                          <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center">
+                            <CheckCircle className="w-7 h-7" style={{ color: '#8159A8' }} />
                           </div>
-                          <div className="flex flex-row gap-8 items-center">
-                            <div className="flex flex-col items-center">
-                              <span className="text-[10px] text-gray-500 flex items-center gap-1"><Calendar className="w-3 h-3" />Date</span>
-                              <span className="font-semibold text-gray-900 text-sm">{formatDate(appointment.date)}</span>
+                          <div className="flex flex-row gap-12 items-center">
+                            <div className="flex flex-row items-center gap-2">
+                              <Calendar className="w-5 h-5" style={{ color: '#8159A8' }} />
+                              <span className="text-sm text-gray-500">Date:</span>
+                              <span className="font-semibold text-gray-900 text-sm ml-1">{formatDate(appointment.date)}</span>
                             </div>
-                            <div className="flex flex-col items-center">
-                              <span className="text-[10px] text-gray-500 flex items-center gap-1"><Clock className="w-3 h-3" />Time</span>
-                              <span className="font-semibold text-gray-900 text-sm">{appointment.time}</span>
+                            <div className="flex flex-row items-center gap-2">
+                              <Clock className="w-5 h-5" style={{ color: '#8159A8' }} />
+                              <span className="text-sm text-gray-500">Time:</span>
+                              <span className="font-semibold text-gray-900 text-sm ml-1">{appointment.time}</span>
                             </div>
-                            <div className="flex flex-col items-center">
-                              <span className="text-[10px] text-gray-500 flex items-center gap-1"><User className="w-3 h-3" />Type</span>
-                              <span className="font-semibold text-gray-900 text-sm">{appointment.type}</span>
+                            <div className="flex flex-row items-center gap-2">
+                              <User className="w-5 h-5" style={{ color: '#8159A8' }} />
+                              <span className="text-sm text-gray-500">Type:</span>
+                              <span className="font-semibold text-gray-900 text-sm ml-1">{appointment.type}</span>
                             </div>
-                            <div className="flex flex-col items-center">
-                              <span className="text-[10px] text-gray-500 flex items-center gap-1"><CheckCircle className="w-3 h-3" />Duration</span>
-                              <span className="font-semibold text-gray-900 text-sm">{appointment.duration} min</span>
+                            <div className="flex flex-row items-center gap-2">
+                              <CheckCircle className="w-5 h-5" style={{ color: '#8159A8' }} />
+                              <span className="text-sm text-gray-500">Duration:</span>
+                              <span className="font-semibold text-gray-900 text-sm ml-1">{appointment.duration} min</span>
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center space-x-3">
                           <Button
                             variant="outline"
                             size="sm"
                             style={{ color: '#8159A8', borderColor: '#8159A8' }}
-                            className="hover:bg-purple-50 text-xs px-2 py-1"
+                            className="hover:bg-purple-50 text-base px-4 py-2"
                           >
-                            <MessageCircle className="w-3 h-3 mr-1" />
+                            <MessageCircle className="w-5 h-5 mr-2" style={{ color: '#8159A8' }} />
                             View Review
                           </Button>
                         </div>
@@ -272,33 +282,38 @@ export default function AppointmentCard({
                     {filteredCancelled.map((appointment) => (
                       <div
                         key={appointment.id}
-                        className="session-card cancelled flex items-center justify-between p-3 bg-gradient-to-r from-red-50 to-pink-50 rounded-lg border border-red-200 hover:shadow-md transition-all duration-300"
+                        className="session-card cancelled flex items-center justify-between p-6 bg-gradient-to-r from-red-50 to-pink-50 rounded-2xl border border-red-200 shadow transition-all duration-300 transform hover:scale-105 hover:shadow-2xl text-lg"
+                        style={{ minHeight: '110px' }}
                       >
-                        <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                            <Calendar className="w-5 h-5 text-red-600" />
+                        <div className="flex items-center space-x-6">
+                          <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center">
+                            <Calendar className="w-7 h-7" style={{ color: '#8159A8' }} />
                           </div>
-                          <div className="flex flex-row gap-8 items-center">
-                            <div className="flex flex-col items-center">
-                              <span className="text-[10px] text-gray-500 flex items-center gap-1"><Calendar className="w-3 h-3" />Date</span>
-                              <span className="font-semibold text-gray-900 text-sm">{formatDate(appointment.date)}</span>
+                          <div className="flex flex-row gap-12 items-center">
+                            <div className="flex flex-row items-center gap-2">
+                              <Calendar className="w-5 h-5" style={{ color: '#8159A8' }} />
+                              <span className="text-sm text-gray-500">Date:</span>
+                              <span className="font-semibold text-gray-900 text-sm ml-1">{formatDate(appointment.date)}</span>
                             </div>
-                            <div className="flex flex-col items-center">
-                              <span className="text-[10px] text-gray-500 flex items-center gap-1"><Clock className="w-3 h-3" />Time</span>
-                              <span className="font-semibold text-gray-900 text-sm">{appointment.time}</span>
+                            <div className="flex flex-row items-center gap-2">
+                              <Clock className="w-5 h-5" style={{ color: '#8159A8' }} />
+                              <span className="text-sm text-gray-500">Time:</span>
+                              <span className="font-semibold text-gray-900 text-sm ml-1">{appointment.time}</span>
                             </div>
-                            <div className="flex flex-col items-center">
-                              <span className="text-[10px] text-gray-500 flex items-center gap-1"><User className="w-3 h-3" />Type</span>
-                              <span className="font-semibold text-gray-900 text-sm">{appointment.type}</span>
+                            <div className="flex flex-row items-center gap-2">
+                              <User className="w-5 h-5" style={{ color: '#8159A8' }} />
+                              <span className="text-sm text-gray-500">Type:</span>
+                              <span className="font-semibold text-gray-900 text-sm ml-1">{appointment.type}</span>
                             </div>
-                            <div className="flex flex-col items-center">
-                              <span className="text-[10px] text-gray-500 flex items-center gap-1"><CheckCircle className="w-3 h-3" />Duration</span>
-                              <span className="font-semibold text-gray-900 text-sm">{appointment.duration} min</span>
+                            <div className="flex flex-row items-center gap-2">
+                              <CheckCircle className="w-5 h-5" style={{ color: '#8159A8' }} />
+                              <span className="text-sm text-gray-500">Duration:</span>
+                              <span className="font-semibold text-gray-900 text-sm ml-1">{appointment.duration} min</span>
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <span className="text-xs text-red-500 font-semibold">Cancelled</span>
+                        <div className="flex items-center space-x-3">
+                          <span className="text-base text-red-500 font-semibold">Cancelled</span>
                         </div>
                       </div>
                     ))}
@@ -345,48 +360,53 @@ export default function AppointmentCard({
                 {filteredUpcoming.map((appointment) => (
                   <div
                     key={appointment.id}
-                    className="session-card upcoming flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200 hover:shadow-md transition-all duration-300"
+                    className="session-card upcoming flex items-center justify-between p-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl border border-green-200 shadow transition-all duration-300 transform hover:scale-105 hover:shadow-2xl text-lg"
+                    style={{ minHeight: '110px' }}
                   >
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                    <div className="flex items-center space-x-6">
+                      <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center">
                         {appointment.mode === 'Virtual' ? (
-                          <Video className="w-5 h-5 text-green-600" />
+                          <Video className="w-7 h-7" style={{ color: '#8159A8' }} />
                         ) : (
-                          <Calendar className="w-5 h-5 text-green-600" />
+                          <Calendar className="w-7 h-7" style={{ color: '#8159A8' }} />
                         )}
                       </div>
-                      <div className="flex flex-row gap-8 items-center">
-                        <div className="flex flex-col items-center">
-                          <span className="text-[10px] text-gray-500 flex items-center gap-1"><Calendar className="w-3 h-3" />Date</span>
-                          <span className="font-semibold text-gray-900 text-sm">{formatDate(appointment.date)}</span>
+                      <div className="flex flex-row gap-12 items-center">
+                        <div className="flex flex-row items-center gap-2">
+                          <Calendar className="w-5 h-5" style={{ color: '#8159A8' }} />
+                          <span className="text-sm text-gray-500">Date:</span>
+                          <span className="font-semibold text-gray-900 text-sm ml-1">{formatDate(appointment.date)}</span>
                         </div>
-                        <div className="flex flex-col items-center">
-                          <span className="text-[10px] text-gray-500 flex items-center gap-1"><Clock className="w-3 h-3" />Time</span>
-                          <span className="font-semibold text-gray-900 text-sm">{appointment.time}</span>
+                        <div className="flex flex-row items-center gap-2">
+                          <Clock className="w-5 h-5" style={{ color: '#8159A8' }} />
+                          <span className="text-sm text-gray-500">Time:</span>
+                          <span className="font-semibold text-gray-900 text-sm ml-1">{appointment.time}</span>
                         </div>
-                        <div className="flex flex-col items-center">
-                          <span className="text-[10px] text-gray-500 flex items-center gap-1"><User className="w-3 h-3" />Type</span>
-                          <span className="font-semibold text-gray-900 text-sm">{appointment.type}</span>
+                        <div className="flex flex-row items-center gap-2">
+                          <User className="w-5 h-5" style={{ color: '#8159A8' }} />
+                          <span className="text-sm text-gray-500">Type:</span>
+                          <span className="font-semibold text-gray-900 text-sm ml-1">{appointment.type}</span>
                         </div>
-                        <div className="flex flex-col items-center">
-                          <span className="text-[10px] text-gray-500 flex items-center gap-1"><CheckCircle className="w-3 h-3" />Duration</span>
-                          <span className="font-semibold text-gray-900 text-sm">{appointment.duration} min</span>
+                        <div className="flex flex-row items-center gap-2">
+                          <CheckCircle className="w-5 h-5" style={{ color: '#8159A8' }} />
+                          <span className="text-sm text-gray-500">Duration:</span>
+                          <span className="font-semibold text-gray-900 text-sm ml-1">{appointment.duration} min</span>
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-3">
                       <Button
                         variant="outline"
                         size="sm"
                         style={{ color: '#8159A8', borderColor: '#8159A8' }}
-                        className="hover:bg-purple-50 text-xs px-2 py-1"
+                        className="hover:bg-purple-50 text-base px-4 py-2"
                       >
                         Reschedule
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
-                        className="text-red-600 border-red-600 hover:bg-red-50 text-xs px-2 py-1"
+                        className="text-red-600 border-red-600 hover:bg-red-50 text-base px-4 py-2"
                       >
                         Cancel
                       </Button>
@@ -412,39 +432,44 @@ export default function AppointmentCard({
                 {filteredPast.map((appointment) => (
                   <div
                     key={appointment.id}
-                    className="session-card past flex items-center justify-between p-3 bg-gradient-to-r from-gray-50 to-slate-50 rounded-lg border border-gray-200 hover:shadow-md transition-all duration-300"
+                    className="session-card past flex items-center justify-between p-6 bg-gradient-to-r from-gray-50 to-slate-50 rounded-2xl border border-gray-200 shadow transition-all duration-300 transform hover:scale-105 hover:shadow-2xl text-lg"
+                    style={{ minHeight: '110px' }}
                   >
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
-                        <CheckCircle className="w-5 h-5 text-gray-600" />
+                    <div className="flex items-center space-x-6">
+                      <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center">
+                        <CheckCircle className="w-7 h-7" style={{ color: '#8159A8' }} />
                       </div>
-                      <div className="flex flex-row gap-8 items-center">
-                        <div className="flex flex-col items-center">
-                          <span className="text-[10px] text-gray-500 flex items-center gap-1"><Calendar className="w-3 h-3" />Date</span>
-                          <span className="font-semibold text-gray-900 text-sm">{formatDate(appointment.date)}</span>
+                      <div className="flex flex-row gap-12 items-center">
+                        <div className="flex flex-row items-center gap-2">
+                          <Calendar className="w-5 h-5" style={{ color: '#8159A8' }} />
+                          <span className="text-sm text-gray-500">Date:</span>
+                          <span className="font-semibold text-gray-900 text-sm ml-1">{formatDate(appointment.date)}</span>
                         </div>
-                        <div className="flex flex-col items-center">
-                          <span className="text-[10px] text-gray-500 flex items-center gap-1"><Clock className="w-3 h-3" />Time</span>
-                          <span className="font-semibold text-gray-900 text-sm">{appointment.time}</span>
+                        <div className="flex flex-row items-center gap-2">
+                          <Clock className="w-5 h-5" style={{ color: '#8159A8' }} />
+                          <span className="text-sm text-gray-500">Time:</span>
+                          <span className="font-semibold text-gray-900 text-sm ml-1">{appointment.time}</span>
                         </div>
-                        <div className="flex flex-col items-center">
-                          <span className="text-[10px] text-gray-500 flex items-center gap-1"><User className="w-3 h-3" />Type</span>
-                          <span className="font-semibold text-gray-900 text-sm">{appointment.type}</span>
+                        <div className="flex flex-row items-center gap-2">
+                          <User className="w-5 h-5" style={{ color: '#8159A8' }} />
+                          <span className="text-sm text-gray-500">Type:</span>
+                          <span className="font-semibold text-gray-900 text-sm ml-1">{appointment.type}</span>
                         </div>
-                        <div className="flex flex-col items-center">
-                          <span className="text-[10px] text-gray-500 flex items-center gap-1"><CheckCircle className="w-3 h-3" />Duration</span>
-                          <span className="font-semibold text-gray-900 text-sm">{appointment.duration} min</span>
+                        <div className="flex flex-row items-center gap-2">
+                          <CheckCircle className="w-5 h-5" style={{ color: '#8159A8' }} />
+                          <span className="text-sm text-gray-500">Duration:</span>
+                          <span className="font-semibold text-gray-900 text-sm ml-1">{appointment.duration} min</span>
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-3">
                       <Button
                         variant="outline"
                         size="sm"
                         style={{ color: '#8159A8', borderColor: '#8159A8' }}
-                        className="hover:bg-purple-50 text-xs px-2 py-1"
+                        className="hover:bg-purple-50 text-base px-4 py-2"
                       >
-                        <MessageCircle className="w-3 h-3 mr-1" />
+                        <MessageCircle className="w-5 h-5 mr-2" style={{ color: '#8159A8' }} />
                         View Review
                       </Button>
                     </div>
@@ -471,33 +496,38 @@ export default function AppointmentCard({
                 {filteredCancelled.map((appointment) => (
                   <div
                     key={appointment.id}
-                    className="session-card cancelled flex items-center justify-between p-3 bg-gradient-to-r from-red-50 to-pink-50 rounded-lg border border-red-200 hover:shadow-md transition-all duration-300"
+                    className="session-card cancelled flex items-center justify-between p-6 bg-gradient-to-r from-red-50 to-pink-50 rounded-2xl border border-red-200 shadow transition-all duration-300 transform hover:scale-105 hover:shadow-2xl text-lg"
+                    style={{ minHeight: '110px' }}
                   >
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                        <Calendar className="w-5 h-5 text-red-600" />
+                    <div className="flex items-center space-x-6">
+                      <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center">
+                        <Calendar className="w-7 h-7" style={{ color: '#8159A8' }} />
                       </div>
-                      <div className="flex flex-row gap-8 items-center">
-                        <div className="flex flex-col items-center">
-                          <span className="text-[10px] text-gray-500 flex items-center gap-1"><Calendar className="w-3 h-3" />Date</span>
-                          <span className="font-semibold text-gray-900 text-sm">{formatDate(appointment.date)}</span>
+                      <div className="flex flex-row gap-12 items-center">
+                        <div className="flex flex-row items-center gap-2">
+                          <Calendar className="w-5 h-5" style={{ color: '#8159A8' }} />
+                          <span className="text-sm text-gray-500">Date:</span>
+                          <span className="font-semibold text-gray-900 text-sm ml-1">{formatDate(appointment.date)}</span>
                         </div>
-                        <div className="flex flex-col items-center">
-                          <span className="text-[10px] text-gray-500 flex items-center gap-1"><Clock className="w-3 h-3" />Time</span>
-                          <span className="font-semibold text-gray-900 text-sm">{appointment.time}</span>
+                        <div className="flex flex-row items-center gap-2">
+                          <Clock className="w-5 h-5" style={{ color: '#8159A8' }} />
+                          <span className="text-sm text-gray-500">Time:</span>
+                          <span className="font-semibold text-gray-900 text-sm ml-1">{appointment.time}</span>
                         </div>
-                        <div className="flex flex-col items-center">
-                          <span className="text-[10px] text-gray-500 flex items-center gap-1"><User className="w-3 h-3" />Type</span>
-                          <span className="font-semibold text-gray-900 text-sm">{appointment.type}</span>
+                        <div className="flex flex-row items-center gap-2">
+                          <User className="w-5 h-5" style={{ color: '#8159A8' }} />
+                          <span className="text-sm text-gray-500">Type:</span>
+                          <span className="font-semibold text-gray-900 text-sm ml-1">{appointment.type}</span>
                         </div>
-                        <div className="flex flex-col items-center">
-                          <span className="text-[10px] text-gray-500 flex items-center gap-1"><CheckCircle className="w-3 h-3" />Duration</span>
-                          <span className="font-semibold text-gray-900 text-sm">{appointment.duration} min</span>
+                        <div className="flex flex-row items-center gap-2">
+                          <CheckCircle className="w-5 h-5" style={{ color: '#8159A8' }} />
+                          <span className="text-sm text-gray-500">Duration:</span>
+                          <span className="font-semibold text-gray-900 text-sm ml-1">{appointment.duration} min</span>
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xs text-red-500 font-semibold">Cancelled</span>
+                    <div className="flex items-center space-x-3">
+                      <span className="text-base text-red-500 font-semibold">Cancelled</span>
                     </div>
                   </div>
                 ))}
