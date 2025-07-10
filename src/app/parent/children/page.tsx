@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import {
   TrendingUp
 } from "lucide-react";
-import SessionDetailsModal from "@/components/parent/SessionDetailsModal";
 
 interface Child {
   id: string;
@@ -34,8 +33,6 @@ export default function MyChildrenPage() {
   const [error, setError] = useState<string | null>(null);
   const [noteText, setNoteText] = useState("");
   const [animatedProgress, setAnimatedProgress] = useState<{ [key: string]: number }>({});
-  const [sessionModalOpen, setSessionModalOpen] = useState(false);
-  const [selectedChild, setSelectedChild] = useState<Child | null>(null);
 
   useEffect(() => {
     fetchChildren();
@@ -142,8 +139,8 @@ export default function MyChildrenPage() {
   };
 
   return (
-    <div className="min-h-screen" >
-      <div className="max-w-6xl mx-auto px-6 py-1">
+    <div className="min-h-screen" style={{ backgroundColor: '#F5F3FB' }}>
+      <div className="max-w-6xl mx-auto px-6 py-8">
         {/* Header Section */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">
@@ -156,8 +153,8 @@ export default function MyChildrenPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {children.map((child) => (
-            <Card key={child.id} className="shadow-sm hover:shadow-md transition-shadow h-full">
-              <CardContent className="p-6 h-full flex flex-col">
+            <Card key={child.id} className="shadow-sm hover:shadow-md transition-shadow">
+              <CardContent className="p-6">
                 <div className="flex items-center space-x-4 mb-6">
                   <div
                     className="w-12 h-12 rounded-full flex items-center justify-center"
@@ -186,109 +183,91 @@ export default function MyChildrenPage() {
                   </Badge>
                 </div>
 
-                {/* Content wrapper that takes remaining space */}
-                <div className="flex-1 flex flex-col justify-between">
-                  {/* Content section */}
-                  <div>
-                    {/* Centered Progress Display */}
-                    <div className="flex flex-col items-center justify-center mb-6">
-                      <div className="relative w-24 h-24 mb-3">
-                        <svg className="w-24 h-24 transform -rotate-90" viewBox="0 0 36 36">
-                          {/* Background circle */}
-                          <path
-                            d="M18 2.0845a15.9155 15.9155 0 0 1 0 31.831a15.9155 15.9155 0 0 1 0-31.831"
-                            fill="none"
-                            stroke="#e5e7eb"
-                            strokeWidth="3"
-                          />
-                          {/* Progress circle */}
-                          <path
-                            d="M18 2.0845a15.9155 15.9155 0 0 1 0 31.831a15.9155 15.9155 0 0 1 0-31.831"
-                            fill="none"
-                            stroke="#8159A8"
-                            strokeWidth="3"
-                            strokeDasharray={`${animatedProgress[child.id] || 0} ${100 - (animatedProgress[child.id] || 0)}`}
-                            strokeLinecap="round"
-                            style={{
-                              transition: 'stroke-dasharray 0.5s ease-in-out'
-                            }}
-                          />
-                        </svg>
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <TrendingUp className="w-6 h-6" style={{ color: '#8159A8' }} />
-                        </div>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-2xl font-bold text-gray-900 mb-1">
-                          {animatedProgress[child.id] || 0}%
-                        </p>
-                        <p className="text-sm text-gray-500 font-medium">Overall Progress</p>
-                      </div>
-                    </div>
-
-                    <div className="mb-4 bg-gray-50 rounded-lg p-3">
-                      <p className="text-sm text-gray-600 mb-1">
-                        Patient ID: <span className="font-mono text-xs bg-white px-2 py-1 rounded border">{child.id}</span>
-                      </p>
-                      <p className="text-sm text-gray-600 mb-1">
-                        Upcoming Sessions: <span className="font-medium">{child.upcomingSessions}</span>
-                      </p>
-                      {child.lastSession && (
-                        <p className="text-sm text-gray-600">
-                          Last Session: {new Date(child.lastSession).toLocaleDateString()}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="mb-4">
-                      <p className="text-sm text-gray-500 mb-2">
-                        {child.isPrimary ? 'You are the primary guardian for this child.' : 'You are connected as a guardian.'}
-                      </p>
+                {/* Centered Progress Display */}
+                <div className="flex flex-col items-center justify-center mb-6">
+                  <div className="relative w-24 h-24 mb-3">
+                    <svg className="w-24 h-24 transform -rotate-90" viewBox="0 0 36 36">
+                      {/* Background circle */}
+                      <path
+                        d="M18 2.0845a15.9155 15.9155 0 0 1 0 31.831a15.9155 15.9155 0 0 1 0-31.831"
+                        fill="none"
+                        stroke="#e5e7eb"
+                        strokeWidth="3"
+                      />
+                      {/* Progress circle */}
+                      <path
+                        d="M18 2.0845a15.9155 15.9155 0 0 1 0 31.831a15.9155 15.9155 0 0 1 0-31.831"
+                        fill="none"
+                        stroke="#8159A8"
+                        strokeWidth="3"
+                        strokeDasharray={`${animatedProgress[child.id] || 0} ${100 - (animatedProgress[child.id] || 0)}`}
+                        strokeLinecap="round"
+                        style={{
+                          transition: 'stroke-dasharray 0.5s ease-in-out'
+                        }}
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <TrendingUp className="w-6 h-6" style={{ color: '#8159A8' }} />
                     </div>
                   </div>
-
-                  {/* Action Buttons - Always at bottom */}
-                  <div className="grid grid-cols-2 gap-2 mt-auto">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-gray-300 text-gray-700 hover:bg-gray-50"
-                      onClick={() => {
-                        window.location.href = `/parent/appointments?highlightChild=${child.id}&childName=${encodeURIComponent(child.firstName + ' ' + child.lastName)}`;
-                      }}
-                    >
-                      <span className="mr-2">📅</span>
-                      Appointments
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-gray-300 text-gray-700 hover:bg-gray-50"
-                      onClick={() => {
-                        window.location.href = `/parent/children/tasks?childId=${child.id}&childName=${encodeURIComponent(child.firstName + ' ' + child.lastName)}`;
-                      }}
-                    >
-                      <span className="mr-2">📋</span>
-                      Tasks
-                    </Button>
-                    
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-gray-300 text-gray-700 hover:bg-gray-50"
-                    >
-                      <span className="mr-2">💊</span>
-                      Medications
-                    </Button>
-                    <Button
-                      size="sm"
-                      style={{ backgroundColor: '#8159A8' }}
-                      className="text-white hover:opacity-90"
-                    >
-                      <span className="mr-2">📞</span>
-                      Contact Therapist
-                    </Button>
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-gray-900 mb-1">
+                      {animatedProgress[child.id] || 0}%
+                    </p>
+                    <p className="text-sm text-gray-500 font-medium">Overall Progress</p>
                   </div>
+                </div>
+
+                <div className="mb-4 bg-gray-50 rounded-lg p-3">
+                  <p className="text-sm text-gray-600 mb-1">
+                    Patient ID: <span className="font-mono text-xs bg-white px-2 py-1 rounded border">{child.id}</span>
+                  </p>
+                  <p className="text-sm text-gray-600 mb-1">
+                    Upcoming Sessions: <span className="font-medium">{child.upcomingSessions}</span>
+                  </p>
+                  {child.lastSession && (
+                    <p className="text-sm text-gray-600">
+                      Last Session: {new Date(child.lastSession).toLocaleDateString()}
+                    </p>
+                  )}
+                </div>
+
+                <div className="mb-4">
+                  <p className="text-sm text-gray-500 mb-2">
+                    {child.isPrimary ? 'You are the primary guardian for this child.' : 'You are connected as a guardian.'}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                  >
+                    View Sessions
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                  >
+                    Reports
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                  >
+                    Medical Info
+                  </Button>
+                  <Button
+                    size="sm"
+                    style={{ backgroundColor: '#8159A8' }}
+                    className="text-white hover:opacity-90"
+                  >
+                    Contact Therapist
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -379,19 +358,6 @@ export default function MyChildrenPage() {
           </Card>
         )}
       </div>
-
-      {/* Session Details Modal */}
-      {selectedChild && (
-        <SessionDetailsModal
-          isOpen={sessionModalOpen}
-          onClose={() => {
-            setSessionModalOpen(false);
-            setSelectedChild(null);
-          }}
-          childName={`${selectedChild.firstName} ${selectedChild.lastName}`}
-          childId={selectedChild.id}
-        />
-      )}
     </div>
   );
 }
