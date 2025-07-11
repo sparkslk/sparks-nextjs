@@ -145,10 +145,10 @@ export default function AppointmentCard({
                     {filteredUpcoming.map((appointment) => (
                       <div
                         key={appointment.id}
-                        className="session-card upcoming flex items-center justify-between p-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl border border-green-200 shadow transition-all duration-300 transform hover:scale-105 hover:shadow-2xl text-lg"
+                        className="session-card upcoming flex flex-col sm:flex-row items-start sm:items-center justify-between p-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl border border-green-200 shadow transition-all duration-300 transform hover:scale-105 hover:shadow-2xl text-lg"
                         style={{ minHeight: '110px' }}
                       >
-                        <div className="flex items-center space-x-6">
+                        <div className="flex items-center space-x-6 w-full">
                           <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center">
                             {appointment.mode === 'Virtual' ? (
                               <Video className="w-7 h-7" style={{ color: '#8159A8' }} />
@@ -156,7 +156,7 @@ export default function AppointmentCard({
                               <Calendar className="w-7 h-7" style={{ color: '#8159A8' }} />
                             )}
                           </div>
-                          <div className="flex flex-row gap-12 items-center">
+                          <div className="flex flex-row gap-6 sm:gap-12 items-center flex-wrap">
                             <div className="flex flex-row items-center gap-2">
                               <Calendar className="w-5 h-5" style={{ color: '#8159A8' }} />
                               <span className="text-sm text-gray-500">Date:</span>
@@ -179,7 +179,7 @@ export default function AppointmentCard({
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-center space-x-3">
+                        <div className="flex items-center space-x-3 mt-4 sm:mt-0 w-full sm:w-auto justify-end sm:justify-start">
                           <Button
                             variant="outline"
                             size="sm"
@@ -218,14 +218,14 @@ export default function AppointmentCard({
                     {filteredPast.map((appointment) => (
                       <div
                         key={appointment.id}
-                        className="session-card past flex items-center justify-between p-6 bg-gradient-to-r from-gray-50 to-slate-50 rounded-2xl border border-gray-200 shadow transition-all duration-300 transform hover:scale-105 hover:shadow-2xl text-lg"
+                        className="session-card past flex flex-col sm:flex-row items-start sm:items-center justify-between p-6 bg-gradient-to-r from-gray-50 to-slate-50 rounded-2xl border border-gray-200 shadow transition-all duration-300 transform hover:scale-105 hover:shadow-2xl text-lg"
                         style={{ minHeight: '110px' }}
                       >
-                        <div className="flex items-center space-x-6">
+                        <div className="flex items-center space-x-6 w-full">
                           <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center">
                             <CheckCircle className="w-7 h-7" style={{ color: '#8159A8' }} />
                           </div>
-                          <div className="flex flex-row gap-12 items-center">
+                          <div className="flex flex-row gap-6 sm:gap-12 items-center flex-wrap">
                             <div className="flex flex-row items-center gap-2">
                               <Calendar className="w-5 h-5" style={{ color: '#8159A8' }} />
                               <span className="text-sm text-gray-500">Date:</span>
@@ -248,7 +248,7 @@ export default function AppointmentCard({
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-center space-x-3">
+                        <div className="flex items-center space-x-3 mt-4 sm:mt-0 w-full sm:w-auto justify-end sm:justify-start">
                           <Button
                             variant="outline"
                             size="sm"
@@ -256,7 +256,7 @@ export default function AppointmentCard({
                             className="hover:bg-purple-50 text-base px-4 py-2"
                           >
                             <MessageCircle className="w-5 h-5 mr-2" style={{ color: '#8159A8' }} />
-                            View Review
+                            View Details
                           </Button>
                         </div>
                       </div>
@@ -282,14 +282,17 @@ export default function AppointmentCard({
                     {filteredCancelled.map((appointment) => (
                       <div
                         key={appointment.id}
-                        className="session-card cancelled flex items-center justify-between p-6 bg-gradient-to-r from-red-50 to-pink-50 rounded-2xl border border-red-200 shadow transition-all duration-300 transform hover:scale-105 hover:shadow-2xl text-lg"
+                        className="session-card cancelled relative flex flex-col sm:flex-row items-start sm:items-center justify-between p-6 bg-gradient-to-r from-red-50 to-pink-50 rounded-2xl border border-red-200 shadow transition-all duration-300 transform hover:scale-105 hover:shadow-2xl text-lg"
                         style={{ minHeight: '110px' }}
                       >
-                        <div className="flex items-center space-x-6">
+                        <div className="absolute top-2 right-4 sm:top-4 sm:right-6 z-10">
+                          <span className="inline-block bg-red-100 border border-red-300 text-red-600 text-xs font-semibold px-3 py-1 rounded-full shadow-sm">Cancelled</span>
+                        </div>
+                        <div className="flex items-center space-x-6 w-full">
                           <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center">
                             <Calendar className="w-7 h-7" style={{ color: '#8159A8' }} />
                           </div>
-                          <div className="flex flex-row gap-12 items-center">
+                          <div className="flex flex-row gap-6 sm:gap-12 items-center flex-wrap">
                             <div className="flex flex-row items-center gap-2">
                               <Calendar className="w-5 h-5" style={{ color: '#8159A8' }} />
                               <span className="text-sm text-gray-500">Date:</span>
@@ -311,9 +314,6 @@ export default function AppointmentCard({
                               <span className="font-semibold text-gray-900 text-sm ml-1">{appointment.duration} min</span>
                             </div>
                           </div>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <span className="text-base text-red-500 font-semibold">Cancelled</span>
                         </div>
                       </div>
                     ))}
@@ -360,10 +360,10 @@ export default function AppointmentCard({
                 {filteredUpcoming.map((appointment) => (
                   <div
                     key={appointment.id}
-                    className="session-card upcoming flex items-center justify-between p-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl border border-green-200 shadow transition-all duration-300 transform hover:scale-105 hover:shadow-2xl text-lg"
+                    className="session-card upcoming flex flex-col sm:flex-row items-start sm:items-center justify-between p-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl border border-green-200 shadow transition-all duration-300 transform hover:scale-105 hover:shadow-2xl text-lg"
                     style={{ minHeight: '110px' }}
                   >
-                    <div className="flex items-center space-x-6">
+                    <div className="flex items-center space-x-6 w-full">
                       <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center">
                         {appointment.mode === 'Virtual' ? (
                           <Video className="w-7 h-7" style={{ color: '#8159A8' }} />
@@ -371,7 +371,7 @@ export default function AppointmentCard({
                           <Calendar className="w-7 h-7" style={{ color: '#8159A8' }} />
                         )}
                       </div>
-                      <div className="flex flex-row gap-12 items-center">
+                      <div className="flex flex-row gap-6 sm:gap-12 items-center flex-wrap">
                         <div className="flex flex-row items-center gap-2">
                           <Calendar className="w-5 h-5" style={{ color: '#8159A8' }} />
                           <span className="text-sm text-gray-500">Date:</span>
@@ -394,7 +394,7 @@ export default function AppointmentCard({
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-3">
+                    <div className="flex items-center space-x-3 mt-4 sm:mt-0 w-full sm:w-auto justify-end sm:justify-start">
                       <Button
                         variant="outline"
                         size="sm"
@@ -432,14 +432,14 @@ export default function AppointmentCard({
                 {filteredPast.map((appointment) => (
                   <div
                     key={appointment.id}
-                    className="session-card past flex items-center justify-between p-6 bg-gradient-to-r from-gray-50 to-slate-50 rounded-2xl border border-gray-200 shadow transition-all duration-300 transform hover:scale-105 hover:shadow-2xl text-lg"
+                    className="session-card past flex flex-col sm:flex-row items-start sm:items-center justify-between p-6 bg-gradient-to-r from-gray-50 to-slate-50 rounded-2xl border border-gray-200 shadow transition-all duration-300 transform hover:scale-105 hover:shadow-2xl text-lg"
                     style={{ minHeight: '110px' }}
                   >
-                    <div className="flex items-center space-x-6">
+                    <div className="flex items-center space-x-6 w-full">
                       <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center">
                         <CheckCircle className="w-7 h-7" style={{ color: '#8159A8' }} />
                       </div>
-                      <div className="flex flex-row gap-12 items-center">
+                      <div className="flex flex-row gap-6 sm:gap-12 items-center flex-wrap">
                         <div className="flex flex-row items-center gap-2">
                           <Calendar className="w-5 h-5" style={{ color: '#8159A8' }} />
                           <span className="text-sm text-gray-500">Date:</span>
@@ -462,7 +462,7 @@ export default function AppointmentCard({
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-3">
+                    <div className="flex items-center space-x-3 mt-4 sm:mt-0 w-full sm:w-auto justify-end sm:justify-start">
                       <Button
                         variant="outline"
                         size="sm"
@@ -496,14 +496,17 @@ export default function AppointmentCard({
                 {filteredCancelled.map((appointment) => (
                   <div
                     key={appointment.id}
-                    className="session-card cancelled flex items-center justify-between p-6 bg-gradient-to-r from-red-50 to-pink-50 rounded-2xl border border-red-200 shadow transition-all duration-300 transform hover:scale-105 hover:shadow-2xl text-lg"
+                    className="session-card cancelled relative flex flex-col sm:flex-row items-start sm:items-center justify-between p-6 bg-gradient-to-r from-red-50 to-pink-50 rounded-2xl border border-red-200 shadow transition-all duration-300 transform hover:scale-105 hover:shadow-2xl text-lg"
                     style={{ minHeight: '110px' }}
                   >
-                    <div className="flex items-center space-x-6">
+                    <div className="absolute top-2 right-4 sm:top-4 sm:right-6 z-10">
+                      <span className="inline-block bg-red-100 border border-red-300 text-red-600 text-xs font-semibold px-3 py-1 rounded-full shadow-sm">Cancelled</span>
+                    </div>
+                    <div className="flex items-center space-x-6 w-full">
                       <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center">
                         <Calendar className="w-7 h-7" style={{ color: '#8159A8' }} />
                       </div>
-                      <div className="flex flex-row gap-12 items-center">
+                      <div className="flex flex-row gap-6 sm:gap-12 items-center flex-wrap">
                         <div className="flex flex-row items-center gap-2">
                           <Calendar className="w-5 h-5" style={{ color: '#8159A8' }} />
                           <span className="text-sm text-gray-500">Date:</span>
@@ -525,9 +528,6 @@ export default function AppointmentCard({
                           <span className="font-semibold text-gray-900 text-sm ml-1">{appointment.duration} min</span>
                         </div>
                       </div>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <span className="text-base text-red-500 font-semibold">Cancelled</span>
                     </div>
                   </div>
                 ))}
