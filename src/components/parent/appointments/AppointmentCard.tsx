@@ -4,8 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar, Clock, User, CalendarDays, Video, CheckCircle, MessageCircle } from "lucide-react";
 import { Child, Appointment } from "@/types/appointments";
-import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { useState } from "react";
+// import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 interface AppointmentCardProps {
   child: Child;
@@ -35,32 +35,31 @@ export default function AppointmentCard({
   isHighlighted = false
 }: AppointmentCardProps) {
   const [activeTab, setActiveTab] = useState<'upcoming' | 'completed' | 'cancelled' | 'all'>('all');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [therapySessions, setTherapySessions] = useState<any[]>([]);
-  const [sessionsLoading, setSessionsLoading] = useState(false);
-  const [sessionsError, setSessionsError] = useState<string | null>(null);
-  const [showSessionModal, setShowSessionModal] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [selectedSession, setSelectedSession] = useState<any>(null);
+    
+  // const [therapySessions, setTherapySessions] = useState<any[]>([]);
+  // const [sessionsLoading, setSessionsLoading] = useState(false);
+  // const [sessionsError, setSessionsError] = useState<string | null>(null);
+  // const [showSessionModal, setShowSessionModal] = useState(false);
+  // const [selectedSession, setSelectedSession] = useState<any>(null);
 
-  useEffect(() => {
-    if (!child?.id || child.id === "all") return;
-    setSessionsLoading(true);
-    setSessionsError(null);
-    fetch(`/api/parent/sessions?childId=${child.id}`)
-      .then(async (res) => {
-        if (!res.ok) throw new Error("Failed to fetch session details");
-        return res.json();
-      })
-      .then((data) => {
-        setTherapySessions(data.sessions || []);
-        setSessionsLoading(false);
-      })
-      .catch((err) => {
-        setSessionsError(err.message || "Unknown error");
-        setSessionsLoading(false);
-      });
-  }, [child?.id]);
+  // useEffect(() => {
+  //   if (!child?.id || child.id === "all") return;
+  //   setSessionsLoading(true);
+  //   setSessionsError(null);
+  //   fetch(`/api/parent/sessions?childId=${child.id}`)
+  //     .then(async (res) => {
+  //       if (!res.ok) throw new Error("Failed to fetch session details");
+  //       return res.json();
+  //     })
+  //     .then((data) => {
+  //       setTherapySessions(data.sessions || []);
+  //       setSessionsLoading(false);
+  //     })
+  //     .catch((err) => {
+  //       setSessionsError(err.message || "Unknown error");
+  //       setSessionsLoading(false);
+  //     });
+  // }, [child?.id]);
 
   // Filtering logic for appointments
   let filteredUpcoming = upcomingAppointments;
@@ -72,18 +71,18 @@ export default function AppointmentCard({
     filteredPast = activeTab === 'completed' ? pastAppointments : [];
     filteredCancelled = activeTab === 'cancelled' ? cancelledAppointments : [];
   }
-  console.log(therapySessions);
+  // console.log(therapySessions);
 
-  const handleViewDetails = (appointment: Appointment) => {
-    console.log(appointment);
-    // Find the session by appointmentId and childId
-    // const session = therapySessions.find(
-    //   (s) => s.id === appointment.id && s.childId === appointment.childId
-    // );
-    // console.log("This is the selected session" ,session);
-    setSelectedSession(appointment || null);
-    setShowSessionModal(true);
-  };
+  // const handleViewDetails = (appointment: Appointment) => {
+  //   console.log(appointment);
+  //   // Find the session by appointmentId and childId
+  //   // const session = therapySessions.find(
+  //   //   (s) => s.id === appointment.id && s.childId === appointment.childId
+  //   // );
+  //   // console.log("This is the selected session" ,session);
+  //   setSelectedSession(appointment || null);
+  //   setShowSessionModal(true);
+  // };
 
   return (
     <Card className={`appointments-card bg-white/80 backdrop-blur-sm shadow-lg border hover:shadow-xl transition-all duration-300 ${
@@ -302,7 +301,7 @@ export default function AppointmentCard({
                             size="sm"
                             style={{ color: '#8159A8', borderColor: '#8159A8' }}
                             className="hover:bg-purple-50 text-base px-4 py-2"
-                            onClick={() => handleViewDetails(appointment)}
+                            onClick={() => window.location.href = `/parent/sessions/${appointment.id}`}
                           >
                             <MessageCircle className="w-5 h-5 mr-2" style={{ color: '#8159A8' }} />
                             View Details
@@ -592,44 +591,7 @@ export default function AppointmentCard({
         }
       </CardContent>
 
-      {/* Session Details Modal */}
-      <Dialog open={showSessionModal} onOpenChange={setShowSessionModal}>
-        <DialogContent className="max-w-lg rounded-2xl p-6 bg-white/95 shadow-2xl border border-purple-100">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-purple-800 mb-2">Session Details</DialogTitle>
-          </DialogHeader>
-          {sessionsLoading ? (
-            <div className="text-center text-sm text-gray-500 py-4">Loading session details...</div>
-          ) : sessionsError ? (
-            <DialogDescription className="text-red-500">{sessionsError}</DialogDescription>
-          ) : selectedSession ? (
-            <div className="space-y-3 text-sm text-gray-800">
-              <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-                
-                <div><span className="font-semibold text-purple-700">Date:</span> {formatDate(selectedSession.date)}</div>
-                <div><span className="font-semibold text-purple-700">Time:</span> {selectedSession.time}</div>
-                <div><span className="font-semibold text-purple-700">Type:</span> {selectedSession.type || selectedSession.sessionType}</div>
-                <div><span className="font-semibold text-purple-700">Status:</span> {selectedSession.status || selectedSession.sessionStatus}</div>
-                <div><span className="font-semibold text-purple-700">Duration:</span> {selectedSession.duration} min</div>
-                <div><span className="font-semibold text-purple-700">Mode:</span> {selectedSession.mode}</div>
-                <div><span className="font-semibold text-purple-700">Therapist:</span> {selectedSession.therapist}</div>
-                <div><span className="font-semibold text-purple-700">Therapist Email:</span> {selectedSession.therapistEmail}</div>                
-                <div><span className="font-semibold text-purple-700">Objectives:</span> {selectedSession.objectives && selectedSession.objectives.length > 0 ? selectedSession.objectives.join(', ') : <span className="italic text-gray-400">N/A</span>}</div>
-                <div><span className="font-semibold text-purple-700">Notes:</span> {selectedSession.notes ? selectedSession.notes : <span className="italic text-gray-400">N/A</span>}</div>
-              </div>
-              {/* Optional fields */}
-              {selectedSession.attendance && <div><span className="font-semibold text-purple-700">Attendance:</span> {selectedSession.attendance}</div>}
-              {selectedSession.engagement && <div><span className="font-semibold text-purple-700">Engagement:</span> {selectedSession.engagement}</div>}
-              {selectedSession.progress && <div><span className="font-semibold text-purple-700">Progress:</span> {selectedSession.progress}</div>}
-              {selectedSession.feedback && <div><span className="font-semibold text-purple-700">Feedback:</span> {selectedSession.feedback}</div>}
-              {selectedSession.review && <div><span className="font-semibold text-purple-700">Review:</span> {selectedSession.review}</div>}
-            </div>
-          ) : (
-            <DialogDescription>No session details found for this appointment.</DialogDescription>
-          )}
-        </DialogContent>
-      </Dialog>
-      {/* End Session Details Modal */}
+      
     </Card>
   );
 }
