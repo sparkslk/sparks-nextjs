@@ -459,12 +459,18 @@ export default function PatientDetailsPage() {
                         <div className="text-xs sm:text-sm text-gray-600">Total Sessions</div>
                       </div>
                       <div className="bg-gray-50 rounded-lg p-2 sm:p-3 border">
-                        <div className="text-lg sm:text-2xl font-bold text-[#8159A8]">95%</div>
-                        <div className="text-xs sm:text-sm text-gray-600">Attendance</div>
+                        <div className="text-lg sm:text-2xl font-bold text-[#8159A8]">
+                          {sessionHistory.length > 0 ? Math.round((sessionHistory.filter(s => s.status === 'COMPLETED').length / sessionHistory.length) * 100) : 0}%
+                        </div>
+                        <div className="text-xs sm:text-sm text-gray-600">Completion Rate</div>
                       </div>
                       <div className="bg-gray-50 rounded-lg p-2 sm:p-3 border">
-                        <div className="text-lg sm:text-2xl font-bold text-[#8159A8]">18</div>
-                        <div className="text-xs sm:text-sm text-gray-600">Jun 2025</div>
+                        <div className="text-lg sm:text-2xl font-bold text-[#8159A8]">
+                          {sessionHistory.length > 0 ? new Date(sessionHistory[0].scheduledAt).toLocaleDateString('en-US', { day: 'numeric' }) : "-"}
+                        </div>
+                        <div className="text-xs sm:text-sm text-gray-600">
+                          {sessionHistory.length > 0 ? new Date(sessionHistory[0].scheduledAt).toLocaleDateString('en-US', { month: 'short' }) : "No Data"}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -474,182 +480,282 @@ export default function PatientDetailsPage() {
               {/* Timeline Container */}
               <div className="relative">
                 {/* Timeline Line */}
-                <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-gray-200"></div>
+                <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-gray-200"></div>
                 
                 {/* Session Cards */}
                 <div className="space-y-8">
-                  {sessionHistory.map((session, index) => (
-                    <div key={session.id} className="relative flex gap-6">
-                      {/* Timeline Node */}
-                      <div className="relative z-10 flex-shrink-0">
-                        <div className={`w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg ${
-                          session.progress === 'Excellent' ? 'bg-green-500' : 
-                          session.progress === 'Good' ? 'bg-blue-500' : 'bg-yellow-500'
-                        }`}>
-                          #
+                  {sessionHistory.map((session, index) => {
+                    const getStatusColor = (status: string) => {
+                      switch (status) {
+                        case 'COMPLETED':
+                          return 'bg-green-400';
+                        case 'SCHEDULED':
+                        case 'APPROVED':
+                          return 'bg-blue-400';
+                        case 'CANCELLED':
+                        case 'NO_SHOW':
+                          return 'bg-red-400';
+                        default:
+                          return 'bg-gray-400';
+                      }
+                    };
+
+                    const getProgressText = (overallProgress: string) => {
+                      switch (overallProgress) {
+                        case 'EXCELLENT':
+                          return 'Excellent';
+                        case 'GOOD':
+                          return 'Good';
+                        case 'FAIR':
+                          return 'Fair';
+                        case 'POOR':
+                          return 'Poor';
+                        case 'CONCERNING':
+                          return 'Concerning';
+                        default:
+                          return 'Not Documented';
+                      }
+                    };
+
+                    const getProgressColor = (overallProgress: string) => {
+                      switch (overallProgress) {
+                        case 'EXCELLENT':
+                          return 'bg-green-100 text-green-700';
+                        case 'GOOD':
+                          return 'bg-blue-100 text-blue-700';
+                        case 'FAIR':
+                          return 'bg-yellow-100 text-yellow-700';
+                        case 'POOR':
+                          return 'bg-orange-100 text-orange-700';
+                        case 'CONCERNING':
+                          return 'bg-red-100 text-red-700';
+                        default:
+                          return 'bg-gray-100 text-gray-700';
+                      }
+                    };
+
+                    const getEngagementText = (engagement: string) => {
+                      switch (engagement) {
+                        case 'HIGH':
+                          return 'High';
+                        case 'MEDIUM':
+                          return 'Medium';
+                        case 'LOW':
+                          return 'Low';
+                        case 'RESISTANT':
+                          return 'Resistant';
+                        default:
+                          return 'Not Rated';
+                      }
+                    };
+
+                    const getAttendanceText = (attendance: string) => {
+                      switch (attendance) {
+                        case 'PRESENT':
+                          return 'Present';
+                        case 'LATE':
+                          return 'Late';
+                        case 'NO_SHOW':
+                          return 'No Show';
+                        case 'CANCELLED':
+                          return 'Cancelled';
+                        default:
+                          return 'Not Recorded';
+                      }
+                    };
+
+                    const getRiskText = (risk: string) => {
+                      switch (risk) {
+                        case 'NONE':
+                          return 'None';
+                        case 'LOW':
+                          return 'Low';
+                        case 'MEDIUM':
+                          return 'Medium';
+                        case 'HIGH':
+                          return 'High';
+                        default:
+                          return 'Not Assessed';
+                      }
+                    };
+
+                    const getRiskColor = (risk: string) => {
+                      switch (risk) {
+                        case 'NONE':
+                          return 'text-green-700';
+                        case 'LOW':
+                          return 'text-blue-700';
+                        case 'MEDIUM':
+                          return 'text-yellow-700';
+                        case 'HIGH':
+                          return 'text-red-700';
+                        default:
+                          return 'text-gray-700';
+                      }
+                    };
+
+                    const formatDate = (dateString: string) => {
+                      return new Date(dateString).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      });
+                    };
+
+                    const formatTime = (dateString: string) => {
+                      return new Date(dateString).toLocaleTimeString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      });
+                    };
+
+                    const parseFocusAreas = (focusAreasString: string) => {
+                      try {
+                        const parsed = JSON.parse(focusAreasString);
+                        return Array.isArray(parsed) ? parsed : [];
+                      } catch {
+                        return [];
+                      }
+                    };
+
+                    return (
+                      <div key={session.id} className="relative flex gap-6">
+                        {/* Timeline Node */}
+                        <div className="relative z-10 flex-shrink-0">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg ${getStatusColor(session.status)}`}>
+                            #{index + 1}
+                          </div>
                         </div>
-                      </div>
 
-                      {/* Session Card */}
-                      <div className="flex-1 bg-white rounded-xl shadow-md border-l-4 border-[#8159A8] p-6 hover:shadow-lg transition-shadow">
-                        {/* Card Header */}
-                        <div className="flex justify-between items-start mb-4">
-                          <div>
-                            <h4 className="text-xl font-bold text-[#8159A8] mb-1">Session #{session.id}</h4>
-                            <p className="text-gray-500 flex items-center gap-2">
-                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
-                              </svg>
-                              {session.date}
-                            </p>
-                          </div>
-                          <div className="flex gap-2">
-                            <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                              session.progress === 'Excellent' ? 'bg-green-100 text-green-700' : 
-                              session.progress === 'Good' ? 'bg-blue-100 text-blue-700' : 'bg-yellow-100 text-yellow-700'
-                            }`}>
-                              {session.progress}
-                            </span>
-                            <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium">
-                              ✓ {session.attendance}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Session Details Grid */}
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-                          <div className="bg-gray-50 rounded-lg p-3">
-                            <div className="flex items-center gap-2 text-gray-600 mb-1">
-                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-                              </svg>
-                              <span className="text-xs font-medium uppercase">Duration</span>
+                        {/* Session Card */}
+                        <div className="flex-1 bg-purple-50 rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow">
+                          {/* Card Header */}
+                          <div className="flex justify-between items-start mb-4">
+                            <div>
+                              <h4 className="text-xl font-bold text-[#8159A8] mb-1">Session - {session.type || 'Therapy Session'}</h4>
+                              <p className="text-gray-500 flex items-center gap-2">
+                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                                </svg>
+                                {formatDate(session.scheduledAt)} at {formatTime(session.scheduledAt)}
+                              </p>
                             </div>
-                            <p className="font-semibold text-gray-900">{session.duration}</p>
-                          </div>
-                          <div className="bg-gray-50 rounded-lg p-3">
-                            <div className="flex items-center gap-2 text-gray-600 mb-1">
-                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                              </svg>
-                              <span className="text-xs font-medium uppercase">Focus Area</span>
-                            </div>
-                            <p className="font-semibold text-gray-900">{session.focusArea}</p>
-                          </div>
-                          <div className="bg-gray-50 rounded-lg p-3 md:col-span-1 col-span-2">
-                            <div className="flex items-center gap-2 text-gray-600 mb-1">
-                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
-                              </svg>
-                              <span className="text-xs font-medium uppercase">Therapist</span>
-                            </div>
-                            <p className="font-semibold text-gray-900">Dr. Smith</p>
-                          </div>
-                        </div>
-
-                        {/* Session Content */}
-                        <div className="space-y-4">
-                          {/* Session Notes */}
-                          <div className="bg-gray-50 border-l-4 border-gray-400 rounded-lg p-4">
-                            <div className="flex items-center gap-2 mb-2">
-                              <svg className="w-5 h-5 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z" />
-                              </svg>
-                              <h5 className="font-semibold text-gray-900">Session Notes</h5>
-                            </div>
-                            <p className="text-gray-700 text-sm leading-relaxed">{session.notes}</p>
-                          </div>
-
-                          {/* Two Column Layout for Additional Info */}
-                          <div className="grid md:grid-cols-2 gap-4">
-                            {/* Left Column */}
-                            <div className="space-y-3">
-                              {session.mentalStatus && (
-                                <div className="bg-gray-50 rounded-lg p-3 border">
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <svg className="w-4 h-4 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                    </svg>
-                                    <h6 className="font-medium text-gray-900">Mental Status</h6>
-                                  </div>
-                                  <p className="text-gray-700 text-sm">{session.mentalStatus}</p>
-                                </div>
-                              )}
-
-                              <div className="bg-gray-50 rounded-lg p-3 border">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <svg className="w-4 h-4 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+                            <div className="flex gap-2 flex-wrap">
+                              {session.status === 'COMPLETED' && (
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="flex items-center gap-2"
+                                  onClick={() => window.location.href = `/therapist/sessions/${session.id}`}
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                   </svg>
-                                  <h6 className="font-medium text-gray-900">Interventions Used</h6>
-                                </div>
-                                <p className="text-gray-700 text-sm">{session.interventions}</p>
-                              </div>
+                                  View Details
+                                </Button>
+                              )}
+                              <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                                session.status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
+                                session.status === 'SCHEDULED' || session.status === 'APPROVED' ? 'bg-blue-100 text-blue-700' :
+                                'bg-red-100 text-red-700'
+                              }`}>
+                                {session.status.replace('_', ' ')}
+                              </span>
+                              
                             </div>
+                          </div>
 
-                            {/* Right Column */}
-                            <div className="space-y-3">
-                              <div className="bg-gray-50 rounded-lg p-3 border">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <svg className="w-4 h-4 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+                          {/* Session Details Grid - Only show for completed sessions */}
+                          {session.status === 'COMPLETED' && (
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                              <div className="bg-gray-50 rounded-lg p-3">
+                                <div className="flex items-center gap-2 text-gray-600 mb-1">
+                                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M13 17a1 1 0 01-.293-.707L9 12.586l-1.293 1.293a1 1 0 01-1.414-1.414L9 10.757a2 2 0 012.828 0l2.828 2.829a1 1 0 01-1.414 1.414L12 12.586l-3.707 3.707A1 1 0 018 17z" />
+                                  </svg>
+                                  <span className="text-xs font-medium uppercase">Progress</span>
+                                </div>
+                                <p className={`font-semibold ${getProgressColor(session.overallProgress).split(' ')[1]}`}>
+                                  {getProgressText(session.overallProgress)}
+                                </p>
+                              </div>
+                              <div className="bg-gray-50 rounded-lg p-3">
+                                <div className="flex items-center gap-2 text-gray-600 mb-1">
+                                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
+                                  </svg>
+                                  <span className="text-xs font-medium uppercase">Attendance</span>
+                                </div>
+                                <p className="font-semibold text-gray-900">{getAttendanceText(session.attendanceStatus)}</p>
+                              </div>
+                              <div className="bg-gray-50 rounded-lg p-3">
+                                <div className="flex items-center gap-2 text-gray-600 mb-1">
+                                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                     <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                   </svg>
-                                  <h6 className="font-medium text-gray-900">Homework Assigned</h6>
+                                  <span className="text-xs font-medium uppercase">Engagement</span>
                                 </div>
-                                <p className="text-gray-700 text-sm">{session.homework}</p>
+                                <p className="font-semibold text-gray-900">{getEngagementText(session.patientEngagement)}</p>
                               </div>
+                              <div className="bg-gray-50 rounded-lg p-3">
+                                <div className="flex items-center gap-2 text-gray-600 mb-1">
+                                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                  </svg>
+                                  <span className="text-xs font-medium uppercase">Risk Level</span>
+                                </div>
+                                <p className={`font-semibold ${getRiskColor(session.riskAssessment)}`}>{getRiskText(session.riskAssessment)}</p>
+                              </div>
+                            </div>
+                          )}
 
-                              {session.observations && (
-                                <div className="bg-gray-50 rounded-lg p-3 border">
+                          {/* Session Content - Only show clinical details for completed sessions */}
+                          {session.status === 'COMPLETED' ? (
+                            <div className="space-y-4">
+                              {/* Focus Areas */}
+                              {session.primaryFocusAreas && parseFocusAreas(session.primaryFocusAreas).length > 0 && (
+                                <div className="bg-blue-50 border-l-4 border-blue-400 rounded-lg p-4">
                                   <div className="flex items-center gap-2 mb-2">
-                                    <svg className="w-4 h-4 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                                      <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-                                      <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                                    <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                      <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
-                                    <h6 className="font-medium text-gray-900">Key Observations</h6>
+                                    <h5 className="font-semibold text-blue-900">Primary Focus Areas</h5>
                                   </div>
-                                  <p className="text-gray-700 text-sm">{session.observations}</p>
+                                  <div className="flex flex-wrap gap-2">
+                                    {parseFocusAreas(session.primaryFocusAreas).map((area, idx) => (
+                                      <span key={idx} className="px-2 py-1 bg-blue-100 text-blue-800 rounded-lg text-sm">
+                                        {area}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Session Notes */}
+
+                              {/* Progress Notes (fallback) */}
+
+                              {/* Next Session Goals */}
+                              {session.nextSessionGoals && (
+                                <div className="bg-green-50 border-l-4 border-green-400 rounded-lg p-4">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                                    </svg>
+                                    <h5 className="font-semibold text-green-900">Next Session Goals</h5>
+                                  </div>
+                                  <p className="text-green-700 text-sm leading-relaxed">{session.nextSessionGoals}</p>
                                 </div>
                               )}
                             </div>
-                          </div>
+                          ) : null}
 
-                          {/* Next Session Plan */}
-                          <div className="bg-gray-50 border-l-4 border-gray-400 rounded-lg p-4">
-                            <div className="flex items-center gap-2 mb-2">
-                              <svg className="w-5 h-5 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
-                              </svg>
-                              <h5 className="font-semibold text-gray-900">Next Session Plan</h5>
-                            </div>
-                            <p className="text-gray-700 text-sm leading-relaxed">{session.nextPlan}</p>
-                          </div>
-                        </div>
-
-                        {/* Action Buttons */}
-                        <div className="flex gap-2 mt-6 pt-4 border-t border-gray-100">
-                          <Button variant="outline" size="sm" className="flex items-center gap-2">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                            Edit Notes
-                          </Button>
-                          <Button variant="outline" size="sm" className="flex items-center gap-2">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                            </svg>
-                            View Report
-                          </Button>
-                          <Button variant="outline" size="sm" className="flex items-center gap-2">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            Export PDF
-                          </Button>
+                          
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {/* Load More Button */}

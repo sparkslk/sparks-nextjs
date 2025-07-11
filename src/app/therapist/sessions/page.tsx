@@ -1,14 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Clock, User, MapPin, FileText, Edit, Eye, CheckCircle, Plus, Activity } from "lucide-react";
+import { Calendar, Clock, User, FileText, Edit, Eye, CheckCircle, Plus, Activity, RotateCcw, X, Video, ArrowRight } from "lucide-react";
 import { SessionUpdateModal } from "@/components/therapist/SessionUpdateModal";
-import { StatsCard } from "@/components/ui/stats-card";
-import { format } from "date-fns";
 
 interface Session {
   id: string;
@@ -37,7 +35,50 @@ export default function TherapistSessionsPage() {
   const [loading, setLoading] = useState(true);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("upcoming");
+  const [activeTab, setActiveTab] = useState("scheduled");
+
+  // Helper function to safely parse and format dates (similar to parent tasks page)
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
+  const formatTime = (dateString: string) => {
+    return new Date(dateString).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+  };
+
+  const formatTimeManual = (dateString: string) => {
+    // Extract just the time part manually to avoid timezone issues
+    if (dateString.includes('T')) {
+      const timePart = dateString.split('T')[1];
+      const timeOnly = timePart.split('.')[0]; // Remove milliseconds if present
+      const finalTime = timeOnly.split('Z')[0]; // Remove Z if present
+      
+      // Convert to 24-hour format
+      const [hours, minutes] = finalTime.split(':');
+      return `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`;
+    }
+    
+    // Fallback to original method
+    return formatTime(dateString);
+  };
+
+  const formatDateTime = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+  };
 
   useEffect(() => {
     fetchSessions();
@@ -81,9 +122,8 @@ export default function TherapistSessionsPage() {
   const filterSessionsByTab = (tab: string) => {
     const now = new Date();
     switch (tab) {
-      case 'upcoming':
+      case 'scheduled':
         return sessions.filter(session => 
-          new Date(session.scheduledAt) > now && 
           ['SCHEDULED', 'APPROVED', 'CONFIRMED'].includes(session.status)
         );
       case 'completed':
@@ -102,9 +142,74 @@ export default function TherapistSessionsPage() {
   };
 
   const canUpdateSession = (session: Session) => {
-    const sessionTime = new Date(session.scheduledAt);
+    // Allow updating sessions that have started (ongoing) OR completed
+    const hasStarted = isSessionOngoing(session) || isSessionCompleted(session);
+    const isScheduledStatus = ['SCHEDULED', 'APPROVED', 'CONFIRMED'].includes(session.status);
+    return hasStarted && isScheduledStatus;
+  };
+
+  const canRescheduleOrCancel = (session: Session) => {
+    // Allow reschedule/cancel only for future sessions (not started yet)
+    const isFutureSession = !isSessionPast(session);
+    const isScheduledStatus = ['SCHEDULED', 'APPROVED', 'CONFIRMED'].includes(session.status);
+    return isFutureSession && isScheduledStatus;
+  };
+
+  const isSessionPast = (session: Session) => {
+    // Parse the session time but treat it as local time instead of UTC
+    const sessionTimeString = session.scheduledAt;
+    
+    // If the time has 'Z' or timezone info, we need to handle it carefully
+    let sessionTime;
+    if (sessionTimeString.includes('T') && sessionTimeString.includes('Z')) {
+      // Remove the 'Z' and treat as local time
+      const localTimeString = sessionTimeString.replace('Z', '');
+      sessionTime = new Date(localTimeString);
+    } else {
+      sessionTime = new Date(sessionTimeString);
+    }
+    
     const now = new Date();
-    return sessionTime <= now && session.status === 'SCHEDULED';
+    
+    return sessionTime <= now;
+  };
+
+  const isSessionOngoing = (session: Session) => {
+    // Parse the session time but treat it as local time instead of UTC
+    const sessionTimeString = session.scheduledAt;
+    
+    let sessionTime;
+    if (sessionTimeString.includes('T') && sessionTimeString.includes('Z')) {
+      const localTimeString = sessionTimeString.replace('Z', '');
+      sessionTime = new Date(localTimeString);
+    } else {
+      sessionTime = new Date(sessionTimeString);
+    }
+    
+    const now = new Date();
+    const sessionEndTime = new Date(sessionTime.getTime() + (session.duration * 60 * 1000)); // Add duration in milliseconds
+    
+    // Session is ongoing if current time is between start and end time
+    return sessionTime <= now && now <= sessionEndTime;
+  };
+
+  const isSessionCompleted = (session: Session) => {
+    // Parse the session time but treat it as local time instead of UTC
+    const sessionTimeString = session.scheduledAt;
+    
+    let sessionTime;
+    if (sessionTimeString.includes('T') && sessionTimeString.includes('Z')) {
+      const localTimeString = sessionTimeString.replace('Z', '');
+      sessionTime = new Date(localTimeString);
+    } else {
+      sessionTime = new Date(sessionTimeString);
+    }
+    
+    const now = new Date();
+    const sessionEndTime = new Date(sessionTime.getTime() + (session.duration * 60 * 1000)); // Add duration in milliseconds
+    
+    // Session is completed if current time is past the end time
+    return now > sessionEndTime;
   };
 
   const handleViewDetails = (session: Session) => {
@@ -122,78 +227,233 @@ export default function TherapistSessionsPage() {
     setSelectedSession(null);
   };
 
-  const SessionCard = ({ session }: { session: Session }) => (
-    <Card className="shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100 bg-primary-foreground dark:bg-slate-950">
-      <CardHeader className="pb-4">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-sm" 
-                 style={{ background: 'linear-gradient(to bottom right, #8159A8, #6b46a0)' }}>
-              {session.patientName.split(' ').map(n => n[0]).join('').substring(0, 2)}
-            </div>
-            <div>
-              <CardTitle className="text-lg font-bold text-gray-900">{session.patientName}</CardTitle>
-              <p className="text-sm text-gray-500">Patient ID: {session.patientId}</p>
-            </div>
-          </div>
-          <Badge className={`${getStatusColor(session.status)} font-medium`}>
-            {session.status.replace('_', ' ')}
-          </Badge>
-        </div>
-      </CardHeader>
-      
-      <CardContent className="pt-0">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
-          <div className="flex items-center gap-2">
-            <Calendar className="w-6 h-6 text-primary" />
-            <div>
-              <p className="text-xs text-gray-500">Date</p>
-              <p className="text-sm font-medium">{format(new Date(session.scheduledAt), "MMM dd, yyyy")}</p>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <Clock className="w-6 h-6 text-primary" />
-            <div>
-              <p className="text-xs text-gray-500">Time</p>
-              <p className="text-sm font-medium">{format(new Date(session.scheduledAt), "hh:mm a")}</p>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <FileText className="w-6 h-6 text-primary" />
-            <div>
-              <p className="text-xs text-gray-500">Type</p>
-              <p className="text-sm font-medium capitalize">{session.type}</p>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <Activity className="w-6 h-6 text-primary" />
-            <div>
-              <p className="text-xs text-gray-500">Duration</p>
-              <p className="text-sm font-medium">{session.duration} min</p>
-            </div>
-          </div>
-            <div className="flex items-center gap-2 col-span-2 md:col-span-1 justify-end">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleViewDetails(session)}
-              className="text-sm"
-            >
-              <Eye className="w-4 h-4 mr-2" />
-              View Details
-            </Button>
-            </div>
-        </div>
+  const handleRescheduleSession = (session: Session) => {
+    // For now, just show an alert - will implement reschedule functionality later
+    alert(`Reschedule session with ${session.patientName}`);
+  };
 
-        
+  const handleCancelSession = (session: Session) => {
+    // For now, just show an alert - will implement cancel functionality later
+    if (confirm(`Are you sure you want to cancel the session with ${session.patientName}?`)) {
+      alert(`Session with ${session.patientName} has been cancelled`);
+    }
+  };
 
+  const handleJoinSession = (session: Session) => {
+    // For now, just show an alert - will implement video call functionality later
+    alert(`Joining session with ${session.patientName}...`);
+  };
+
+  const handleMoveToCompleted = (session: Session) => {
+    // For now, just show an alert - will implement move to completed functionality later
+    if (confirm(`Mark session with ${session.patientName} as completed?`)) {
+      alert(`Session with ${session.patientName} has been marked as completed`);
+    }
+  };
+
+  const SessionCard = ({ session }: { session: Session }) => {
+    const isPast = isSessionPast(session);
+    const isOngoing = isSessionOngoing(session);
+    const isCompleted = isSessionCompleted(session);
+    const canUpdate = canUpdateSession(session);
+    const canRescheduleCancel = canRescheduleOrCancel(session);
+    const needsDocumentation = isCompleted && ['SCHEDULED', 'APPROVED', 'CONFIRMED'].includes(session.status);
+    const canDocument = (isOngoing || isCompleted) && ['SCHEDULED', 'APPROVED', 'CONFIRMED'].includes(session.status);
+    const isFutureSession = !isPast;
+    const isScheduledStatus = ['SCHEDULED', 'APPROVED', 'CONFIRMED'].includes(session.status);
     
-      </CardContent>
-    </Card>
-  );
+    // Determine card styling based on session state
+    let cardStyling = 'border-gray-100 bg-primary-foreground'; // Default for future sessions
+    if (isOngoing) {
+      cardStyling = 'border-green-200 bg-green-50/30'; // Green for ongoing sessions
+    } else if (needsDocumentation) {
+      cardStyling = 'border-orange-200 bg-orange-50/30'; // Orange for sessions needing documentation
+    }
+    
+    return (
+      <Card className={`shadow-sm hover:shadow-md transition-all duration-300 border ${cardStyling} dark:bg-slate-950`}>
+        <CardHeader className="pb-4">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-sm" 
+                   style={{ background: 'linear-gradient(to bottom right, #8159A8, #6b46a0)' }}>
+                {session.patientName.split(' ').map(n => n[0]).join('').substring(0, 2)}
+              </div>
+              <div>
+                <CardTitle className="text-lg font-bold text-gray-900">{session.patientName}</CardTitle>
+                <p className="text-sm text-gray-500">Patient ID: {session.patientId}</p>
+                {isOngoing && (
+                  <div className="flex items-center gap-2 mt-1">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <p className="text-xs text-green-700 font-medium">Session in progress</p>
+                  </div>
+                )}
+                {needsDocumentation && (
+                  <div className="flex items-center gap-2 mt-1">
+                    <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
+                    <p className="text-xs text-orange-700 font-medium">Session completed - Documentation required</p>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="flex flex-col items-end gap-2">
+              <Badge className={`${getStatusColor(session.status)} font-medium`}>
+                {session.status.replace('_', ' ')}
+              </Badge>
+              {isOngoing && (
+                <Badge className="bg-green-100 text-green-800 font-medium text-xs">
+                  In Progress
+                </Badge>
+              )}
+              {needsDocumentation && (
+                <Badge className="bg-orange-100 text-orange-800 font-medium text-xs">
+                  Needs Documentation
+                </Badge>
+              )}
+            </div>
+          </div>
+        </CardHeader>
+        
+        <CardContent className="pt-0">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-6 h-6 text-primary" />
+              <div>
+                <p className="text-xs text-gray-500">Date</p>
+                <p className="text-sm font-medium">{formatDate(session.scheduledAt)}</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Clock className="w-6 h-6 text-primary" />
+              <div>
+                <p className="text-xs text-gray-500">Time</p>
+                <p className="text-sm font-medium">{formatTimeManual(session.scheduledAt)}</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <FileText className="w-6 h-6 text-primary" />
+              <div>
+                <p className="text-xs text-gray-500">Type</p>
+                <p className="text-sm font-medium capitalize">{session.type}</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Activity className="w-6 h-6 text-primary" />
+              <div>
+                <p className="text-xs text-gray-500">Duration</p>
+                <p className="text-sm font-medium">{session.duration} min</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex justify-end mt-4">
+            <div className="flex flex-wrap gap-2">
+              {/* Future Sessions: Show Reschedule and Cancel buttons */}
+              {isFutureSession && isScheduledStatus && (
+                <>
+                  <Button
+                    onClick={() => handleRescheduleSession(session)}
+                    variant="outline"
+                    className="text-sm border-blue-300 text-blue-700 hover:bg-blue-50"
+                    size="sm"
+                  >
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Reschedule
+                  </Button>
+                  
+                  <Button
+                    onClick={() => handleCancelSession(session)}
+                    variant="outline"
+                    className="text-sm border-red-300 text-red-700 hover:bg-red-50"
+                    size="sm"
+                  >
+                    <X className="w-4 h-4 mr-2" />
+                    Cancel
+                  </Button>
+                </>
+              )}
+
+              {/* Ongoing Sessions: Show Join Session, Move to Completed, and Document buttons */}
+              {isOngoing && isScheduledStatus && (
+                <>
+                  <Button
+                    onClick={() => handleJoinSession(session)}
+                    style={{ backgroundColor: '#10b981' }}
+                    className="text-white hover:opacity-90 text-sm"
+                    size="sm"
+                  >
+                    <Video className="w-4 h-4 mr-2" />
+                    Join Session
+                  </Button>
+                  
+                  <Button
+                    onClick={() => handleMoveToCompleted(session)}
+                    variant="outline"
+                    className="text-sm border-green-300 text-green-700 hover:bg-green-50"
+                    size="sm"
+                  >
+                    <ArrowRight className="w-4 h-4 mr-2" />
+                    Move to Completed
+                  </Button>
+                  
+                  <Button
+                    onClick={() => handleUpdateSession(session)}
+                    style={{ backgroundColor: '#8159A8' }}
+                    className="text-white hover:opacity-90 text-sm"
+                    size="sm"
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    Document Session
+                  </Button>
+                </>
+              )}
+
+              {/* Completed Sessions (not yet documented): Show Move to Completed and Document buttons */}
+              {isCompleted && isScheduledStatus && (
+                <>
+                  <Button
+                    onClick={() => handleMoveToCompleted(session)}
+                    variant="outline"
+                    className="text-sm border-green-300 text-green-700 hover:bg-green-50"
+                    size="sm"
+                  >
+                    <ArrowRight className="w-4 h-4 mr-2" />
+                    Move to Completed
+                  </Button>
+                  
+                  <Button
+                    onClick={() => handleUpdateSession(session)}
+                    style={{ backgroundColor: '#8159A8' }}
+                    className="text-white hover:opacity-90 text-sm"
+                    size="sm"
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    Document Session
+                  </Button>
+                </>
+              )}
+
+              {/* Completed/Cancelled Sessions: Show View Details for non-scheduled status */}
+              {!isScheduledStatus && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleViewDetails(session)}
+                  className="text-sm"
+                >
+                  <Eye className="w-4 h-4 mr-2" />
+                  View Details
+                </Button>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
 
   if (loading) {
     return (
@@ -241,18 +501,18 @@ export default function TherapistSessionsPage() {
               <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <p className="text-sm font-medium text-gray-600">Next Session</p>
-                  {filterSessionsByTab("upcoming").length > 0 ? (
+                  {filterSessionsByTab("scheduled").length > 0 ? (
                     <>
                       <p className="text-lg font-bold text-gray-900 mt-1">
                         {(() => {
-                          const nextSession = filterSessionsByTab("upcoming")
+                          const nextSession = filterSessionsByTab("scheduled")
                             .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())[0];
-                          return format(new Date(nextSession.scheduledAt), "MMM dd, hh:mm a");
+                          return formatDateTime(nextSession.scheduledAt);
                         })()}
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
                         {(() => {
-                          const nextSession = filterSessionsByTab("upcoming")
+                          const nextSession = filterSessionsByTab("scheduled")
                             .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())[0];
                           return nextSession.patientName;
                         })()}
@@ -331,8 +591,8 @@ export default function TherapistSessionsPage() {
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-4 mb-8">
-            <TabsTrigger value="upcoming">
-              Upcoming ({filterSessionsByTab("upcoming").length})
+            <TabsTrigger value="scheduled">
+              Scheduled ({filterSessionsByTab("scheduled").length})
             </TabsTrigger>
             <TabsTrigger value="completed">
               Completed ({filterSessionsByTab("completed").length})
@@ -345,15 +605,15 @@ export default function TherapistSessionsPage() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="upcoming">
+          <TabsContent value="scheduled">
             <div className="space-y-6">
-              {filterSessionsByTab("upcoming").length === 0 ? (
+              {filterSessionsByTab("scheduled").length === 0 ? (
                 <Card className="shadow-sm border border-gray-200">
                   <CardContent className="p-12 text-center">
                     <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                       <Calendar className="w-8 h-8 text-gray-400" />
                     </div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No upcoming sessions</h3>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No scheduled sessions</h3>
                     <p className="text-gray-500 mb-6">Your scheduled therapy sessions will appear here.</p>
                     <Button 
                       style={{ backgroundColor: '#8159A8' }}
@@ -367,7 +627,7 @@ export default function TherapistSessionsPage() {
                 </Card>
               ) : (
                 <div className="space-y-6">
-                  {filterSessionsByTab("upcoming")
+                  {filterSessionsByTab("scheduled")
                     .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())
                     .map((session) => (
                       <SessionCard key={session.id} session={session} />
