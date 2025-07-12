@@ -113,6 +113,7 @@ export async function GET(req: NextRequest) {
                     isPrimary: relation.isPrimary,
                     upcomingSessions: relation.patient.therapySessions.length,
                     lastSession: relation.patient.therapySessions[0]?.scheduledAt || null,
+                    nextSessionId: relation.patient.therapySessions[0]?.id || null,
                     nextSessionType: relation.patient.therapySessions[0]?.type || null,
                     nextSessionStatus: relation.patient.therapySessions[0]?.status || null,
                     therapist: relation.patient.primaryTherapist ? {

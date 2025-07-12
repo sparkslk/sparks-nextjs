@@ -23,6 +23,7 @@ interface Child {
   lastSession: string | null;
   nextSessionType: string | null; // e.g., 'individual', 'group'
   nextSessionStatus: string,
+  nextSessionId?: string | null;
   therapist: {
     name: string;
     email: string;
@@ -339,7 +340,7 @@ export default function MyChildrenPage() {
                           variant="outline"
                           size="sm"
                           className="border-gray-300 text-gray-900 hover:bg-gray-50 flex items-center justify-center gap-2"
-                          onClick={() => window.location.href = `/parent/sessionDetails?childId=${child.id}`}
+                          onClick={() => window.location.href = `/parent/sessions/${child.nextSessionId}`}
                         >
                           <span>📅</span> View Details
                         </Button>
