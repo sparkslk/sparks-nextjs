@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Image from "next/image";
+// import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   TrendingUp
@@ -21,6 +21,8 @@ interface Child {
   progressReports: number;
   progressPercentage: number;
   lastSession: string | null;
+  nextSessionType: string | null; // e.g., 'individual', 'group'
+  nextSessionStatus: string,
   therapist: {
     name: string;
     email: string;
@@ -29,10 +31,10 @@ interface Child {
 
 export default function MyChildrenPage() {
   const [children, setChildren] = useState<Child[]>([]);
-  const [activeChildIndex, setActiveChildIndex] = useState(0);
+  // const [activeChildIndex, setActiveChildIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [noteText, setNoteText] = useState("");
+  // const [noteText, setNoteText] = useState("");
   const [animatedProgress, setAnimatedProgress] = useState<{ [key: string]: number }>({});
   const [sessionModalOpen, setSessionModalOpen] = useState(false);
   const [selectedChild, setSelectedChild] = useState<Child | null>(null);
@@ -92,7 +94,7 @@ export default function MyChildrenPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F5F3FB' }}>
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: '#8159A8' }}></div>
           <p className="mt-2 text-gray-600">Loading children...</p>
@@ -156,8 +158,8 @@ export default function MyChildrenPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {children.map((child) => (
-            <Card key={child.id} className="shadow-sm hover:shadow-md transition-shadow h-full">
-              <CardContent className="p-6 h-full flex flex-col">
+            <Card key={child.id} className="shadow-sm hover:shadow-md transition-shadow">
+              <CardContent className="p-6 flex flex-col">
                 <div className="flex items-center space-x-4 mb-6">
                   <div
                     className="w-12 h-12 rounded-full flex items-center justify-center"
@@ -185,9 +187,24 @@ export default function MyChildrenPage() {
                     Active
                   </Badge>
                 </div>
+                {!child.therapist && (
+                  <div className="mb-4 bg-purple-50 border border-purple-200 rounded-lg p-3 flex items-center justify-between">
+                    <span className="text-sm text-purple-800">
+                      No therapist assigned. Connect with a therapist to enable appointments and communication.
+                    </span>
+                    <Button
+                      size="sm"
+                      style={{ backgroundColor: '#ede9fe', color: '#6d28d9' }}
+                      className="ml-3 hover:opacity-90 border border-purple-200"
+                      onClick={() => window.location.href = '/parent/findTherapist'}
+                    >
+                      Find a Therapist
+                    </Button>
+                  </div>
+                )}
 
                 {/* Content wrapper that takes remaining space */}
-                <div className="flex-1 flex flex-col justify-between">
+                <div className="flex flex-col justify-between">
                   {/* Content section */}
                   <div>
                     {/* Centered Progress Display */}
@@ -230,10 +247,12 @@ export default function MyChildrenPage() {
                       <p className="text-sm text-gray-600 mb-1">
                         Patient ID: <span className="font-mono text-xs bg-white px-2 py-1 rounded border">{child.id}</span>
                       </p>
-                      <p className="text-sm text-gray-600 mb-1">
-                        Upcoming Sessions: <span className="font-medium">{child.upcomingSessions}</span>
-                      </p>
-                      {child.lastSession && (
+                      {child.therapist && (
+                        <p className="text-sm text-gray-600 mb-1">
+                          Upcoming Sessions: <span className="font-medium">{child.upcomingSessions}</span>
+                        </p>
+                      )}
+                      {child.therapist && child.lastSession && (
                         <p className="text-sm text-gray-600">
                           Last Session: {new Date(child.lastSession).toLocaleDateString()}
                         </p>
@@ -254,8 +273,9 @@ export default function MyChildrenPage() {
                       size="sm"
                       className="border-gray-300 text-gray-700 hover:bg-gray-50"
                       onClick={() => {
-                        window.location.href = `/parent/appointments?highlightChild=${child.id}&childName=${encodeURIComponent(child.firstName + ' ' + child.lastName)}`;
+                      window.location.href = `/parent/appointments?highlightChild=${child.id}&childName=${encodeURIComponent(child.firstName + ' ' + child.lastName)}`;
                       }}
+                      disabled={!child.therapist}
                     >
                       <span className="mr-2">📅</span>
                       Appointments
@@ -276,6 +296,7 @@ export default function MyChildrenPage() {
                       variant="outline"
                       size="sm"
                       className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                      disabled={!child.therapist}
                     >
                       <span className="mr-2">💊</span>
                       Medications
@@ -284,11 +305,54 @@ export default function MyChildrenPage() {
                       size="sm"
                       style={{ backgroundColor: '#8159A8' }}
                       className="text-white hover:opacity-90"
+                      disabled={!child.therapist}
                     >
                       <span className="mr-2">📞</span>
                       Contact Therapist
                     </Button>
                   </div>
+                  {/* Upcoming Session Section */}
+                  {child.therapist && child.upcomingSessions > 0 && (
+                    <div className="mb-4 mt-6 bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                      <div className="mb-2">
+                        <h3 className="text-lg font-bold text-gray-900">Next Session</h3>
+                        {/* <p className="text-sm text-muted-foreground">Your next scheduled therapy session</p> */}
+                      </div>
+                      <div className={`flex items-center justify-between rounded-lg px-3 py-2 mb-4 ${child.nextSessionStatus && child.nextSessionStatus.toLowerCase() === 'cancelled' ? 'bg-red-50' : 'bg-green-50'}`}> 
+                        <div>
+                          <div className="font-semibold text-gray-900">Therapist : {child.therapist?.name}</div>
+                          <div className="text-xs text-muted-foreground">{child.nextSessionType}</div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="text-sm text-gray-900 font-medium">{child.lastSession ? new Date(child.lastSession).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'TBD'}</div>
+                          {child.nextSessionStatus && (
+                            <span
+                              className={`text-xs px-2 py-1 rounded font-medium ${child.nextSessionStatus.toLowerCase() === 'cancelled' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}
+                            >
+                              {child.nextSessionStatus.toLowerCase()}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-gray-300 text-gray-900 hover:bg-gray-50 flex items-center justify-center gap-2"
+                          onClick={() => window.location.href = `/parent/sessionDetails?childId=${child.id}`}
+                        >
+                          <span>📅</span> View Details
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="bg-primary text-white hover:opacity-90 flex items-center justify-center gap-2"
+                          onClick={() => window.open('https://zoom.us', '_blank')}
+                        >
+                          <span>🔗</span> Join
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -296,7 +360,7 @@ export default function MyChildrenPage() {
         </div>
 
         {/* Parent Notes Section - Only show if any child has a therapist */}
-        {children.length > 0 && children.some(child => child.therapist) && (
+        {/* {children.length > 0 && children.some(child => child.therapist) && (
           <Card className="mt-10 shadow-sm">
             <CardHeader className="border-b border-gray-100 pb-4">
               <CardTitle className="text-lg font-semibold text-gray-900 mb-4">Parent Notes & Observations</CardTitle>
@@ -344,9 +408,9 @@ export default function MyChildrenPage() {
               </div>
             </CardContent>
           </Card>
-        )}
+        )} */}
 
-        {/* Connect with Therapist Notice - Show if no therapists assigned */}
+        {/* Connect with Therapist Notice - Show if no therapists assigned
         {children.length > 0 && !children.some(child => child.therapist) && (
           <Card className="mt-5 shadow-sm border-2 border-dashed border-gray-300">
             <CardContent className="p-4 text-center">
@@ -377,7 +441,7 @@ export default function MyChildrenPage() {
               </p>
             </CardContent>
           </Card>
-        )}
+        )} */}
       </div>
 
       {/* Session Details Modal */}
