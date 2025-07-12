@@ -328,14 +328,14 @@ export default function ParentDashboard() {
                                     <div className="space-y-3">
                                         <div className="flex items-center justify-between">
                                             <span className="text-sm font-semibold text-gray-700">Overall Progress</span>
-                                            <span className="text-sm font-bold" style={{ color: '#8159A8' }}>{child.progressPercentage || 0 }%</span>
+                                            <span className="text-sm font-bold" style={{ color: '#8159A8' }}>{child.progressPercentage}%</span>
                                         </div>
                                         <div className="relative">
                                             <div className="w-full bg-gray-200 rounded-full h-3 shadow-inner">
                                                 <div
                                                     className="h-3 rounded-full transition-all duration-500 ease-out shadow-sm"
                                                     style={{
-                                                        width: `${child.progressPercentage || 0}%`,
+                                                        width: `${child.progressPercentage}%`,
                                                         background: 'linear-gradient(to right, #8159A8, #6b46a0)'
                                                     }}
                                                 ></div>

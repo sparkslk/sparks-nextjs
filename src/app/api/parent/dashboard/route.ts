@@ -78,6 +78,7 @@ export async function GET(req: NextRequest) {
                 
                 // Calculate progress percentage (as decimal from 0-100)
                 const progressPercentage = totalSessions > 0 ? Math.round((completedSessions / totalSessions) * 100) : 0;
+                console.log("Progress percentage is : " , progressPercentage);
 
                 // Get last session date
                 const lastSession = await prisma.therapySession.findFirst({

@@ -87,31 +87,49 @@ export async function GET(req: NextRequest) {
             }
         });
 
-        const children = parentGuardianRelations.map(relation => ({
-            id: relation.patient.id,
-            firstName: relation.patient.firstName,
-            lastName: relation.patient.lastName,
-            dateOfBirth: relation.patient.dateOfBirth,
-            gender: relation.patient.gender,
-            email: relation.patient.email,
-            relationship: relation.relationship,
-            isPrimary: relation.isPrimary,
-            upcomingSessions: relation.patient.therapySessions.length,
-            lastSession: relation.patient.therapySessions[0]?.scheduledAt || null,
-            therapist: relation.patient.primaryTherapist ? {
-                id: relation.patient.primaryTherapist.id,
-                userId: relation.patient.primaryTherapist.userId,
-                name: relation.patient.primaryTherapist.user.name,
-                email: relation.patient.primaryTherapist.user.email,
-                specialization: relation.patient.primaryTherapist.specialization,
-                licenseNumber: relation.patient.primaryTherapist.licenseNumber,
-                experience: relation.patient.primaryTherapist.experience || 0,
-                bio: relation.patient.primaryTherapist.bio,
-                rating: 4.5, // Default rating since not in schema
-                availability: relation.patient.primaryTherapist.availability,
-                organizationId: relation.patient.primaryTherapist.organizationId
-            } : null
-        }));
+        const children = await Promise.all(
+            parentGuardianRelations.map(async (relation) => {
+                // Calculate progress percentage based on completed sessions vs total scheduled
+                const totalSessions = await prisma.therapySession.count({
+                    where: { patientId: relation.patient.id }
+                });
+                const completedSessions = await prisma.therapySession.count({
+                    where: {
+                        patientId: relation.patient.id,
+                        status: 'COMPLETED'
+                    }
+                });
+                // Calculate progress percentage (as decimal from 0-100)
+                const progressPercentage = totalSessions > 0 ? Math.round((completedSessions / totalSessions) * 100) : 0;
+
+                return {
+                    id: relation.patient.id,
+                    firstName: relation.patient.firstName,
+                    lastName: relation.patient.lastName,
+                    dateOfBirth: relation.patient.dateOfBirth,
+                    gender: relation.patient.gender,
+                    email: relation.patient.email,
+                    relationship: relation.relationship,
+                    isPrimary: relation.isPrimary,
+                    upcomingSessions: relation.patient.therapySessions.length,
+                    lastSession: relation.patient.therapySessions[0]?.scheduledAt || null,
+                    therapist: relation.patient.primaryTherapist ? {
+                        id: relation.patient.primaryTherapist.id,
+                        userId: relation.patient.primaryTherapist.userId,
+                        name: relation.patient.primaryTherapist.user.name,
+                        email: relation.patient.primaryTherapist.user.email,
+                        specialization: relation.patient.primaryTherapist.specialization,
+                        licenseNumber: relation.patient.primaryTherapist.licenseNumber,
+                        experience: relation.patient.primaryTherapist.experience || 0,
+                        bio: relation.patient.primaryTherapist.bio,
+                        rating: 4.5, // Default rating since not in schema
+                        availability: relation.patient.primaryTherapist.availability,
+                        organizationId: relation.patient.primaryTherapist.organizationId
+                    } : null,
+                    progressPercentage
+                };
+            })
+        );
 
         return NextResponse.json({ children });
 

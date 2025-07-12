@@ -54,7 +54,7 @@ export default function MyChildrenPage() {
       // Initialize animated progress for each child
       const initialProgress: { [key: string]: number } = {};
       data.children?.forEach((child: Child) => {
-        initialProgress[child.id] = 0;
+        initialProgress[child.id] = child.progressPercentage || 0;
       });
       setAnimatedProgress(initialProgress);
 
