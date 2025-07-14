@@ -4,17 +4,13 @@ import React from 'react';
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-//import { StatsCard } from "@/components/ui/stats-card";
-import { DonationModal } from '@/components/ui/admin-donation-modal';
-import { SessionModal } from '@/components/ui/admin-session-modal';
-//import { Badge } from "@/components/ui/badge";
+import { DonationModal } from '@/components/admin/donation-modal';
+import { SessionModal } from '@/components/admin/session-modal';
 import {
     Users,
-    Settings,
     BarChart3,
     Shield,
     Database,
-    Globe,
     Zap,
     AlertTriangle,
     RefreshCw
@@ -271,12 +267,19 @@ export default function AdminDashboard() {
                             ))}
                         </div>
                         <div className="mt-4 flex gap-2">
-                            <Button className="hover:opacity-90" style={{ backgroundColor: '#8159A8', color: 'white' }} onClick={() => setShowSessionModal(true)}>
-                            View All Sessions
+                            <Button 
+                                className="hover:opacity-90" style={{ backgroundColor: '#8159A8', color: 'white' }} onClick={() => setShowSessionModal(true)}
+                            >
+                                View All Sessions
                             </Button>
-                            <Button variant="outline">
+                            <SessionModal
+                                isOpen={showSessionModal}
+                                onClose={() => setShowSessionModal(false)}
+                                sessions={mappedSessionData}
+                            />
+                            {/*<Button variant="outline">
                             Generate Report
-                            </Button>
+                            </Button>*/}
                         </div>
                         </CardContent>
                     </Card>
@@ -301,9 +304,18 @@ export default function AdminDashboard() {
                             ))}
                         </div>
                         <div className="mt-4">
-                            <Button className="hover:opacity-90" style={{ backgroundColor: '#8159A8', color: 'white' }} onClick={() => setShowDonationModal(true)}>
-                            View All Donations
+                            <Button
+                                className="hover:opacity-90"
+                                style={{ backgroundColor: '#8159A8', color: 'white', fontWeight: 600, fontSize: '1rem', padding: '0.75rem 1.5rem', borderRadius: '0.5rem' }}
+                                onClick={() => setShowDonationModal(true)}
+                            >
+                                View All Donations
                             </Button>
+                            <DonationModal
+                                isOpen={showDonationModal}
+                                onClose={() => setShowDonationModal(false)}
+                                donations={mappedDonationData}
+                            />
                         </div>
                         </CardContent>
                     </Card>
@@ -511,16 +523,12 @@ export default function AdminDashboard() {
                     </Card>
                 </div>*/}
 
-                <DonationModal 
+                {/*<DonationModal 
                     isOpen={showDonationModal} 
                     onClose={() => setShowDonationModal(false)} 
                     donations={mappedDonationData} 
-                />
-                <SessionModal
-                    isOpen={showSessionModal}
-                    onClose={() => setShowSessionModal(false)}
-                    sessions={mappedSessionData}
-                />
+                />*/}
+                
             </main>
         </div>
     );
