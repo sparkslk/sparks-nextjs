@@ -7,7 +7,10 @@ export async function GET(
     { params }: { params: { id: string } }
 ) {
     try {
+        console.log("GET /api/therapist/sessions/[id] - Starting request for session ID:", params.id);
+        
         const session = await requireApiAuth(request, ['THERAPIST']);
+        console.log("Authentication successful for user:", session.user.id);
 
         // Get therapist profile
         const user = await prisma.user.findUnique({
@@ -16,12 +19,14 @@ export async function GET(
         });
 
         if (!user?.therapistProfile) {
+            console.log("Therapist profile not found for user:", session.user.id);
             return NextResponse.json(
                 { error: "Therapist profile not found" },
                 { status: 404 }
             );
         }
 
+        console.log("Therapist profile found:", user.therapistProfile.id);
         const sessionId = params.id;
 
         // Get detailed session information
@@ -102,17 +107,7 @@ export async function GET(
             orderBy: {
                 scheduledAt: 'desc'
             },
-            take: 10, // Get last 10 sessions
-            select: {
-                id: true,
-                scheduledAt: true,
-                duration: true,
-                type: true,
-                status: true,
-                notes: true,
-                patientMood: true,
-                engagement: true
-            }
+            take: 10 // Get last 10 sessions
         });
 
         const detailedSession = {
@@ -123,12 +118,14 @@ export async function GET(
             duration: therapySession.duration,
             type: therapySession.type,
             status: therapySession.status,
-            location: therapySession.location,
-            notes: therapySession.notes,
-            objectives: therapySession.objectives,
-            patientMood: therapySession.patientMood,
-            engagement: therapySession.engagement,
-            progressNotes: therapySession.progressNotes,
+            // Clinical documentation fields from the database - use raw query to get actual values
+            attendanceStatus: (therapySession as any).attendanceStatus || null,
+            overallProgress: (therapySession as any).overallProgress || null,
+            patientEngagement: (therapySession as any).patientEngagement || null,
+            riskAssessment: (therapySession as any).riskAssessment || null,
+            primaryFocusAreas: (therapySession as any).primaryFocusAreas || [],
+            sessionNotes: (therapySession as any).sessionNotes || null,
+            nextSessionGoals: (therapySession as any).nextSessionGoals || null,
             patient: {
                 id: therapySession.patient.id,
                 firstName: therapySession.patient.firstName,
@@ -143,7 +140,20 @@ export async function GET(
                 assessments: therapySession.patient.assessments,
                 treatmentPlans: therapySession.patient.treatmentPlans
             },
-            sessionHistory
+            sessionHistory: sessionHistory.map(session => ({
+                id: session.id,
+                scheduledAt: session.scheduledAt,
+                duration: session.duration,
+                type: session.type,
+                status: session.status,
+                attendanceStatus: (session as any).attendanceStatus,
+                overallProgress: (session as any).overallProgress,
+                patientEngagement: (session as any).patientEngagement,
+                riskAssessment: (session as any).riskAssessment,
+                primaryFocusAreas: (session as any).primaryFocusAreas,
+                sessionNotes: (session as any).sessionNotes,
+                nextSessionGoals: (session as any).nextSessionGoals
+            }))
         };
 
         return NextResponse.json(
@@ -156,6 +166,207 @@ export async function GET(
             return error;
         }
         console.error("Error fetching session details:", error);
+        return NextResponse.json(
+            { error: "Internal server error" },
+            { status: 500 }
+        );
+    }
+}
+
+export async function PUT(
+    request: NextRequest,
+    { params }: { params: { id: string } }
+) {
+    try {
+        const session = await requireApiAuth(request, ['THERAPIST']);
+
+        // Get therapist profile
+        const user = await prisma.user.findUnique({
+            where: { id: session.user.id },
+            include: { therapistProfile: true }
+        });
+
+        if (!user?.therapistProfile) {
+            return NextResponse.json(
+                { error: "Therapist profile not found" },
+                { status: 404 }
+            );
+        }
+
+        const sessionId = params.id;
+
+        // Verify the session belongs to this therapist
+        const existingSession = await prisma.therapySession.findFirst({
+            where: {
+                id: sessionId,
+                therapistId: user.therapistProfile.id
+            }
+        });
+
+        if (!existingSession) {
+            return NextResponse.json(
+                { error: "Session not found or not authorized" },
+                { status: 404 }
+            );
+        }
+
+        const {
+            attendanceStatus,
+            overallProgress,
+            patientEngagement,
+            riskAssessment,
+            focusAreas,
+            sessionNotes,
+            nextSessionGoals,
+            saveOnly
+        } = await request.json();
+
+        console.log("Received update data:", {
+            attendanceStatus,
+            overallProgress,
+            patientEngagement,
+            riskAssessment,
+            focusAreas,
+            sessionNotes,
+            nextSessionGoals,
+            saveOnly
+        });
+
+        // Determine session status based on attendance and save mode
+        let newStatus = existingSession.status;
+        if (attendanceStatus === "NO_SHOW") {
+            newStatus = "NO_SHOW";
+        } else if (attendanceStatus === "CANCELLED") {
+            newStatus = "CANCELLED";
+        } else if ((attendanceStatus === "PRESENT" || attendanceStatus === "LATE") && !saveOnly) {
+            newStatus = "COMPLETED";
+        }
+
+        // Update the therapy session with new documentation using raw SQL with proper null handling
+        const updateQuery = `
+            UPDATE "TherapySession" 
+            SET 
+                "attendanceStatus" = $1,
+                "overallProgress" = $2,
+                "patientEngagement" = $3,
+                "riskAssessment" = $4,
+                "primaryFocusAreas" = $5,
+                "sessionNotes" = $6,
+                "nextSessionGoals" = $7,
+                "status" = $8,
+                "updatedAt" = $9
+            WHERE "id" = $10
+        `;
+        
+        console.log("About to update session with query:", updateQuery);
+        console.log("Parameters:", [
+            attendanceStatus || null,
+            overallProgress || null,
+            patientEngagement || null,
+            riskAssessment || null,
+            JSON.stringify(focusAreas || []),
+            sessionNotes || null,
+            nextSessionGoals || null,
+            newStatus,
+            new Date(),
+            sessionId
+        ]);
+        
+        await prisma.$executeRawUnsafe(
+            updateQuery,
+            attendanceStatus || null,
+            overallProgress || null,
+            patientEngagement || null,
+            riskAssessment || null,
+            JSON.stringify(focusAreas || []),
+            sessionNotes || null,
+            nextSessionGoals || null,
+            newStatus,
+            new Date(),
+            sessionId
+        );
+
+        console.log("Session updated successfully with ID:", sessionId);
+
+        // Get the updated session for response
+        const updatedSession = await prisma.therapySession.findUnique({
+            where: { id: sessionId },
+            include: {
+                patient: {
+                    select: {
+                        firstName: true,
+                        lastName: true
+                    }
+                }
+            }
+        });
+
+        // Create a session assessment record for clinical documentation
+        await prisma.assessment.create({
+            data: {
+                patientId: existingSession.patientId,
+                therapistId: user.therapistProfile.id,
+                assessmentDate: new Date(),
+                type: "PROGRESS",
+                title: "Session Documentation",
+                description: `Session documentation from ${new Date().toLocaleDateString()}`,
+                // Store clinical assessment data as JSON in questions field
+                questions: JSON.stringify({
+                    attendanceStatus,
+                    overallProgress,
+                    patientEngagement,
+                    riskAssessment,
+                    focusAreas,
+                    sessionNotes,
+                    nextSessionGoals,
+                    sessionId: sessionId
+                }),
+                // Store responses as empty for this type of assessment
+                responses: JSON.stringify({
+                    documented: true,
+                    documentedAt: new Date().toISOString()
+                })
+            }
+        });
+
+        // Get updated session with patient info for response
+        const sessionWithPatient = await prisma.therapySession.findUnique({
+            where: { id: sessionId },
+            include: {
+                patient: {
+                    select: {
+                        firstName: true,
+                        lastName: true
+                    }
+                }
+            }
+        });
+
+        if (!sessionWithPatient) {
+            return NextResponse.json(
+                { error: "Session not found after update" },
+                { status: 404 }
+            );
+        }
+
+        return NextResponse.json(
+            {
+                message: "Session documentation saved successfully",
+                session: {
+                    id: sessionWithPatient.id,
+                    patientName: `${sessionWithPatient.patient.firstName} ${sessionWithPatient.patient.lastName}`,
+                    scheduledAt: sessionWithPatient.scheduledAt,
+                    status: sessionWithPatient.status
+                }
+            },
+            { status: 200 }
+        );
+    } catch (error) {
+        // Handle authentication/authorization errors
+        if (error instanceof NextResponse) {
+            return error;
+        }
+        console.error("Error updating session:", error);
         return NextResponse.json(
             { error: "Internal server error" },
             { status: 500 }

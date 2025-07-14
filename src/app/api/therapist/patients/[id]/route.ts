@@ -75,6 +75,9 @@ export async function GET(
 ) {
     try {
         const session = await requireApiAuth(request, ['THERAPIST']);
+        
+        console.log("Patient details request - Patient ID:", params.id);
+        console.log("Patient details request - User ID:", session.user.id);
 
         // Get therapist profile
         const user = await prisma.user.findUnique({
@@ -97,19 +100,7 @@ export async function GET(
             },
             include: {
                 therapySessions: {
-                    orderBy: { scheduledAt: 'desc' },
-                    select: {
-                        id: true,
-                        scheduledAt: true,
-                        status: true,
-                        duration: true,
-                        type: true,
-                        notes: true,
-                        objectives: true,
-                        patientMood: true,
-                        engagement: true,
-                        progressNotes: true
-                    }
+                    orderBy: { scheduledAt: 'desc' }
                 },
                 primaryTherapist: {
                     include: {
@@ -198,11 +189,20 @@ export async function GET(
                 status: session.status,
                 duration: session.duration || 60,
                 type: session.type,
-                notes: session.notes,
-                objectives: session.objectives,
-                patientMood: session.patientMood,
-                engagement: session.engagement,
-                progressNotes: session.progressNotes
+                // Include all clinical documentation fields from the session details API
+                attendanceStatus: (session as any).attendanceStatus || null,
+                overallProgress: (session as any).overallProgress || null,
+                patientEngagement: (session as any).patientEngagement || null,
+                riskAssessment: (session as any).riskAssessment || null,
+                primaryFocusAreas: (session as any).primaryFocusAreas || "[]",
+                sessionNotes: (session as any).sessionNotes || null,
+                nextSessionGoals: (session as any).nextSessionGoals || null,
+                // Legacy fields for compatibility
+                notes: session.progressNotes || (session as any).sessionNotes || "-",
+                objectives: "-", // This field doesn't exist in current schema
+                patientMood: "-", // This field doesn't exist in current schema
+                engagement: "-", // This field doesn't exist in current schema
+                progressNotes: session.progressNotes || "-"
             }))
         };
 
