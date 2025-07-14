@@ -24,12 +24,6 @@ interface Session {
   progressNotes?: string;
 }
 
-interface Patient {
-  id: string;
-  firstName: string;
-  lastName: string;
-}
-
 export default function TherapistSessionsPage() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
@@ -120,7 +114,6 @@ export default function TherapistSessionsPage() {
   };
 
   const filterSessionsByTab = (tab: string) => {
-    const now = new Date();
     switch (tab) {
       case 'scheduled':
         return sessions.filter(session => 
@@ -139,20 +132,6 @@ export default function TherapistSessionsPage() {
       default:
         return sessions;
     }
-  };
-
-  const canUpdateSession = (session: Session) => {
-    // Allow updating sessions that have started (ongoing) OR completed
-    const hasStarted = isSessionOngoing(session) || isSessionCompleted(session);
-    const isScheduledStatus = ['SCHEDULED', 'APPROVED', 'CONFIRMED'].includes(session.status);
-    return hasStarted && isScheduledStatus;
-  };
-
-  const canRescheduleOrCancel = (session: Session) => {
-    // Allow reschedule/cancel only for future sessions (not started yet)
-    const isFutureSession = !isSessionPast(session);
-    const isScheduledStatus = ['SCHEDULED', 'APPROVED', 'CONFIRMED'].includes(session.status);
-    return isFutureSession && isScheduledStatus;
   };
 
   const isSessionPast = (session: Session) => {
@@ -255,10 +234,7 @@ export default function TherapistSessionsPage() {
     const isPast = isSessionPast(session);
     const isOngoing = isSessionOngoing(session);
     const isCompleted = isSessionCompleted(session);
-    const canUpdate = canUpdateSession(session);
-    const canRescheduleCancel = canRescheduleOrCancel(session);
     const needsDocumentation = isCompleted && ['SCHEDULED', 'APPROVED', 'CONFIRMED'].includes(session.status);
-    const canDocument = (isOngoing || isCompleted) && ['SCHEDULED', 'APPROVED', 'CONFIRMED'].includes(session.status);
     const isFutureSession = !isPast;
     const isScheduledStatus = ['SCHEDULED', 'APPROVED', 'CONFIRMED'].includes(session.status);
     
@@ -672,7 +648,7 @@ export default function TherapistSessionsPage() {
                       <Clock className="w-8 h-8 text-gray-400" />
                     </div>
                     <h3 className="text-lg font-medium text-gray-900 mb-2">No cancelled sessions</h3>
-                    <p className="text-gray-500">Great! You haven't had any cancelled sessions.</p>
+                    <p className="text-gray-500">Great! You haven&apos;t had any cancelled sessions.</p>
                   </CardContent>
                 </Card>
               ) : (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,20 +11,14 @@ import { SessionUpdateModal } from "@/components/therapist/SessionUpdateModal";
 import { 
   Calendar,  
   User, 
-  MapPin, 
   FileText, 
   Pill, 
   CheckSquare, 
-  Target, 
-  TrendingUp, 
   ArrowLeft,
   Phone,
   Mail,
   Heart,
-  Activity,
   Download,
-  FileImage,
-  ChevronRight,
   AlertCircle,
   CheckCircle,
   XCircle,
@@ -146,13 +140,40 @@ export default function SessionDetailsPage() {
   const router = useRouter();
   const sessionId = params.id as string;
 
-  useEffect(() => {
-    if (sessionId) {
-      fetchSessionDetails();
-    }
-  }, [sessionId]);
+  // Helper function to safely parse and format dates (from sessions page)
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
 
-  const fetchSessionDetails = async () => {
+  const formatTime = (dateString: string) => {
+    return new Date(dateString).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+  };
+
+  const formatTimeManual = (dateString: string) => {
+    // Extract just the time part manually to avoid timezone issues
+    if (dateString.includes('T')) {
+      const timePart = dateString.split('T')[1];
+      const timeOnly = timePart.split('.')[0]; // Remove milliseconds if present
+      const finalTime = timeOnly.split('Z')[0]; // Remove Z if present
+      
+      // Convert to 24-hour format
+      const [hours, minutes] = finalTime.split(':');
+      return `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`;
+    }
+    
+    // Fallback to original method
+    return formatTime(dateString);
+  };
+
+  const fetchSessionDetails = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`/api/therapist/sessions/${sessionId}`);
@@ -168,7 +189,13 @@ export default function SessionDetailsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [sessionId]);
+
+  useEffect(() => {
+    if (sessionId) {
+      fetchSessionDetails();
+    }
+  }, [sessionId, fetchSessionDetails]);
 
   const handleSessionUpdated = () => {
     // Refresh the session details after update
@@ -348,7 +375,7 @@ export default function SessionDetailsPage() {
               <div className="min-w-0">
                 <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Date</p>
                 <p className="text-base font-semibold text-foreground truncate">
-                  {format(new Date(session.scheduledAt), "MMM dd, yyyy")}
+                  {formatDate(session.scheduledAt)}
                 </p>
               </div>
             </div>
@@ -358,7 +385,7 @@ export default function SessionDetailsPage() {
               <div className="min-w-0">
                 <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Time</p>
                 <p className="text-base font-semibold text-foreground">
-                  {format(new Date(session.scheduledAt), "h:mm a")}
+                  {formatTimeManual(session.scheduledAt)}
                 </p>
               </div>
             </div>
@@ -392,9 +419,9 @@ export default function SessionDetailsPage() {
             <Card className="shadow-lg border-0">
               <CardHeader className="border-b border-border">
                 <CardTitle className="flex items-center gap-3 text-xl">
-                  <div className="p-2 bg-green-100 rounded-full">
+                  {/* <div className="p-2 bg-green-100 rounded-full">
                     <FileText className="w-6 h-6 text-green-600" />
-                  </div>
+                  </div> */}
                   Clinical Assessment
                 </CardTitle>
               </CardHeader>
@@ -473,9 +500,9 @@ export default function SessionDetailsPage() {
             <Card className="shadow-lg border-0">
               <CardHeader className="border-b border-border">
                 <CardTitle className="flex items-center gap-3 text-xl">
-                  <div className="p-2 bg-blue-100 rounded-full">
+                  {/* <div className="p-2 bg-blue-100 rounded-full">
                     <FileText className="w-6 h-6 text-blue-600" />
-                  </div>
+                  </div> */}
                   Session Notes
                 </CardTitle>
               </CardHeader>

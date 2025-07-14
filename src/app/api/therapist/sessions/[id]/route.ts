@@ -119,13 +119,13 @@ export async function GET(
             type: therapySession.type,
             status: therapySession.status,
             // Clinical documentation fields from the database - use raw query to get actual values
-            attendanceStatus: (therapySession as any).attendanceStatus || null,
-            overallProgress: (therapySession as any).overallProgress || null,
-            patientEngagement: (therapySession as any).patientEngagement || null,
-            riskAssessment: (therapySession as any).riskAssessment || null,
-            primaryFocusAreas: (therapySession as any).primaryFocusAreas || [],
-            sessionNotes: (therapySession as any).sessionNotes || null,
-            nextSessionGoals: (therapySession as any).nextSessionGoals || null,
+            attendanceStatus: (therapySession as unknown as Record<string, unknown>).attendanceStatus || null,
+            overallProgress: (therapySession as unknown as Record<string, unknown>).overallProgress || null,
+            patientEngagement: (therapySession as unknown as Record<string, unknown>).patientEngagement || null,
+            riskAssessment: (therapySession as unknown as Record<string, unknown>).riskAssessment || null,
+            primaryFocusAreas: (therapySession as unknown as Record<string, unknown>).primaryFocusAreas || [],
+            sessionNotes: (therapySession as unknown as Record<string, unknown>).sessionNotes || null,
+            nextSessionGoals: (therapySession as unknown as Record<string, unknown>).nextSessionGoals || null,
             patient: {
                 id: therapySession.patient.id,
                 firstName: therapySession.patient.firstName,
@@ -146,13 +146,13 @@ export async function GET(
                 duration: session.duration,
                 type: session.type,
                 status: session.status,
-                attendanceStatus: (session as any).attendanceStatus,
-                overallProgress: (session as any).overallProgress,
-                patientEngagement: (session as any).patientEngagement,
-                riskAssessment: (session as any).riskAssessment,
-                primaryFocusAreas: (session as any).primaryFocusAreas,
-                sessionNotes: (session as any).sessionNotes,
-                nextSessionGoals: (session as any).nextSessionGoals
+                attendanceStatus: (session as unknown as Record<string, unknown>).attendanceStatus,
+                overallProgress: (session as unknown as Record<string, unknown>).overallProgress,
+                patientEngagement: (session as unknown as Record<string, unknown>).patientEngagement,
+                riskAssessment: (session as unknown as Record<string, unknown>).riskAssessment,
+                primaryFocusAreas: (session as unknown as Record<string, unknown>).primaryFocusAreas,
+                sessionNotes: (session as unknown as Record<string, unknown>).sessionNotes,
+                nextSessionGoals: (session as unknown as Record<string, unknown>).nextSessionGoals
             }))
         };
 
@@ -287,19 +287,6 @@ export async function PUT(
         );
 
         console.log("Session updated successfully with ID:", sessionId);
-
-        // Get the updated session for response
-        const updatedSession = await prisma.therapySession.findUnique({
-            where: { id: sessionId },
-            include: {
-                patient: {
-                    select: {
-                        firstName: true,
-                        lastName: true
-                    }
-                }
-            }
-        });
 
         // Create a session assessment record for clinical documentation
         await prisma.assessment.create({

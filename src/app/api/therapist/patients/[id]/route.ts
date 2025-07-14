@@ -190,19 +190,19 @@ export async function GET(
                 duration: session.duration || 60,
                 type: session.type,
                 // Include all clinical documentation fields from the session details API
-                attendanceStatus: (session as any).attendanceStatus || null,
-                overallProgress: (session as any).overallProgress || null,
-                patientEngagement: (session as any).patientEngagement || null,
-                riskAssessment: (session as any).riskAssessment || null,
-                primaryFocusAreas: (session as any).primaryFocusAreas || "[]",
-                sessionNotes: (session as any).sessionNotes || null,
-                nextSessionGoals: (session as any).nextSessionGoals || null,
+                attendanceStatus: (session as unknown as Record<string, unknown>).attendanceStatus || null,
+                overallProgress: (session as unknown as Record<string, unknown>).overallProgress || null,
+                patientEngagement: (session as unknown as Record<string, unknown>).patientEngagement || null,
+                riskAssessment: (session as unknown as Record<string, unknown>).riskAssessment || null,
+                primaryFocusAreas: (session as unknown as Record<string, unknown>).primaryFocusAreas || "[]",
+                sessionNotes: (session as unknown as Record<string, unknown>).sessionNotes || null,
+                nextSessionGoals: (session as unknown as Record<string, unknown>).nextSessionGoals || null,
                 // Legacy fields for compatibility
-                notes: session.progressNotes || (session as any).sessionNotes || "-",
+                notes: (session as unknown as Record<string, unknown>).progressNotes || (session as unknown as Record<string, unknown>).sessionNotes || "-",
                 objectives: "-", // This field doesn't exist in current schema
                 patientMood: "-", // This field doesn't exist in current schema
                 engagement: "-", // This field doesn't exist in current schema
-                progressNotes: session.progressNotes || "-"
+                progressNotes: (session as unknown as Record<string, unknown>).progressNotes || "-"
             }))
         };
 
