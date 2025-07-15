@@ -326,13 +326,13 @@ export default function MyChildrenPage() {
                         </div>
                         <div className="flex items-center gap-3">
                           <div className="text-sm text-gray-900 font-medium">{child.lastSession ? new Date(child.lastSession).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'TBD'}</div>
-                          {child.nextSessionStatus && (
+                          {/* {child.nextSessionStatus && (
                             <span
                               className={`text-xs px-2 py-1 rounded font-medium ${child.nextSessionStatus.toLowerCase() === 'cancelled' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}
                             >
                               {child.nextSessionStatus.toLowerCase()}
                             </span>
-                          )}
+                          )} */}
                         </div>
                       </div>
                       <div className="flex flex-col gap-2">
