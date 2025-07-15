@@ -82,20 +82,30 @@ export async function GET(
     // Transform database data to match frontend interface
     const transformedSessions = sessions.map(session => {
       const sessionDate = new Date(session.scheduledAt);
-      // const now = new Date();
-      const status =session.status
-      
+      const status = session.status;
       // Get therapist details
       const therapist = therapistMap.get(session.therapistId);
-      console.log(`Therapist for session ${session.id}:`, therapist);
       const therapistName = therapist?.name || 'Assigned Therapist';
-      console.log(`Therapist name: ${therapistName}`);
-      
+      // Format time in 'Asia/Colombo' timezone using UTC conversion (like dashboard/route)
+      const utcDate = new Date(
+        sessionDate.getUTCFullYear(),
+        sessionDate.getUTCMonth(),
+        sessionDate.getUTCDate(),
+        sessionDate.getUTCHours(),
+        sessionDate.getUTCMinutes(),
+        sessionDate.getUTCSeconds()
+      );
+      const formattedTime = utcDate.toLocaleString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+        timeZone: 'Asia/Colombo'
+      });
       return {
         id: session.id,
         childId: session.patientId,
         date: sessionDate.toISOString().split('T')[0], // Format as YYYY-MM-DD
-        time: sessionDate.toTimeString().slice(0, 5), // Format as HH:MM
+        time: formattedTime, // Localized time
         therapist: therapistName,
         therapistEmail: therapist?.email || '',
         therapistPhone: '', // Phone not available in current schema

@@ -67,18 +67,14 @@ export default function AppointmentsPage() {
               notes?: string;
               therapist: string;
               therapistEmail: string;
-              therapistPhone: string;
+              therapistPBune: string;
               specializations: string[];
               mode: string;
               objectives: string[];
             }) => ({
               id: session.id,
               date: session.date,
-              time: new Date(`${session.date}T${session.time}`).toLocaleTimeString('en-US', { 
-                hour: 'numeric', 
-                minute: '2-digit', 
-                hour12: true 
-              }),
+              time: session.time, // Use backend-formatted time string directly
               type: session.sessionType,
               status: session.status,
               childId: session.childId,
@@ -87,7 +83,7 @@ export default function AppointmentsPage() {
               notes: session.notes,
               therapist: session.therapist,
               therapistEmail: session.therapistEmail,
-              therapistPhone: session.therapistPhone,
+              // therapistPhone: session.therapistPhone,
               specializations: session.specializations,
               mode: session.mode,
               sessionType: session.sessionType,
