@@ -78,6 +78,7 @@ export async function GET(req: NextRequest) {
                 
                 // Calculate progress percentage (as decimal from 0-100)
                 const progressPercentage = totalSessions > 0 ? Math.round((completedSessions / totalSessions) * 100) : 0;
+                console.log("Progress percentage is : " , progressPercentage);
 
                 // Get last session date
                 const lastSession = await prisma.therapySession.findFirst({
@@ -87,6 +88,7 @@ export async function GET(req: NextRequest) {
                     },
                     orderBy: { scheduledAt: 'desc' }
                 });
+                console.log(lastSession);
 
                 return {
                     id: relation.patient.id,
@@ -98,7 +100,28 @@ export async function GET(req: NextRequest) {
                     upcomingSessions: relation.patient.therapySessions.length,
                     progressReports: relation.patient.assessments.length,
                     progressPercentage,
-                    lastSession: lastSession?.scheduledAt?.toISOString() || null,
+                    lastSession: lastSession?.scheduledAt
+  ? (() => {
+      const d = new Date(lastSession.scheduledAt);
+      const utc = new Date(
+        d.getUTCFullYear(),
+        d.getUTCMonth(),
+        d.getUTCDate(),
+        d.getUTCHours(),
+        d.getUTCMinutes(),
+        d.getUTCSeconds()
+      );
+      return utc.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+        timeZone: 'Asia/Colombo'
+      });
+    })()
+  : null,
                     therapist: relation.patient.primaryTherapist ? {
                         name: relation.patient.primaryTherapist.user.name || 'Unknown Therapist',
                         email: relation.patient.primaryTherapist.user.email || ''
