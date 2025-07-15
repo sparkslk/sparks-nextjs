@@ -15,7 +15,6 @@ import {
     AlertTriangle,
     RefreshCw
 } from "lucide-react";
-import { Session } from 'inspector/promises';
 
 interface AdminData {
     systemStatus: "online" | "offline" | "maintenance";
@@ -268,7 +267,9 @@ export default function AdminDashboard() {
                         </div>
                         <div className="mt-4 flex gap-2">
                             <Button 
-                                className="hover:opacity-90" style={{ backgroundColor: '#8159A8', color: 'white' }} onClick={() => setShowSessionModal(true)}
+                                className="hover:opacity-90" 
+                                style={{ backgroundColor: '#8159A8', color: 'white' }} 
+                                onClick={() => setShowSessionModal(true)}
                             >
                                 View All Sessions
                             </Button>
@@ -306,7 +307,7 @@ export default function AdminDashboard() {
                         <div className="mt-4">
                             <Button
                                 className="hover:opacity-90"
-                                style={{ backgroundColor: '#8159A8', color: 'white', fontWeight: 600, fontSize: '1rem', padding: '0.75rem 1.5rem', borderRadius: '0.5rem' }}
+                                style={{ backgroundColor: '#8159A8', color: 'white' }} 
                                 onClick={() => setShowDonationModal(true)}
                             >
                                 View All Donations

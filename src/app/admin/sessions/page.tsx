@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Plus } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+
+import SessionFilters from "@/components/admin/admin-session-filters";
 
 interface TherapySession {
   id: number;
@@ -65,12 +67,27 @@ const MOCK_SESSIONS: TherapySession[] = [
 
 export default function SessionsPage() {
   const [sessions] = useState<TherapySession[]>(MOCK_SESSIONS);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("All Status");
+  const [selectedType, setSelectedType] = useState("All Types");
+
+  const filteredSessions = useMemo(() => {
+    return sessions.filter((session) => {
+      const matchesSearch =
+        session.patient.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        session.therapist.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        session.type.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = selectedStatus === "All Status" || session.status === selectedStatus;
+      const matchesType = selectedType === "All Types" || session.type === selectedType;
+      return matchesSearch && matchesStatus && matchesType;
+    });
+  }, [sessions, searchTerm, selectedStatus, selectedType]);
 
   const stats = {
-    total: sessions.length,
-    upcoming: sessions.filter(s => s.status === "Upcoming").length,
-    completed: sessions.filter(s => s.status === "Completed").length,
-    cancelled: sessions.filter(s => s.status === "Cancelled").length
+    total: filteredSessions.length,
+    upcoming: filteredSessions.filter(s => s.status === "Upcoming").length,
+    completed: filteredSessions.filter(s => s.status === "Completed").length,
+    cancelled: filteredSessions.filter(s => s.status === "Cancelled").length
   };
 
   return (
@@ -85,19 +102,13 @@ export default function SessionsPage() {
               Last updated: {new Date().toLocaleTimeString()}
             </p>
           </div>
-          <Button className="flex items-center gap-2" style={{ backgroundColor: "#8159A8" }}>
-            <Plus className="h-4 w-4" />
-            Add New Session
-          </Button>
         </div>
 
         {/* Statistics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-
-          <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow" style={{ borderLeftColor: '#8159A8' }}>
+          <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Sessions</CardTitle>
-              {/* <Zap className="h-12 w-12" style={{ color: '#8159A8' }} /> */}
             </CardHeader>
             <CardContent>
               <div className={`text-2xl font-bold text-[#8159A8]`}>
@@ -106,11 +117,9 @@ export default function SessionsPage() {
               <p className="text-xs text-muted-foreground">10% up this month</p>
             </CardContent>
           </Card>
-
-          <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow" style={{ borderLeftColor: '#8159A8' }}>
+          <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Completed Sessions</CardTitle>
-              {/* <Zap className="h-12 w-12" style={{ color: '#8159A8' }} /> */}
             </CardHeader>
             <CardContent>
               <div className={`text-2xl font-bold text-[#8159A8]`}>
@@ -119,11 +128,9 @@ export default function SessionsPage() {
               <p className="text-xs text-muted-foreground">8% up this month</p>
             </CardContent>
           </Card>
-
-          <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow" style={{ borderLeftColor: '#8159A8' }}>
+          <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Upcoming Sessions</CardTitle>
-              {/* <Zap className="h-12 w-12" style={{ color: '#8159A8' }} /> */}
             </CardHeader>
             <CardContent>
               <div className={`text-2xl font-bold text-[#8159A8]`}>
@@ -132,11 +139,9 @@ export default function SessionsPage() {
               <p className="text-xs text-muted-foreground">5% up this month</p>
             </CardContent>
           </Card>
-
-          <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow" style={{ borderLeftColor: '#8159A8' }}>
+          <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Cancelled Sessions</CardTitle>
-              {/* <Zap className="h-12 w-12" style={{ color: '#8159A8' }} /> */}
             </CardHeader>
             <CardContent>
               <div className={`text-2xl font-bold text-[#8159A8]`}>
@@ -145,9 +150,18 @@ export default function SessionsPage() {
               <p className="text-xs text-muted-foreground">3% down this month</p>
             </CardContent>
           </Card>
-          
         </div>
       </div>
+
+      {/* Filters */}
+        <SessionFilters
+          searchTerm={searchTerm}
+          selectedStatus={selectedStatus}
+          selectedType={selectedType}
+          onSearchChange={setSearchTerm}
+          onStatusChange={setSelectedStatus}
+          onTypeChange={setSelectedType}
+        />
 
       {/* Table */}
       <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
@@ -161,11 +175,11 @@ export default function SessionsPage() {
                 <th className="text-left py-3 px-4 font-medium text-gray-700">Date</th>
                 <th className="text-left py-3 px-4 font-medium text-gray-700">Time</th>
                 <th className="text-left py-3 px-4 font-medium text-gray-700">Status</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Actions</th>
+                {/* Actions column removed */}
               </tr>
             </thead>
             <tbody>
-              {sessions.map((session) => (
+              {filteredSessions.map((session) => (
                 <tr key={session.id} className="border-b hover:bg-gray-50">
                   <td className="py-4 px-4">{session.patient}</td>
                   <td className="py-4 px-4">{session.therapist}</td>
@@ -182,12 +196,6 @@ export default function SessionsPage() {
                     }`}>
                       {session.status}
                     </span>
-                  </td>
-                  <td className="py-4 px-4">
-                    <div className="flex items-center gap-2">
-                      <Button size="sm" variant="outline" className="text-xs">View</Button>
-                      <Button size="sm" variant="outline" className="text-xs">Edit</Button>
-                    </div>
                   </td>
                 </tr>
               ))}

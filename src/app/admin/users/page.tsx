@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Plus } from "lucide-react";
-import UserFilters from "@/components/ui/admin-user-filters";
+import UserFilters from "@/components/admin/admin-user-filters";
 
 export default function UsersPage() {
   const [loading, setLoading] = useState(false);
@@ -26,7 +26,7 @@ export default function UsersPage() {
       lastActive: "2 hours ago",
       sessions: 127,
       avatar: "NP",
-      avatarColor: "bg-purple-500",
+      avatarColor: "bg-[#8159A8]",
       verified: true
     },
     {
@@ -39,7 +39,7 @@ export default function UsersPage() {
       lastActive: "1 day ago",
       sessions: "N/A",
       avatar: "AG",
-      avatarColor: "bg-blue-500",
+      avatarColor: "bg-[#8159A8]",
       verified: false
     },
     {
@@ -52,7 +52,7 @@ export default function UsersPage() {
       lastActive: "5 hours ago",
       sessions: 45,
       avatar: "SP",
-      avatarColor: "bg-green-500",
+      avatarColor: "bg-[#8159A8]",
       verified: false
     },
     {
@@ -65,7 +65,7 @@ export default function UsersPage() {
       lastActive: "30 mins ago",
       sessions: 89,
       avatar: "KS",
-      avatarColor: "bg-indigo-500",
+      avatarColor: "bg-[#8159A8]",
       verified: true
     },
     {
@@ -78,7 +78,7 @@ export default function UsersPage() {
       lastActive: "3 hours ago",
       sessions: "N/A",
       avatar: "TB",
-      avatarColor: "bg-pink-500",
+      avatarColor: "bg-[#8159A8]",
       verified: true
     },
     {
@@ -91,7 +91,7 @@ export default function UsersPage() {
       lastActive: "1 hour ago",
       sessions: "N/A",
       avatar: "RW",
-      avatarColor: "bg-purple-600",
+      avatarColor: "bg-[#8159A8]",
       verified: true
     },
     {
@@ -104,7 +104,7 @@ export default function UsersPage() {
       lastActive: "1 week ago",
       sessions: 12,
       avatar: "SJ",
-      avatarColor: "bg-gray-500",
+      avatarColor: "bg-[#8159A8]",
       verified: false
     }
   ]);
