@@ -30,6 +30,18 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     let therapistName = 'Assigned Therapist';
     let therapistEmail = '';
     let specializations: string[] = [];
+    // Fetch patient name from Patient table
+    // Fetch patient name from Patient table (combine firstName and lastName)
+    let patientName = '';
+    if (session.patientId) {
+      const patient = await prisma.patient.findUnique({
+        where: { id: session.patientId },
+        select: { firstName: true, lastName: true },
+      });
+      if (patient) {
+        patientName = [patient.firstName, patient.lastName].filter(Boolean).join(' ');
+      }
+    }
     if (session.therapistId) {
       const therapist = await prisma.therapist.findUnique({
         where: { id: session.therapistId },
@@ -50,11 +62,27 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
     // Format session data for frontend
     const sessionDate = new Date(session.scheduledAt);
+    // Format time in 'Asia/Colombo' timezone using UTC conversion (like sessions list)
+    const utcDate = new Date(
+      sessionDate.getUTCFullYear(),
+      sessionDate.getUTCMonth(),
+      sessionDate.getUTCDate(),
+      sessionDate.getUTCHours(),
+      sessionDate.getUTCMinutes(),
+      sessionDate.getUTCSeconds()
+    );
+    const formattedTime = utcDate.toLocaleString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+      timeZone: 'Asia/Colombo'
+    });
     const responseSession = {
       id: session.id,
       childId: session.patientId,
+      patient: patientName,
       date: sessionDate.toISOString().split('T')[0],
-      time: sessionDate.toTimeString().slice(0, 5),
+      time: formattedTime, // Localized time
       therapist: therapistName,
       therapistEmail,
       therapistPhone: '',
