@@ -5,6 +5,23 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import MedicationManagement from "@/components/therapist/MedicationManagement";
+import { Medication } from "@/types/medications";
+
+interface TherapySession {
+  id: string;
+  scheduledAt: string;
+  status: string;
+  type: string;
+  duration?: number;
+  attendanceStatus?: string;
+  overallProgress?: string;
+  patientEngagement?: string;
+  riskAssessment?: string;
+  primaryFocusAreas?: string;
+  sessionNotes?: string;
+  nextSessionGoals?: string;
+}
 
 interface Patient {
   id: string;
@@ -27,7 +44,7 @@ interface Patient {
   status: string;
   lastSession: string;
   nextSession: string;
-  therapySessions?: any[];
+  therapySessions?: TherapySession[];
 }
 
 export default function PatientDetailsPage() {
@@ -35,6 +52,7 @@ export default function PatientDetailsPage() {
   const params = useParams();
   const { status } = useSession();
   const [patient, setPatient] = useState<Patient | null>(null);
+  const [medications, setMedications] = useState<Medication[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState("info");
@@ -47,6 +65,7 @@ export default function PatientDetailsPage() {
 
     if (status === "authenticated" && params.id) {
       fetchPatientData(params.id as string);
+      fetchMedications(params.id as string);
     }
   }, [status, params.id, router]);
 
@@ -76,6 +95,28 @@ export default function PatientDetailsPage() {
       setError(error instanceof Error ? error.message : "Failed to fetch patient data");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchMedications = async (patientId: string) => {
+    try {
+      const response = await fetch(`/api/therapist/patients/${patientId}/medications`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setMedications(data);
+      } else {
+        console.error("Failed to fetch medications:", response.statusText);
+        // Don't set error here as medications are optional
+      }
+    } catch (error) {
+      console.error("Error fetching medications:", error);
+      // Don't set error here as medications are optional
     }
   };
 
@@ -120,28 +161,6 @@ export default function PatientDetailsPage() {
 
   // For now, keeping the hardcoded data for other sections as they don't exist in the API yet
   // These can be moved to the API later
-  
-  // Medications data
-  const medications = [
-    {
-      id: 1,
-      name: "Adderall XR 20mg",
-      morningTime: "8:00 AM",
-      eveningTime: "2:00 PM",
-      frequency: "Twice Daily",
-      duration: "30 days",
-      notes: "Start with morning dose to assess tolerance. Monitor for appetite changes and sleep patterns. Patient should take with food to reduce stomach upset."
-    },
-    {
-      id: 2,
-      name: "Strattera 40mg",
-      morningTime: "9:00 AM",
-      eveningTime: "Not Set",
-      frequency: "Once Daily",
-      duration: "60 days",
-      notes: "Non-stimulant alternative. Monitor for mood changes and effectiveness over 4-6 weeks. Can be taken with or without food."
-    }
-  ];
 
   // Medical History data
   const medicalHistory = {
@@ -466,7 +485,7 @@ export default function PatientDetailsPage() {
                       </div>
                       <div className="bg-gray-50 rounded-lg p-2 sm:p-3 border">
                         <div className="text-lg sm:text-2xl font-bold text-[#8159A8]">
-                          {sessionHistory.length > 0 ? new Date(sessionHistory[0].scheduledAt).toLocaleDateString('en-US', { day: 'numeric' }) : "-"}
+                          {sessionHistory.length > 0 ? new Date(sessionHistory[0].scheduledAt).getDate() : "-"}
                         </div>
                         <div className="text-xs sm:text-sm text-gray-600">
                           {sessionHistory.length > 0 ? new Date(sessionHistory[0].scheduledAt).toLocaleDateString('en-US', { month: 'short' }) : "No Data"}
@@ -594,19 +613,37 @@ export default function PatientDetailsPage() {
                       }
                     };
 
+                    // Helper function to safely parse and format dates (from sessions page)
                     const formatDate = (dateString: string) => {
                       return new Date(dateString).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric'
                       });
                     };
 
                     const formatTime = (dateString: string) => {
                       return new Date(dateString).toLocaleTimeString('en-US', {
                         hour: '2-digit',
-                        minute: '2-digit'
+                        minute: '2-digit',
+                        hour12: false
                       });
+                    };
+
+                    const formatTimeManual = (dateString: string) => {
+                      // Extract just the time part manually to avoid timezone issues
+                      if (dateString.includes('T')) {
+                        const timePart = dateString.split('T')[1];
+                        const timeOnly = timePart.split('.')[0]; // Remove milliseconds if present
+                        const finalTime = timeOnly.split('Z')[0]; // Remove Z if present
+                        
+                        // Convert to 24-hour format
+                        const [hours, minutes] = finalTime.split(':');
+                        return `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`;
+                      }
+                      
+                      // Fallback to original method
+                      return formatTime(dateString);
                     };
 
                     const parseFocusAreas = (focusAreasString: string) => {
@@ -637,7 +674,7 @@ export default function PatientDetailsPage() {
                                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                   <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
                                 </svg>
-                                {formatDate(session.scheduledAt)} at {formatTime(session.scheduledAt)}
+                                {formatDate(session.scheduledAt)} at {formatTimeManual(session.scheduledAt)}
                               </p>
                             </div>
                             <div className="flex gap-2 flex-wrap">
@@ -676,8 +713,8 @@ export default function PatientDetailsPage() {
                                   </svg>
                                   <span className="text-xs font-medium uppercase">Progress</span>
                                 </div>
-                                <p className={`font-semibold ${getProgressColor(session.overallProgress).split(' ')[1]}`}>
-                                  {getProgressText(session.overallProgress)}
+                                <p className={`font-semibold ${getProgressColor(session.overallProgress || '').split(' ')[1]}`}>
+                                  {getProgressText(session.overallProgress || '')}
                                 </p>
                               </div>
                               <div className="bg-gray-50 rounded-lg p-3">
@@ -687,7 +724,7 @@ export default function PatientDetailsPage() {
                                   </svg>
                                   <span className="text-xs font-medium uppercase">Attendance</span>
                                 </div>
-                                <p className="font-semibold text-gray-900">{getAttendanceText(session.attendanceStatus)}</p>
+                                <p className="font-semibold text-gray-900">{getAttendanceText(session.attendanceStatus || '')}</p>
                               </div>
                               <div className="bg-gray-50 rounded-lg p-3">
                                 <div className="flex items-center gap-2 text-gray-600 mb-1">
@@ -696,7 +733,7 @@ export default function PatientDetailsPage() {
                                   </svg>
                                   <span className="text-xs font-medium uppercase">Engagement</span>
                                 </div>
-                                <p className="font-semibold text-gray-900">{getEngagementText(session.patientEngagement)}</p>
+                                <p className="font-semibold text-gray-900">{getEngagementText(session.patientEngagement || '')}</p>
                               </div>
                               <div className="bg-gray-50 rounded-lg p-3">
                                 <div className="flex items-center gap-2 text-gray-600 mb-1">
@@ -705,7 +742,7 @@ export default function PatientDetailsPage() {
                                   </svg>
                                   <span className="text-xs font-medium uppercase">Risk Level</span>
                                 </div>
-                                <p className={`font-semibold ${getRiskColor(session.riskAssessment)}`}>{getRiskText(session.riskAssessment)}</p>
+                                <p className={`font-semibold ${getRiskColor(session.riskAssessment || '')}`}>{getRiskText(session.riskAssessment || '')}</p>
                               </div>
                             </div>
                           )}
@@ -778,88 +815,11 @@ export default function PatientDetailsPage() {
         </TabsContent>
 
         <TabsContent value="medications" className="pt-6">
-          {medications && medications.length > 0 ? (
-            <div className="space-y-6">
-              {/* Medications Header */}
-              <div className="bg-transparent">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h3 className="text-2xl font-bold mb-2 text-[#8159A8]">Current Medications</h3>
-                    <p className="text-gray-600">Monitor and manage patient prescriptions</p>
-                  </div>
-                  <div className="text-right">
-                    <div className="grid grid-cols-2 gap-4 text-center">
-                      <div className="bg-gray-50 rounded-lg p-3 border">
-                        <div className="text-2xl font-bold text-[#8159A8]">{medications.length}</div>
-                        <div className="text-sm text-gray-600">Active Medications</div>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-3 border">
-                        <div className="text-2xl font-bold text-[#8159A8]">89%</div>
-                        <div className="text-sm text-gray-600">Adherence Rate</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Add Medication Button */}
-              <div className="flex justify-end">
-                <Button className="bg-[#8159A8] hover:bg-[#6d4a8f] text-white">
-                  + Add Medication
-                </Button>
-              </div>
-
-              {/* Medications List */}
-              <div className="space-y-4">
-                {medications.map((medication) => (
-                  <div key={medication.id} className="bg-white border-l-4 border-[#8159A8] rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow">
-                    <div className="flex justify-between items-start mb-4">
-                      <h4 className="text-xl font-bold text-[#8159A8]">{medication.name}</h4>
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm" className="text-blue-600 border-blue-600 hover:bg-blue-50">
-                          Edit
-                        </Button>
-                        <Button variant="outline" size="sm" className="text-red-600 border-red-600 hover:bg-red-50">
-                          Unallocate
-                        </Button>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-xs uppercase text-gray-500 font-medium mb-1">Morning Time</p>
-                        <p className="font-semibold text-gray-900">{medication.morningTime}</p>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-xs uppercase text-gray-500 font-medium mb-1">Evening Time</p>
-                        <p className="font-semibold text-gray-900">{medication.eveningTime}</p>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-xs uppercase text-gray-500 font-medium mb-1">Frequency</p>
-                        <p className="font-semibold text-gray-900">{medication.frequency}</p>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-xs uppercase text-gray-500 font-medium mb-1">Duration</p>
-                        <p className="font-semibold text-gray-900">{medication.duration}</p>
-                      </div>
-                    </div>
-
-                    <div className="bg-gray-50 border-l-4 border-gray-400 rounded-lg p-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <svg className="w-5 h-5 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z" />
-                        </svg>
-                        <h5 className="font-semibold text-gray-900">Therapist Notes</h5>
-                      </div>
-                      <p className="text-gray-700 text-sm leading-relaxed">{medication.notes}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <p className="text-muted-foreground">No medications recorded.</p>
-          )}
+          <MedicationManagement 
+            patientId={params.id as string} 
+            medications={medications}
+            onMedicationUpdate={() => fetchMedications(params.id as string)}
+          />
         </TabsContent>
 
         <TabsContent value="history" className="pt-6">

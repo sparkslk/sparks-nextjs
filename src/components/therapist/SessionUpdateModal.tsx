@@ -1,16 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Slider } from "@/components/ui/slider";
 import { Calendar, Clock, User, FileText, CheckSquare, Save, AlertTriangle, Target } from "lucide-react";
 import { format } from "date-fns";
 
@@ -73,19 +71,21 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
     "Medication Compliance"
   ];
 
-  useEffect(() => {
-    if (session && isOpen) {
-      // Reset states when session changes
-      setSubmitError(null);
-      setSubmitSuccess(false);
-      setDetailedSession(null);
-      
-      // Try to fetch detailed session data, but fallback gracefully if it fails
-      fetchSessionDetails();
-    }
-  }, [session, isOpen]);
+  const initializeWithDefaults = useCallback(() => {
+    // Use basic session data if available, otherwise use empty strings for placeholders
+    // Use nullish coalescing to preserve actual database values
+    setAttendanceStatus(session?.attendanceStatus ?? "");
+    setOverallProgress(session?.overallProgress ?? "");
+    setPatientEngagement(session?.patientEngagement ?? "");
+    setRiskAssessment(session?.riskAssessment ?? "");
+    setFocusAreas(session?.primaryFocusAreas ?? []);
+    setSessionNotes(session?.sessionNotes ?? "");
+    setNextSessionGoals(session?.nextSessionGoals ?? "");
+    // Clear the error since we're using fallback
+    setSubmitError(null);
+  }, [session]);
 
-  const fetchSessionDetails = async () => {
+  const fetchSessionDetails = useCallback(async () => {
     if (!session) return;
     
     setLoadingSessionDetails(true);
@@ -148,21 +148,19 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
     } finally {
       setLoadingSessionDetails(false);
     }
-  };
+  }, [session, initializeWithDefaults]);
 
-  const initializeWithDefaults = () => {
-    // Use basic session data if available, otherwise use empty strings for placeholders
-    // Use nullish coalescing to preserve actual database values
-    setAttendanceStatus(session?.attendanceStatus ?? "");
-    setOverallProgress(session?.overallProgress ?? "");
-    setPatientEngagement(session?.patientEngagement ?? "");
-    setRiskAssessment(session?.riskAssessment ?? "");
-    setFocusAreas(session?.primaryFocusAreas ?? []);
-    setSessionNotes(session?.sessionNotes ?? "");
-    setNextSessionGoals(session?.nextSessionGoals ?? "");
-    // Clear the error since we're using fallback
-    setSubmitError(null);
-  };
+  useEffect(() => {
+    if (session && isOpen) {
+      // Reset states when session changes
+      setSubmitError(null);
+      setSubmitSuccess(false);
+      setDetailedSession(null);
+      
+      // Try to fetch detailed session data, but fallback gracefully if it fails
+      fetchSessionDetails();
+    }
+  }, [session, isOpen, fetchSessionDetails]);
 
   const toggleFocusArea = (area: string) => {
     setFocusAreas(prev => {
