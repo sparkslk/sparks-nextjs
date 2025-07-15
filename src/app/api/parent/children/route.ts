@@ -112,7 +112,28 @@ export async function GET(req: NextRequest) {
                     relationship: relation.relationship,
                     isPrimary: relation.isPrimary,
                     upcomingSessions: relation.patient.therapySessions.length,
-                    lastSession: relation.patient.therapySessions[0]?.scheduledAt || null,
+                    lastSession: relation.patient.therapySessions[0]?.scheduledAt
+  ? (() => {
+      const d = new Date(relation.patient.therapySessions[0].scheduledAt);
+      const utc = new Date(
+        d.getUTCFullYear(),
+        d.getUTCMonth(),
+        d.getUTCDate(),
+        d.getUTCHours(),
+        d.getUTCMinutes(),
+        d.getUTCSeconds()
+      );
+      return utc.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+        timeZone: 'Asia/Colombo'
+      });
+    })()
+  : null,
                     nextSessionId: relation.patient.therapySessions[0]?.id || null,
                     nextSessionType: relation.patient.therapySessions[0]?.type || null,
                     nextSessionStatus: relation.patient.therapySessions[0]?.status || null,
