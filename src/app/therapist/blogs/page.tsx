@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { PlusIcon } from "lucide-react";
+import { PlusIcon, AlertTriangle } from "lucide-react";
 import { DeleteConfirmationModal } from "@/components/ui/delete-confirmation-modal";
 
 interface Blog {
@@ -42,9 +42,20 @@ export default function BlogManagementPage() {
     }
 
     if (authStatus === "authenticated") {
+      // Check if user has permission to manage blogs
+      if (session && session.user) {
+        // Example permission check (commented out)
+        // const userRole = session.user.role;
+        // if (userRole !== 'therapist' && userRole !== 'admin') {
+        //   router.push('/unauthorized');
+        //   return;
+        // }
+        // Additional session-based checks could go here
+        // console.log(`User ${session.user.name} is accessing blog management`);
+      }
       fetchBlogs();
     }
-  }, [authStatus, router]);
+  }, [authStatus, router, session]);
 
   const fetchBlogs = async () => {
     setLoading(true);
@@ -197,6 +208,22 @@ export default function BlogManagementPage() {
 
   if (authStatus === "loading" || loading) {
     return <LoadingSpinner message="Loading blog management..." />;
+  }
+
+  // Display error message if there's an error
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#F5F3FB] via-white to-[#F5F3FB] p-6 flex items-center justify-center">
+        <Card className="max-w-md p-6 text-center">
+          <div className="flex justify-center mb-4">
+            <AlertTriangle size={48} className="text-red-500" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Error</h2>
+          <p className="text-gray-600 mb-6">{error}</p>
+          <Button onClick={fetchBlogs}>Try Again</Button>
+        </Card>
+      </div>
+    );
   }
 
   return (
