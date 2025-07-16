@@ -6,6 +6,8 @@ import AppointmentCard from "@/components/parent/appointments/AppointmentCard";
 import TherapistModal from "@/components/parent/appointments/TherapistModal";
 import EmptyState from "@/components/parent/appointments/EmptyState";
 import { Child, Appointment } from "@/types/appointments";
+// import { Select } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
 export default function AppointmentsPage() {
   const [children, setChildren] = useState<Child[]>([]);
@@ -16,6 +18,7 @@ export default function AppointmentsPage() {
   const [showTherapistModal, setShowTherapistModal] = useState(false);
   const [highlightedChildId, setHighlightedChildId] = useState<string | null>(null);
   const [showZoomedCard, setShowZoomedCard] = useState(false);
+  const [selectedChildId, setSelectedChildId] = useState<string | "all">("all");
 
   useEffect(() => {
     fetchData();
@@ -64,27 +67,23 @@ export default function AppointmentsPage() {
               notes?: string;
               therapist: string;
               therapistEmail: string;
-              therapistPhone: string;
+              therapistPBune: string;
               specializations: string[];
               mode: string;
               objectives: string[];
             }) => ({
               id: session.id,
               date: session.date,
-              time: new Date(`${session.date}T${session.time}`).toLocaleTimeString('en-US', { 
-                hour: 'numeric', 
-                minute: '2-digit', 
-                hour12: true 
-              }),
+              time: session.time, // Use backend-formatted time string directly
               type: session.sessionType,
-              status: session.status as 'upcoming' | 'past',
+              status: session.status,
               childId: session.childId,
               duration: session.duration,
               sessionStatus: session.status,
               notes: session.notes,
               therapist: session.therapist,
               therapistEmail: session.therapistEmail,
-              therapistPhone: session.therapistPhone,
+              // therapistPhone: session.therapistPhone,
               specializations: session.specializations,
               mode: session.mode,
               sessionType: session.sessionType,
@@ -111,8 +110,8 @@ export default function AppointmentsPage() {
     }
   };
 
-  const getChildAppointments = (childId: string, status: 'upcoming' | 'past') => {
-    return appointments.filter(apt => apt.childId === childId && apt.status === status);
+  const getChildAppointments = (childId: string, statuses: Array<'APPROVED' | 'REQUESTED' | 'COMPLETED' | 'CANCELLED'>) => {
+    return appointments.filter(apt => apt.childId === childId && statuses.includes(apt.status as 'APPROVED' | 'REQUESTED' | 'COMPLETED' | 'CANCELLED'));
   };
 
   const formatDate = (dateString: string) => {
@@ -147,27 +146,72 @@ export default function AppointmentsPage() {
 
   return (
     <div className="min-h-screen relative">
-      <div className="max-w-7xl mx-auto px-6 py-6">
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 py-4 md:py-6">
         {/* Enhanced Header */}
         <AppointmentsHeader 
           childrenCount={children.length}
-          upcomingSessionsCount={appointments.filter(apt => apt.status === 'upcoming').length}
+          upcomingSessionsCount={appointments.filter(apt => ['APPROVED', 'REQUESTED'].includes(apt.status)).length}
         />
 
-        {/* Children Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {children.map((child) => {
-            const upcomingAppointments = getChildAppointments(child.id, 'upcoming');
-            const pastAppointments = getChildAppointments(child.id, 'past');
+        {/* Child Selection Dropdown */}
+        <div className="mb-6 flex flex-col sm:flex-row items-center gap-4">
+          <span className="flex items-center justify-center w-8 h-8 rounded-full bg-purple-100 text-purple-600">
+            {/* User/child icon SVG */}
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 20.25a8.25 8.25 0 1115 0v.75a.75.75 0 01-.75.75h-13.5a.75.75 0 01-.75-.75v-.75z" />
+            </svg>
+          </span>
+          <Label htmlFor="child-select" className="text-sm font-medium text-gray-700">Select Child:</Label>
+          <div className="relative w-full max-w-xs">
+            <select
+              id="child-select"
+              className="appearance-none w-full border rounded-xl px-4 py-2 pr-10 bg-white focus:outline-none focus:ring-2 focus:ring-purple-400 text-base font-semibold text-gray-700 transition-all duration-150"
+              value={selectedChildId}
+              onChange={e => setSelectedChildId(e.target.value)}
+            >
+              <option value="all">All Appoinments</option>
+              {children.map(child => (
+                <option key={child.id} value={child.id}>
+                  {child.firstName} {child.lastName}
+                </option>
+              ))}
+            </select>
+            {/* Chevron Down Icon */}
+            <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-400">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </span>
+          </div>
+        </div>
 
+        {/* Appointment Card(s) */}
+        {selectedChildId === "all" ? (
+          <AppointmentCard
+            key="all"
+            child={{ id: "all", firstName: "All", lastName: "Children", therapist: null }}
+            upcomingAppointments={appointments.filter(apt => ['APPROVED', 'REQUESTED'].includes(apt.status))}
+            pastAppointments={appointments.filter(apt => apt.status === 'COMPLETED')}
+            cancelledAppointments={appointments.filter(apt => apt.status === 'CANCELLED')}
+            onTherapistClick={() => {}}
+            formatDate={formatDate}
+            isHighlighted={false}
+          />
+        ) : (
+          (() => {
+            const child = children.find(c => c.id === selectedChildId);
+            if (!child) return null;
+            const upcomingAppointments = getChildAppointments(child.id, ['APPROVED', 'REQUESTED']);
+            const pastAppointments = getChildAppointments(child.id, ['COMPLETED']);
+            const cancelledAppointments = getChildAppointments(child.id, ['CANCELLED']);
             return (
               <AppointmentCard
                 key={child.id}
                 child={child}
                 upcomingAppointments={upcomingAppointments}
                 pastAppointments={pastAppointments}
+                cancelledAppointments={cancelledAppointments}
                 onTherapistClick={(therapist) => {
-                  console.log("Clicked therapist:", therapist);
                   setSelectedTherapist(therapist);
                   setShowTherapistModal(true);
                 }}
@@ -175,8 +219,8 @@ export default function AppointmentsPage() {
                 isHighlighted={child.id === highlightedChildId && !showZoomedCard}
               />
             );
-          })}
-        </div>
+          })()
+        )}
 
         {children.length === 0 && <EmptyState type="no-children" />}
       </div>
@@ -184,25 +228,28 @@ export default function AppointmentsPage() {
       {/* Zoomed Card Overlay */}
       {showZoomedCard && highlightedChildId && (
         <div 
-          className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4"
           onClick={handleBackgroundClick}
         >
           <div 
-            className="w-full max-w-2xl transform transition-all duration-300 ease-out scale-105"
+            className="relative w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl bg-white rounded-2xl shadow-2xl flex flex-col items-center justify-center p-0 sm:p-0"
+            style={{ boxShadow: '0 8px 32px rgba(129,89,168,0.15)' }}
             onClick={(e) => e.stopPropagation()}
           >
             {(() => {
               const highlightedChild = getHighlightedChild();
               if (!highlightedChild) return null;
               
-              const upcomingAppointments = getChildAppointments(highlightedChild.id, 'upcoming');
-              const pastAppointments = getChildAppointments(highlightedChild.id, 'past');
+              const upcomingAppointments = getChildAppointments(highlightedChild.id, ['APPROVED', 'REQUESTED']);
+              const pastAppointments = getChildAppointments(highlightedChild.id, ['COMPLETED']);
+              const cancelledAppointments = getChildAppointments(highlightedChild.id, ['CANCELLED']);
               
               return (
                 <AppointmentCard
                   child={highlightedChild}
                   upcomingAppointments={upcomingAppointments}
                   pastAppointments={pastAppointments}
+                  cancelledAppointments={cancelledAppointments}
                   onTherapistClick={(therapist) => {
                     setSelectedTherapist(therapist);
                     setShowTherapistModal(true);

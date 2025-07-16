@@ -75,6 +75,9 @@ export async function GET(
 ) {
     try {
         const session = await requireApiAuth(request, ['THERAPIST']);
+        
+        console.log("Patient details request - Patient ID:", params.id);
+        console.log("Patient details request - User ID:", session.user.id);
 
         // Get therapist profile
         const user = await prisma.user.findUnique({
@@ -97,19 +100,7 @@ export async function GET(
             },
             include: {
                 therapySessions: {
-                    orderBy: { scheduledAt: 'desc' },
-                    select: {
-                        id: true,
-                        scheduledAt: true,
-                        status: true,
-                        duration: true,
-                        type: true,
-                        notes: true,
-                        objectives: true,
-                        patientMood: true,
-                        engagement: true,
-                        progressNotes: true
-                    }
+                    orderBy: { scheduledAt: 'desc' }
                 },
                 primaryTherapist: {
                     include: {
@@ -198,11 +189,20 @@ export async function GET(
                 status: session.status,
                 duration: session.duration || 60,
                 type: session.type,
-                notes: session.notes,
-                objectives: session.objectives,
-                patientMood: session.patientMood,
-                engagement: session.engagement,
-                progressNotes: session.progressNotes
+                // Include all clinical documentation fields from the session details API
+                attendanceStatus: (session as unknown as Record<string, unknown>).attendanceStatus || null,
+                overallProgress: (session as unknown as Record<string, unknown>).overallProgress || null,
+                patientEngagement: (session as unknown as Record<string, unknown>).patientEngagement || null,
+                riskAssessment: (session as unknown as Record<string, unknown>).riskAssessment || null,
+                primaryFocusAreas: (session as unknown as Record<string, unknown>).primaryFocusAreas || "[]",
+                sessionNotes: (session as unknown as Record<string, unknown>).sessionNotes || null,
+                nextSessionGoals: (session as unknown as Record<string, unknown>).nextSessionGoals || null,
+                // Legacy fields for compatibility
+                notes: (session as unknown as Record<string, unknown>).progressNotes || (session as unknown as Record<string, unknown>).sessionNotes || "-",
+                objectives: "-", // This field doesn't exist in current schema
+                patientMood: "-", // This field doesn't exist in current schema
+                engagement: "-", // This field doesn't exist in current schema
+                progressNotes: (session as unknown as Record<string, unknown>).progressNotes || "-"
             }))
         };
 

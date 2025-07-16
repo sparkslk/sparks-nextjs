@@ -92,6 +92,7 @@ model Therapist {
   updatedAt       DateTime         @updatedAt
   rating          Decimal?         @db.Decimal(3, 2)
   assessments     Assessment[]
+  Medication      Medication[]
   patients        Patient[]
   organization    Organization?    @relation(fields: [organizationId], references: [id])
   user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -117,6 +118,7 @@ model Patient {
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
   assessments        Assessment[]
+  Medication         Medication[]
   parentGuardians    ParentGuardian[]
   organization       Organization?    @relation(fields: [organizationId], references: [id])
   primaryTherapist   Therapist?       @relation(fields: [primaryTherapistId], references: [id])
@@ -265,6 +267,52 @@ model JournalEntry {
   updatedAt DateTime @updatedAt
 }
 
+model Medication {
+  id                String              @id
+  patientId         String
+  therapistId       String
+  name              String
+  dosage            String
+  frequency         MedicationFrequency
+  customFrequency   String?
+  instructions      String?
+  mealTiming        MealTiming          @default(NONE)
+  startDate         DateTime
+  endDate           DateTime?
+  isActive          Boolean             @default(true)
+  isDiscontinued    Boolean             @default(false)
+  discontinuedAt    DateTime?
+  discontinuedBy    String?
+  discontinueReason String?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime
+  Patient           Patient             @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  Therapist         Therapist           @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+  history           MedicationHistory[]
+
+  @@index([isActive])
+  @@index([isDiscontinued])
+  @@index([patientId])
+  @@index([therapistId])
+}
+
+model MedicationHistory {
+  id             String                    @id @default(cuid())
+  medicationId   String
+  action         MedicationHistoryAction
+  changedBy      String                    // Just store therapist ID as string
+  changedAt      DateTime                  @default(now())
+  previousValues Json?
+  newValues      Json?
+  reason         String?
+  notes          String?
+  medication     Medication                @relation(fields: [medicationId], references: [id], onDelete: Cascade)
+
+  @@index([medicationId])
+  @@index([changedBy])
+  @@index([changedAt])
+}
+
 enum UserRole {
   NORMAL_USER
   PARENT_GUARDIAN
@@ -339,4 +387,34 @@ enum Gender {
   FEMALE
   OTHER
   PREFER_NOT_TO_SAY
+}
+
+enum MealTiming {
+  NONE
+  BEFORE_MEALS
+  WITH_MEALS
+  AFTER_MEALS
+  ON_EMPTY_STOMACH
+  WITH_FOOD
+}
+
+enum MedicationFrequency {
+  ONCE_DAILY
+  TWICE_DAILY
+  THREE_TIMES_DAILY
+  FOUR_TIMES_DAILY
+  EVERY_OTHER_DAY
+  WEEKLY
+  AS_NEEDED
+  CUSTOM
+}
+
+enum MedicationHistoryAction {
+  CREATED
+  UPDATED
+  DISCONTINUED
+  REACTIVATED
+  DOSAGE_CHANGED
+  FREQUENCY_CHANGED
+  INSTRUCTIONS_UPDATED
 }

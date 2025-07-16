@@ -17,7 +17,6 @@ import {
   Home,
   LogOut,
   ChevronUp,
-  Clock,
   Bookmark,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
@@ -107,10 +106,10 @@ const getMenuItems = (pendingRequests: number) => ({
           url: "/therapist/appointments/new",
         },
         
-        {
+        /* {
           title: "Session Notes",
           url: "/therapist/sessions/notes",
-        },
+        }, */
       ],
     },
     {
