@@ -80,6 +80,9 @@ export default function ParentNavigation() {
     };
 
     const getActiveTab = () => {
+        if (pathname === '/parent/children' || (pathname ?? "").startsWith('/parent/children/tasks')) {
+            return 'My Children';
+        }
         const currentTab = tabs.find(tab => tab.path === pathname);
         return currentTab?.name || 'Overview';
     };
