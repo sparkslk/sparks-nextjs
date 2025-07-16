@@ -93,13 +93,27 @@ export default function AppointmentCard({
       </div>
       {filteredUpcoming.length > 0 ? (
         <div className="space-y-3">
-          {filteredUpcoming.map((appointment: Appointment) => (
+          {filteredUpcoming.map((appointment: Appointment & { childFirstName?: string; childLastName?: string }) => (
             <div
               key={appointment.id}
-              className="session-card upcoming flex flex-col sm:flex-row items-start sm:items-center justify-between p-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl border border-green-200 shadow transition-all duration-300 transform text-lg"
+              className="session-card upcoming relative flex flex-col sm:flex-row items-start sm:items-center justify-between p-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl border border-green-200 shadow transition-all duration-300 transform text-lg"
               style={{ minHeight: '110px' }}
             >
-              <div className="flex items-center space-x-6 w-full">
+              {/* Patient name with improved styling */}
+              {appointment.childFirstName && appointment.childLastName && (
+                <div className="absolute left-4 top-4 right-4 flex items-center justify-between z-10">
+                  <div className=" px-4 py-2">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xs font-medium text-green-600 uppercase tracking-wide">Patient</span>
+                      <span className="text-sm font-bold text-green-800">
+                        {appointment.childFirstName} {appointment.childLastName}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              <div className="flex items-center space-x-6 w-full" style={{ marginTop: appointment.childFirstName ? '2rem' : '0' }}>
                 <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center">
                   {appointment.mode === 'Virtual' ? (
                     <Video className="w-7 h-7" style={{ color: '#8159A8' }} />
@@ -167,13 +181,26 @@ export default function AppointmentCard({
       </div>
       {filteredPast.length > 0 ? (
         <div className="space-y-3">
-          {filteredPast.map((appointment: Appointment) => (
+          {filteredPast.map((appointment: Appointment & { childFirstName?: string; childLastName?: string }) => (
             <div
               key={appointment.id}
-              className="session-card past flex flex-col sm:flex-row items-start sm:items-center justify-between p-6 bg-gradient-to-r from-gray-50 to-slate-50 rounded-2xl border border-gray-200 shadow transition-all duration-300 transform text-lg"
+              className="session-card past relative flex flex-col sm:flex-row items-start sm:items-center justify-between p-6 bg-gradient-to-r from-gray-50 to-slate-50 rounded-2xl border border-gray-200 shadow transition-all duration-300 transform text-lg"
               style={{ minHeight: '110px' }}
             >
-              <div className="flex items-center space-x-6 w-full">
+              {/* Patient name with improved styling */}
+              {appointment.childFirstName && appointment.childLastName && (
+                <div className="absolute left-4 top-4 right-4 flex items-center justify-between z-10">
+                  <div className="px-4 py-2">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">Patient</span>
+                      <span className="text-sm font-bold text-gray-800">
+                        {appointment.childFirstName} {appointment.childLastName}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+              <div className="flex items-center space-x-6 w-full" style={{ marginTop: appointment.childFirstName ? '2rem' : '0' }}>
                 <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center">
                   <CheckCircle className="w-7 h-7" style={{ color: '#8159A8' }} />
                 </div>
@@ -232,16 +259,29 @@ export default function AppointmentCard({
       </div>
       {filteredCancelled.length > 0 ? (
         <div className="space-y-3">
-          {filteredCancelled.map((appointment: Appointment) => (
+          {filteredCancelled.map((appointment: Appointment & { childFirstName?: string; childLastName?: string }) => (
             <div
               key={appointment.id}
               className="session-card cancelled relative flex flex-col sm:flex-row items-start sm:items-center justify-between p-6 bg-gradient-to-r from-red-50 to-pink-50 rounded-2xl border border-red-200 shadow transition-all duration-300 transform text-lg"
               style={{ minHeight: '110px' }}
             >
-              <div className="absolute top-2 right-4 sm:top-4 sm:right-6 z-10">
-                <span className="inline-block bg-red-100 border border-red-300 text-red-600 text-xs font-semibold px-3 py-1 rounded-full shadow-sm">Cancelled</span>
-              </div>
-              <div className="flex items-center space-x-6 w-full">
+              {/* Patient name with improved styling */}
+              {appointment.childFirstName && appointment.childLastName && (
+                <div className="absolute left-4 top-4 right-4 flex items-center justify-between z-10">
+                  <div className="px-4 py-2">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xs font-medium text-red-600 uppercase tracking-wide">Patient</span>
+                      <span className="text-sm font-bold text-red-800">
+                        {appointment.childFirstName} {appointment.childLastName}
+                      </span>
+                    </div>
+                  </div>
+                  <span className="inline-block bg-red-100 border border-red-300 text-red-600 text-xs font-semibold px-3 py-1 rounded-full shadow-sm">
+                    Cancelled
+                  </span>
+                </div>
+              )}
+              <div className="flex items-center space-x-6 w-full" style={{ marginTop: appointment.childFirstName ? '2rem' : '0' }}>
                 <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center">
                   <Calendar className="w-7 h-7" style={{ color: '#8159A8' }} />
                 </div>

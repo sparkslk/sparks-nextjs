@@ -187,9 +187,18 @@ export default function AppointmentsPage() {
           <AppointmentCard
             key="all"
             child={{ id: "all", firstName: "All", lastName: "Children", therapist: null }}
-            upcomingAppointments={appointments.filter(apt => ['APPROVED', 'REQUESTED'].includes(apt.status))}
-            pastAppointments={appointments.filter(apt => apt.status === 'COMPLETED')}
-            cancelledAppointments={appointments.filter(apt => apt.status === 'CANCELLED')}
+            upcomingAppointments={appointments.filter(apt => ['APPROVED', 'REQUESTED'].includes(apt.status)).map(apt => {
+              const child = children.find(c => c.id === apt.childId);
+              return { ...apt, childFirstName: child?.firstName, childLastName: child?.lastName };
+            })}
+            pastAppointments={appointments.filter(apt => apt.status === 'COMPLETED').map(apt => {
+              const child = children.find(c => c.id === apt.childId);
+              return { ...apt, childFirstName: child?.firstName, childLastName: child?.lastName };
+            })}
+            cancelledAppointments={appointments.filter(apt => apt.status === 'CANCELLED').map(apt => {
+              const child = children.find(c => c.id === apt.childId);
+              return { ...apt, childFirstName: child?.firstName, childLastName: child?.lastName };
+            })}
             onTherapistClick={() => {}}
             formatDate={formatDate}
             isHighlighted={false}
