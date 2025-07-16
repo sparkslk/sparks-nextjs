@@ -67,7 +67,7 @@ export default function NewBlogPage() {
       //   authorName: session.user?.name
       // }));
     }
-  }, [authStatus, router, session]);
+  }, [authStatus, router]);
 
   // Handle file input changes
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
