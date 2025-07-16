@@ -55,7 +55,7 @@ export default function BlogManagementPage() {
       }
       fetchBlogs();
     }
-  }, [authStatus, router, session]);
+  }, [authStatus, router]);
 
   const fetchBlogs = async () => {
     setLoading(true);
