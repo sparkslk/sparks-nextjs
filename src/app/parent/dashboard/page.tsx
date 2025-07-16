@@ -368,41 +368,81 @@ export default function ParentDashboard() {
                         </CardContent>
                     </Card>
 
-                    {/* Recent Updates */}
-                    <Card className="shadow-sm hover:shadow-md transition-shadow">
-                        <CardHeader className="border-b border-gray-100 pb-4">
-                            <CardTitle className="text-lg font-semibold text-gray-900">Recent Updates</CardTitle>
-                        </CardHeader>
-                        <CardContent className="pt-6">
-                            {parentData && parentData.recentUpdates.length > 0 ? (
+                    {/* Right column: Schedule Session and Recent Updates stacked */}
+
+                    <div className="flex flex-col gap-6">
+                        {/* Schedule Session Section */}
+                        <Card className="shadow-sm hover:shadow-md transition-shadow">
+                            <CardHeader className="border-b border-gray-100 pb-4">
+                                <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                                    <span>📅</span> Schedule Session
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="pt-6">
                                 <div className="space-y-4">
-                                    {parentData.recentUpdates.map((update) => (
-                                        <div key={update.id} className="border-l-4 pl-4 py-2 rounded-r" style={{ borderLeftColor: '#8159A8', backgroundColor: '#f7f3ff' }}>
-                                            <div className="flex items-center justify-between mb-1">
-                                                <span className="font-semibold text-gray-900">{update.message.split(':')[0] || 'System'}</span>
-                                                <span className="text-xs text-gray-500 bg-white px-2 py-1 rounded">{update.timestamp}</span>
+                                    {parentData.children.map(child => (
+                                        <div key={child.id} className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-4 border rounded-lg bg-blue-50 border-blue-200">
+                                            <div className="flex flex-col md:flex-row md:items-center gap-3">
+                                                <span className="font-semibold text-gray-900">{child.firstName} {child.lastName}</span>
+                                                {child.therapist && (
+                                                    <span className="text-sm text-gray-700">Therapist: <span className="font-medium text-purple-800">Dr. {child.therapist.name}</span></span>
+                                                )}
                                             </div>
-                                            <p className="text-sm text-gray-700">{update.message}</p>
+                                            <div className="flex gap-2 items-center">
+                                                {child.therapist ? (
+                                                    <Button className="bg-[#8159A8] text-white hover:opacity-90">
+                                                        Schedule 
+                                                    </Button>
+                                                ) : (
+                                                    <a href="/parent/findTherapist">
+                                                        <Button className="bg-[#8159A8] text-white hover:opacity-90">
+                                                            Find Therapist
+                                                        </Button>
+                                                    </a>
+                                                )}
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
-                            ) : (
-                                <div className="text-center py-12">
-                                    <Image 
-                                        src="/images/NoMsg.png" 
-                                        alt="No messages" 
-                                        width={400}
-                                        height={400}
-                                        className="mx-auto mb-6 opacity-60"
-                                    />
-                                    <h3 className="text-lg font-semibold mb-2 text-gray-900">All caught up!</h3>
-                                    <p className="text-gray-500 max-w-sm mx-auto">
-                                        You&apos;re all up to date.
-                                    </p>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
+                            </CardContent>
+                        </Card>
+
+                        {/* Recent Updates */}
+                        <Card className="shadow-sm hover:shadow-md transition-shadow">
+                            <CardHeader className="border-b border-gray-100 pb-4">
+                                <CardTitle className="text-lg font-semibold text-gray-900">Recent Updates</CardTitle>
+                            </CardHeader>
+                            <CardContent className="pt-6">
+                                {parentData && parentData.recentUpdates.length > 0 ? (
+                                    <div className="space-y-4">
+                                        {parentData.recentUpdates.map((update) => (
+                                            <div key={update.id} className="border-l-4 pl-4 py-2 rounded-r" style={{ borderLeftColor: '#8159A8', backgroundColor: '#f7f3ff' }}>
+                                                <div className="flex items-center justify-between mb-1">
+                                                    <span className="font-semibold text-gray-900">{update.message.split(':')[0] || 'System'}</span>
+                                                    <span className="text-xs text-gray-500 bg-white px-2 py-1 rounded">{update.timestamp}</span>
+                                                </div>
+                                                <p className="text-sm text-gray-700">{update.message}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-12">
+                                        <Image 
+                                            src="/images/NoMsg.png" 
+                                            alt="No messages" 
+                                            width={400}
+                                            height={400}
+                                            className="mx-auto mb-6 opacity-60"
+                                        />
+                                        <h3 className="text-lg font-semibold mb-2 text-gray-900">All caught up!</h3>
+                                        <p className="text-gray-500 max-w-sm mx-auto">
+                                            You&apos;re all up to date.
+                                        </p>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </div>
                 </div>
             )}
 
