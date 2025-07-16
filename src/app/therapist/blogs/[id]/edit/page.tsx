@@ -168,7 +168,7 @@ ADHD symptoms in adults can differ from those in children. While hyperactivity m
 
       fetchBlog();
     }
-  }, [authStatus, router, fetchBlog, session]); // Add fetchBlog and session to dependency array
+  }, [authStatus, router, fetchBlog]); // Add fetchBlog to dependency array
 
   // Handle file input changes
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
