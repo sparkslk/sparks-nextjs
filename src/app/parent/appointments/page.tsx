@@ -8,6 +8,7 @@ import EmptyState from "@/components/parent/appointments/EmptyState";
 import { Child, Appointment } from "@/types/appointments";
 // import { Select } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { useRouter } from "next/navigation";
 
 export default function AppointmentsPage() {
   const [children, setChildren] = useState<Child[]>([]);
@@ -18,6 +19,7 @@ export default function AppointmentsPage() {
   const [showTherapistModal, setShowTherapistModal] = useState(false);
   // const [highlightedChildId, setHighlightedChildId] = useState<string | null>(null);
   const [selectedChildId, setSelectedChildId] = useState<string | "all">("all");
+  const router = useRouter();
 
   useEffect(() => {
     fetchData();
@@ -143,6 +145,36 @@ export default function AppointmentsPage() {
 
   return (
     <div className="min-h-screen relative">
+      {/* Schedule Session Section */}
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 pt-4 pb-2">
+        <h2 className="text-xl font-bold mb-4">Schedule Session</h2>
+        <div className="space-y-3">
+          {(selectedChildId === "all" ? children : children.filter(child => child.id === selectedChildId)).map(child => (
+            <div key={child.id} className="flex items-center justify-between bg-purple-50 rounded-lg px-4 py-3 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                <span className="font-semibold text-gray-800">{child.firstName} {child.lastName}</span>
+                <span className="text-gray-500 text-sm">{child.therapist ? `Therapist: ${child.therapist}` : 'No therapist assigned'}</span>
+              </div>
+              {child.therapist ? (
+                <button
+                  className="bg-purple-600 hover:bg-purple-700 text-white font-semibold px-4 py-2 rounded-lg transition"
+                  onClick={() => {/* Implement schedule logic here */}}
+                >
+                  Schedule
+                </button>
+              ) : (
+                <button
+                  className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 py-2 rounded-lg transition"
+                  onClick={() => router.push('/parent/findTherapist')}
+                >
+                  Find Therapist
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
       <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 py-4 md:py-6">
         {/* Enhanced Header */}
         <AppointmentsHeader 
