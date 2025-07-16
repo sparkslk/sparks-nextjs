@@ -16,21 +16,18 @@ export default function AppointmentsPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedTherapist, setSelectedTherapist] = useState<Child['therapist'] | null>(null);
   const [showTherapistModal, setShowTherapistModal] = useState(false);
-  const [highlightedChildId, setHighlightedChildId] = useState<string | null>(null);
-  const [showZoomedCard, setShowZoomedCard] = useState(false);
+  // const [highlightedChildId, setHighlightedChildId] = useState<string | null>(null);
   const [selectedChildId, setSelectedChildId] = useState<string | "all">("all");
 
   useEffect(() => {
     fetchData();
-    
     // Check for highlighted child from URL params
-    const urlParams = new URLSearchParams(window.location.search);
-    const highlightChild = urlParams.get('highlightChild');
-    if (highlightChild) {
-      setHighlightedChildId(highlightChild);
-      // Show zoomed card after a short delay to allow page to load
-      setTimeout(() => setShowZoomedCard(true), 500);
-    }
+    // const urlParams = new URLSearchParams(window.location.search);
+    // const highlightChild = urlParams.get('highlightChild');
+    // if (highlightChild) {
+    //   setHighlightedChildId(highlightChild);
+    //   setSelectedChildId(highlightChild); // Set selector to the highlighted child
+    // }
   }, []);
 
   const fetchData = async () => {
@@ -123,18 +120,18 @@ export default function AppointmentsPage() {
     });
   };
 
-  const handleBackgroundClick = () => {
-    setShowZoomedCard(false);
-    setHighlightedChildId(null);
-    // Remove URL params
-    const url = new URL(window.location.href);
-    url.searchParams.delete('highlightChild');
-    window.history.replaceState({}, '', url.toString());
-  };
+  // const handleBackgroundClick = () => {
+  //   setShowZoomedCard(false);
+  //   setHighlightedChildId(null);
+  //   // Remove URL params
+  //   const url = new URL(window.location.href);
+  //   url.searchParams.delete('highlightChild');
+  //   window.history.replaceState({}, '', url.toString());
+  // };
 
-  const getHighlightedChild = () => {
-    return children.find(child => child.id === highlightedChildId);
-  };
+  // const getHighlightedChild = () => {
+  //   return children.find(child => child.id === highlightedChildId);
+  // };
 
   if (loading) {
     return <EmptyState type="loading" />;
@@ -216,7 +213,7 @@ export default function AppointmentsPage() {
                   setShowTherapistModal(true);
                 }}
                 formatDate={formatDate}
-                isHighlighted={child.id === highlightedChildId && !showZoomedCard}
+                isHighlighted={false}
               />
             );
           })()
@@ -224,44 +221,6 @@ export default function AppointmentsPage() {
 
         {children.length === 0 && <EmptyState type="no-children" />}
       </div>
-
-      {/* Zoomed Card Overlay */}
-      {showZoomedCard && highlightedChildId && (
-        <div 
-          className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4"
-          onClick={handleBackgroundClick}
-        >
-          <div 
-            className="relative w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl bg-white rounded-2xl shadow-2xl flex flex-col items-center justify-center p-0 sm:p-0"
-            style={{ boxShadow: '0 8px 32px rgba(129,89,168,0.15)' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {(() => {
-              const highlightedChild = getHighlightedChild();
-              if (!highlightedChild) return null;
-              
-              const upcomingAppointments = getChildAppointments(highlightedChild.id, ['APPROVED', 'REQUESTED']);
-              const pastAppointments = getChildAppointments(highlightedChild.id, ['COMPLETED']);
-              const cancelledAppointments = getChildAppointments(highlightedChild.id, ['CANCELLED']);
-              
-              return (
-                <AppointmentCard
-                  child={highlightedChild}
-                  upcomingAppointments={upcomingAppointments}
-                  pastAppointments={pastAppointments}
-                  cancelledAppointments={cancelledAppointments}
-                  onTherapistClick={(therapist) => {
-                    setSelectedTherapist(therapist);
-                    setShowTherapistModal(true);
-                  }}
-                  formatDate={formatDate}
-                  isHighlighted={false}
-                />
-              );
-            })()}
-          </div>
-        </div>
-      )}
 
       {/* Therapist Details Modal */}
       <TherapistModal
