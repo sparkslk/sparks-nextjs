@@ -332,7 +332,7 @@ export default function SessionDetailsPage() {
 
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full mb-6">
           <div className="w-full rounded-xl" style={{ boxShadow: '0 2px 8px 0 rgba(129,89,168,0.08)' }}>
-            <TabsList className="w-full flex bg-[#f7f5fb] rounded-xl border border-[#e5e3ee] p-2" style={{ boxShadow: 'none' }}>
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="clinical" className="flex-1 h-12 rounded-xl font-semibold text-[#8159A8] text-base transition-all flex items-center justify-center data-[state=active]:bg-white data-[state=active]:shadow-[0_2px_8px_0_rgba(129,89,168,0.08)] data-[state=active]:text-[#8159A8] data-[state=inactive]:bg-transparent data-[state=inactive]:text-[#8159A8]">
                 Clinical Documentation
               </TabsTrigger>
