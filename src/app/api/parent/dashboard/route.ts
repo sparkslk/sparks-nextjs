@@ -62,22 +62,26 @@ export async function GET(req: NextRequest) {
             }
         });
 
+        // Use a single 'now' variable for the whole function
+        const now = new Date();
+
         // Format children data with complete information
         const children = await Promise.all(
             parentGuardianRelations.map(async (relation) => {
-                // Calculate progress percentage based on completed sessions vs total scheduled
-                const totalSessions = await prisma.therapySession.count({
-                    where: { patientId: relation.patient.id }
-                });
-                const completedSessions = await prisma.therapySession.count({
+                // Calculate progress percentage as tasks completed for the current month
+                const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+                const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+                const allTasksThisMonth = await prisma.task.findMany({
                     where: {
                         patientId: relation.patient.id,
-                        status: 'COMPLETED'
+                        dueDate: {
+                            gte: startOfMonth,
+                            lte: endOfMonth
+                        }
                     }
                 });
-                
-                // Calculate progress percentage (as decimal from 0-100)
-                const progressPercentage = totalSessions > 0 ? Math.round((completedSessions / totalSessions) * 100) : 0;
+                const completedTasksThisMonth = allTasksThisMonth.filter(task => task.status === 'COMPLETED');
+                const progressPercentage = allTasksThisMonth.length > 0 ? Math.round((completedTasksThisMonth.length / allTasksThisMonth.length) * 100) : 0;
 
                 // Get last session date
                 const lastSession = await prisma.therapySession.findFirst({
@@ -99,7 +103,6 @@ export async function GET(req: NextRequest) {
                 }
 
                 // Fix: Count upcoming sessions with status SCHEDULED and scheduledAt >= now
-                const now = new Date();
                 const upcomingSessions = await prisma.therapySession.count({
                     where: {
                         patientId: relation.patient.id,

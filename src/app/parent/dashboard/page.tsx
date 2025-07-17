@@ -168,7 +168,7 @@ export default function ParentDashboard() {
                 <div className="flex items-start gap-3">
                     <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
-                            <h1 className="text-2xl font-bold text-foreground">Parent Dashboard</h1>
+                            <h1 className="text-4xl font-extrabold bg-gradient-to-r from-primary to-foreground bg-clip-text text-transparent tracking-tight mb-1">Parent Dashboard</h1>
                             <div className="relative group">
                                 <HelpCircle className="h-5 w-5 text-muted-foreground hover:text-primary cursor-help" />
                                 <div className="absolute left-6 top-0 bg-background text-foreground text-sm rounded-lg px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 whitespace-nowrap shadow-lg border border-border">
@@ -176,7 +176,7 @@ export default function ParentDashboard() {
                                 </div>
                             </div>
                         </div>
-                        <p className="text-lg text-muted-foreground font-medium">
+                        <p className="text-muted-foreground text-base font-medium">
                             Monitor and manage your children&apos; therapeutic progress
                         </p>
                         {lastUpdated && (
@@ -213,7 +213,7 @@ export default function ParentDashboard() {
                     <Dialog open={showAddChild} onOpenChange={setShowAddChild}>
                         <DialogTrigger asChild>
                             <Button 
-                                className="bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-200 shadow-sm hover:shadow-md"
+                                className="bg-primary text-primary-foreground font-semibold px-6 py-2 rounded-xl shadow-sm hover:opacity-90 transition"
                                 aria-label="Add a new child to your account"
                             >
                                 <Plus className="h-4 w-4 mr-2" />
@@ -482,7 +482,7 @@ export default function ParentDashboard() {
                             </Button>
                             <Button
                                 onClick={() => setShowAddChild(true)}
-                                className="bg-primary text-primary-foreground px-6 py-2 hover:bg-primary/90"
+                                className="bg-primary text-primary-foreground font-semibold px-6 py-2 rounded-xl shadow-sm hover:opacity-90 transition"
                                 aria-label="Add a new child to start therapy services"
                             >
                                 <Plus className="h-4 w-4 mr-2" />

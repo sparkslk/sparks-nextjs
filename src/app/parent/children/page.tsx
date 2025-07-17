@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 // import Image from "next/image";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +10,15 @@ import {
   TrendingUp
 } from "lucide-react";
 import SessionDetailsModal from "@/components/parent/SessionDetailsModal";
+import { AddChildForm } from "@/components/parent/AddChildForm";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface Child {
   id: string;
@@ -28,6 +38,7 @@ interface Child {
     name: string;
     email: string;
   } | null;
+  image?: string | null;
 }
 
 export default function MyChildrenPage() {
@@ -39,6 +50,7 @@ export default function MyChildrenPage() {
   const [animatedProgress, setAnimatedProgress] = useState<{ [key: string]: number }>({});
   const [sessionModalOpen, setSessionModalOpen] = useState(false);
   const [selectedChild, setSelectedChild] = useState<Child | null>(null);
+  const [showAddChild, setShowAddChild] = useState(false);
 
   useEffect(() => {
     fetchChildren();
@@ -145,73 +157,90 @@ export default function MyChildrenPage() {
   };
 
   return (
-    <div className="min-h-screen" >
-      <div className="max-w-6xl mx-auto px-6 py-1">
+    <div className="min-h-screen pb-16">
+      <div className="max-w-6xl mx-auto px-4 sm:px-8 py-8">
         {/* Header Section */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">
-            My Children
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Monitor your children&apos;s therapy progress and communicate with their therapists
-          </p>
+        <div className="mb-10 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
+          <div>
+            <h1 className="text-4xl font-extrabold bg-gradient-to-r from-primary to-foreground bg-clip-text text-transparent tracking-tight mb-1">
+              My Children
+            </h1>
+            <p className="text-muted-foreground text-base font-medium">
+              Monitor your children&apos;s therapy progress and communicate with their therapists
+            </p>
+          </div>
+          <Button
+            className="bg-primary text-primary-foreground font-semibold px-6 py-2 rounded-xl shadow-sm hover:opacity-90 transition"
+            onClick={() => setShowAddChild(true)}
+          >
+            + Add Child
+          </Button>
+          <Dialog open={showAddChild} onOpenChange={setShowAddChild}>
+            <DialogTrigger asChild></DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Add New Child</DialogTitle>
+                <DialogDescription>
+                  Create a new patient profile for your child
+                </DialogDescription>
+              </DialogHeader>
+              <AddChildForm onSuccess={() => {
+                setShowAddChild(false);
+                fetchChildren();
+              }} />
+            </DialogContent>
+          </Dialog>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {children.map((child) => (
-            <Card key={child.id} className="shadow-sm hover:shadow-md transition-shadow">
-              <CardContent className="p-6 flex flex-col">
-                <div className="flex items-center space-x-4 mb-6">
+            <Card key={child.id} className="shadow-lg border border-border rounded-2xl bg-card hover:shadow-xl transition-shadow">
+              <CardContent className="p-7 flex flex-col min-h-[520px]">
+                <div className="flex items-center space-x-5 mb-7">
                   <div
-                    className="w-12 h-12 rounded-full flex items-center justify-center"
-                    style={{ backgroundColor: '#EDE6F3' }}
+                    className="w-14 h-14 rounded-full flex items-center justify-center shadow-md border-2 border-primary bg-secondary overflow-hidden"
                   >
-                    <span className="font-semibold" style={{ color: '#8159A8' }}>
-                      {child.firstName[0]}{child.lastName[0]}
-                    </span>
+                    {child.image ? (
+                      <Image
+                        src={child.image}
+                        alt={`${child.firstName} ${child.lastName}`}
+                        width={56}
+                        height={56}
+                        className="object-cover w-14 h-14 rounded-full"
+                      />
+                    ) : (
+                      <span className="font-bold text-xl text-primary">
+                        {child.firstName[0]}{child.lastName[0]}
+                      </span>
+                    )}
                   </div>
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-gray-900 text-lg">
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-bold text-lg text-foreground truncate">
                       {child.firstName} {child.lastName}
                     </h4>
-                    <p className="text-sm text-gray-600">
-                      Relationship: {child.relationship} • Age: {calculateAge(child.dateOfBirth)}
+                    <p className="text-sm text-muted-foreground">
+                      Relationship: <span className="font-medium text-foreground">{child.relationship}</span> • Age: <span className="font-medium text-foreground">{calculateAge(child.dateOfBirth)}</span>
                     </p>
-                    <p className="text-sm text-gray-500">
-                      Therapist: {child.therapist ? child.therapist.name : 'Not assigned'}
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Therapist: <span className="font-medium text-foreground">{child.therapist ? child.therapist.name : 'Not assigned'}</span>
                     </p>
                   </div>
                   <Badge
                     variant="default"
-                    className="bg-green-100 text-green-800"
+                    className="bg-green-100 text-green-800 border border-green-200 px-3 py-1 rounded-lg text-xs font-semibold shadow-sm"
                   >
                     Active
                   </Badge>
                 </div>
-                {!child.therapist && (
-                  <div className="mb-4 bg-purple-50 border border-purple-200 rounded-lg p-3 flex items-center justify-between">
-                    <span className="text-sm text-purple-800">
-                      No therapist assigned. Connect with a therapist to enable appointments and communication.
-                    </span>
-                    <Button
-                      size="sm"
-                      style={{ backgroundColor: '#ede9fe', color: '#6d28d9' }}
-                      className="ml-3 hover:opacity-90 border border-purple-200"
-                      onClick={() => window.location.href = '/parent/findTherapist'}
-                    >
-                      Find a Therapist
-                    </Button>
-                  </div>
-                )}
 
                 {/* Content wrapper that takes remaining space */}
-                <div className="flex flex-col justify-between">
+                <div className="flex flex-col justify-between flex-1">
                   {/* Content section */}
                   <div>
                     {/* Centered Progress Display */}
-                    <div className="flex flex-col items-center justify-center mb-6">
-                      <div className="relative w-24 h-24 mb-3">
-                        <svg className="w-24 h-24 transform -rotate-90" viewBox="0 0 36 36">
+                    <div className="flex flex-col items-center justify-center mb-7">
+                      <div className="relative w-28 h-28 mb-2">
+                        <svg className="w-28 h-28 transform -rotate-90" viewBox="0 0 36 36">
                           {/* Background circle */}
                           <path
                             d="M18 2.0845a15.9155 15.9155 0 0 1 0 31.831a15.9155 15.9155 0 0 1 0-31.831"
@@ -228,53 +257,53 @@ export default function MyChildrenPage() {
                             strokeDasharray={`${animatedProgress[child.id] || 0} ${100 - (animatedProgress[child.id] || 0)}`}
                             strokeLinecap="round"
                             style={{
-                              transition: 'stroke-dasharray 0.5s ease-in-out'
+                              transition: 'stroke-dasharray 0.5s cubic-bezier(.4,2,.6,1)',
                             }}
                           />
                         </svg>
                         <div className="absolute inset-0 flex items-center justify-center">
-                          <TrendingUp className="w-6 h-6" style={{ color: '#8159A8' }} />
+                          <TrendingUp className="w-7 h-7 text-primary" />
                         </div>
                       </div>
                       <div className="text-center">
-                        <p className="text-2xl font-bold text-gray-900 mb-1">
+                        <p className="text-3xl font-extrabold text-foreground mb-1">
                           {animatedProgress[child.id] || 0}%
                         </p>
-                        <p className="text-sm text-gray-500 font-medium">Overall Progress</p>
+                        <p className="text-sm text-muted-foreground font-medium">Overall Progress</p>
                       </div>
                     </div>
 
-                    <div className="mb-4 bg-gray-50 rounded-lg p-3">
-                      <p className="text-sm text-gray-600 mb-1">
-                        Patient ID: <span className="font-mono text-xs bg-white px-2 py-1 rounded border">{child.id}</span>
+                    <div className="mb-4 bg-muted rounded-xl p-4 border border-border">
+                      <p className="text-xs text-muted-foreground mb-1">
+                        Patient ID: <span className="font-mono text-xs bg-background px-2 py-1 rounded border border-border">{child.id}</span>
                       </p>
                       {child.therapist && (
-                        <p className="text-sm text-gray-600 mb-1">
-                          Upcoming Sessions: <span className="font-medium">{child.upcomingSessions}</span>
+                        <p className="text-xs text-muted-foreground mb-1">
+                          Upcoming Sessions: <span className="font-semibold text-foreground">{child.upcomingSessions}</span>
                         </p>
                       )}
                       {child.therapist && child.lastSession && (
-                        <p className="text-sm text-gray-600">
-                          Last Session: {new Date(child.lastSession).toLocaleDateString()}
+                        <p className="text-xs text-muted-foreground">
+                          Last Session: <span className="text-foreground">{new Date(child.lastSession).toLocaleDateString()}</span>
                         </p>
                       )}
                     </div>
 
                     <div className="mb-4">
-                      <p className="text-sm text-gray-500 mb-2">
-                        {child.isPrimary ? 'You are the primary guardian for this child.' : 'You are connected as a guardian.'}
+                      <p className="text-xs text-muted-foreground mb-2">
+                        {child.isPrimary ? <span className="font-semibold text-primary">You are the primary guardian for this child.</span> : 'You are connected as a guardian.'}
                       </p>
                     </div>
                   </div>
 
                   {/* Action Buttons - Always at bottom */}
-                  <div className="grid grid-cols-2 gap-2 mt-auto">
+                  <div className="grid grid-cols-2 gap-3 mt-auto">
                     <Button
                       variant="outline"
                       size="sm"
-                      className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                      className="border-border text-foreground font-medium rounded-lg hover:bg-muted"
                       onClick={() => {
-                      window.location.href = `/parent/appointments?highlightChild=${child.id}&childName=${encodeURIComponent(child.firstName + ' ' + child.lastName)}`;
+                        window.location.href = `/parent/appointments?highlightChild=${child.id}&childName=${encodeURIComponent(child.firstName + ' ' + child.lastName)}`;
                       }}
                       disabled={!child.therapist}
                     >
@@ -284,7 +313,7 @@ export default function MyChildrenPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                      className="border-border text-foreground font-medium rounded-lg hover:bg-muted"
                       onClick={() => {
                         window.location.href = `/parent/children/tasks?childId=${child.id}&childName=${encodeURIComponent(child.firstName + ' ' + child.lastName)}`;
                       }}
@@ -292,11 +321,10 @@ export default function MyChildrenPage() {
                       <span className="mr-2">📋</span>
                       Tasks
                     </Button>
-                    
                     <Button
                       variant="outline"
                       size="sm"
-                      className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                      className="border-border text-foreground font-medium rounded-lg hover:bg-muted"
                       disabled={!child.therapist}
                     >
                       <span className="mr-2">💊</span>
@@ -304,49 +332,62 @@ export default function MyChildrenPage() {
                     </Button>
                     <Button
                       size="sm"
-                      style={{ backgroundColor: '#8159A8' }}
-                      className="text-white hover:opacity-90"
+                      className="bg-primary text-primary-foreground font-semibold rounded-lg hover:opacity-90"
                       disabled={!child.therapist}
                     >
                       <span className="mr-2">📞</span>
                       Contact Therapist
                     </Button>
                   </div>
+                  {/* No therapist assigned notice moved here */}
+                  {!child.therapist && (
+                    <div className="mt-5 mb-3 bg-purple-50 border border-purple-200 rounded-xl p-4 flex items-center justify-between gap-2">
+                      <span className="text-xs text-purple-800 font-medium">
+                        No therapist assigned. Connect with a therapist to enable appointments and communication.
+                      </span>
+                      <Button
+                        size="sm"
+                        className="bg-purple-100 text-purple-700 border border-purple-200 rounded-lg font-semibold hover:bg-purple-200"
+                        onClick={() => window.location.href = '/parent/findTherapist'}
+                      >
+                        Find a Therapist
+                      </Button>
+                    </div>
+                  )}
                   {/* Upcoming Session Section */}
                   {child.therapist && child.upcomingSessions > 0 && (
-                    <div className="mb-4 mt-6 bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-                      <div className="mb-2">
-                        <h3 className="text-lg font-bold text-gray-900">Next Session</h3>
-                        {/* <p className="text-sm text-muted-foreground">Your next scheduled therapy session</p> */}
+                    <div className="mb-2 mt-7 bg-background border border-border rounded-2xl p-5 shadow-sm">
+                      <div className="mb-2 flex items-center justify-between">
+                        <h3 className="text-lg font-bold text-foreground">Next Session</h3>
+                        {child.nextSessionStatus && (
+                          <span
+                            className={`text-xs px-2 py-1 rounded font-semibold ${child.nextSessionStatus.toLowerCase() === 'cancelled' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}
+                          >
+                            {child.nextSessionStatus.toLowerCase()}
+                          </span>
+                        )}
                       </div>
                       <div className={`flex items-center justify-between rounded-lg px-3 py-2 mb-4 ${child.nextSessionStatus && child.nextSessionStatus.toLowerCase() === 'cancelled' ? 'bg-red-50' : 'bg-green-50'}`}> 
                         <div>
-                          <div className="font-semibold text-gray-900">Therapist : {child.therapist?.name}</div>
+                          <div className="font-semibold text-foreground">Therapist : {child.therapist?.name}</div>
                           <div className="text-xs text-muted-foreground">{child.nextSessionType}</div>
                         </div>
                         <div className="flex items-center gap-3">
-                          <div className="text-sm text-gray-900 font-medium">{child.lastSession ? new Date(child.lastSession).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'TBD'}</div>
-                          {/* {child.nextSessionStatus && (
-                            <span
-                              className={`text-xs px-2 py-1 rounded font-medium ${child.nextSessionStatus.toLowerCase() === 'cancelled' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}
-                            >
-                              {child.nextSessionStatus.toLowerCase()}
-                            </span>
-                          )} */}
+                          <div className="text-sm text-foreground font-medium">{child.lastSession ? new Date(child.lastSession).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'TBD'}</div>
                         </div>
                       </div>
                       <div className="flex flex-col gap-2">
                         <Button
                           variant="outline"
                           size="sm"
-                          className="border-gray-300 text-gray-900 hover:bg-gray-50 flex items-center justify-center gap-2"
+                          className="border-border text-foreground font-medium rounded-lg hover:bg-muted flex items-center justify-center gap-2"
                           onClick={() => window.location.href = `/parent/sessions/${child.nextSessionId}`}
                         >
                           <span>📅</span> View Details
                         </Button>
                         <Button
                           size="sm"
-                          className="bg-primary text-white hover:opacity-90 flex items-center justify-center gap-2"
+                          className="bg-primary text-primary-foreground font-semibold rounded-lg hover:opacity-90 flex items-center justify-center gap-2"
                           onClick={() => window.open('https://zoom.us', '_blank')}
                         >
                           <span>🔗</span> Join
