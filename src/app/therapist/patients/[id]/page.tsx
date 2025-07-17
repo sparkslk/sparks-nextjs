@@ -4,7 +4,25 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import MedicationManagement from "@/components/therapist/MedicationManagement";
+import { Medication } from "@/types/medications";
 
+interface TherapySession {
+  id: string;
+  scheduledAt: string;
+  status: string;
+  type: string;
+  duration?: number;
+  attendanceStatus?: string;
+  overallProgress?: string;
+  patientEngagement?: string;
+  riskAssessment?: string;
+  primaryFocusAreas?: string;
+  sessionNotes?: string;
+  nextSessionGoals?: string;
+}
+
+<<<<<<< HEAD
 export default function PatientDetailsPage() {
   const router = useRouter();
 
@@ -82,6 +100,146 @@ export default function PatientDetailsPage() {
       notes: "Non-stimulant alternative. Monitor for mood changes and effectiveness over 4-6 weeks. Can be taken with or without food."
     }
   ];
+=======
+interface Patient {
+  id: string;
+  firstName: string;
+  lastName: string;
+  initials: string;
+  dateOfBirth: string;
+  age: number;
+  gender: string;
+  phone: string;
+  email: string;
+  emergencyContact: {
+    name: string;
+    phone: string;
+    relation: string;
+  };
+  address: string;
+  registeredDate: string;
+  treatmentStarted: string;
+  status: string;
+  lastSession: string;
+  nextSession: string;
+  therapySessions?: TherapySession[];
+}
+
+export default function PatientDetailsPage() {
+  const router = useRouter();
+  const params = useParams();
+  const { status } = useSession();
+  const [patient, setPatient] = useState<Patient | null>(null);
+  const [medications, setMedications] = useState<Medication[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [tab, setTab] = useState("info");
+
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/login");
+      return;
+    }
+
+    if (status === "authenticated" && params.id) {
+      fetchPatientData(params.id as string);
+      fetchMedications(params.id as string);
+    }
+  }, [status, params.id, router]);
+
+  const fetchPatientData = async (patientId: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await fetch(`/api/therapist/patients/${patientId}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error("Patient not found or not assigned to your care");
+        }
+        throw new Error(`Failed to fetch patient data: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      setPatient(data.patient);
+    } catch (error) {
+      console.error("Error fetching patient data:", error);
+      setError(error instanceof Error ? error.message : "Failed to fetch patient data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchMedications = async (patientId: string) => {
+    try {
+      const response = await fetch(`/api/therapist/patients/${patientId}/medications`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setMedications(data);
+      } else {
+        console.error("Failed to fetch medications:", response.statusText);
+        // Don't set error here as medications are optional
+      }
+    } catch (error) {
+      console.error("Error fetching medications:", error);
+      // Don't set error here as medications are optional
+    }
+  };
+
+  if (status === "loading" || loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-2 text-muted-foreground">Loading patient details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-500 mb-4">
+            <p className="text-lg font-semibold">Error Loading Patient</p>
+            <p className="text-sm">{error}</p>
+          </div>
+          <Button onClick={() => router.back()}>Go Back</Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!patient) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-lg font-semibold">Patient not found</p>
+          <Button onClick={() => router.back()}>Go Back</Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Session history data - use actual data from API or fallback
+  const sessionHistory = patient.therapySessions || [];
+
+  // For now, keeping the hardcoded data for other sections as they don't exist in the API yet
+  // These can be moved to the API later
+>>>>>>> origin/Development
 
   // Medical History data
   const medicalHistory = {
@@ -216,6 +374,7 @@ export default function PatientDetailsPage() {
           {sessionHistory && sessionHistory.length > 0 ? (
             <div className="space-y-6">
               {/* Session History Header */}
+<<<<<<< HEAD
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-semibold text-[#8159A8]">Session History</h3>
                 <div className="flex gap-6 text-sm text-gray-600">
@@ -259,6 +418,337 @@ export default function PatientDetailsPage() {
                       </span>
                     </div>
                   </div>
+=======
+              <div className="bg-transparent">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-4 sm:space-y-0">
+                  <div>
+                    <h3 className="text-xl sm:text-2xl font-bold mb-2 text-[#8159A8]">Session History</h3>
+                    <p className="text-gray-600 text-sm sm:text-base">Track progress and therapy milestones</p>
+                  </div>
+                  <div className="w-full sm:w-auto">
+                    <div className="grid grid-cols-3 gap-2 sm:gap-4 text-center">
+                      <div className="bg-gray-50 rounded-lg p-2 sm:p-3 border">
+                        <div className="text-lg sm:text-2xl font-bold text-[#8159A8]">{sessionHistory.length}</div>
+                        <div className="text-xs sm:text-sm text-gray-600">Total Sessions</div>
+                      </div>
+                      <div className="bg-gray-50 rounded-lg p-2 sm:p-3 border">
+                        <div className="text-lg sm:text-2xl font-bold text-[#8159A8]">
+                          {sessionHistory.length > 0 ? Math.round((sessionHistory.filter(s => s.status === 'COMPLETED').length / sessionHistory.length) * 100) : 0}%
+                        </div>
+                        <div className="text-xs sm:text-sm text-gray-600">Completion Rate</div>
+                      </div>
+                      <div className="bg-gray-50 rounded-lg p-2 sm:p-3 border">
+                        <div className="text-lg sm:text-2xl font-bold text-[#8159A8]">
+                          {sessionHistory.length > 0 ? new Date(sessionHistory[0].scheduledAt).getDate() : "-"}
+                        </div>
+                        <div className="text-xs sm:text-sm text-gray-600">
+                          {sessionHistory.length > 0 ? new Date(sessionHistory[0].scheduledAt).toLocaleDateString('en-US', { month: 'short' }) : "No Data"}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Timeline Container */}
+              <div className="relative">
+                {/* Timeline Line */}
+                <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-gray-200"></div>
+                
+                {/* Session Cards */}
+                <div className="space-y-8">
+                  {sessionHistory.map((session, index) => {
+                    const getStatusColor = (status: string) => {
+                      switch (status) {
+                        case 'COMPLETED':
+                          return 'bg-green-400';
+                        case 'SCHEDULED':
+                        case 'APPROVED':
+                          return 'bg-blue-400';
+                        case 'CANCELLED':
+                        case 'NO_SHOW':
+                          return 'bg-red-400';
+                        default:
+                          return 'bg-gray-400';
+                      }
+                    };
+
+                    const getProgressText = (overallProgress: string) => {
+                      switch (overallProgress) {
+                        case 'EXCELLENT':
+                          return 'Excellent';
+                        case 'GOOD':
+                          return 'Good';
+                        case 'FAIR':
+                          return 'Fair';
+                        case 'POOR':
+                          return 'Poor';
+                        case 'CONCERNING':
+                          return 'Concerning';
+                        default:
+                          return 'Not Documented';
+                      }
+                    };
+
+                    const getProgressColor = (overallProgress: string) => {
+                      switch (overallProgress) {
+                        case 'EXCELLENT':
+                          return 'bg-green-100 text-green-700';
+                        case 'GOOD':
+                          return 'bg-blue-100 text-blue-700';
+                        case 'FAIR':
+                          return 'bg-yellow-100 text-yellow-700';
+                        case 'POOR':
+                          return 'bg-orange-100 text-orange-700';
+                        case 'CONCERNING':
+                          return 'bg-red-100 text-red-700';
+                        default:
+                          return 'bg-gray-100 text-gray-700';
+                      }
+                    };
+
+                    const getEngagementText = (engagement: string) => {
+                      switch (engagement) {
+                        case 'HIGH':
+                          return 'High';
+                        case 'MEDIUM':
+                          return 'Medium';
+                        case 'LOW':
+                          return 'Low';
+                        case 'RESISTANT':
+                          return 'Resistant';
+                        default:
+                          return 'Not Rated';
+                      }
+                    };
+
+                    const getAttendanceText = (attendance: string) => {
+                      switch (attendance) {
+                        case 'PRESENT':
+                          return 'Present';
+                        case 'LATE':
+                          return 'Late';
+                        case 'NO_SHOW':
+                          return 'No Show';
+                        case 'CANCELLED':
+                          return 'Cancelled';
+                        default:
+                          return 'Not Recorded';
+                      }
+                    };
+
+                    const getRiskText = (risk: string) => {
+                      switch (risk) {
+                        case 'NONE':
+                          return 'None';
+                        case 'LOW':
+                          return 'Low';
+                        case 'MEDIUM':
+                          return 'Medium';
+                        case 'HIGH':
+                          return 'High';
+                        default:
+                          return 'Not Assessed';
+                      }
+                    };
+
+                    const getRiskColor = (risk: string) => {
+                      switch (risk) {
+                        case 'NONE':
+                          return 'text-green-700';
+                        case 'LOW':
+                          return 'text-blue-700';
+                        case 'MEDIUM':
+                          return 'text-yellow-700';
+                        case 'HIGH':
+                          return 'text-red-700';
+                        default:
+                          return 'text-gray-700';
+                      }
+                    };
+
+                    // Helper function to safely parse and format dates (from sessions page)
+                    const formatDate = (dateString: string) => {
+                      return new Date(dateString).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric'
+                      });
+                    };
+
+                    const formatTime = (dateString: string) => {
+                      return new Date(dateString).toLocaleTimeString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: false
+                      });
+                    };
+
+                    const formatTimeManual = (dateString: string) => {
+                      // Extract just the time part manually to avoid timezone issues
+                      if (dateString.includes('T')) {
+                        const timePart = dateString.split('T')[1];
+                        const timeOnly = timePart.split('.')[0]; // Remove milliseconds if present
+                        const finalTime = timeOnly.split('Z')[0]; // Remove Z if present
+                        
+                        // Convert to 24-hour format
+                        const [hours, minutes] = finalTime.split(':');
+                        return `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`;
+                      }
+                      
+                      // Fallback to original method
+                      return formatTime(dateString);
+                    };
+
+                    const parseFocusAreas = (focusAreasString: string) => {
+                      try {
+                        const parsed = JSON.parse(focusAreasString);
+                        return Array.isArray(parsed) ? parsed : [];
+                      } catch {
+                        return [];
+                      }
+                    };
+
+                    return (
+                      <div key={session.id} className="relative flex gap-6">
+                        {/* Timeline Node */}
+                        <div className="relative z-10 flex-shrink-0">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg ${getStatusColor(session.status)}`}>
+                            #{index + 1}
+                          </div>
+                        </div>
+
+                        {/* Session Card */}
+                        <div className="flex-1 bg-purple-50 rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow">
+                          {/* Card Header */}
+                          <div className="flex justify-between items-start mb-4">
+                            <div>
+                              <h4 className="text-xl font-bold text-[#8159A8] mb-1">Session - {session.type || 'Therapy Session'}</h4>
+                              <p className="text-gray-500 flex items-center gap-2">
+                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                                </svg>
+                                {formatDate(session.scheduledAt)} at {formatTimeManual(session.scheduledAt)}
+                              </p>
+                            </div>
+                            <div className="flex gap-2 flex-wrap">
+                              {session.status === 'COMPLETED' && (
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="flex items-center gap-2"
+                                  onClick={() => window.location.href = `/therapist/sessions/${session.id}`}
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                  </svg>
+                                  View Details
+                                </Button>
+                              )}
+                              <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                                session.status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
+                                session.status === 'SCHEDULED' || session.status === 'APPROVED' ? 'bg-blue-100 text-blue-700' :
+                                'bg-red-100 text-red-700'
+                              }`}>
+                                {session.status.replace('_', ' ')}
+                              </span>
+                              
+                            </div>
+                          </div>
+
+                          {/* Session Details Grid - Only show for completed sessions */}
+                          {session.status === 'COMPLETED' && (
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                              <div className="bg-gray-50 rounded-lg p-3">
+                                <div className="flex items-center gap-2 text-gray-600 mb-1">
+                                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M13 17a1 1 0 01-.293-.707L9 12.586l-1.293 1.293a1 1 0 01-1.414-1.414L9 10.757a2 2 0 012.828 0l2.828 2.829a1 1 0 01-1.414 1.414L12 12.586l-3.707 3.707A1 1 0 018 17z" />
+                                  </svg>
+                                  <span className="text-xs font-medium uppercase">Progress</span>
+                                </div>
+                                <p className={`font-semibold ${getProgressColor(session.overallProgress || '').split(' ')[1]}`}>
+                                  {getProgressText(session.overallProgress || '')}
+                                </p>
+                              </div>
+                              <div className="bg-gray-50 rounded-lg p-3">
+                                <div className="flex items-center gap-2 text-gray-600 mb-1">
+                                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
+                                  </svg>
+                                  <span className="text-xs font-medium uppercase">Attendance</span>
+                                </div>
+                                <p className="font-semibold text-gray-900">{getAttendanceText(session.attendanceStatus || '')}</p>
+                              </div>
+                              <div className="bg-gray-50 rounded-lg p-3">
+                                <div className="flex items-center gap-2 text-gray-600 mb-1">
+                                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  <span className="text-xs font-medium uppercase">Engagement</span>
+                                </div>
+                                <p className="font-semibold text-gray-900">{getEngagementText(session.patientEngagement || '')}</p>
+                              </div>
+                              <div className="bg-gray-50 rounded-lg p-3">
+                                <div className="flex items-center gap-2 text-gray-600 mb-1">
+                                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                  </svg>
+                                  <span className="text-xs font-medium uppercase">Risk Level</span>
+                                </div>
+                                <p className={`font-semibold ${getRiskColor(session.riskAssessment || '')}`}>{getRiskText(session.riskAssessment || '')}</p>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Session Content - Only show clinical details for completed sessions */}
+                          {session.status === 'COMPLETED' ? (
+                            <div className="space-y-4">
+                              {/* Focus Areas */}
+                              {session.primaryFocusAreas && parseFocusAreas(session.primaryFocusAreas).length > 0 && (
+                                <div className="bg-blue-50 border-l-4 border-blue-400 rounded-lg p-4">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                      <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <h5 className="font-semibold text-blue-900">Primary Focus Areas</h5>
+                                  </div>
+                                  <div className="flex flex-wrap gap-2">
+                                    {parseFocusAreas(session.primaryFocusAreas).map((area, idx) => (
+                                      <span key={idx} className="px-2 py-1 bg-blue-100 text-blue-800 rounded-lg text-sm">
+                                        {area}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Session Notes */}
+
+                              {/* Progress Notes (fallback) */}
+
+                              {/* Next Session Goals */}
+                              {session.nextSessionGoals && (
+                                <div className="bg-green-50 border-l-4 border-green-400 rounded-lg p-4">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                                    </svg>
+                                    <h5 className="font-semibold text-green-900">Next Session Goals</h5>
+                                  </div>
+                                  <p className="text-green-700 text-sm leading-relaxed">{session.nextSessionGoals}</p>
+                                </div>
+                              )}
+                            </div>
+                          ) : null}
+
+                          
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+>>>>>>> origin/Development
 
                   <div className="space-y-4">
                     <div>
@@ -310,6 +800,7 @@ export default function PatientDetailsPage() {
         </TabsContent>
 
         <TabsContent value="medications" className="pt-6">
+<<<<<<< HEAD
           {medications && medications.length > 0 ? (
             <div className="space-y-6">
               {/* Header with Add Medication button */}
@@ -364,6 +855,13 @@ export default function PatientDetailsPage() {
           ) : (
             <p className="text-muted-foreground">No medications recorded.</p>
           )}
+=======
+          <MedicationManagement 
+            patientId={params.id as string} 
+            medications={medications}
+            onMedicationUpdate={() => fetchMedications(params.id as string)}
+          />
+>>>>>>> origin/Development
         </TabsContent>
 
         <TabsContent value="history" className="pt-6">
