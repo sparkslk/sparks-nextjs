@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
@@ -49,19 +49,8 @@ export default function EditBlogPage({ params }: { params: { id: string } }) {
     status: "draft",
   });
 
-  // Fetch the blog data when the component mounts
-  useEffect(() => {
-    if (authStatus === "unauthenticated") {
-      router.push("/login");
-      return;
-    }
-
-    if (authStatus === "authenticated") {
-      fetchBlog();
-    }
-  }, [authStatus, router, params.id]);
-
-  const fetchBlog = async () => {
+  // Fetch the blog data - wrapped in useCallback to avoid dependency issues
+  const fetchBlog = useCallback(async () => {
     setFetchLoading(true);
     setError(null);
 
@@ -155,7 +144,31 @@ ADHD symptoms in adults can differ from those in children. While hyperactivity m
     } finally {
       setFetchLoading(false);
     }
-  };
+  }, [params.id]); // Add params.id as dependency
+
+  // Fetch the blog data when the component mounts
+  useEffect(() => {
+    if (authStatus === "unauthenticated") {
+      router.push("/login");
+      return;
+    }
+
+    if (authStatus === "authenticated") {
+      // Check if the user has permission to edit this blog
+      // This is where you would use the session data to verify permissions
+      if (session && session.user) {
+        // Example permission check (uncomment and adapt as needed)
+        // const isAuthor = blog.authorId === session.user.id;
+        // const isAdmin = session.user.role === 'admin';
+        // if (!isAuthor && !isAdmin) {
+        //   router.push('/unauthorized');
+        //   return;
+        // }
+      }
+
+      fetchBlog();
+    }
+  }, [authStatus, router, fetchBlog]); // Add fetchBlog to dependency array
 
   // Handle file input changes
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {

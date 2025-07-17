@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
@@ -43,6 +43,31 @@ export default function NewBlogPage() {
     image: null,
     imagePreview: null,
   });
+
+  // Use session for authorization check
+  useEffect(() => {
+    if (authStatus === "unauthenticated") {
+      router.push("/login");
+      return;
+    }
+
+    if (authStatus === "authenticated" && session) {
+      // Here you can use session data for authorization
+      // For example, check if user has permission to create blogs
+      // Example permission check:
+      // const userRole = session.user?.role;
+      // if (userRole !== 'therapist' && userRole !== 'admin') {
+      //   router.push('/unauthorized');
+      //   return;
+      // }
+      // You could also set author information from session
+      // setFormData(prev => ({
+      //   ...prev,
+      //   authorId: session.user?.id,
+      //   authorName: session.user?.name
+      // }));
+    }
+  }, [authStatus, router]);
 
   // Handle file input changes
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -91,8 +116,15 @@ export default function NewBlogPage() {
     setLoading(true);
 
     try {
-      // In a real implementation, you'd have an API call here
-      // For now we'll simulate a successful submission
+      // In a real implementation, you'd include session data here
+      // const payload = {
+      //   ...formData,
+      //   authorId: session?.user?.id,
+      //   authorName: session?.user?.name,
+      //   status: saveAsDraft ? 'draft' : 'published'
+      // };
+
+      // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 1500));
 
       // Redirect to blog list
