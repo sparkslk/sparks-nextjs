@@ -145,26 +145,36 @@ export default function AppointmentsPage() {
 
   return (
     <div className="min-h-screen relative">
-      {/* Schedule Session Section */}
-      <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 pt-4 pb-2">
-        <h2 className="text-xl font-bold mb-4">Schedule Session</h2>
+      
+
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 py-4 md:py-6">
+        {/* Enhanced Header */}
+        <AppointmentsHeader 
+          childrenCount={children.length}
+          upcomingSessionsCount={appointments.filter(apt => apt.status === 'SCHEDULED').length}
+        />
+
+        {/* Schedule Session Section */}
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 pt-2 pb-6">
         <div className="space-y-3">
           {(selectedChildId === "all" ? children : children.filter(child => child.id === selectedChildId)).map(child => (
-            <div key={child.id} className="flex items-center justify-between bg-purple-50 rounded-lg px-4 py-3 shadow-sm">
+            <div key={child.id} className="flex items-center justify-between bg-[#F3EAFB] rounded-lg px-4 py-3 shadow-sm">
               <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                 <span className="font-semibold text-gray-800">{child.firstName} {child.lastName}</span>
                 <span className="text-gray-500 text-sm">{child.therapist ? `Therapist: ${child.therapist.name || child.therapist}` : 'No therapist assigned'}</span>
               </div>
               {child.therapist ? (
                 <button
-                  className="bg-purple-600 hover:bg-purple-700 text-white font-semibold px-4 py-2 rounded-lg transition"
+                  className="w-40 px-4 py-2 rounded-lg font-semibold transition text-white text-center"
+                  style={{ backgroundColor: '#8159A8' }}
                   onClick={() => {/* Implement schedule logic here */}}
                 >
                   Schedule Session
                 </button>
               ) : (
                 <button
-                  className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 py-2 rounded-lg transition"
+                  className="w-40 px-4 py-2 rounded-lg font-semibold transition text-center border hover:bg-[#f6f1fa]"
+                  style={{ color: '#8159A8', borderColor: '#8159A8', backgroundColor: '#fff' }}
                   onClick={() => router.push('/parent/findTherapist')}
                 >
                   Find Therapist
@@ -174,13 +184,6 @@ export default function AppointmentsPage() {
           ))}
         </div>
       </div>
-
-      <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 py-4 md:py-6">
-        {/* Enhanced Header */}
-        <AppointmentsHeader 
-          childrenCount={children.length}
-          upcomingSessionsCount={appointments.filter(apt => apt.status === 'SCHEDULED').length}
-        />
 
         {/* Child Selection Dropdown */}
         <div className="mb-6 flex flex-col sm:flex-row items-center gap-4">
