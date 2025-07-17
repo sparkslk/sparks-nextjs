@@ -114,7 +114,7 @@ export default function MedicationManagement({
                 dosage: medication.dosage,
                 frequency: medication.frequency,
                 mealTiming: medication.mealTiming,
-                startDate: medication.startDate
+                startDate: medication.startDate.toISOString()
               },
               therapist: medication.therapist
             }

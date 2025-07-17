@@ -4,7 +4,10 @@ import { useRouter, useParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Calendar, Clock, User, FileText, Activity, Eye, ArrowLeft } from "lucide-react";
 import MedicationManagement from "@/components/therapist/MedicationManagement";
 import { Medication } from "@/types/medications";
 
@@ -14,6 +17,7 @@ interface TherapySession {
   status: string;
   type: string;
   duration?: number;
+  therapistName?: string;
   attendanceStatus?: string;
   overallProgress?: string;
   patientEngagement?: string;
@@ -53,6 +57,7 @@ export default function PatientDetailsPage() {
   const { status } = useSession();
   const [patient, setPatient] = useState<Patient | null>(null);
   const [medications, setMedications] = useState<Medication[]>([]);
+  const [sessionHistory, setSessionHistory] = useState<TherapySession[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState("info");
@@ -90,6 +95,7 @@ export default function PatientDetailsPage() {
 
       const data = await response.json();
       setPatient(data.patient);
+      setSessionHistory(data.patient.therapySessions || []);
     } catch (error) {
       console.error("Error fetching patient data:", error);
       setError(error instanceof Error ? error.message : "Failed to fetch patient data");
@@ -155,9 +161,6 @@ export default function PatientDetailsPage() {
       </div>
     );
   }
-
-  // Session history data - use actual data from API or fallback
-  const sessionHistory = patient.therapySessions || [];
 
   // For now, keeping the hardcoded data for other sections as they don't exist in the API yet
   // These can be moved to the API later
@@ -360,72 +363,81 @@ export default function PatientDetailsPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#f7f5fb] p-3 sm:p-6">
-      <Button variant="outline" onClick={() => router.back()} className="mb-4 sm:mb-6">
-        ← Back to Patients
-      </Button>
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto p-6">
+        <Button 
+          variant="outline" 
+          onClick={() => router.back()} 
+          className="mb-6 hover:shadow-md transition-all duration-200"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back to Patients
+        </Button>
 
-      {/* Header */}
-      <div className="bg-white rounded-xl shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
-        {/* Mobile Layout */}
-        <div className="flex flex-col space-y-4 sm:hidden">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="bg-[#a174c6] text-white text-lg font-semibold w-12 h-12 rounded-full flex items-center justify-center">
-                {patient.initials}
+        {/* Header */}
+        <Card className="shadow-sm hover:shadow-md transition-shadow bg-white dark:bg-slate-950 mb-6">
+          <CardContent className="p-6">
+            {/* Mobile Layout */}
+            <div className="flex flex-col space-y-4 sm:hidden">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="bg-[#a174c6] text-white text-lg font-semibold w-12 h-12 rounded-full flex items-center justify-center">
+                    {patient.initials}
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-[#8159A8]">
+                      {patient.firstName} {patient.lastName}
+                    </h2>
+                    <p className="text-xs text-gray-600">Age: {patient.age}</p>
+                  </div>
+                </div>
+                <div className="bg-green-100 text-green-700 font-medium px-3 py-1 rounded-full text-xs">
+                  {patient.status}
+                </div>
               </div>
-              <div>
-                <h2 className="text-lg font-bold text-[#8159A8]">
-                  {patient.firstName} {patient.lastName}
-                </h2>
-                <p className="text-xs text-gray-600">Age: {patient.age}</p>
-              </div>
-            </div>
-            <div className="bg-green-100 text-green-700 font-medium px-3 py-1 rounded-full text-xs">
-              {patient.status}
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
-            <span>ID: {patient.id}</span>
-            <span>Last: {patient.lastSession}</span>
-            <span className="col-span-2">Next: {patient.nextSession}</span>
-          </div>
-        </div>
-
-        {/* Desktop Layout */}
-        <div className="hidden sm:flex items-center justify-between">
-          <div className="flex items-center gap-4 lg:gap-6">
-            <div className="bg-[#a174c6] text-white text-xl font-semibold w-12 h-12 lg:w-16 lg:h-16 rounded-full flex items-center justify-center">
-              {patient.initials}
-            </div>
-            <div>
-              <h2 className="text-lg lg:text-xl font-bold text-[#8159A8]">
-                {patient.firstName} {patient.lastName}
-              </h2>
-              <div className="text-sm text-gray-600 flex flex-col md:flex-row md:gap-4">
-                <span>Age: {patient.age}</span>
+              <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
                 <span>ID: {patient.id}</span>
-                <span>Last Session: {patient.lastSession}</span>
-                <span>Next Session: {patient.nextSession}</span>
+                <span>Last: {patient.lastSession}</span>
+                <span className="col-span-2">Next: {patient.nextSession}</span>
               </div>
             </div>
-          </div>
-          <div className="bg-green-100 text-green-700 font-medium px-3 lg:px-4 py-1 rounded-full text-sm">
-            {patient.status}
-          </div>
-        </div>
-      </div>
 
-      {/* Tabs */}
-      <Tabs defaultValue="info" value={tab} onValueChange={setTab} className="bg-white p-3 sm:p-4 rounded-xl shadow-md">
-        <TabsList className="flex flex-wrap border-b gap-1 sm:gap-2 px-1 sm:px-2 pb-2">
-          <TabsTrigger value="info" className="text-xs sm:text-sm flex-shrink-0">Infomation</TabsTrigger>
-          <TabsTrigger value="sessions" className="text-xs sm:text-sm flex-shrink-0">Sessions</TabsTrigger>
-          <TabsTrigger value="medications" className="text-xs sm:text-sm flex-shrink-0">Medication</TabsTrigger>
-          <TabsTrigger value="history" className="text-xs sm:text-sm flex-shrink-0">Medical History</TabsTrigger>
-          <TabsTrigger value="tasks" className="text-xs sm:text-sm flex-shrink-0">Tasks</TabsTrigger>
-          <TabsTrigger value="docs" className="text-xs sm:text-sm flex-shrink-0">Documents</TabsTrigger>
-        </TabsList>
+            {/* Desktop Layout */}
+            <div className="hidden sm:flex items-center justify-between">
+              <div className="flex items-center gap-4 lg:gap-6">
+                <div className="bg-[#a174c6] text-white text-xl font-semibold w-12 h-12 lg:w-16 lg:h-16 rounded-full flex items-center justify-center">
+                  {patient.initials}
+                </div>
+                <div>
+                  <h2 className="text-lg lg:text-xl font-bold text-[#8159A8]">
+                    {patient.firstName} {patient.lastName}
+                  </h2>
+                  <div className="text-sm text-gray-600 flex flex-col md:flex-row md:gap-4">
+                    <span>Age: {patient.age}</span>
+                    <span>ID: {patient.id}</span>
+                    <span>Last Session: {patient.lastSession}</span>
+                    <span>Next Session: {patient.nextSession}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-green-100 text-green-700 font-medium px-3 lg:px-4 py-1 rounded-full text-sm">
+                {patient.status}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Tabs */}
+        <Card className="shadow-sm hover:shadow-md transition-shadow bg-white dark:bg-slate-950">
+          <CardContent className="p-6">
+            <Tabs defaultValue="info" value={tab} onValueChange={setTab} className="w-full">              <TabsList className="grid w-full grid-cols-6 mb-6">
+                <TabsTrigger value="info" className="text-xs sm:text-sm">Information</TabsTrigger>
+                <TabsTrigger value="sessions" className="text-xs sm:text-sm">Sessions</TabsTrigger>
+                <TabsTrigger value="medications" className="text-xs sm:text-sm">Medication</TabsTrigger>
+                <TabsTrigger value="history" className="text-xs sm:text-sm">Medical History</TabsTrigger>
+                <TabsTrigger value="tasks" className="text-xs sm:text-sm">Tasks</TabsTrigger>
+                <TabsTrigger value="docs" className="text-xs sm:text-sm">Documents</TabsTrigger>
+              </TabsList>
 
         {/* Tab Panels */}
         <TabsContent value="info" className="pt-4 sm:pt-6">
@@ -468,29 +480,39 @@ export default function PatientDetailsPage() {
               <div className="bg-transparent">
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-4 sm:space-y-0">
                   <div>
-                    <h3 className="text-xl sm:text-2xl font-bold mb-2 text-[#8159A8]">Session History</h3>
+                    <h3 className="text-xl sm:text-2xl font-bold mb-2" style={{ color: '#8159A8' }}>Session History</h3>
                     <p className="text-gray-600 text-sm sm:text-base">Track progress and therapy milestones</p>
                   </div>
                   <div className="w-full sm:w-auto">
-                    <div className="grid grid-cols-3 gap-2 sm:gap-4 text-center">
-                      <div className="bg-gray-50 rounded-lg p-2 sm:p-3 border">
-                        <div className="text-lg sm:text-2xl font-bold text-[#8159A8]">{sessionHistory.length}</div>
-                        <div className="text-xs sm:text-sm text-gray-600">Total Sessions</div>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-2 sm:p-3 border">
-                        <div className="text-lg sm:text-2xl font-bold text-[#8159A8]">
-                          {sessionHistory.length > 0 ? Math.round((sessionHistory.filter(s => s.status === 'COMPLETED').length / sessionHistory.length) * 100) : 0}%
-                        </div>
-                        <div className="text-xs sm:text-sm text-gray-600">Completion Rate</div>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-2 sm:p-3 border">
-                        <div className="text-lg sm:text-2xl font-bold text-[#8159A8]">
-                          {sessionHistory.length > 0 ? new Date(sessionHistory[0].scheduledAt).getDate() : "-"}
-                        </div>
-                        <div className="text-xs sm:text-sm text-gray-600">
-                          {sessionHistory.length > 0 ? new Date(sessionHistory[0].scheduledAt).toLocaleDateString('en-US', { month: 'short' }) : "No Data"}
-                        </div>
-                      </div>
+                    <div className="grid grid-cols-3 gap-4 text-center">
+                      <Card className="shadow-sm hover:shadow-md transition-shadow bg-white dark:bg-slate-950">
+                        <CardContent className="p-3">
+                          <div className="text-lg sm:text-2xl font-bold" style={{ color: '#8159A8' }}>
+                            {sessionHistory.length}
+                          </div>
+                          <div className="text-xs sm:text-sm text-gray-600">Total Sessions</div>
+                        </CardContent>
+                      </Card>
+                      
+                      <Card className="shadow-sm hover:shadow-md transition-shadow bg-white dark:bg-slate-950">
+                        <CardContent className="p-3">
+                          <div className="text-lg sm:text-2xl font-bold" style={{ color: '#8159A8' }}>
+                            {sessionHistory.length > 0 ? Math.round((sessionHistory.filter(s => s.status === 'COMPLETED').length / sessionHistory.length) * 100) : 0}%
+                          </div>
+                          <div className="text-xs sm:text-sm text-gray-600">Completion Rate</div>
+                        </CardContent>
+                      </Card>
+                      
+                      <Card className="shadow-sm hover:shadow-md transition-shadow bg-white dark:bg-slate-950">
+                        <CardContent className="p-3">
+                          <div className="text-lg sm:text-2xl font-bold" style={{ color: '#8159A8' }}>
+                            {sessionHistory.length > 0 ? new Date(sessionHistory[0].scheduledAt).getDate() : "-"}
+                          </div>
+                          <div className="text-xs sm:text-sm text-gray-600">
+                            {sessionHistory.length > 0 ? new Date(sessionHistory[0].scheduledAt).toLocaleDateString('en-US', { month: 'short' }) : "No Data"}
+                          </div>
+                        </CardContent>
+                      </Card>
                     </div>
                   </div>
                 </div>
@@ -665,43 +687,74 @@ export default function PatientDetailsPage() {
                         </div>
 
                         {/* Session Card */}
-                        <div className="flex-1 bg-purple-50 rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow">
-                          {/* Card Header */}
-                          <div className="flex justify-between items-start mb-4">
-                            <div>
-                              <h4 className="text-xl font-bold text-[#8159A8] mb-1">Session - {session.type || 'Therapy Session'}</h4>
-                              <p className="text-gray-500 flex items-center gap-2">
-                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
-                                </svg>
-                                {formatDate(session.scheduledAt)} at {formatTimeManual(session.scheduledAt)}
-                              </p>
+                        <Card className="shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100 bg-white dark:bg-slate-950">
+                          <CardHeader className="pb-4">
+                            {/* Card Header */}
+                            <div className="flex justify-between items-start">
+                              <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-sm" 
+                                     style={{ background: 'linear-gradient(to bottom right, #8159A8, #6b46a0)' }}>
+                                  #{index + 1}
+                                </div>
+                                <div>
+                                  <CardTitle className="text-lg font-bold text-gray-900 dark:text-white">
+                                    Session #{index + 1}
+                                  </CardTitle>
+                                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                                    {formatDate(session.scheduledAt)} at {formatTimeManual(session.scheduledAt)}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex gap-2 flex-wrap">
+                                {session.status === 'COMPLETED' && (
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="flex items-center gap-2 text-sm"
+                                    onClick={() => window.location.href = `/therapist/sessions/${session.id}`}
+                                  >
+                                    <Eye className="w-4 h-4" />
+                                    View Details
+                                  </Button>
+                                )}
+                                <Badge className={`font-medium ${
+                                  session.status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
+                                  session.status === 'SCHEDULED' || session.status === 'APPROVED' ? 'bg-blue-100 text-blue-700' :
+                                  'bg-red-100 text-red-700'
+                                }`}>
+                                  {session.status.replace('_', ' ')}
+                                </Badge>
+                              </div>
                             </div>
-                            <div className="flex gap-2 flex-wrap">
-                              {session.status === 'COMPLETED' && (
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  className="flex items-center gap-2"
-                                  onClick={() => window.location.href = `/therapist/sessions/${session.id}`}
-                                >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                  </svg>
-                                  View Details
-                                </Button>
-                              )}
-                              <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                                session.status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
-                                session.status === 'SCHEDULED' || session.status === 'APPROVED' ? 'bg-blue-100 text-blue-700' :
-                                'bg-red-100 text-red-700'
-                              }`}>
-                                {session.status.replace('_', ' ')}
-                              </span>
+                          </CardHeader>
+                          
+                          <CardContent className="pt-0">
+                            {/* Session Info Grid */}
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+                              <div className="flex items-center gap-2">
+                                <FileText className="w-5 h-5" style={{ color: '#8159A8' }} />
+                                <div>
+                                  <p className="text-xs text-gray-500">Type</p>
+                                  <p className="text-sm font-medium">{session.type || 'Therapy Session'}</p>
+                                </div>
+                              </div>
                               
+                              <div className="flex items-center gap-2">
+                                <Clock className="w-5 h-5" style={{ color: '#8159A8' }} />
+                                <div>
+                                  <p className="text-xs text-gray-500">Duration</p>
+                                  <p className="text-sm font-medium">{session.duration || 50} minutes</p>
+                                </div>
+                              </div>
+                              
+                              <div className="flex items-center gap-2">
+                                <User className="w-5 h-5" style={{ color: '#8159A8' }} />
+                                <div>
+                                  <p className="text-xs text-gray-500">Therapist</p>
+                                  <p className="text-sm font-medium">Dr. {session.therapistName || 'Therapist'}</p>
+                                </div>
+                              </div>
                             </div>
-                          </div>
 
                           {/* Session Details Grid - Only show for completed sessions */}
                           {session.status === 'COMPLETED' && (
@@ -788,8 +841,8 @@ export default function PatientDetailsPage() {
                             </div>
                           ) : null}
 
-                          
-                        </div>
+                          </CardContent>
+                        </Card>
                       </div>
                     );
                   })}
@@ -797,20 +850,26 @@ export default function PatientDetailsPage() {
 
                 {/* Load More Button */}
                 <div className="text-center mt-8">
-                  <Button variant="outline" className="bg-white border-[#8159A8] text-[#8159A8] hover:bg-[#8159A8] hover:text-white">
+                  <Button 
+                    variant="outline" 
+                    className="hover:shadow-md transition-all duration-200"
+                    style={{ borderColor: '#8159A8', color: '#8159A8' }}
+                  >
                     Load Previous Sessions
                   </Button>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="text-center py-12">
-              <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <p className="text-muted-foreground text-lg">No session history available yet.</p>
-              <p className="text-gray-500 text-sm mt-2">Sessions will appear here as they are completed.</p>
-            </div>
+            <Card className="shadow-sm border border-gray-200">
+              <CardContent className="p-12 text-center">
+                <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                  <Calendar className="w-8 h-8 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No session history available yet.</h3>
+                <p className="text-gray-500">Sessions will appear here as they are completed.</p>
+              </CardContent>
+            </Card>
           )}
         </TabsContent>
 
@@ -1235,6 +1294,9 @@ export default function PatientDetailsPage() {
           )}
         </TabsContent>
       </Tabs>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

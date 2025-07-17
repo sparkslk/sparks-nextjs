@@ -100,6 +100,18 @@ export async function GET(
             },
             include: {
                 therapySessions: {
+                    include: {
+                        therapist: {
+                            include: {
+                                user: {
+                                    select: {
+                                        name: true,
+                                        email: true
+                                    }
+                                }
+                            }
+                        }
+                    },
                     orderBy: { scheduledAt: 'desc' }
                 },
                 primaryTherapist: {
@@ -189,6 +201,7 @@ export async function GET(
                 status: session.status,
                 duration: session.duration || 60,
                 type: session.type,
+                therapistName: (session as any).therapist?.user?.name || "Unknown Therapist",
                 // Include all clinical documentation fields from the session details API
                 attendanceStatus: (session as unknown as Record<string, unknown>).attendanceStatus || null,
                 overallProgress: (session as unknown as Record<string, unknown>).overallProgress || null,
