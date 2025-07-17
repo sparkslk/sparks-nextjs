@@ -47,7 +47,7 @@ interface Task {
   title: string;
   description: string;
   instructions: string;
-  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'OVERDUE';
+  status: 'PENDING' | 'COMPLETED' | 'OVERDUE';
   priority: number;
   dueDate: string;
   createdAt: string;
@@ -72,6 +72,7 @@ export default function SessionDetailsPage() {
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'completed' | 'overdue'>('all');
   const [showFilters, setShowFilters] = useState(false);
   const [selectedTab, setSelectedTab] = useState<string>("clinical");
+  const [taskActionLoading, setTaskActionLoading] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -123,8 +124,13 @@ export default function SessionDetailsPage() {
   };
 
   const markTaskComplete = async (taskId: string, completionNotes?: string) => {
+    setTaskActionLoading(taskId);
     try {
-      const response = await fetch(`/api/parent/sessions/${id}/tasks/${taskId}/complete`, {
+      // Find the task to get the correct patientId
+      const task = tasks.find(t => t.id === taskId);
+      const childId = task?.patientId;
+      if (!childId) throw new Error('No patientId found for this task');
+      const response = await fetch(`/api/parent/children/${childId}/tasks/${taskId}/complete`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -132,16 +138,28 @@ export default function SessionDetailsPage() {
         body: JSON.stringify({ completionNotes }),
       });
       if (response.ok) {
-        refreshTasks();
+        await refreshTasks();
+      } else {
+        const errorText = await response.text();
+        console.error('Failed to mark task as complete:', errorText);
+        setTasksError('Failed to mark task as complete');
       }
-    } catch {
-      // Handle error
+    } catch (error) {
+      console.error('Error marking task as complete:', error);
+      setTasksError('Error marking task as complete');
+    } finally {
+      setTaskActionLoading(null);
     }
   };
 
   const unmarkTaskComplete = async (taskId: string) => {
+    setTaskActionLoading(taskId);
     try {
-      const response = await fetch(`/api/parent/sessions/${id}/tasks/${taskId}/complete`, {
+      // Find the task to get the correct patientId
+      const task = tasks.find(t => t.id === taskId);
+      const childId = task?.patientId;
+      if (!childId) throw new Error('No patientId found for this task');
+      const response = await fetch(`/api/parent/children/${childId}/tasks/${taskId}/complete`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -149,10 +167,17 @@ export default function SessionDetailsPage() {
         body: JSON.stringify({ unmark: true }),
       });
       if (response.ok) {
-        refreshTasks();
+        await refreshTasks();
+      } else {
+        const errorText = await response.text();
+        console.error('Failed to unmark task as complete:', errorText);
+        setTasksError('Failed to unmark task as complete');
       }
-    } catch {
-      // Handle error
+    } catch (error) {
+      console.error('Error unmarking task as complete:', error);
+      setTasksError('Error unmarking task as complete');
+    } finally {
+      setTaskActionLoading(null);
     }
   };
 
@@ -192,14 +217,14 @@ export default function SessionDetailsPage() {
       filteredTasks = tasks.filter(task => task.isRecurring && task.recurringPattern === 'weekly');
     }
     if (filterStatus === 'pending') {
-      filteredTasks = filteredTasks.filter(task => task.status === 'PENDING' || task.status === 'IN_PROGRESS');
+      filteredTasks = filteredTasks.filter(task => task.status === 'PENDING');
     } else if (filterStatus === 'completed') {
       filteredTasks = filteredTasks.filter(task => task.status === 'COMPLETED');
     } else if (filterStatus === 'overdue') {
       filteredTasks = filteredTasks.filter(task => task.status === 'OVERDUE' || isOverdue(task.dueDate));
     }
     if (filterStatus === 'all') {
-      const pending = filteredTasks.filter(t => t.status === 'PENDING' || t.status === 'IN_PROGRESS').sort((a, b) => b.priority - a.priority);
+      const pending = filteredTasks.filter(t => t.status === 'PENDING').sort((a, b) => b.priority - a.priority);
       const overdue = filteredTasks.filter(t => t.status === 'OVERDUE' || isOverdue(t.dueDate));
       const completed = filteredTasks.filter(t => t.status === 'COMPLETED');
       // Remove duplicates by using a Map keyed by task id
@@ -530,7 +555,7 @@ export default function SessionDetailsPage() {
                           }`}
                         >
                           <Clock className="w-3 h-3 mr-1" />
-                          Pending ({tasks.filter(t => t.status === 'PENDING' || t.status === 'IN_PROGRESS').length})
+                          Pending ({tasks.filter(t => t.status === 'PENDING').length})
                         </button>
                         <button
                           onClick={() => setFilterStatus('completed')}
@@ -610,7 +635,7 @@ export default function SessionDetailsPage() {
                   <div className="flex items-center justify-center mb-2">
                     <Clock className="w-6 h-6 text-blue-600 mr-2" />
                     <span className="text-2xl font-bold text-blue-600">
-                      {tasks.filter(t => t.status === 'PENDING' || t.status === 'IN_PROGRESS').length}
+                      {tasks.filter(t => t.status === 'PENDING').length}
                     </span>
                   </div>
                   <p className="text-sm text-gray-600">Pending Tasks</p>
@@ -663,7 +688,7 @@ export default function SessionDetailsPage() {
                                 type="radio"
                                 checked={task.status === 'COMPLETED'}
                                 onChange={() => task.status !== 'COMPLETED' && markTaskComplete(task.id)}
-                                disabled={task.status === 'COMPLETED'}
+                                disabled={task.status === 'COMPLETED' || taskActionLoading === task.id}
                                 className={`w-5 h-5 rounded-full transition-all duration-300 ${
                                   task.status === 'COMPLETED' 
                                     ? 'bg-green-500 border-green-500 cursor-not-allowed' 
