@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,6 +9,8 @@ import {
     TherapistCard,
     TherapistEmptyState
 } from "@/components/FindTherapist";
+import { Dialog, Transition } from "@headlessui/react";
+
 interface Therapist {
     id: string;
     name: string;
@@ -47,6 +49,8 @@ export default function FindTherapistPage() {
     const [showFilters, setShowFilters] = useState(false);
     const [bookingStatus, setBookingStatus] = useState<{ [key: string]: 'idle' | 'booking' | 'success' | 'error' }>({});
     const [currentTherapist, setCurrentTherapist] = useState<Therapist | null>(null);
+    const [profileModalOpen, setProfileModalOpen] = useState(false);
+    const [selectedTherapist, setSelectedTherapist] = useState<Therapist | null>(null);
 
     // Fetch current therapist from patient data
     useEffect(() => {
@@ -220,6 +224,12 @@ export default function FindTherapistPage() {
         }
     };
 
+    // Handler for viewing profile
+    const handleViewProfile = (therapist: Therapist) => {
+        setSelectedTherapist(therapist);
+        setProfileModalOpen(true);
+    };
+
     const clearAllFilters = () => {
         setSearchQuery("");
         setSelectedSpecialty("all");
@@ -248,47 +258,125 @@ export default function FindTherapistPage() {
     }
 
     return (
-        <div className="min-h-screen" style={{ backgroundColor: '#F5F3FB' }}>
-            <div className="max-w-6xl mx-auto px-6 py-1">
+        <div className="min-h-screen ">
+            {/* Therapist Profile Modal */}
+            <Transition.Root show={profileModalOpen} as={Fragment}>
+                <Dialog as="div" className="relative z-50" onClose={setProfileModalOpen}>
+                    <Transition.Child
+                        as={Fragment}
+                        enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100"
+                        leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0"
+                    >
+                        <div className="fixed inset-0 bg-black/50 transition-opacity" />
+                    </Transition.Child>
+                    <div className="fixed inset-0 z-50 overflow-y-auto">
+                        <div className="flex min-h-full items-center justify-center p-4 text-center">
+                            <Transition.Child
+                                as={Fragment}
+                                enter="ease-out duration-300" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100"
+                                leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95"
+                            >
+                                <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
+                                    <Dialog.Title as="h3" className="text-lg font-bold leading-6 text-gray-900 mb-2">
+                                        Therapist Profile
+                                    </Dialog.Title>
+                                    {selectedTherapist && (
+                                        <div className="space-y-2">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-12 h-12 bg-gradient-to-r from-primary/20 to-purple-500/20 rounded-full flex items-center justify-center">
+                                                    <span className="font-semibold text-lg text-primary">
+                                                        {selectedTherapist.name.split(' ').map(n => n[0]).join('')}
+                                                    </span>
+                                                </div>
+                                                <div>
+                                                    <div className="font-semibold text-foreground text-base">{selectedTherapist.name}</div>
+                                                    <div className="text-xs text-muted-foreground">{selectedTherapist.title}</div>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <span className="font-medium">Specialties: </span>
+                                                {selectedTherapist.specialties.join(', ')}
+                                            </div>
+                                            <div>
+                                                <span className="font-medium">Experience: </span>
+                                                {selectedTherapist.experience}
+                                            </div>
+                                            <div>
+                                                <span className="font-medium">Languages: </span>
+                                                {selectedTherapist.languages.join(', ')}
+                                            </div>
+                                            <div>
+                                                <span className="font-medium">Session Types: </span>
+                                                {selectedTherapist.sessionTypes.inPerson && 'In-Person'}{selectedTherapist.sessionTypes.inPerson && selectedTherapist.sessionTypes.online ? ', ' : ''}{selectedTherapist.sessionTypes.online && 'Online'}
+                                            </div>
+                                            <div>
+                                                <span className="font-medium">Availability: </span>
+                                                {selectedTherapist.availability.nextSlot} ({selectedTherapist.availability.timeSlot})
+                                            </div>
+                                            <div>
+                                                <span className="font-medium">Cost: </span>
+                                                {selectedTherapist.cost.priceRange}
+                                            </div>
+                                            <div>
+                                                <span className="font-medium">Tags: </span>
+                                                {selectedTherapist.tags.join(', ')}
+                                            </div>
+                                            <div className="flex justify-end pt-2 gap-2">
+                                                <Button variant="default" onClick={() => alert(`Connect with ${selectedTherapist.name}`)}>
+                                                    Connect
+                                                </Button>
+                                                <Button variant="outline" onClick={() => setProfileModalOpen(false)}>
+                                                    Close
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </Dialog.Panel>
+                            </Transition.Child>
+                        </div>
+                    </div>
+                </Dialog>
+            </Transition.Root>
+
+            <div className="max-w-5xl mx-auto px-4 py-8">
                 {/* Header Section */}
-                <div className="mb-2">
-                    <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">
+                <div className="mb-6">
+                    <h1 className="text-4xl font-extrabold bg-gradient-to-r from-primary to-foreground bg-clip-text text-transparent tracking-tight mb-1">
                         {currentTherapist ? 'Your Therapist & Explore More' : 'Find a Therapist'}
                     </h1>
-                    <p className="text-muted-foreground mt-1">
+                    <p className="text-muted-foreground text-base font-medium">
                         {currentTherapist
-                            ? 'Manage your current therapist relationship and find additional support'
-                            : 'Find the right mental health professional for your needs'
+                            ? 'Manage your current therapist relationship and find additional support.'
+                            : 'Find the right mental health professional for your needs.'
                         }
                     </p>
                 </div>
 
-                <div className="space-y-6">
+                <div className="space-y-8">
                     {/* Available Therapists Info */}
-                    <div>
+                    <div className="flex items-center justify-between">
                         <p className="text-sm text-muted-foreground">
-                            {filteredTherapists.length} therapists available
+                            <span className="font-semibold text-primary text-base">{filteredTherapists.length}</span> therapists available
                         </p>
                     </div>
 
-                {/* No Current Therapist Message */}
-                {!currentTherapist && (
-                    <div className="bg-card rounded-lg border p-6">
-                        <div className="flex items-start gap-4">
+                    {/* No Current Therapist Message */}
+                    {!currentTherapist && (
+                        <div className="bg-white rounded-2xl border border-[#e0d7ed] shadow-sm p-8 flex items-center gap-6">
                             <div className="flex-shrink-0">
                                 <Image
                                     src="/images/doctor.png"
                                     alt="Doctor"
-                                    width={120}
-                                    height={120}
-                                    className="object-contain"
+                                    width={100}
+                                    height={100}
+                                    className="object-contain rounded-xl border border-[#e0d7ed] bg-[#f5f3fb]"
                                 />
                             </div>
                             <div className="flex-1">
-                                <h3 className="text-lg font-semibold bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent mb-2">
+                                <h3 className="text-xl font-bold bg-gradient-to-r from-primary to-[#8159A8] bg-clip-text text-transparent mb-2">
                                     Start Your Mental Health Journey
                                 </h3>
-                                <p className="text-muted-foreground mb-4">
+                                <p className="text-muted-foreground mb-4 text-base">
                                     You haven&apos;t connected with a therapist yet. Browse our qualified professionals below to find the perfect match for your needs. All our therapists are licensed and experienced in providing quality mental health care.
                                 </p>
                                 <div className="flex flex-wrap gap-2">
@@ -304,33 +392,31 @@ export default function FindTherapistPage() {
                                 </div>
                             </div>
                         </div>
-                    </div>
-                )}
+                    )}
 
-                {/* Current Therapist Section */}
-                {currentTherapist && (
-                    <div className="space-y-6">
-                        <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-gradient-to-r from-primary/20 to-purple-500/20 rounded-full flex items-center justify-center">
-                                <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.102m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                                </svg>
+                    {/* Current Therapist Section */}
+                    {currentTherapist && (
+                        <div className="space-y-6">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-gradient-to-r from-primary/20 to-purple-500/20 rounded-full flex items-center justify-center">
+                                    <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.102m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-[#8159A8] bg-clip-text text-transparent">Your Current Therapist</h2>
+                                    <p className="text-sm text-muted-foreground">Your assigned mental health professional</p>
+                                </div>
                             </div>
-                            <div>
-                                <h2 className="text-xl font-bold bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">Your Current Therapist</h2>
-                                <p className="text-sm text-muted-foreground">Your assigned mental health professional</p>
-                            </div>
-                        </div>
 
-                        <div className="bg-card rounded-lg border p-6">
-                            <div className="flex items-start gap-4">
-                                <div className="w-12 h-12 bg-gradient-to-r from-primary/20 to-purple-500/20 rounded-full flex items-center justify-center">
-                                    <span className="font-semibold text-sm text-primary">
+                            <div className="bg-white rounded-2xl border border-[#e0d7ed] shadow-sm p-6 flex items-center gap-5">
+                                <div className="w-14 h-14 bg-gradient-to-r from-primary/20 to-purple-500/20 rounded-full flex items-center justify-center">
+                                    <span className="font-semibold text-lg text-primary">
                                         {currentTherapist.name.split(' ').map(n => n[0]).join('')}
                                     </span>
                                 </div>
                                 <div className="flex-1">
-                                    <h3 className="font-semibold text-foreground">{currentTherapist.name}</h3>
+                                    <h3 className="font-semibold text-foreground text-lg">{currentTherapist.name}</h3>
                                     <p className="text-sm text-muted-foreground">{currentTherapist.title}</p>
                                     <div className="flex flex-wrap gap-1 mt-2">
                                         {currentTherapist.specialties.slice(0, 3).map((specialty, index) => (
@@ -351,63 +437,63 @@ export default function FindTherapistPage() {
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    className="border-primary/20 hover:bg-primary/5"
+                                    className="border-primary/20 hover:bg-primary/5 font-semibold"
                                     onClick={() => alert(`Contact ${currentTherapist.name}`)}
                                 >
                                     Contact
                                 </Button>
                             </div>
+
+                            <div className="text-center border-t pt-6">
+                                <h3 className="text-lg font-medium text-foreground mb-2">Looking for Additional Support?</h3>
+                                <p className="text-muted-foreground text-sm">
+                                    Explore more therapists below to find additional specialists or alternative options
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Search and Filters */}
+                    <div className="space-y-3">
+                        <div className="bg-white rounded-xl border border-[#e0d7ed] shadow-sm p-4">
+                            <TherapistSearchBar
+                                searchQuery={searchQuery}
+                                onSearchChange={setSearchQuery}
+                            />
                         </div>
 
-                        <div className="text-center border-t pt-6">
-                            <h3 className="text-lg font-medium text-foreground mb-2">Looking for Additional Support?</h3>
-                            <p className="text-muted-foreground text-sm">
-                                Explore more therapists below to find additional specialists or alternative options
-                            </p>
+                        <div className="bg-white rounded-xl border border-[#e0d7ed] shadow-sm p-4">
+                            <TherapistFilters
+                                selectedSpecialty={selectedSpecialty}
+                                setSelectedSpecialty={setSelectedSpecialty}
+                                selectedTimeAvailability={selectedTimeAvailability}
+                                setSelectedTimeAvailability={setSelectedTimeAvailability}
+                                selectedCost={selectedCost}
+                                setSelectedCost={setSelectedCost}
+                                showFilters={showFilters}
+                                setShowFilters={setShowFilters}
+                                activeFiltersCount={getActiveFiltersCount()}
+                                onClearAllFilters={clearAllFilters}
+                            />
                         </div>
                     </div>
-                )}
 
-                {/* Search and Filters */}
-                <div className="space-y-4">
-                    <div className="bg-card rounded-lg border p-4">
-                        <TherapistSearchBar
-                            searchQuery={searchQuery}
-                            onSearchChange={setSearchQuery}
-                        />
+                    {/* Therapists Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-7">
+                        {filteredTherapists.map((therapist) => (
+                            <TherapistCard
+                                key={therapist.id}
+                                therapist={therapist}
+                                bookingStatus={bookingStatus[therapist.id] || 'idle'}
+                                onBookSession={handleBookSession}
+                                onViewProfile={() => handleViewProfile(therapist)}
+                            />
+                        ))}
                     </div>
 
-                    <div className="bg-card rounded-lg border p-4">
-                        <TherapistFilters
-                            selectedSpecialty={selectedSpecialty}
-                            setSelectedSpecialty={setSelectedSpecialty}
-                            selectedTimeAvailability={selectedTimeAvailability}
-                            setSelectedTimeAvailability={setSelectedTimeAvailability}
-                            selectedCost={selectedCost}
-                            setSelectedCost={setSelectedCost}
-                            showFilters={showFilters}
-                            setShowFilters={setShowFilters}
-                            activeFiltersCount={getActiveFiltersCount()}
-                            onClearAllFilters={clearAllFilters}
-                        />
-                    </div>
-                </div>
-
-                {/* Therapists Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {filteredTherapists.map((therapist) => (
-                        <TherapistCard
-                            key={therapist.id}
-                            therapist={therapist}
-                            bookingStatus={bookingStatus[therapist.id] || 'idle'}
-                            onBookSession={handleBookSession}
-                        />
-                    ))}
-                </div>
-
-                {filteredTherapists.length === 0 && (
-                    <TherapistEmptyState onClearFilters={clearAllFilters} />
-                )}
+                    {filteredTherapists.length === 0 && (
+                        <TherapistEmptyState onClearFilters={clearAllFilters} />
+                    )}
                 </div>
             </div>
         </div>
