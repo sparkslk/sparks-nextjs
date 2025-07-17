@@ -293,57 +293,8 @@ export default function MedicationManagement({
         const history = await response.json();
         setMedicationHistory(history);
       } else {
-        // If history endpoint doesn't exist yet, create mock history from medication data
-        const medication = medications.find(m => m.id === medicationId);
-        if (medication) {
-          const mockHistory: MedicationHistoryEntry[] = [
-            {
-              id: 'hist_1',
-              medicationId: medication.id,
-              action: MedicationHistoryAction.CREATED,
-              changedBy: medication.therapistId,
-              changedAt: medication.createdAt,
-              newValues: {
-                name: medication.name,
-                dosage: medication.dosage,
-                frequency: medication.frequency,
-                mealTiming: medication.mealTiming,
-                startDate: medication.startDate.toISOString()
-              },
-              therapist: medication.therapist
-            }
-          ];
-
-          // Add update history if the medication was updated
-          if (medication.updatedAt > medication.createdAt) {
-            mockHistory.push({
-              id: 'hist_2',
-              medicationId: medication.id,
-              action: MedicationHistoryAction.UPDATED,
-              changedBy: medication.therapistId,
-              changedAt: medication.updatedAt,
-              therapist: medication.therapist
-            });
-          }
-
-          // Add discontinuation history if discontinued
-          if (medication.isDiscontinued && medication.discontinuedAt) {
-            mockHistory.push({
-              id: 'hist_3',
-              medicationId: medication.id,
-              action: MedicationHistoryAction.DISCONTINUED,
-              changedBy: medication.discontinuedBy || medication.therapistId,
-              changedAt: medication.discontinuedAt,
-              newValues: {
-                isActive: false,
-                isDiscontinued: true
-              },
-              therapist: medication.therapist
-            });
-          }
-
-          setMedicationHistory(mockHistory);
-        }
+        console.error('Failed to fetch medication history:', response.status, response.statusText);
+        setMedicationHistory([]);
       }
     } catch (error) {
       console.error('Error fetching medication history:', error);

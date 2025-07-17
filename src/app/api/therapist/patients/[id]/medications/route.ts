@@ -5,7 +5,8 @@ import { prisma } from '@/lib/prisma';
 import { 
   CreateMedicationData, 
   MedicationFrequency,
-  MealTiming
+  MealTiming,
+  MedicationHistoryAction
 } from '@/types/medications';
 
 export async function GET(
@@ -191,6 +192,26 @@ export async function POST(
             },
           },
         },
+      },
+    });
+
+    // Create history record for medication creation
+    await prisma.medicationHistory.create({
+      data: {
+        medicationId: medication.id,
+        action: 'CREATED',
+        changedBy: session.user.id,
+        newValues: {
+          name: medication.name,
+          dosage: medication.dosage,
+          frequency: medication.frequency,
+          customFrequency: medication.customFrequency,
+          instructions: medication.instructions,
+          mealTiming: medication.mealTiming,
+          startDate: medication.startDate.toISOString(),
+          endDate: medication.endDate?.toISOString(),
+        },
+        notes: 'Initial medication prescription',
       },
     });
 
