@@ -62,6 +62,95 @@ export default function PatientDetailsPage() {
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState("info");
 
+  // Filter states
+  const [statusFilter, setStatusFilter] = useState("");
+  const [dateFilter, setDateFilter] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
+  const [therapistFilter, setTherapistFilter] = useState("");
+  const [sortFilter, setSortFilter] = useState("date-desc");
+
+  // Filter function
+  const getFilteredSessions = () => {
+    if (!sessionHistory) return [];
+    
+    let filtered = [...sessionHistory];
+    
+    // Status filter
+    if (statusFilter) {
+      filtered = filtered.filter(session => session.status === statusFilter);
+    }
+    
+    // Date filter
+    if (dateFilter) {
+      const now = new Date();
+      const filterDate = new Date();
+      
+      switch (dateFilter) {
+        case 'last-week':
+          filterDate.setDate(now.getDate() - 7);
+          break;
+        case 'last-month':
+          filterDate.setMonth(now.getMonth() - 1);
+          break;
+        case 'last-3-months':
+          filterDate.setMonth(now.getMonth() - 3);
+          break;
+        case 'last-6-months':
+          filterDate.setMonth(now.getMonth() - 6);
+          break;
+        case 'this-year':
+          filterDate.setMonth(0, 1);
+          break;
+      }
+      
+      if (dateFilter !== 'this-year') {
+        filtered = filtered.filter(session => new Date(session.scheduledAt) >= filterDate);
+      } else {
+        filtered = filtered.filter(session => new Date(session.scheduledAt).getFullYear() === now.getFullYear());
+      }
+    }
+    
+    // Type filter
+    if (typeFilter) {
+      filtered = filtered.filter(session => session.type === typeFilter);
+    }
+    
+    // Therapist filter (mock implementation)
+    if (therapistFilter) {
+      filtered = filtered.filter(session => {
+        const therapistName = session.therapistName?.toLowerCase() || '';
+        return therapistName.includes(therapistFilter.replace('dr-', ''));
+      });
+    }
+    
+    // Sort
+    filtered.sort((a, b) => {
+      switch (sortFilter) {
+        case 'date-asc':
+          return new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime();
+        case 'date-desc':
+          return new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime();
+        case 'status':
+          return a.status.localeCompare(b.status);
+        case 'type':
+          return (a.type || '').localeCompare(b.type || '');
+        default:
+          return new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime();
+      }
+    });
+    
+    return filtered;
+  };
+
+  // Clear filters function
+  const clearFilters = () => {
+    setStatusFilter("");
+    setDateFilter("");
+    setTypeFilter("");
+    setTherapistFilter("");
+    setSortFilter("date-desc");
+  };
+
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/login");
@@ -488,16 +577,18 @@ export default function PatientDetailsPage() {
                       <Card className="shadow-sm hover:shadow-md transition-shadow bg-white dark:bg-slate-950">
                         <CardContent className="p-3">
                           <div className="text-lg sm:text-2xl font-bold" style={{ color: '#8159A8' }}>
-                            {sessionHistory.length}
+                            {getFilteredSessions().length}
                           </div>
-                          <div className="text-xs sm:text-sm text-gray-600">Total Sessions</div>
+                          <div className="text-xs sm:text-sm text-gray-600">
+                            {statusFilter || dateFilter || typeFilter || therapistFilter ? 'Filtered' : 'Total'} Sessions
+                          </div>
                         </CardContent>
                       </Card>
                       
                       <Card className="shadow-sm hover:shadow-md transition-shadow bg-white dark:bg-slate-950">
                         <CardContent className="p-3">
                           <div className="text-lg sm:text-2xl font-bold" style={{ color: '#8159A8' }}>
-                            {sessionHistory.length > 0 ? Math.round((sessionHistory.filter(s => s.status === 'COMPLETED').length / sessionHistory.length) * 100) : 0}%
+                            {getFilteredSessions().length > 0 ? Math.round((getFilteredSessions().filter(s => s.status === 'COMPLETED').length / getFilteredSessions().length) * 100) : 0}%
                           </div>
                           <div className="text-xs sm:text-sm text-gray-600">Completion Rate</div>
                         </CardContent>
@@ -506,10 +597,10 @@ export default function PatientDetailsPage() {
                       <Card className="shadow-sm hover:shadow-md transition-shadow bg-white dark:bg-slate-950">
                         <CardContent className="p-3">
                           <div className="text-lg sm:text-2xl font-bold" style={{ color: '#8159A8' }}>
-                            {sessionHistory.length > 0 ? new Date(sessionHistory[0].scheduledAt).getDate() : "-"}
+                            {getFilteredSessions().length > 0 ? new Date(getFilteredSessions()[0].scheduledAt).getDate() : "-"}
                           </div>
                           <div className="text-xs sm:text-sm text-gray-600">
-                            {sessionHistory.length > 0 ? new Date(sessionHistory[0].scheduledAt).toLocaleDateString('en-US', { month: 'short' }) : "No Data"}
+                            {getFilteredSessions().length > 0 ? new Date(getFilteredSessions()[0].scheduledAt).toLocaleDateString('en-US', { month: 'short' }) : "No Data"}
                           </div>
                         </CardContent>
                       </Card>
@@ -518,6 +609,165 @@ export default function PatientDetailsPage() {
                 </div>
               </div>
 
+              {/* Session Filters */}
+              <div className="bg-white rounded-lg border border-gray-200 p-5 mb-6">
+                <div className="flex flex-wrap items-center gap-4 lg:gap-6">
+                  {/* Status Filter */}
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Status:</label>
+                    <select 
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white shadow-sm min-w-[120px] focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    >
+                      <option value="">All</option>
+                      <option value="COMPLETED">Completed</option>
+                      <option value="SCHEDULED">Scheduled</option>
+                      <option value="APPROVED">Approved</option>
+                      <option value="CANCELLED">Cancelled</option>
+                    </select>
+                  </div>
+                  
+                  {/* Date Range Filter */}
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Period:</label>
+                    <select 
+                      value={dateFilter}
+                      onChange={(e) => setDateFilter(e.target.value)}
+                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white shadow-sm min-w-[130px] focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    >
+                      <option value="">All Time</option>
+                      <option value="last-week">Last Week</option>
+                      <option value="last-month">Last Month</option>
+                      <option value="last-3-months">3 Months</option>
+                      <option value="last-6-months">6 Months</option>
+                      <option value="this-year">This Year</option>
+                    </select>
+                  </div>
+                  
+                  {/* Session Type Filter */}
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Type:</label>
+                    <select 
+                      value={typeFilter}
+                      onChange={(e) => setTypeFilter(e.target.value)}
+                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white shadow-sm min-w-[140px] focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    >
+                      <option value="">All Types</option>
+                      <option value="INDIVIDUAL">Individual</option>
+                      <option value="GROUP">Group</option>
+                      <option value="FAMILY">Family</option>
+                      <option value="ASSESSMENT">Assessment</option>
+                      <option value="CONSULTATION">Consultation</option>
+                      <option value="FOLLOW_UP">Follow-up</option>
+                    </select>
+                  </div>
+                  
+                  {/* Therapist Filter */}
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Therapist:</label>
+                    <select 
+                      value={therapistFilter}
+                      onChange={(e) => setTherapistFilter(e.target.value)}
+                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white shadow-sm min-w-[120px] focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    >
+                      <option value="">All</option>
+                      <option value="dr-smith">Dr. Smith</option>
+                      <option value="dr-johnson">Dr. Johnson</option>
+                      <option value="dr-williams">Dr. Williams</option>
+                      <option value="dr-brown">Dr. Brown</option>
+                      <option value="dr-davis">Dr. Davis</option>
+                    </select>
+                  </div>
+                  
+                  {/* Sort Filter */}
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Sort:</label>
+                    <select 
+                      value={sortFilter}
+                      onChange={(e) => setSortFilter(e.target.value)}
+                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white shadow-sm min-w-[120px] focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    >
+                      <option value="date-desc">Newest</option>
+                      <option value="date-asc">Oldest</option>
+                      <option value="status">By Status</option>
+                      <option value="type">By Type</option>
+                    </select>
+                  </div>
+                  
+                  {/* Clear Filters Button */}
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={clearFilters}
+                    className="text-gray-600 hover:text-gray-800 hover:bg-gray-50 border-gray-300 ml-auto"
+                  >
+                    Clear Filters
+                  </Button>
+                </div>
+              </div>
+
+              {/* Active Filters Summary */}
+              {(statusFilter || dateFilter || typeFilter || therapistFilter) && (
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-purple-800">Active Filters:</span>
+                      <div className="flex flex-wrap gap-2">
+                        {statusFilter && (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs">
+                            Status: {statusFilter}
+                            <button onClick={() => setStatusFilter("")} className="hover:bg-purple-200 rounded-full p-0.5">
+                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                              </svg>
+                            </button>
+                          </span>
+                        )}
+                        {dateFilter && (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs">
+                            Period: {dateFilter.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                            <button onClick={() => setDateFilter("")} className="hover:bg-purple-200 rounded-full p-0.5">
+                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                              </svg>
+                            </button>
+                          </span>
+                        )}
+                        {typeFilter && (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs">
+                            Type: {typeFilter}
+                            <button onClick={() => setTypeFilter("")} className="hover:bg-purple-200 rounded-full p-0.5">
+                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                              </svg>
+                            </button>
+                          </span>
+                        )}
+                        {therapistFilter && (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs">
+                            Therapist: {therapistFilter.replace('dr-', 'Dr. ').replace(/\b\w/g, l => l.toUpperCase())}
+                            <button onClick={() => setTherapistFilter("")} className="hover:bg-purple-200 rounded-full p-0.5">
+                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                              </svg>
+                            </button>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={clearFilters}
+                      className="text-purple-600 hover:text-purple-800 hover:bg-purple-100"
+                    >
+                      Clear All
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               {/* Timeline Container */}
               <div className="relative">
                 {/* Timeline Line */}
@@ -525,7 +775,7 @@ export default function PatientDetailsPage() {
                 
                 {/* Session Cards */}
                 <div className="space-y-8">
-                  {sessionHistory.map((session, index) => {
+                  {getFilteredSessions().length > 0 ? getFilteredSessions().map((session, index) => {
                     const getStatusColor = (status: string) => {
                       switch (status) {
                         case 'COMPLETED':
@@ -681,28 +931,26 @@ export default function PatientDetailsPage() {
                       <div key={session.id} className="relative flex gap-6">
                         {/* Timeline Node */}
                         <div className="relative z-10 flex-shrink-0">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg ${getStatusColor(session.status)}`}>
-                            #{index + 1}
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg ${
+                            session.status === 'COMPLETED' ? 'bg-green-300' :
+                            session.status === 'SCHEDULED' || session.status === 'APPROVED' ? 'bg-blue-300' :
+                            'bg-red-300'
+                            }`}>
+                            #{getFilteredSessions().length - index}
                           </div>
                         </div>
 
                         {/* Session Card */}
-                        <Card className="shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100 bg-white dark:bg-slate-950">
+                        <Card className="flex-1 w-full shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100 bg-white dark:bg-slate-950">
                           <CardHeader className="pb-4">
                             {/* Card Header */}
                             <div className="flex justify-between items-start">
                               <div className="flex items-center gap-3">
-                                <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-sm" 
-                                     style={{ background: 'linear-gradient(to bottom right, #8159A8, #6b46a0)' }}>
-                                  #{index + 1}
-                                </div>
+                                
                                 <div>
                                   <CardTitle className="text-lg font-bold text-gray-900 dark:text-white">
-                                    Session #{index + 1}
-                                  </CardTitle>
-                                  <p className="text-sm text-gray-500 dark:text-gray-400">
                                     {formatDate(session.scheduledAt)} at {formatTimeManual(session.scheduledAt)}
-                                  </p>
+                                  </CardTitle>
                                 </div>
                               </div>
                               <div className="flex gap-2 flex-wrap">
@@ -845,7 +1093,24 @@ export default function PatientDetailsPage() {
                         </Card>
                       </div>
                     );
-                  })}
+                  }) : (
+                    <Card className="shadow-sm border border-gray-200">
+                      <CardContent className="p-12 text-center">
+                        <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                          <Calendar className="w-8 h-8 text-gray-400" />
+                        </div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">No sessions match your filters.</h3>
+                        <p className="text-gray-500 mb-4">Try adjusting your filter criteria to see more results.</p>
+                        <Button 
+                          variant="outline" 
+                          onClick={clearFilters}
+                          className="text-purple-600 border-purple-600 hover:bg-purple-50"
+                        >
+                          Clear All Filters
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  )}
                 </div>
 
                 {/* Load More Button */}
@@ -1214,26 +1479,16 @@ export default function PatientDetailsPage() {
               {/* Documents List */}
               <div className="space-y-4">
                 {uploadedDocuments.map((document) => (
-                  <div key={document.id} className="bg-white border-l-4 border-[#8159A8] rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow">
+                    <div key={document.id} className="bg-purple-50 rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4 flex-1">
-                        {/* File Icon */}
-                        <div className="w-16 h-16 bg-[#8159A8] bg-opacity-10 rounded-xl flex items-center justify-center">
-                          <svg className="w-8 h-8 text-[#8159A8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                        </div>
+                        
 
                         {/* Document Info */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-3 mb-2">
                             <h4 className="text-lg font-bold text-[#8159A8] truncate">{document.name}</h4>
-                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                              document.status === 'Verified' ? 'bg-green-100 text-green-700' :
-                              'bg-yellow-100 text-yellow-700'
-                            }`}>
-                              {document.status}
-                            </span>
+                            
                           </div>
                           <p className="text-sm text-gray-600 mb-3 leading-relaxed">{document.description}</p>
                           <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-xs">
@@ -1276,11 +1531,11 @@ export default function PatientDetailsPage() {
                           </svg>
                           Download
                         </Button>
-                        <Button variant="outline" size="sm" className="text-red-600 hover:bg-red-50">
+                        {/* <Button variant="outline" size="sm" className="text-red-600 hover:bg-red-50">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </svg>
-                        </Button>
+                        </Button> */}
                       </div>
                     </div>
                   </div>
