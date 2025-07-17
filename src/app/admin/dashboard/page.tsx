@@ -12,18 +12,39 @@ import {
     Shield,
     Database,
     Zap,
-    AlertTriangle,
+    CalendarCheck,
     RefreshCw
 } from "lucide-react";
+
+interface SessionOversight {
+    id: string;
+    therapist: {
+        id: string;
+        name: string;
+        email: string;
+    };
+    patient: {
+        id: string;
+        name: string;
+        email: string;
+    };
+    sessionDetails: {
+        duration: number;
+        status: string;
+        scheduledAt: string;
+        createdAt: string;
+    };
+}
 
 interface AdminData {
     systemStatus: "online" | "offline" | "maintenance";
     totalUsers: number;
     newUsersThisMonth: number;
     databaseSize: string;
-    databaseCapacity: number;
-    securityAlerts: number;
-    resolvedAlertsToday: number;
+    databaseUsage: number | string;
+    totalSessions: number,
+    newSessionsThisMonth: number,
+    sessionOversightData: SessionOversight[];
     systemHealth: {
         cpuUsage: number;
         memoryUsage: number;
@@ -44,30 +65,6 @@ interface AdminData {
         type: "success" | "warning" | "info";
     }>;
 }
-
-const mockSessionData = [
-  {
-    id: 1,
-    doctorName: "Dr. Nimal Perera",
-    sessionDetails: "Session with Saman W. • 60 mins • Completed",
-    amount: "Rs. 800",
-    commission: "10% commission"
-  },
-  {
-    id: 2,
-    doctorName: "Dr. Kamala Silva",
-    sessionDetails: "Session with Priya R. • 45 mins • In Progress",
-    amount: "Rs. 600",
-    commission: "10% commission"
-  },
-  {
-    id: 3,
-    doctorName: "Dr. Ruwan Fernando",
-    sessionDetails: "Session with Nuwan K. • 90 mins • Completed",
-    amount: "Rs. 1,200",
-    commission: "10% commission"
-  }
-];
 
 const mockDonationData = [
   {
@@ -132,14 +129,6 @@ export default function AdminDashboard() {
         amount: Number(donation.amount.replace(/[^\d]/g, "")),
         timeAgo: donation.timeAgo,
     }));
-    // Map mockSessionData to match SessionModal's expected fields
-    const mappedSessionData = mockSessionData.map((session) => ({
-        id: session.id.toString(),
-        name: session.doctorName,
-        sessionDetails: session.sessionDetails,
-        amount: session.amount.replace(/[^\d]/g, ""),
-        commission: session.commission,
-    }));
 
     if (loading) {
         return (
@@ -188,7 +177,7 @@ export default function AdminDashboard() {
 
                 {/* System Status Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow" style={{ borderLeftColor: '#8159A8' }}>
+                    <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">System Status</CardTitle>
                             <Zap className="h-12 w-12" style={{ color: '#8159A8' }} />
@@ -201,16 +190,7 @@ export default function AdminDashboard() {
                         </CardContent>
                     </Card>
 
-                    {/*<StatsCard
-                        title="System Status"
-                        value={
-                            adminData?.systemStatus === "online" ? 1 : adminData?.systemStatus === "maintenance" ? 0.5 : 0
-                        }
-                        description='99.9% uptime'
-                        iconType="zap"
-                    />*/}
-
-                    <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow" style={{ borderLeftColor: '#8159A8' }}>    
+                    <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow">    
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Total Users</CardTitle>
                             <Users className="h-12 w-12" style={{ color: '#8159A8' }} />
@@ -221,27 +201,28 @@ export default function AdminDashboard() {
                         </CardContent>
                     </Card>
 
-                    <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow" style={{ borderLeftColor: '#8159A8' }}>
+                    <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Total Sessions</CardTitle>
+                            <CalendarCheck className="h-12 w-12" style={{ color: '#8159A8' }} />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{adminData?.totalSessions || 0}</div>
+                            <p className="text-xs text-muted-foreground">+{adminData?.newSessionsThisMonth || 0} this month</p>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Database Size</CardTitle>
                             <Database className="h-12 w-12" style={{ color: '#8159A8' }} />
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{adminData?.databaseSize || 'N/A'}</div>
-                            <p className="text-xs text-muted-foreground">{adminData?.databaseCapacity || 0}% capacity</p>
+                            <p className="text-xs text-muted-foreground">{adminData?.databaseUsage || 0}% of capacity</p>
                         </CardContent>
                     </Card>
-
-                    <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow" style={{ borderLeftColor: '#8159A8' }}>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Security Alerts</CardTitle>
-                            <AlertTriangle className="h-12 w-12" style={{ color: '#8159A8' }} />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{adminData?.securityAlerts || 0}</div>
-                            <p className="text-xs text-muted-foreground">{adminData?.resolvedAlertsToday || 0} resolved today</p>
-                        </CardContent>
-                    </Card>
+                    
                 </div>
 
                 <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6 ">
@@ -252,18 +233,25 @@ export default function AdminDashboard() {
                         </CardHeader>
                         <CardContent>
                         <div className="space-y-4">
-                            {mockSessionData.map((session) => (
-                            <div key={session.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                <div className="flex-1">
-                                <h4 className="font-semibold text-sm">{session.doctorName}</h4>
-                                <p className="text-xs text-muted-foreground">{session.sessionDetails}</p>
-                                </div>
-                                <div className="text-right">
-                                <p className="font-semibold text-green-600">{session.amount}</p>
-                                <p className="text-xs text-muted-foreground">{session.commission}</p>
-                                </div>
-                            </div>
-                            ))}
+                            {adminData?.sessionOversightData && adminData.sessionOversightData.length > 0 ? (
+                                adminData.sessionOversightData.map((session) => (
+                                    <div key={session.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                        <div className="flex-1">
+                                            <h4 className="font-semibold text-sm">{session.therapist.name}</h4>
+                                            <p className="text-xs text-muted-foreground">
+                                                Session with {session.patient.name} • {session.sessionDetails.duration} mins • {session.sessionDetails.status}
+                                            </p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-xs text-muted-foreground">
+                                                {new Date(session.sessionDetails.scheduledAt).toLocaleString()}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <p className="text-sm text-muted-foreground">No recent sessions</p>
+                            )}
                         </div>
                         <div className="mt-4 flex gap-2">
                             <Button 
@@ -273,14 +261,22 @@ export default function AdminDashboard() {
                             >
                                 View All Sessions
                             </Button>
+                            {/* You may want to update SessionModal to accept real session data if needed */}
                             <SessionModal
                                 isOpen={showSessionModal}
                                 onClose={() => setShowSessionModal(false)}
-                                sessions={mappedSessionData}
+                                sessions={
+                                    adminData?.sessionOversightData
+                                        ? adminData.sessionOversightData.map((session) => ({
+                                            id: session.id,
+                                            name: session.therapist.name,
+                                            amount: session.sessionDetails?.duration?.toString() || "0",
+                                            commission: "N/A",
+                                            sessionDetails: `Session with ${session.patient.name} • ${session.sessionDetails.duration} mins • ${session.sessionDetails.status}`,
+                                        }))
+                                        : []
+                                }
                             />
-                            {/*<Button variant="outline">
-                            Generate Report
-                            </Button>*/}
                         </div>
                         </CardContent>
                     </Card>
@@ -403,37 +399,8 @@ export default function AdminDashboard() {
                         <CardContent>
                             <Button className="w-full">API Console</Button>
                         </CardContent>
-                    </Card>
-
-                    <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => window.open('/api-docs', '_blank')}>
-                        <CardHeader>
-                            <CardTitle className="flex items-center">
-                                <Globe className="mr-2 h-5 w-5" />
-                                API Documentation
-                            </CardTitle>
-                            <CardDescription>
-                                Interactive Swagger documentation for all API endpoints
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <Button className="w-full">View API Docs</Button>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-                        <CardHeader>
-                            <CardTitle className="flex items-center">
-                                <Settings className="mr-2 h-5 w-5" />
-                                System Configuration
-                            </CardTitle>
-                            <CardDescription>
-                                Configure global system settings and application parameters
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <Button className="w-full">System Config</Button>
-                        </CardContent>
                     </Card>*/}
+
                 </div>
 
                 {/* System Overview */}
@@ -489,46 +456,6 @@ export default function AdminDashboard() {
                         </CardContent>
                     </Card>
                 </div>
-
-                {/* User Statistics 
-                <div className="mt-8">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>User Role Distribution</CardTitle>
-                            <CardDescription>Current distribution of users across different roles</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                                <div className="text-center">
-                                    <div className="text-2xl font-bold text-blue-600">{adminData?.userRoleDistribution?.normalUsers || 0}</div>
-                                    <p className="text-xs text-muted-foreground">Patients</p>
-                                </div>
-                                <div className="text-center">
-                                    <div className="text-2xl font-bold text-green-600">{adminData?.userRoleDistribution?.parents || 0}</div>
-                                    <p className="text-xs text-muted-foreground">Parents</p>
-                                </div>
-                                <div className="text-center">
-                                    <div className="text-2xl font-bold text-purple-600">{adminData?.userRoleDistribution?.therapists || 0}</div>
-                                    <p className="text-xs text-muted-foreground">Therapists</p>
-                                </div>
-                                <div className="text-center">
-                                    <div className="text-2xl font-bold text-orange-600">{adminData?.userRoleDistribution?.managers || 0}</div>
-                                    <p className="text-xs text-muted-foreground">Managers</p>
-                                </div>
-                                <div className="text-center">
-                                    <div className="text-2xl font-bold text-red-600">{adminData?.userRoleDistribution?.admins || 0}</div>
-                                    <p className="text-xs text-muted-foreground">Admins</p>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>*/}
-
-                {/*<DonationModal 
-                    isOpen={showDonationModal} 
-                    onClose={() => setShowDonationModal(false)} 
-                    donations={mappedDonationData} 
-                />*/}
                 
             </main>
         </div>
