@@ -120,7 +120,7 @@ export async function GET(
           isActive: false,
           isDiscontinued: true,
         },
-        reason: medication.discontinueReason || 'No reason provided',
+        reason: 'Medication discontinued',
         notes: 'Medication discontinued',
         therapist: {
           user: {

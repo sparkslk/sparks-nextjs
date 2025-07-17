@@ -1009,10 +1009,8 @@ export default function PatientDetailsPage() {
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                               <div className="bg-gray-50 rounded-lg p-3">
                                 <div className="flex items-center gap-2 text-gray-600 mb-1">
-                                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M13 17a1 1 0 01-.293-.707L9 12.586l-1.293 1.293a1 1 0 01-1.414-1.414L9 10.757a2 2 0 012.828 0l2.828 2.829a1 1 0 01-1.414 1.414L12 12.586l-3.707 3.707A1 1 0 018 17z" />
-                                  </svg>
-                                  <span className="text-xs font-medium uppercase">Progress</span>
+                                  
+                                  <span className="text-xs font-medium uppercase">Overall Progress</span>
                                 </div>
                                 <p className={`font-semibold ${getProgressColor(session.overallProgress || '').split(' ')[1]}`}>
                                   {getProgressText(session.overallProgress || '')}
@@ -1020,28 +1018,22 @@ export default function PatientDetailsPage() {
                               </div>
                               <div className="bg-gray-50 rounded-lg p-3">
                                 <div className="flex items-center gap-2 text-gray-600 mb-1">
-                                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
-                                  </svg>
-                                  <span className="text-xs font-medium uppercase">Attendance</span>
+                                  
+                                  <span className="text-xs font-medium uppercase">Attendance Status</span>
                                 </div>
                                 <p className="font-semibold text-gray-900">{getAttendanceText(session.attendanceStatus || '')}</p>
                               </div>
                               <div className="bg-gray-50 rounded-lg p-3">
                                 <div className="flex items-center gap-2 text-gray-600 mb-1">
-                                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                  </svg>
-                                  <span className="text-xs font-medium uppercase">Engagement</span>
+                                  
+                                  <span className="text-xs font-medium uppercase">Patient Engagement</span>
                                 </div>
                                 <p className="font-semibold text-gray-900">{getEngagementText(session.patientEngagement || '')}</p>
                               </div>
                               <div className="bg-gray-50 rounded-lg p-3">
                                 <div className="flex items-center gap-2 text-gray-600 mb-1">
-                                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                                  </svg>
-                                  <span className="text-xs font-medium uppercase">Risk Level</span>
+                                  
+                                  <span className="text-xs font-medium uppercase">Risk Assessment</span>
                                 </div>
                                 <p className={`font-semibold ${getRiskColor(session.riskAssessment || '')}`}>{getRiskText(session.riskAssessment || '')}</p>
                               </div>
@@ -1050,16 +1042,14 @@ export default function PatientDetailsPage() {
 
                           {/* Session Content - Only show clinical details for completed sessions */}
                           {session.status === 'COMPLETED' ? (
-                            <div className="space-y-4">
-                              {/* Focus Areas */}
-                              {session.primaryFocusAreas && parseFocusAreas(session.primaryFocusAreas).length > 0 && (
-                                <div className="bg-blue-50 border-l-4 border-blue-400 rounded-lg p-4">
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                                      <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                    <h5 className="font-semibold text-blue-900">Primary Focus Areas</h5>
-                                  </div>
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                              {/* Primary Focus Areas */}
+                              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                <div className="flex items-center gap-2 mb-3">
+                                  
+                                  <h5 className="font-semibold text-blue-900">Primary Focus Areas</h5>
+                                </div>
+                                {session.primaryFocusAreas && parseFocusAreas(session.primaryFocusAreas).length > 0 ? (
                                   <div className="flex flex-wrap gap-2">
                                     {parseFocusAreas(session.primaryFocusAreas).map((area, idx) => (
                                       <span key={idx} className="px-2 py-1 bg-blue-100 text-blue-800 rounded-lg text-sm">
@@ -1067,25 +1057,36 @@ export default function PatientDetailsPage() {
                                       </span>
                                     ))}
                                   </div>
-                                </div>
-                              )}
+                                ) : (
+                                  <p className="text-blue-700 text-sm italic">No focus areas documented</p>
+                                )}
+                              </div>
 
                               {/* Session Notes */}
-
-                              {/* Progress Notes (fallback) */}
+                              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                                <div className="flex items-center gap-2 mb-3">
+                                  
+                                  <h5 className="font-semibold text-yellow-900">Session Notes</h5>
+                                </div>
+                                {session.sessionNotes ? (
+                                  <p className="text-yellow-700 text-sm leading-relaxed">{session.sessionNotes}</p>
+                                ) : (
+                                  <p className="text-yellow-700 text-sm italic">No session notes documented</p>
+                                )}
+                              </div>
 
                               {/* Next Session Goals */}
-                              {session.nextSessionGoals && (
-                                <div className="bg-green-50 border-l-4 border-green-400 rounded-lg p-4">
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                                      <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
-                                    </svg>
-                                    <h5 className="font-semibold text-green-900">Next Session Goals</h5>
-                                  </div>
-                                  <p className="text-green-700 text-sm leading-relaxed">{session.nextSessionGoals}</p>
+                              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                                <div className="flex items-center gap-2 mb-3">
+                                  
+                                  <h5 className="font-semibold text-green-900">Next Session Goals</h5>
                                 </div>
-                              )}
+                                {session.nextSessionGoals ? (
+                                  <p className="text-green-700 text-sm leading-relaxed">{session.nextSessionGoals}</p>
+                                ) : (
+                                  <p className="text-green-700 text-sm italic">No goals set for next session</p>
+                                )}
+                              </div>
                             </div>
                           ) : null}
 
