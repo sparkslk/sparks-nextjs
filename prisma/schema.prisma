@@ -270,27 +270,26 @@ model JournalEntry {
 }
 
 model Medication {
-  id                String              @id
-  patientId         String
-  therapistId       String
-  name              String
-  dosage            String
-  frequency         MedicationFrequency
-  customFrequency   String?
-  instructions      String?
-  mealTiming        MealTiming          @default(NONE)
-  startDate         DateTime
-  endDate           DateTime?
-  isActive          Boolean             @default(true)
-  isDiscontinued    Boolean             @default(false)
-  discontinuedAt    DateTime?
-  discontinuedBy    String?
-  discontinueReason String?
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime
-  Patient           Patient             @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  Therapist         Therapist           @relation(fields: [therapistId], references: [id], onDelete: Cascade)
-  history           MedicationHistory[]
+  id              String              @id
+  patientId       String
+  therapistId     String
+  name            String
+  dosage          String
+  frequency       MedicationFrequency
+  customFrequency String?
+  instructions    String?
+  mealTiming      MealTiming          @default(NONE)
+  startDate       DateTime
+  endDate         DateTime?
+  isActive        Boolean             @default(true)
+  isDiscontinued  Boolean             @default(false)
+  discontinuedAt  DateTime?
+  discontinuedBy  String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime
+  Patient         Patient             @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  Therapist       Therapist           @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+  history         MedicationHistory[]
 
   @@index([isActive])
   @@index([isDiscontinued])

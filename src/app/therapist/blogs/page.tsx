@@ -12,17 +12,23 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { PlusIcon, AlertTriangle } from "lucide-react";
 import { DeleteConfirmationModal } from "@/components/ui/delete-confirmation-modal";
 
+// Update Blog interface to match database schema
 interface Blog {
-  id: string;
+  id: number;
   title: string;
-  description: string;
-  createdAt: string;
-  updatedAt: string;
-  publishedAt: string | null;
+  summary: string; // Changed from description
+  content: string; // Added from schema
+  therapist_id: string; // Added from schema
   status: "published" | "draft" | "archived";
+  category?: string; // Added from schema
+  tags: string[]; // Added from schema
+  image_data?: Uint8Array; // Binary data
+  image_type?: string; // MIME type
+  image_name?: string; // Original filename
   views: number;
-  image: string;
-  slug: string;
+  created_at: string;
+  updated_at: string;
+  published_at: string | null;
 }
 
 export default function BlogManagementPage() {
@@ -50,89 +56,30 @@ export default function BlogManagementPage() {
         //   router.push('/unauthorized');
         //   return;
         // }
-        // Additional session-based checks could go here
-        // console.log(`User ${session.user.name} is accessing blog management`);
+        fetchBlogs();
       }
-      fetchBlogs();
     }
-  }, [authStatus, router]);
+  }, [authStatus, router, session]);
 
   const fetchBlogs = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      // In a real implementation, you'd fetch from an API
-      // For now we'll use sample data that matches the image
-      const mockBlogs: Blog[] = [
-        {
-          id: "1",
-          title: "Understanding ADHD in Adults: A Comprehensive Guide",
-          description:
-            "Adult ADHD often goes undiagnosed, leading to challenges in work, relationships, and daily life. This comprehensive guide explores the symptoms, causes, and treatment options for adults with ADHD.",
-          createdAt: "2024-03-15",
-          updatedAt: "2024-06-15",
-          publishedAt: "2024-06-15",
-          status: "published",
-          views: 243,
-          image: "/images/blogs/adhd-guide.jpg",
-          slug: "understanding-adhd-in-adults",
+      // Fetch blogs from API
+      const response = await fetch("/api/blogs", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
         },
-        {
-          id: "2",
-          title: "Focus Techniques That Actually Work for ADHD",
-          description:
-            "Discover evidence-based focus techniques specifically designed for ADHD minds. From the Pomodoro Technique to mindfulness practices, learn what actually works for improving concentration with ADHD.",
-          createdAt: "2024-05-10",
-          updatedAt: "2024-06-10",
-          publishedAt: "2024-06-10",
-          status: "published",
-          views: 189,
-          image: "/images/blogs/focus-techniques.jpg",
-          slug: "focus-techniques-for-adhd",
-        },
-        {
-          id: "3",
-          title: "Supporting Your ADHD Child: A Parent's Guide",
-          description:
-            "Practical strategies for parents navigating ADHD with their children. From school accommodations to building executive function skills, this guide helps parents support their ADHD children effectively.",
-          createdAt: "2024-06-06",
-          updatedAt: "2024-06-06",
-          publishedAt: null,
-          status: "draft",
-          views: 0,
-          image: "/images/blogs/parenting-guide.jpg",
-          slug: "supporting-your-adhd-child",
-        },
-        {
-          id: "4",
-          title: "ADHD Medication: What You Need to Know",
-          description:
-            "A balanced overview of ADHD medications, their benefits, side effects, and how to work with your healthcare provider to find the right treatment approach.",
-          createdAt: "2024-05-05",
-          updatedAt: "2024-06-05",
-          publishedAt: "2024-06-05",
-          status: "published",
-          views: 212,
-          image: "/images/blogs/medication-guide.jpg",
-          slug: "adhd-medication-guide",
-        },
-        {
-          id: "5",
-          title: "ADHD in the Workplace: Accommodation Strategies",
-          description:
-            "Navigate workplace challenges with ADHD. Learn about your rights, effective accommodations, and strategies to maximize productivity and career success with ADHD.",
-          createdAt: "2024-04-28",
-          updatedAt: "2024-05-28",
-          publishedAt: "2024-05-28",
-          status: "published",
-          views: 166,
-          image: "/images/blogs/workplace-adhd.jpg",
-          slug: "adhd-workplace-strategies",
-        },
-      ];
+      });
 
-      setBlogs(mockBlogs);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch blogs: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setBlogs(data);
     } catch (err) {
       console.error("Error fetching blogs:", err);
       setError("Failed to load blogs. Please try again later.");
@@ -141,12 +88,22 @@ export default function BlogManagementPage() {
     }
   };
 
-  const handleViewBlog = (e: React.MouseEvent, id: string) => {
+  // Function to get image URL for a blog
+  const getBlogImageUrl = (blog: Blog) => {
+    // If we have binary image data, convert it to a data URL
+    if (blog.image_data && blog.image_type) {
+      return `/api/blogs/${blog.id}/image`;
+    }
+    // Otherwise return a placeholder image
+    return "/images/blogs/blog-placeholder.jpg";
+  };
+
+  const handleViewBlog = (e: React.MouseEvent, id: number) => {
     e.stopPropagation(); // Prevent the card click event from triggering
     router.push(`/therapist/blogs/${id}`);
   };
 
-  const handleEditBlog = (e: React.MouseEvent, id: string) => {
+  const handleEditBlog = (e: React.MouseEvent, id: number) => {
     e.stopPropagation(); // Prevent the card click event from triggering
     router.push(`/therapist/blogs/${id}/edit`);
   };
@@ -166,14 +123,21 @@ export default function BlogManagementPage() {
     if (!blogToDelete) return;
 
     try {
-      // Archive/delete logic would go here
-      console.log(`Archiving blog ${blogToDelete.id}`);
+      // Archive blog via API call
+      const response = await fetch(`/api/blogs/${blogToDelete.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status: "archived" }),
+      });
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      if (!response.ok) {
+        throw new Error(`Failed to archive blog: ${response.status}`);
+      }
 
-      // Remove the blog from the list or change its status
-      setBlogs(blogs.filter((blog) => blog.id !== blogToDelete.id));
+      // Refresh blogs after archiving
+      fetchBlogs();
 
       // Close the dialog
       setShowDeleteModal(false);
@@ -200,7 +164,7 @@ export default function BlogManagementPage() {
     .filter((blog) => blog.status === "published")
     .reduce((sum, blog) => sum + blog.views, 0);
   const avgEngagement =
-    blogs.length > 0 ? Math.round(totalViews / publishedCount) : 0;
+    publishedCount > 0 ? Math.round(totalViews / publishedCount) : 0;
 
   const handleNewBlog = () => {
     router.push("/therapist/blogs/new");
@@ -342,7 +306,7 @@ export default function BlogManagementPage() {
                     style={{ height: "180px" }}
                   >
                     <Image
-                      src={blog.image}
+                      src={getBlogImageUrl(blog)}
                       alt={blog.title}
                       fill
                       sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
@@ -391,16 +355,16 @@ export default function BlogManagementPage() {
                     </h3>
 
                     <p className="text-gray-600 text-sm line-clamp-3">
-                      {blog.description}
+                      {blog.summary}
                     </p>
 
                     <div className="pt-2 text-sm text-gray-500">
                       {blog.status === "published"
                         ? `Published: ${new Date(
-                            blog.publishedAt!
+                            blog.published_at!
                           ).toLocaleDateString()}`
                         : `Last edited: ${new Date(
-                            blog.updatedAt
+                            blog.updated_at
                           ).toLocaleDateString()}`}
                     </div>
 
