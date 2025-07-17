@@ -267,7 +267,7 @@ export default function FindTherapistPage() {
                         enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100"
                         leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0"
                     >
-                        <div className="fixed inset-0 bg-black/50 transition-opacity" />
+                        <div className="fixed inset-0 bg-black/40 transition-opacity" />
                     </Transition.Child>
                     <div className="fixed inset-0 z-50 overflow-y-auto">
                         <div className="flex min-h-full items-center justify-center p-4 text-center">
@@ -276,56 +276,58 @@ export default function FindTherapistPage() {
                                 enter="ease-out duration-300" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100"
                                 leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95"
                             >
-                                <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
-                                    <Dialog.Title as="h3" className="text-lg font-bold leading-6 text-gray-900 mb-2">
+                                <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-card border border-border p-7 text-left align-middle shadow-2xl transition-all">
+                                    <Dialog.Title as="h3" className="text-2xl font-bold leading-7 text-primary mb-4 text-center">
                                         Therapist Profile
                                     </Dialog.Title>
                                     {selectedTherapist && (
-                                        <div className="space-y-2">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-12 h-12 bg-gradient-to-r from-primary/20 to-purple-500/20 rounded-full flex items-center justify-center">
-                                                    <span className="font-semibold text-lg text-primary">
+                                        <div className="space-y-4">
+                                            <div className="flex flex-col items-center gap-2 mb-2">
+                                                <div className="w-16 h-16 bg-gradient-to-br from-primary/10 to-[#e0d7ed] rounded-full flex items-center justify-center border border-[#e0d7ed] shadow">
+                                                    <span className="font-bold text-2xl text-primary">
                                                         {selectedTherapist.name.split(' ').map(n => n[0]).join('')}
                                                     </span>
                                                 </div>
-                                                <div>
-                                                    <div className="font-semibold text-foreground text-base">{selectedTherapist.name}</div>
+                                                <div className="text-center">
+                                                    <div className="font-semibold text-lg text-foreground">{selectedTherapist.name}</div>
                                                     <div className="text-xs text-muted-foreground">{selectedTherapist.title}</div>
                                                 </div>
                                             </div>
-                                            <div>
-                                                <span className="font-medium">Specialties: </span>
-                                                {selectedTherapist.specialties.join(', ')}
+                                            <div className="grid grid-cols-1 gap-2 text-sm">
+                                                <div>
+                                                    <span className="font-medium text-muted-foreground">Specialties: </span>
+                                                    <span className="text-foreground">{selectedTherapist.specialties.join(', ')}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="font-medium text-muted-foreground">Experience: </span>
+                                                    <span className="text-foreground">{selectedTherapist.experience}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="font-medium text-muted-foreground">Languages: </span>
+                                                    <span className="text-foreground">{selectedTherapist.languages.join(', ')}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="font-medium text-muted-foreground">Session Types: </span>
+                                                    <span className="text-foreground">{selectedTherapist.sessionTypes.inPerson && 'In-Person'}{selectedTherapist.sessionTypes.inPerson && selectedTherapist.sessionTypes.online ? ', ' : ''}{selectedTherapist.sessionTypes.online && 'Online'}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="font-medium text-muted-foreground">Availability: </span>
+                                                    <span className="text-foreground">{selectedTherapist.availability.nextSlot} ({selectedTherapist.availability.timeSlot})</span>
+                                                </div>
+                                                <div>
+                                                    <span className="font-medium text-muted-foreground">Cost: </span>
+                                                    <span className="text-foreground">{selectedTherapist.cost.priceRange}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="font-medium text-muted-foreground">Tags: </span>
+                                                    <span className="text-foreground">{selectedTherapist.tags.join(', ')}</span>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <span className="font-medium">Experience: </span>
-                                                {selectedTherapist.experience}
-                                            </div>
-                                            <div>
-                                                <span className="font-medium">Languages: </span>
-                                                {selectedTherapist.languages.join(', ')}
-                                            </div>
-                                            <div>
-                                                <span className="font-medium">Session Types: </span>
-                                                {selectedTherapist.sessionTypes.inPerson && 'In-Person'}{selectedTherapist.sessionTypes.inPerson && selectedTherapist.sessionTypes.online ? ', ' : ''}{selectedTherapist.sessionTypes.online && 'Online'}
-                                            </div>
-                                            <div>
-                                                <span className="font-medium">Availability: </span>
-                                                {selectedTherapist.availability.nextSlot} ({selectedTherapist.availability.timeSlot})
-                                            </div>
-                                            <div>
-                                                <span className="font-medium">Cost: </span>
-                                                {selectedTherapist.cost.priceRange}
-                                            </div>
-                                            <div>
-                                                <span className="font-medium">Tags: </span>
-                                                {selectedTherapist.tags.join(', ')}
-                                            </div>
-                                            <div className="flex justify-end pt-2 gap-2">
-                                                <Button variant="default" onClick={() => alert(`Connect with ${selectedTherapist.name}`)}>
+                                            <div className="flex justify-end pt-4 gap-2">
+                                                <Button variant="default" className="font-semibold" onClick={() => alert(`Connect with ${selectedTherapist.name}`)}>
                                                     Connect
                                                 </Button>
-                                                <Button variant="outline" onClick={() => setProfileModalOpen(false)}>
+                                                <Button variant="outline" className="font-semibold border-primary text-primary hover:bg-primary/10" onClick={() => setProfileModalOpen(false)}>
                                                     Close
                                                 </Button>
                                             </div>
