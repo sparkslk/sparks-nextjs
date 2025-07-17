@@ -109,8 +109,8 @@ export default function AppointmentsPage() {
     }
   };
 
-  const getChildAppointments = (childId: string, statuses: Array<'APPROVED' | 'REQUESTED' | 'COMPLETED' | 'CANCELLED'>) => {
-    return appointments.filter(apt => apt.childId === childId && statuses.includes(apt.status as 'APPROVED' | 'REQUESTED' | 'COMPLETED' | 'CANCELLED'));
+  const getChildAppointments = (childId: string, statuses: Array<'SCHEDULED' | 'COMPLETED' | 'CANCELLED'>) => {
+    return appointments.filter(apt => apt.childId === childId && statuses.includes(apt.status as 'SCHEDULED' | 'COMPLETED' | 'CANCELLED'));
   };
 
   const formatDate = (dateString: string) => {
@@ -153,14 +153,14 @@ export default function AppointmentsPage() {
             <div key={child.id} className="flex items-center justify-between bg-purple-50 rounded-lg px-4 py-3 shadow-sm">
               <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                 <span className="font-semibold text-gray-800">{child.firstName} {child.lastName}</span>
-                <span className="text-gray-500 text-sm">{child.therapist ? `Therapist: ${child.therapist}` : 'No therapist assigned'}</span>
+                <span className="text-gray-500 text-sm">{child.therapist ? `Therapist: ${child.therapist.name || child.therapist}` : 'No therapist assigned'}</span>
               </div>
               {child.therapist ? (
                 <button
                   className="bg-purple-600 hover:bg-purple-700 text-white font-semibold px-4 py-2 rounded-lg transition"
                   onClick={() => {/* Implement schedule logic here */}}
                 >
-                  Schedule
+                  Schedule Session
                 </button>
               ) : (
                 <button
@@ -179,7 +179,7 @@ export default function AppointmentsPage() {
         {/* Enhanced Header */}
         <AppointmentsHeader 
           childrenCount={children.length}
-          upcomingSessionsCount={appointments.filter(apt => ['APPROVED', 'REQUESTED'].includes(apt.status)).length}
+          upcomingSessionsCount={appointments.filter(apt => apt.status === 'SCHEDULED').length}
         />
 
         {/* Child Selection Dropdown */}
@@ -219,7 +219,7 @@ export default function AppointmentsPage() {
           <AppointmentCard
             key="all"
             child={{ id: "all", firstName: "All", lastName: "Children", therapist: null }}
-            upcomingAppointments={appointments.filter(apt => ['APPROVED', 'REQUESTED'].includes(apt.status)).map(apt => {
+            upcomingAppointments={appointments.filter(apt => apt.status === 'SCHEDULED').map(apt => {
               const child = children.find(c => c.id === apt.childId);
               return { ...apt, childFirstName: child?.firstName, childLastName: child?.lastName };
             })}
@@ -239,7 +239,7 @@ export default function AppointmentsPage() {
           (() => {
             const child = children.find(c => c.id === selectedChildId);
             if (!child) return null;
-            const upcomingAppointments = getChildAppointments(child.id, ['APPROVED', 'REQUESTED']);
+            const upcomingAppointments = getChildAppointments(child.id, ['SCHEDULED']);
             const pastAppointments = getChildAppointments(child.id, ['COMPLETED']);
             const cancelledAppointments = getChildAppointments(child.id, ['CANCELLED']);
             return (
