@@ -71,6 +71,7 @@ export default function SessionDetailsPage() {
   const [filterType, setFilterType] = useState<'all' | 'daily' | 'therapist' | 'weekly'>('all');
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'completed' | 'overdue'>('all');
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedTab, setSelectedTab] = useState<string>("clinical");
 
   useEffect(() => {
     if (!id) return;
@@ -201,7 +202,12 @@ export default function SessionDetailsPage() {
       const pending = filteredTasks.filter(t => t.status === 'PENDING' || t.status === 'IN_PROGRESS').sort((a, b) => b.priority - a.priority);
       const overdue = filteredTasks.filter(t => t.status === 'OVERDUE' || isOverdue(t.dueDate));
       const completed = filteredTasks.filter(t => t.status === 'COMPLETED');
-      return [...pending, ...overdue, ...completed];
+      // Remove duplicates by using a Map keyed by task id
+      const uniqueTasksMap = new Map<string, Task>();
+      [...pending, ...overdue, ...completed].forEach(task => {
+        uniqueTasksMap.set(task.id, task);
+      });
+      return Array.from(uniqueTasksMap.values());
     } else {
       filteredTasks.sort((a, b) => b.priority - a.priority);
       return filteredTasks;
@@ -299,16 +305,16 @@ export default function SessionDetailsPage() {
           </div>
         </div>
 
-        <Tabs defaultValue="clinical" className="w-full mb-6">
+        <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full mb-6">
           <div className="w-full rounded-xl" style={{ boxShadow: '0 2px 8px 0 rgba(129,89,168,0.08)' }}>
             <TabsList className="w-full flex bg-[#f7f5fb] rounded-xl border border-[#e5e3ee] p-2" style={{ boxShadow: 'none' }}>
-              <TabsTrigger value="clinical" className="flex-1 h-12 rounded-xl font-semibold text-[#8159A8] text-base bg-white shadow-[0_2px_8px_0_rgba(129,89,168,0.08)] data-[state=active]:text-[#8159A8] data-[state=active]:bg-white data-[state=active]:shadow-[0_2px_8px_0_rgba(129,89,168,0.08)] data-[state=inactive]:bg-transparent data-[state=inactive]:text-[#8159A8] transition-all flex items-center justify-center">
+              <TabsTrigger value="clinical" className="flex-1 h-12 rounded-xl font-semibold text-[#8159A8] text-base transition-all flex items-center justify-center data-[state=active]:bg-white data-[state=active]:shadow-[0_2px_8px_0_rgba(129,89,168,0.08)] data-[state=active]:text-[#8159A8] data-[state=inactive]:bg-transparent data-[state=inactive]:text-[#8159A8]">
                 Clinical Documentation
               </TabsTrigger>
-              <TabsTrigger value="medications" className="flex-1 h-12 rounded-xl font-semibold text-[#8159A8] text-base bg-transparent data-[state=active]:bg-white data-[state=active]:shadow-[0_2px_8px_0_rgba(129,89,168,0.08)] data-[state=active]:text-[#8159A8] data-[state=inactive]:bg-transparent data-[state=inactive]:text-[#8159A8] transition-all flex items-center justify-center">
+              <TabsTrigger value="medications" className="flex-1 h-12 rounded-xl font-semibold text-[#8159A8] text-base transition-all flex items-center justify-center data-[state=active]:bg-white data-[state=active]:shadow-[0_2px_8px_0_rgba(129,89,168,0.08)] data-[state=active]:text-[#8159A8] data-[state=inactive]:bg-transparent data-[state=inactive]:text-[#8159A8]">
                 Medications
               </TabsTrigger>
-              <TabsTrigger value="tasks" className="flex-1 h-12 rounded-xl font-semibold text-[#8159A8] text-base bg-transparent data-[state=active]:bg-white data-[state=active]:shadow-[0_2px_8px_0_rgba(129,89,168,0.08)] data-[state=active]:text-[#8159A8] data-[state=inactive]:bg-transparent data-[state=inactive]:text-[#8159A8] transition-all flex items-center justify-center">
+              <TabsTrigger value="tasks" className="flex-1 h-12 rounded-xl font-semibold text-[#8159A8] text-base transition-all flex items-center justify-center data-[state=active]:bg-white data-[state=active]:shadow-[0_2px_8px_0_rgba(129,89,168,0.08)] data-[state=active]:text-[#8159A8] data-[state=inactive]:bg-transparent data-[state=inactive]:text-[#8159A8]">
                 Tasks
               </TabsTrigger>
             </TabsList>

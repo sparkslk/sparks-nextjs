@@ -83,6 +83,9 @@ export default function ParentNavigation() {
         if (pathname === '/parent/children' || (pathname ?? "").startsWith('/parent/children/tasks')) {
             return 'My Children';
         }
+        if ((pathname ?? "").startsWith('/parent/sessions')) {
+            return 'Appointments';
+        }
         const currentTab = tabs.find(tab => tab.path === pathname);
         return currentTab?.name || 'Overview';
     };
