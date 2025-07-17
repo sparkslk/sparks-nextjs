@@ -35,6 +35,7 @@ interface Therapist {
     languages: string[];
     location?: string;
     tags: string[];
+    image?: string | null;
     isCurrentTherapist?: boolean;
 }
 
@@ -82,6 +83,8 @@ export default function FindTherapistPage() {
                             isCurrentTherapist: true
                         };
 
+                        console.log("Current Therapist Data:", therapistData);
+
                         setCurrentTherapist(therapistData);
                     }
                 }
@@ -109,6 +112,7 @@ export default function FindTherapistPage() {
                         name: string;
                         specialization?: string[];
                         experience?: number;
+                        image?: string | null;
                     }) => ({
                         id: therapist.id,
                         name: therapist.name,
@@ -128,7 +132,8 @@ export default function FindTherapistPage() {
                             priceRange: Math.random() > 0.7 ? "Free consultation" : "Rs. 800-1500/session"
                         },
                         languages: ["English"],
-                        tags: ["English"]
+                        tags: ["English"],
+                        image: therapist.image || null
                     })) || [];
 
                     setTherapists(formattedTherapists);
@@ -284,9 +289,19 @@ export default function FindTherapistPage() {
                                         <div className="space-y-4">
                                             <div className="flex flex-col items-center gap-2 mb-2">
                                                 <div className="w-16 h-16 bg-gradient-to-br from-primary/10 to-[#e0d7ed] rounded-full flex items-center justify-center border border-[#e0d7ed] shadow">
-                                                    <span className="font-bold text-2xl text-primary">
-                                                        {selectedTherapist.name.split(' ').map(n => n[0]).join('')}
-                                                    </span>
+                                                    {selectedTherapist.image && typeof selectedTherapist.image === 'string' && selectedTherapist.image.trim() !== '' ? (
+                                                        <Image
+                                                            src={selectedTherapist.image}
+                                                            alt={selectedTherapist.name}
+                                                            width={64}
+                                                            height={64}
+                                                            className="object-cover w-16 h-16 rounded-full"
+                                                        />
+                                                    ) : (
+                                                        <span className="font-bold text-2xl text-primary">
+                                                            {selectedTherapist.name.split(' ').map(n => n[0]).join('')}
+                                                        </span>
+                                                    )}
                                                 </div>
                                                 <div className="text-center">
                                                     <div className="font-semibold text-lg text-foreground">{selectedTherapist.name}</div>

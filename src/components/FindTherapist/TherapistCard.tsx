@@ -11,6 +11,7 @@ import {
   Calendar,
   Coins
 } from "lucide-react";
+import Image from "next/image";
 
 interface Therapist {
   id: string;
@@ -36,6 +37,7 @@ interface Therapist {
   languages: string[];
   location?: string;
   tags: string[];
+  image?: string | null;
 }
 
 interface TherapistCardProps {
@@ -53,17 +55,30 @@ export function TherapistCard({ therapist, bookingStatus, onBookSession, onViewP
     return "bg-gray-100 text-gray-800";
   };
 
+  console.log("Therapist Card Rendered:", therapist.name, bookingStatus);
+
   return (
     <Card className="bg-card border border-border rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 hover:scale-[1.025] cursor-pointer h-full">
       <CardContent className="p-6 h-full flex flex-col">
         {/* Header */}
         <div className="flex items-center gap-4 mb-4">
           <div
-            className="w-14 h-14 rounded-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-[#e0d7ed] border border-[#e0d7ed] shadow-sm"
+            className="w-14 h-14 rounded-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-[#e0d7ed] border border-[#e0d7ed] shadow-sm overflow-hidden"
           >
-            <span className="font-bold text-xl text-primary">
-              {therapist.name.split(' ').map(n => n[0]).join('')}
-            </span>
+            {therapist.image && typeof therapist.image === 'string' && therapist.image.trim() !== '' ? (
+              <Image
+                src={therapist.image}
+                alt={therapist.name}
+                width={56}
+                height={56}
+                className="object-cover w-14 h-14 rounded-full"
+                priority
+              />
+            ) : (
+              <span className="font-bold text-xl text-primary">
+                {therapist.name.split(' ').map(n => n[0]).join('')}
+              </span>
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-lg text-foreground truncate">{therapist.name}</h3>
