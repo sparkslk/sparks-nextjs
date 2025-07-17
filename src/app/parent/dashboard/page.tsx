@@ -34,7 +34,9 @@ interface ParentData {
         therapist: {
             name: string;
             email: string;
+            image?: string | null;
         } | null;
+        image?: string | null;
     }>;
     totalUpcomingSessions: number;
     unreadMessages: number;
@@ -110,6 +112,8 @@ export default function ParentDashboard() {
         }
     };
 
+    console.log(parentData);
+
     const handleChildAdded = () => {
         setShowAddChild(false);
         fetchChildren();
@@ -126,7 +130,7 @@ export default function ParentDashboard() {
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mb-4 mx-auto"></div>
                     <h3 className="text-lg font-semibold mb-2 text-gray-900">Loading Dashboard</h3>
-                    <p className="text-gray-600">Fetching your children&apos;s progress data...</p>
+                    <p className="text-gray-600">Fetching your children&apos; progress data...</p>
                 </div>
             </div>
         );
@@ -167,12 +171,12 @@ export default function ParentDashboard() {
                             <div className="relative group">
                                 <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" />
                                 <div className="absolute left-6 top-0 bg-gray-900 text-white text-sm rounded-lg px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 whitespace-nowrap">
-                                    View and manage your children&apos;s therapy progress
+                                    View and manage your children&apos; therapy progress
                                 </div>
                             </div>
                         </div>
                         <p className="text-lg text-gray-600 font-medium">
-                            Monitor and manage your children&apos;s therapeutic progress
+                            Monitor and manage your children&apos; therapeutic progress
                         </p>
                         {lastUpdated && (
                             <p className="text-xs text-gray-400 mt-2 flex items-center gap-1">
@@ -230,33 +234,24 @@ export default function ParentDashboard() {
             </div>
             {/* Stats Grid - only show when we have children */}
             {parentData && parentData.children.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                     <StatsCard
                         title="Children Registered"
                         value={parentData.children.length}
                         description="Active accounts"
                         iconType="users"
                     />
-                    
                     <StatsCard
                         title="Upcoming Sessions"
                         value={parentData.totalUpcomingSessions}
                         description="Scheduled sessions"
                         iconType="calendar"
                     />
-                    
                     <StatsCard
                         title="Unread Messages"
                         value={parentData.unreadMessages}
                         description="From therapists"
                         iconType="message"
-                    />
-                    
-                    <StatsCard
-                        title="Progress Reports"
-                        value={parentData.children.reduce((sum, child) => sum + child.progressReports, 0)}
-                        description="New reports available"
-                        iconType="file"
                     />
                 </div>
             )}
@@ -288,11 +283,23 @@ export default function ParentDashboard() {
                                         }
                                     }}
                                 >
+                                    
                                     <div className="flex items-start justify-between mb-4">
                                         <div className="flex-1">
                                             <div className="flex items-center gap-3 mb-2">
-                                                <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm" style={{ background: 'linear-gradient(to bottom right, #8159A8, #6b46a0)' }}>
-                                                    {child.firstName.charAt(0)}{child.lastName.charAt(0)}
+                                                <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm overflow-hidden" style={{ background: 'linear-gradient(to bottom right, #8159A8, #6b46a0)' }}>
+                                                    {child.image && typeof child.image === 'string' && child.image.trim() !== '' ? (
+                                                        <Image
+                                                            src={child.image}
+                                                            alt={`${child.firstName} ${child.lastName}`}
+                                                            width={40}
+                                                            height={40}
+                                                            className="object-cover w-full h-full rounded-full"
+                                                            priority
+                                                        />
+                                                    ) : (
+                                                        <span>{child.firstName.charAt(0)}{child.lastName.charAt(0)}</span>
+                                                    )}
                                                 </div>
                                                 <div>
                                                     <h4 className="font-bold text-gray-900 text-lg">{child.firstName} {child.lastName}</h4>
@@ -315,15 +322,18 @@ export default function ParentDashboard() {
                                         </div>
                                     </div>
                                     
-                                    <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg p-3 border border-blue-200 mb-6">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-                                                <span className="text-white text-xs font-bold">{child.upcomingSessions}</span>
+                                    {/* Only show upcoming sessions if > 0 */}
+                                    {child.upcomingSessions > 0 && (
+                                        <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg p-3 border border-blue-200 mb-6">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                                                    <span className="text-white text-xs font-bold">{child.upcomingSessions}</span>
+                                                </div>
+                                                <span className="text-sm font-semibold text-blue-800">Upcoming Sessions</span>
                                             </div>
-                                            <span className="text-sm font-semibold text-blue-800">Upcoming Sessions</span>
+                                            <p className="text-xs text-blue-600">Next 7 days</p>
                                         </div>
-                                        <p className="text-xs text-blue-600">Next 7 days</p>
-                                    </div>
+                                    )}
 
                                     <div className="space-y-3">
                                         <div className="flex items-center justify-between">
@@ -347,9 +357,20 @@ export default function ParentDashboard() {
                                     {child.therapist && (
                                         <div className="mt-4 pt-4 border-t border-gray-100">
                                             <div className="flex items-center gap-2">
-                                                <div className="w-8 h-8 bg-gradient-to-br from-green-400 to-green-500 rounded-full flex items-center justify-center text-white font-bold text-xs">
-                                                    {child.therapist.name.split(' ').map(n => n.charAt(0)).join('')}
-                                                </div>
+                                                {child.therapist.image && typeof child.therapist.image === 'string' && child.therapist.image.trim() !== '' ? (
+                                                    <Image
+                                                        src={child.therapist.image}
+                                                        alt={child.therapist.name}
+                                                        width={32}
+                                                        height={32}
+                                                        className="object-cover w-8 h-8 rounded-full"
+                                                        priority
+                                                    />
+                                                ) : (
+                                                    <div className="w-8 h-8 bg-gradient-to-br from-green-400 to-green-500 rounded-full flex items-center justify-center text-white font-bold text-xs">
+                                                        {child.therapist.name.split(' ').map(n => n.charAt(0)).join('')}
+                                                    </div>
+                                                )}
                                                 <div>
                                                     <p className="text-sm font-semibold text-gray-800">Dr. {child.therapist.name}</p>
                                                     <p className="text-xs text-gray-500">Assigned Therapist</p>

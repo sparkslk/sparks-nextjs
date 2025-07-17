@@ -78,7 +78,6 @@ export async function GET(req: NextRequest) {
                 
                 // Calculate progress percentage (as decimal from 0-100)
                 const progressPercentage = totalSessions > 0 ? Math.round((completedSessions / totalSessions) * 100) : 0;
-                console.log("Progress percentage is : " , progressPercentage);
 
                 // Get last session date
                 const lastSession = await prisma.therapySession.findFirst({
@@ -88,7 +87,16 @@ export async function GET(req: NextRequest) {
                     },
                     orderBy: { scheduledAt: 'desc' }
                 });
-                console.log(lastSession);
+
+                // Fetch patient user image
+                let patientImage = null;
+                if (relation.patient.userId) {
+                    const patientUser = await prisma.user.findUnique({
+                        where: { id: relation.patient.userId },
+                        select: { image: true }
+                    });
+                    patientImage = patientUser?.image || null;
+                }
 
                 return {
                     id: relation.patient.id,
@@ -124,8 +132,10 @@ export async function GET(req: NextRequest) {
   : null,
                     therapist: relation.patient.primaryTherapist ? {
                         name: relation.patient.primaryTherapist.user.name || 'Unknown Therapist',
-                        email: relation.patient.primaryTherapist.user.email || ''
-                    } : null
+                        email: relation.patient.primaryTherapist.user.email || '',
+                        image: relation.patient.primaryTherapist.user.image || null
+                    } : null,
+                    image: patientImage
                 };
             })
         );
@@ -133,16 +143,13 @@ export async function GET(req: NextRequest) {
         // Calculate total upcoming sessions across all children
         const totalUpcomingSessions = children.reduce((sum, child) => sum + child.upcomingSessions, 0);
 
-        // Get parent's name from user table
+        // Get parent's name and image from user table
         const parentUser = await prisma.user.findUnique({
             where: { id: session.user.id },
-            select: { name: true }
+            select: { name: true, image: true }
         });
 
-        console.log("Parent User Query Result:", parentUser);
-        console.log("Session User ID:", session.user.id);
-
-        // Format recent updates from notificationsfications
+        // Format recent updates from notifications
         const recentUpdates = notifications.map(notification => ({
             id: notification.id,
             message: notification.message,
@@ -160,7 +167,8 @@ export async function GET(req: NextRequest) {
             totalUpcomingSessions,
             unreadMessages,
             recentUpdates,
-            parentName: parentUser?.name
+            parentName: parentUser?.name,
+            parentImage: parentUser?.image
         };
 
         return NextResponse.json(parentData);
