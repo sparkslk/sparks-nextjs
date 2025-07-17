@@ -31,6 +31,7 @@ interface ParentData {
         progressReports: number;
         progressPercentage: number;
         lastSession: string | null;
+        nextUpcomingSession: string | null;
         therapist: {
             name: string;
             email: string;
@@ -167,19 +168,19 @@ export default function ParentDashboard() {
                 <div className="flex items-start gap-3">
                     <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
-                            <h1 className="text-2xl font-bold text-gray-900">Parent Dashboard</h1>
+                            <h1 className="text-2xl font-bold text-foreground">Parent Dashboard</h1>
                             <div className="relative group">
-                                <HelpCircle className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-help" />
-                                <div className="absolute left-6 top-0 bg-gray-900 text-white text-sm rounded-lg px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 whitespace-nowrap">
+                                <HelpCircle className="h-5 w-5 text-muted-foreground hover:text-primary cursor-help" />
+                                <div className="absolute left-6 top-0 bg-background text-foreground text-sm rounded-lg px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 whitespace-nowrap shadow-lg border border-border">
                                     View and manage your children&apos; therapy progress
                                 </div>
                             </div>
                         </div>
-                        <p className="text-lg text-gray-600 font-medium">
+                        <p className="text-lg text-muted-foreground font-medium">
                             Monitor and manage your children&apos; therapeutic progress
                         </p>
                         {lastUpdated && (
-                            <p className="text-xs text-gray-400 mt-2 flex items-center gap-1">
+                            <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
                                 <RefreshCw className="h-3 w-3" />
                                 Last updated: {lastUpdated.toLocaleTimeString()}
                             </p>
@@ -191,7 +192,7 @@ export default function ParentDashboard() {
                         <DialogTrigger asChild>
                             <Button 
                                 variant="outline"
-                                className="transition-all duration-200 hover:shadow-md"
+                                className="transition-all duration-200 shadow-sm hover:shadow-md"
                                 aria-label="Connect to an existing child's account"
                             >
                                 <UserPlus className="h-4 w-4 mr-2" />
@@ -212,8 +213,7 @@ export default function ParentDashboard() {
                     <Dialog open={showAddChild} onOpenChange={setShowAddChild}>
                         <DialogTrigger asChild>
                             <Button 
-                                style={{ backgroundColor: '#8159A8' }} 
-                                className="text-white hover:opacity-90 transition-all duration-200 hover:shadow-md"
+                                className="bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-200 shadow-sm hover:shadow-md"
                                 aria-label="Add a new child to your account"
                             >
                                 <Plus className="h-4 w-4 mr-2" />
@@ -260,9 +260,9 @@ export default function ParentDashboard() {
             {parentData && parentData.children.length > 0 && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Children Progress */}
-                    <Card className="shadow-sm hover:shadow-md transition-shadow">
-                        <CardHeader className="border-b border-gray-100 pb-4">
-                            <CardTitle className="text-xl font-bold flex items-center gap-2 text-gray-900">
+                    <Card className="shadow-md border-border bg-background">
+                        <CardHeader className="border-b border-border pb-4">
+                            <CardTitle className="text-xl font-bold flex items-center gap-2 text-foreground">
                                 <Users className="h-5 w-5" />
                                 Children Progress Overview
                             </CardTitle>
@@ -271,8 +271,7 @@ export default function ParentDashboard() {
                             {parentData.children.map((child) => (
                                 <div 
                                     key={child.id} 
-                                    className="bg-white rounded-xl p-6 border border-purple-100 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer hover:scale-105 active:scale-95 focus-within:ring-2 focus-within:ring-opacity-50"
-                                    style={{ '--tw-ring-color': '#8159A8' } as React.CSSProperties}
+                                    className="bg-card rounded-xl p-6 border border-border shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer hover:scale-[1.02] active:scale-95 focus-within:ring-2 focus-within:ring-primary/50"
                                     tabIndex={0}
                                     role="button"
                                     aria-label={`View details for ${child.firstName} ${child.lastName}`}
@@ -283,11 +282,10 @@ export default function ParentDashboard() {
                                         }
                                     }}
                                 >
-                                    
                                     <div className="flex items-start justify-between mb-4">
                                         <div className="flex-1">
                                             <div className="flex items-center gap-3 mb-2">
-                                                <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm overflow-hidden" style={{ background: 'linear-gradient(to bottom right, #8159A8, #6b46a0)' }}>
+                                                <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm overflow-hidden bg-gradient-to-br from-primary to-primary-foreground">
                                                     {child.image && typeof child.image === 'string' && child.image.trim() !== '' ? (
                                                         <Image
                                                             src={child.image}
@@ -302,60 +300,44 @@ export default function ParentDashboard() {
                                                     )}
                                                 </div>
                                                 <div>
-                                                    <h4 className="font-bold text-gray-900 text-lg">{child.firstName} {child.lastName}</h4>
-                                                    <p className="text-sm text-gray-500">Age: {new Date().getFullYear() - new Date(child.dateOfBirth).getFullYear()} years</p>
+                                                    <h4 className="font-bold text-foreground text-lg">{child.firstName} {child.lastName}</h4>
+                                                    <p className="text-sm text-muted-foreground">Age: {new Date().getFullYear() - new Date(child.dateOfBirth).getFullYear()} years</p>
                                                 </div>
                                             </div>
                                             {child.isPrimary && (
-                                                <Badge variant="secondary" className="mb-3 text-purple-800 border-purple-200" style={{ backgroundColor: '#f3f0ff' }}>
+                                                <Badge variant="secondary" className="mb-3 text-primary border-primary/20 bg-primary/10">
                                                     Primary Guardian
                                                 </Badge>
                                             )}
                                         </div>
                                         <div className="flex flex-col items-end gap-2">
-                                            <span className="px-3 py-1 text-xs rounded-full font-bold bg-green-100 text-green-700 border border-green-200">
+                                            <span className="px-3 py-1 text-xs rounded-full font-bold bg-success/10 text-success border border-success/20">
                                                 ACTIVE
                                             </span>
-                                            <span className="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded font-mono">
+                                            <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded font-mono">
                                                 {child.id}
                                             </span>
                                         </div>
                                     </div>
                                     
-                                    {/* Only show upcoming sessions if > 0 */}
-                                    {child.upcomingSessions > 0 && (
-                                        <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg p-3 border border-blue-200 mb-6">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-                                                    <span className="text-white text-xs font-bold">{child.upcomingSessions}</span>
-                                                </div>
-                                                <span className="text-sm font-semibold text-blue-800">Upcoming Sessions</span>
-                                            </div>
-                                            <p className="text-xs text-blue-600">Next 7 days</p>
-                                        </div>
-                                    )}
-
                                     <div className="space-y-3">
                                         <div className="flex items-center justify-between">
-                                            <span className="text-sm font-semibold text-gray-700">Overall Progress</span>
-                                            <span className="text-sm font-bold" style={{ color: '#8159A8' }}>{child.progressPercentage}%</span>
+                                            <span className="text-sm font-semibold text-muted-foreground">Overall Progress</span>
+                                            <span className="text-sm font-bold text-primary">{child.progressPercentage}%</span>
                                         </div>
                                         <div className="relative">
-                                            <div className="w-full bg-gray-200 rounded-full h-3 shadow-inner">
+                                            <div className="w-full bg-muted rounded-full h-3 shadow-inner">
                                                 <div
-                                                    className="h-3 rounded-full transition-all duration-500 ease-out shadow-sm"
-                                                    style={{
-                                                        width: `${child.progressPercentage}%`,
-                                                        background: 'linear-gradient(to right, #8159A8, #6b46a0)'
-                                                    }}
+                                                    className="h-3 rounded-full transition-all duration-500 ease-out shadow-sm bg-gradient-to-r from-primary to-primary-foreground"
+                                                    style={{ width: `${child.progressPercentage}%` }}
                                                 ></div>
                                             </div>
-                                            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-transparent via-white to-transparent opacity-30 h-3"></div>
+                                            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-transparent via-background to-transparent opacity-30 h-3"></div>
                                         </div>
                                     </div>
 
                                     {child.therapist && (
-                                        <div className="mt-4 pt-4 border-t border-gray-100">
+                                        <div className="mt-4 pt-4 border-t border-border">
                                             <div className="flex items-center gap-2">
                                                 {child.therapist.image && typeof child.therapist.image === 'string' && child.therapist.image.trim() !== '' ? (
                                                     <Image
@@ -367,21 +349,32 @@ export default function ParentDashboard() {
                                                         priority
                                                     />
                                                 ) : (
-                                                    <div className="w-8 h-8 bg-gradient-to-br from-green-400 to-green-500 rounded-full flex items-center justify-center text-white font-bold text-xs">
+                                                    <div className="w-8 h-8 bg-gradient-to-br from-success to-success-foreground rounded-full flex items-center justify-center text-white font-bold text-xs">
                                                         {child.therapist.name.split(' ').map(n => n.charAt(0)).join('')}
                                                     </div>
                                                 )}
                                                 <div>
-                                                    <p className="text-sm font-semibold text-gray-800">Dr. {child.therapist.name}</p>
-                                                    <p className="text-xs text-gray-500">Assigned Therapist</p>
+                                                    <p className="text-sm font-semibold text-foreground">Dr. {child.therapist.name}</p>
+                                                    <p className="text-xs text-muted-foreground">Assigned Therapist</p>
                                                 </div>
                                             </div>
                                         </div>
                                     )}
 
                                     {child.lastSession && (
-                                        <div className="mt-3 text-xs text-gray-500 bg-gray-50 rounded-lg p-2">
+                                        <div className="mt-3 text-xs text-muted-foreground bg-muted rounded-lg p-2">
                                             <span className="font-medium">Last Session:</span> {child.lastSession}
+                                        </div>
+                                    )}
+                                    {child.nextUpcomingSession && (
+                                        <div className="mt-2 text-xs bg-primary/10 text-primary rounded-lg p-2 border border-primary/20 flex items-center gap-2 justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-medium">Next Session:</span>
+                                                <span className="font-semibold">{child.nextUpcomingSession}</span>
+                                            </div>
+                                            <Button size="sm" className="bg-primary text-white px-4 py-1 ml-4" aria-label="Join Session">
+                                                Join
+                                            </Button>
                                         </div>
                                     )}
                                 </div>
@@ -393,30 +386,31 @@ export default function ParentDashboard() {
 
                     <div className="flex flex-col gap-6">
                         {/* Schedule Session Section */}
-                        <Card className="shadow-sm hover:shadow-md transition-shadow">
-                            <CardHeader className="border-b border-gray-100 pb-4">
-                                <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                        <Card className="shadow-md border-border bg-background">
+                            <CardHeader className="border-b border-border pb-4">
+                                <CardTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
                                     <span>📅</span> Schedule Session
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="pt-6">
                                 <div className="space-y-4">
                                     {parentData.children.map(child => (
-                                        <div key={child.id} className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-4 border rounded-lg bg-blue-50 border-blue-200">
+                                        <div key={child.id} className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-4 border rounded-lg bg-accent/10 border-accent">
                                             <div className="flex flex-col md:flex-row md:items-center gap-3">
-                                                <span className="font-semibold text-gray-900">{child.firstName} {child.lastName}</span>
+                                                <span className="font-semibold text-foreground">{child.firstName} {child.lastName}</span>
                                                 {child.therapist && (
-                                                    <span className="text-sm text-gray-700">Therapist: <span className="font-medium text-purple-800">Dr. {child.therapist.name}</span></span>
+                                                    <span className="text-sm text-muted-foreground">Therapist: <span className="font-medium text-primary">Dr. {child.therapist.name}</span></span>
                                                 )}
                                             </div>
                                             <div className="flex gap-2 items-center">
+                                                
                                                 {child.therapist ? (
-                                                    <Button className="bg-[#8159A8] text-white hover:opacity-90">
+                                                    <Button className="bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-2 min-w-[150px]">
                                                         Schedule 
                                                     </Button>
                                                 ) : (
-                                                    <a href="/parent/findTherapist">
-                                                        <Button className="bg-[#8159A8] text-white hover:opacity-90">
+                                                    <a href="/parent/findTherapist" className="w-full">
+                                                        <Button className="bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-2 min-w-[150px] w-full">
                                                             Find Therapist
                                                         </Button>
                                                     </a>
@@ -429,20 +423,20 @@ export default function ParentDashboard() {
                         </Card>
 
                         {/* Recent Updates */}
-                        <Card className="shadow-sm hover:shadow-md transition-shadow">
-                            <CardHeader className="border-b border-gray-100 pb-4">
-                                <CardTitle className="text-lg font-semibold text-gray-900">Recent Updates</CardTitle>
+                        <Card className="shadow-md border-border bg-background">
+                            <CardHeader className="border-b border-border pb-4">
+                                <CardTitle className="text-lg font-semibold text-foreground">Recent Updates</CardTitle>
                             </CardHeader>
                             <CardContent className="pt-6">
                                 {parentData && parentData.recentUpdates.length > 0 ? (
                                     <div className="space-y-4">
                                         {parentData.recentUpdates.map((update) => (
-                                            <div key={update.id} className="border-l-4 pl-4 py-2 rounded-r" style={{ borderLeftColor: '#8159A8', backgroundColor: '#f7f3ff' }}>
+                                            <div key={update.id} className="border-l-4 pl-4 py-2 rounded-r  bg-primary/5">
                                                 <div className="flex items-center justify-between mb-1">
-                                                    <span className="font-semibold text-gray-900">{update.message.split(':')[0] || 'System'}</span>
-                                                    <span className="text-xs text-gray-500 bg-white px-2 py-1 rounded">{update.timestamp}</span>
+                                                    <span className="font-semibold text-foreground">{update.message.split(':')[0] || 'System'}</span>
+                                                    <span className="text-xs text-muted-foreground bg-background px-2 py-1 rounded">{update.timestamp}</span>
                                                 </div>
-                                                <p className="text-sm text-gray-700">{update.message}</p>
+                                                <p className="text-sm text-muted-foreground">{update.message}</p>
                                             </div>
                                         ))}
                                     </div>
@@ -455,8 +449,8 @@ export default function ParentDashboard() {
                                             height={400}
                                             className="mx-auto mb-6 opacity-60"
                                         />
-                                        <h3 className="text-lg font-semibold mb-2 text-gray-900">All caught up!</h3>
-                                        <p className="text-gray-500 max-w-sm mx-auto">
+                                        <h3 className="text-lg font-semibold mb-2 text-foreground">All caught up!</h3>
+                                        <p className="text-muted-foreground max-w-sm mx-auto">
                                             You&apos;re all up to date.
                                         </p>
                                     </div>
@@ -469,11 +463,11 @@ export default function ParentDashboard() {
 
             {/* No data state - show when no children or when data is null */}
             {(!parentData || (parentData && parentData.children.length === 0)) && !loading && !error && (
-                <Card className="shadow-sm">
+                <Card className="shadow-md border-border bg-background">
                     <CardContent className="text-center py-12">
-                        <Users className="h-16 w-16 text-gray-400 mb-4 mx-auto" />
-                        <h3 className="text-lg font-semibold mb-2 text-gray-900">No Children Enrolled</h3>
-                        <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                        <Users className="h-16 w-16 text-muted-foreground mb-4 mx-auto" />
+                        <h3 className="text-lg font-semibold mb-2 text-foreground">No Children Enrolled</h3>
+                        <p className="text-muted-foreground mb-6 max-w-md mx-auto">
                             You don&apos;t have any children enrolled in therapy services yet. Get started by adding your first child or connecting to an existing account.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -488,17 +482,16 @@ export default function ParentDashboard() {
                             </Button>
                             <Button
                                 onClick={() => setShowAddChild(true)}
-                                className="text-white px-6 py-2 hover:opacity-90"
-                                style={{ backgroundColor: '#8159A8' }}
+                                className="bg-primary text-primary-foreground px-6 py-2 hover:bg-primary/90"
                                 aria-label="Add a new child to start therapy services"
                             >
                                 <Plus className="h-4 w-4 mr-2" />
                                 Add New Child
                             </Button>
                         </div>
-                        <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                            <p className="text-sm text-blue-800 font-medium mb-1">Need help getting started?</p>
-                            <p className="text-xs text-blue-600">
+                        <div className="mt-6 p-4 bg-accent/10 rounded-lg border border-accent">
+                            <p className="text-sm text-accent-foreground font-medium mb-1">Need help getting started?</p>
+                            <p className="text-xs text-accent-foreground">
                                 If your child is already receiving services, ask your therapist for their Patient ID to connect their account.
                             </p>
                         </div>

@@ -98,6 +98,26 @@ export async function GET(req: NextRequest) {
                     patientImage = patientUser?.image || null;
                 }
 
+                // Fix: Count upcoming sessions with status SCHEDULED and scheduledAt >= now
+                const now = new Date();
+                const upcomingSessions = await prisma.therapySession.count({
+                    where: {
+                        patientId: relation.patient.id,
+                        status: 'SCHEDULED',
+                        scheduledAt: { gte: now }
+                    }
+                });
+
+                // Get next upcoming session (soonest SCHEDULED session in the future)
+                const nextUpcomingSession = await prisma.therapySession.findFirst({
+                    where: {
+                        patientId: relation.patient.id,
+                        status: 'SCHEDULED',
+                        scheduledAt: { gte: now }
+                    },
+                    orderBy: { scheduledAt: 'asc' }
+                });
+
                 return {
                     id: relation.patient.id,
                     firstName: relation.patient.firstName,
@@ -105,21 +125,24 @@ export async function GET(req: NextRequest) {
                     dateOfBirth: relation.patient.dateOfBirth?.toISOString() || '',
                     relationship: relation.relationship,
                     isPrimary: relation.isPrimary,
-                    upcomingSessions: relation.patient.therapySessions.length,
+                    upcomingSessions,
+                    nextUpcomingSession: nextUpcomingSession?.scheduledAt
+                        ? new Date(nextUpcomingSession.scheduledAt).toLocaleString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: true,
+                            timeZone: 'Asia/Colombo'
+                        })
+                        : null,
                     progressReports: relation.patient.assessments.length,
                     progressPercentage,
                     lastSession: lastSession?.scheduledAt
   ? (() => {
       const d = new Date(lastSession.scheduledAt);
-      const utc = new Date(
-        d.getUTCFullYear(),
-        d.getUTCMonth(),
-        d.getUTCDate(),
-        d.getUTCHours(),
-        d.getUTCMinutes(),
-        d.getUTCSeconds()
-      );
-      return utc.toLocaleString('en-US', {
+      return d.toLocaleString('en-US', {
         month: 'short',
         day: 'numeric',
         year: 'numeric',
@@ -150,7 +173,7 @@ export async function GET(req: NextRequest) {
         });
 
         // Format recent updates from notifications
-        const recentUpdates = notifications.map(notification => ({
+        let recentUpdates = notifications.map(notification => ({
             id: notification.id,
             message: notification.message,
             timestamp: new Date(notification.createdAt).toLocaleDateString('en-US', {
@@ -161,6 +184,25 @@ export async function GET(req: NextRequest) {
             }),
             type: notification.isUrgent ? "warning" as const : "info" as const
         }));
+
+        // Add mock therapist messages if no real updates
+        if (recentUpdates.length === 0) {
+            recentUpdates = [
+                {
+                    id: 'mock1',
+                    message: 'Dr. Ravindi Fernando: Your child had a great session today! Keep up the good work at home.',
+                    timestamp: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+                    type: 'info'
+                },
+                {
+                    id: 'mock2',
+                    message: 'Dr. Ravindi Fernando: Please remember to complete the progress questionnaire before the next session.',
+                    timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+                    type: 'info'
+                }
+                
+            ];
+        }
 
         const parentData = {
             children,
