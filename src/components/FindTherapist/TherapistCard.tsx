@@ -8,7 +8,6 @@ import {
   Clock,
   AlertCircle,
   CheckCircle,
-  Calendar,
   Coins
 } from "lucide-react";
 import Image from "next/image";
@@ -173,8 +172,8 @@ export function TherapistCard({ therapist, bookingStatus, onBookSession, onViewP
                 </div>
               )}
               <span className={bookingStatus && bookingStatus !== 'idle' ? 'invisible' : 'flex items-center'}>
-                <Calendar className="w-3 h-3 mr-1" />
-                Book Session
+                <Users className="w-3 h-3 mr-1" />
+                Connect
               </span>
             </Button>
             <Button 

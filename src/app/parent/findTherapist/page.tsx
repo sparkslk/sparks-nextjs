@@ -412,7 +412,7 @@ export default function FindTherapistPage() {
                     )}
 
                     {/* Current Therapist Section */}
-                    {currentTherapist && (
+                    {/* {currentTherapist && (
                         <div className="space-y-6">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 bg-gradient-to-r from-primary/20 to-purple-500/20 rounded-full flex items-center justify-center">
@@ -468,7 +468,7 @@ export default function FindTherapistPage() {
                                 </p>
                             </div>
                         </div>
-                    )}
+                    )} */}
 
                     {/* Search and Filters */}
                     <div className="space-y-3">
