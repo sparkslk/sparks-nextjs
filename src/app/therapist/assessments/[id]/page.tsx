@@ -1,4 +1,6 @@
+
 "use client";
+import React from "react";
 
 import { useSession } from "next-auth/react";
 import { useRouter, useParams } from "next/navigation";
@@ -30,37 +32,26 @@ interface Assessment {
     email: string;
     completedAt?: string;
     score?: number;
-    responses?: any;
+    responses?: unknown;
   }[];
   averageScore?: number;
   completionRate: number;
 }
 
+
 export default function AssessmentDetailsPage() {
-  const { data: session, status: authStatus } = useSession();
+  const { status: authStatus } = useSession();
   const router = useRouter();
   const params = useParams();
   const assessmentId = params.id as string;
-  
+
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (authStatus === "unauthenticated") {
-      router.push("/login");
-      return;
-    }
-
-    if (authStatus === "authenticated" && assessmentId) {
-      fetchAssessment();
-    }
-  }, [authStatus, router, assessmentId]);
-
-  const fetchAssessment = async () => {
+  const fetchAssessment = React.useCallback(async () => {
     setLoading(true);
     setError(null);
-
     try {
       // Mock data - replace with actual API call
       const mockAssessment: Assessment = {
@@ -116,7 +107,6 @@ export default function AssessmentDetailsPage() {
         averageScore: 78.5,
         completionRate: 67, // 2 out of 3 completed
       };
-
       setAssessment(mockAssessment);
     } catch (err) {
       console.error("Error fetching assessment:", err);
@@ -124,7 +114,18 @@ export default function AssessmentDetailsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [assessmentId]);
+
+  useEffect(() => {
+    if (authStatus === "unauthenticated") {
+      router.push("/login");
+      return;
+    }
+
+    if (authStatus === "authenticated" && assessmentId) {
+      fetchAssessment();
+    }
+  }, [authStatus, router, assessmentId, fetchAssessment]);
 
   const getTypeBadgeColor = (type: string) => {
     switch (type) {

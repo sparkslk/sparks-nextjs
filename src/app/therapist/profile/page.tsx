@@ -1,4 +1,6 @@
+
 "use client";
+import { Edit3, X, Save, Award, Mail, FileText, Building, Clock, Star } from "lucide-react";
 
 import * as React from "react";
 import { useState, useEffect } from "react";
@@ -7,29 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import {
-  User,
-  Mail,
-  Phone,
-  MapPin,
-  Calendar,
-  Award,
-  BookOpen,
-  Clock,
-  Edit3,
-  Save,
-  X,
-  Building,
-  Star,
-  Users,
-  FileText,
-  TrendingUp,
-} from "lucide-react";
 import { toast } from "sonner";
 import { ProfileStatsCard, SpecializationDisplay } from "@/components/therapist/ProfileComponents";
 import { ProfileLoadingSkeleton } from "@/components/therapist/ProfileLoadingSkeleton";
@@ -40,7 +21,7 @@ interface TherapistProfile {
   specialization: string[];
   experience: number;
   bio: string;
-  availability: any;
+  availability: unknown;
   rating?: number;
   user: {
     id: string;
@@ -166,7 +147,7 @@ export default function TherapistProfilePage() {
     }
   };
 
-  const handleInputChange = (field: string, value: any) => {
+  const handleInputChange = (field: string, value: unknown) => {
     setEditedProfile(prev => ({
       ...prev,
       [field]: value,

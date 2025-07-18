@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Search, Phone, Video, MoreVertical, Send, Paperclip, Smile, Clock, CheckCheck, Check } from "lucide-react";
+import { Search, Send, Paperclip, Smile, Clock, CheckCheck, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ChatMessage {

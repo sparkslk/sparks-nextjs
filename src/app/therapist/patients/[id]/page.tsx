@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Calendar, Clock, User, FileText, Activity, Eye, ArrowLeft } from "lucide-react";
+import { Calendar, Clock, User, FileText, Eye, ArrowLeft } from "lucide-react";
 import MedicationManagement from "@/components/therapist/MedicationManagement";
 import { Medication } from "@/types/medications";
 
@@ -777,20 +777,6 @@ export default function PatientDetailsPage() {
                 {/* Session Cards */}
                 <div className="space-y-8">
                   {getFilteredSessions().length > 0 ? getFilteredSessions().map((session, index) => {
-                    const getStatusColor = (status: string) => {
-                      switch (status) {
-                        case 'COMPLETED':
-                          return 'bg-green-400';
-                        case 'SCHEDULED':
-                        case 'APPROVED':
-                          return 'bg-blue-400';
-                        case 'CANCELLED':
-                        case 'NO_SHOW':
-                          return 'bg-red-400';
-                        default:
-                          return 'bg-gray-400';
-                      }
-                    };
 
                     const getProgressText = (overallProgress: string) => {
                       switch (overallProgress) {

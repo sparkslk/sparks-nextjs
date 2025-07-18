@@ -18,7 +18,6 @@ import {
   Phone,
   Mail,
   Heart,
-  Download,
   AlertCircle,
   CheckCircle,
   XCircle,

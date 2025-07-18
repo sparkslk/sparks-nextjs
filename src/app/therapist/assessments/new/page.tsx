@@ -28,9 +28,8 @@ interface Patient {
 }
 
 export default function NewAssessmentPage() {
-  const { data: session, status: authStatus } = useSession();
+  const { status: authStatus } = useSession();
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   
   // Form state
@@ -43,9 +42,14 @@ export default function NewAssessmentPage() {
   const [patients, setPatients] = useState<Patient[]>([]);
 
   // Question form state
-  const [newQuestion, setNewQuestion] = useState({
+  const [newQuestion, setNewQuestion] = useState<{
+    text: string;
+    type: "multiple_choice" | "text" | "scale" | "yes_no";
+    options: string[];
+    required: boolean;
+  }>({
     text: "",
-    type: "multiple_choice" as const,
+    type: "multiple_choice",
     options: [""],
     required: true,
   });
@@ -144,19 +148,8 @@ export default function NewAssessmentPage() {
 
     setSaving(true);
     try {
-      const assessmentData = {
-        title,
-        description,
-        type,
-        assessmentDate: assessmentDate || new Date().toISOString().split('T')[0],
-        questions,
-        assignedPatients: selectedPatients,
-      };
-
-      
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
       alert("Assessment created successfully!");
       router.push("/therapist/assessments");
     } catch (error) {
@@ -227,7 +220,7 @@ export default function NewAssessmentPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="type">Assessment Type *</Label>
-                    <Select value={type} onValueChange={(value: any) => setType(value)}>
+                    <Select value={type} onValueChange={(value: string) => setType(value as typeof type)}>
                       <SelectTrigger className="mt-1">
                         <SelectValue placeholder="Select type" />
                       </SelectTrigger>
@@ -321,7 +314,7 @@ export default function NewAssessmentPage() {
                       <Label htmlFor="questionType">Question Type</Label>
                       <Select 
                         value={newQuestion.type} 
-                        onValueChange={(value: any) => setNewQuestion({ ...newQuestion, type: value, options: value === "multiple_choice" ? [""] : [] })}
+                        onValueChange={(value: string) => setNewQuestion({ ...newQuestion, type: value as Question["type"], options: value === "multiple_choice" ? [""] : [] })}
                       >
                         <SelectTrigger className="mt-1">
                           <SelectValue />
