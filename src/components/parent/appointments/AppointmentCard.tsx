@@ -2,7 +2,7 @@
 
 import { Card,  CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, User, CalendarDays, Video, CheckCircle, MessageCircle } from "lucide-react";
+import { Calendar, Clock, User, CalendarDays, Video, CheckCircle } from "lucide-react";
 import { Child, Appointment } from "@/types/appointments";
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -96,9 +96,27 @@ export default function AppointmentCard({
           {filteredUpcoming.map((appointment: Appointment & { childFirstName?: string; childLastName?: string }) => (
             <div
               key={appointment.id}
-              className="session-card upcoming relative flex flex-col sm:flex-row items-start sm:items-center justify-between p-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl border border-green-200 shadow transition-all duration-300 transform text-lg"
-              style={{ minHeight: '110px' }}
+              className="session-card upcoming relative flex flex-col p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl border border-green-200 shadow transition-all duration-300 transform text-lg"
+              style={{ minHeight: '90px' }}
             >
+              {/* Action buttons at top right */}
+              <div className="absolute top-4 right-4 flex gap-2 z-20">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  style={{ color: '#059669', borderColor: '#059669' }}
+                  className="hover:bg-green-50 text-base px-4 py-2 min-w-[110px]"
+                >
+                  Reschedule
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-red-600 border-red-600 hover:bg-red-50 text-base px-4 py-2 min-w-[110px]"
+                >
+                  Cancel
+                </Button>
+              </div>
               {/* Patient name with improved styling */}
               {appointment.childFirstName && appointment.childLastName && (
                 <div className="absolute left-4 top-4 right-4 flex items-center justify-between z-10">
@@ -112,54 +130,36 @@ export default function AppointmentCard({
                   </div>
                 </div>
               )}
-              
-              <div className="flex items-center space-x-6 w-full" style={{ marginTop: appointment.childFirstName ? '2rem' : '0' }}>
+              <div className="flex items-center space-x-6 w-full mt-8">
                 <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center">
                   {appointment.mode === 'Virtual' ? (
-                    <Video className="w-7 h-7" style={{ color: '#8159A8' }} />
+                    <Video className="w-7 h-7" style={{ color: '#059669' }} />
                   ) : (
-                    <Calendar className="w-7 h-7" style={{ color: '#8159A8' }} />
+                    <Calendar className="w-7 h-7" style={{ color: '#059669' }} />
                   )}
                 </div>
                 <div className="flex flex-row gap-6 sm:gap-12 items-center flex-wrap">
                   <div className="flex flex-row items-center gap-2">
-                    <Calendar className="w-5 h-5" style={{ color: '#8159A8' }} />
+                    <Calendar className="w-5 h-5" style={{ color: '#059669' }} />
                     <span className="text-sm text-gray-500">Date:</span>
                     <span className="font-semibold text-gray-900 text-sm ml-1">{formatSriLankaDateTime(appointment.date, { dateStyle: 'medium' })}</span>
                   </div>
                   <div className="flex flex-row items-center gap-2">
-                    <Clock className="w-5 h-5" style={{ color: '#8159A8' }} />
+                    <Clock className="w-5 h-5" style={{ color: '#059669' }} />
                     <span className="text-sm text-gray-500">Time:</span>
                     <span className="font-semibold text-gray-900 text-sm ml-1">{appointment.time}</span>
                   </div>
                   <div className="flex flex-row items-center gap-2">
-                    <User className="w-5 h-5" style={{ color: '#8159A8' }} />
+                    <User className="w-5 h-5" style={{ color: '#059669' }} />
                     <span className="text-sm text-gray-500">Type:</span>
                     <span className="font-semibold text-gray-900 text-sm ml-1">{appointment.type}</span>
                   </div>
                   <div className="flex flex-row items-center gap-2">
-                    <CheckCircle className="w-5 h-5" style={{ color: '#8159A8' }} />
+                    <CheckCircle className="w-5 h-5" style={{ color: '#059669' }} />
                     <span className="text-sm text-gray-500">Duration:</span>
                     <span className="font-semibold text-gray-900 text-sm ml-1">{appointment.duration} min</span>
                   </div>
                 </div>
-              </div>
-              <div className="flex items-center space-x-3 mt-4 sm:mt-0 w-full sm:w-auto justify-end sm:justify-start">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  style={{ color: '#8159A8', borderColor: '#8159A8' }}
-                  className="hover:bg-purple-50 text-base px-4 py-2"
-                >
-                  Reschedule
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-red-600 border-red-600 hover:bg-red-50 text-base px-4 py-2"
-                >
-                  Cancel
-                </Button>
               </div>
             </div>
           ))}
@@ -184,9 +184,21 @@ export default function AppointmentCard({
           {filteredPast.map((appointment: Appointment & { childFirstName?: string; childLastName?: string }) => (
             <div
               key={appointment.id}
-              className="session-card past relative flex flex-col sm:flex-row items-start sm:items-center justify-between p-6 bg-gradient-to-r from-gray-50 to-slate-50 rounded-2xl border border-gray-200 shadow transition-all duration-300 transform text-lg"
-              style={{ minHeight: '110px' }}
+              className="session-card past relative flex flex-col p-4 bg-gradient-to-r from-[var(--color-card)] to-[var(--color-secondary)] rounded-2xl border border-[var(--color-border)] shadow transition-all duration-300 transform text-lg"
+              style={{ minHeight: '90px' }}
             >
+              {/* Action button at top right */}
+              <div className="absolute top-4 right-4 flex gap-2 z-20">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  style={{ color: 'var(--color-primary)', borderColor: 'var(--color-primary)' }}
+                  className="hover:bg-[var(--color-primary-foreground)] text-base px-4 py-2 min-w-[110px]"
+                  onClick={() => window.location.href = `/parent/sessions/${appointment.id}`}
+                >
+                  View Details
+                </Button>
+              </div>
               {/* Patient name with improved styling */}
               {appointment.childFirstName && appointment.childLastName && (
                 <div className="absolute left-4 top-4 right-4 flex items-center justify-between z-10">
@@ -200,44 +212,32 @@ export default function AppointmentCard({
                   </div>
                 </div>
               )}
-              <div className="flex items-center space-x-6 w-full" style={{ marginTop: appointment.childFirstName ? '2rem' : '0' }}>
-                <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center">
-                  <CheckCircle className="w-7 h-7" style={{ color: '#8159A8' }} />
+              <div className="flex items-center space-x-6 w-full mt-8">
+                <div className="w-14 h-14 bg-[var(--color-card)] rounded-full flex items-center justify-center">
+                  <CheckCircle className="w-7 h-7" style={{ color: 'var(--color-primary)' }} />
                 </div>
                 <div className="flex flex-row gap-6 sm:gap-12 items-center flex-wrap">
                   <div className="flex flex-row items-center gap-2">
-                    <Calendar className="w-5 h-5" style={{ color: '#8159A8' }} />
+                    <Calendar className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
                     <span className="text-sm text-gray-500">Date:</span>
                     <span className="font-semibold text-gray-900 text-sm ml-1">{formatDate(appointment.date)}</span>
                   </div>
                   <div className="flex flex-row items-center gap-2">
-                    <Clock className="w-5 h-5" style={{ color: '#8159A8' }} />
+                    <Clock className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
                     <span className="text-sm text-gray-500">Time:</span>
                     <span className="font-semibold text-gray-900 text-sm ml-1">{appointment.time}</span>
                   </div>
                   <div className="flex flex-row items-center gap-2">
-                    <User className="w-5 h-5" style={{ color: '#8159A8' }} />
+                    <User className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
                     <span className="text-sm text-gray-500">Type:</span>
                     <span className="font-semibold text-gray-900 text-sm ml-1">{appointment.type}</span>
                   </div>
                   <div className="flex flex-row items-center gap-2">
-                    <CheckCircle className="w-5 h-5" style={{ color: '#8159A8' }} />
+                    <CheckCircle className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
                     <span className="text-sm text-gray-500">Duration:</span>
                     <span className="font-semibold text-gray-900 text-sm ml-1">{appointment.duration} min</span>
                   </div>
                 </div>
-              </div>
-              <div className="flex items-center space-x-3 mt-4 sm:mt-0 w-full sm:w-auto justify-end sm:justify-start">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  style={{ color: '#8159A8', borderColor: '#8159A8' }}
-                  className="hover:bg-purple-50 text-base px-4 py-2"
-                  onClick={() => window.location.href = `/parent/sessions/${appointment.id}`}
-                >
-                  <MessageCircle className="w-5 h-5 mr-2" style={{ color: '#8159A8' }} />
-                  View Details
-                </Button>
               </div>
             </div>
           ))}
@@ -262,8 +262,8 @@ export default function AppointmentCard({
           {filteredCancelled.map((appointment: Appointment & { childFirstName?: string; childLastName?: string }) => (
             <div
               key={appointment.id}
-              className="session-card cancelled relative flex flex-col sm:flex-row items-start sm:items-center justify-between p-6 bg-gradient-to-r from-red-50 to-pink-50 rounded-2xl border border-red-200 shadow transition-all duration-300 transform text-lg"
-              style={{ minHeight: '110px' }}
+              className="session-card cancelled relative flex flex-col p-4 bg-gradient-to-r from-[var(--color-destructive)]/10 to-[var(--color-destructive)]/5 rounded-2xl border border-[var(--color-destructive)] shadow transition-all duration-300 transform text-lg"
+              style={{ minHeight: '90px' }}
             >
               {/* Patient name with improved styling */}
               {appointment.childFirstName && appointment.childLastName && (
@@ -281,28 +281,28 @@ export default function AppointmentCard({
                   </span>
                 </div>
               )}
-              <div className="flex items-center space-x-6 w-full" style={{ marginTop: appointment.childFirstName ? '2rem' : '0' }}>
-                <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center">
-                  <Calendar className="w-7 h-7" style={{ color: '#8159A8' }} />
+              <div className="flex items-center space-x-6 w-full mt-8">
+                <div className="w-14 h-14 bg-[var(--color-destructive)]/10 rounded-full flex items-center justify-center">
+                  <Calendar className="w-7 h-7" style={{ color: 'var(--color-primary)' }} />
                 </div>
                 <div className="flex flex-row gap-6 sm:gap-12 items-center flex-wrap">
                   <div className="flex flex-row items-center gap-2">
-                    <Calendar className="w-5 h-5" style={{ color: '#8159A8' }} />
+                    <Calendar className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
                     <span className="text-sm text-gray-500">Date:</span>
                     <span className="font-semibold text-gray-900 text-sm ml-1">{formatDate(appointment.date)}</span>
                   </div>
                   <div className="flex flex-row items-center gap-2">
-                    <Clock className="w-5 h-5" style={{ color: '#8159A8' }} />
+                    <Clock className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
                     <span className="text-sm text-gray-500">Time:</span>
                     <span className="font-semibold text-gray-900 text-sm ml-1">{appointment.time}</span>
                   </div>
                   <div className="flex flex-row items-center gap-2">
-                    <User className="w-5 h-5" style={{ color: '#8159A8' }} />
+                    <User className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
                     <span className="text-sm text-gray-500">Type:</span>
                     <span className="font-semibold text-gray-900 text-sm ml-1">{appointment.type}</span>
                   </div>
                   <div className="flex flex-row items-center gap-2">
-                    <CheckCircle className="w-5 h-5" style={{ color: '#8159A8' }} />
+                    <CheckCircle className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
                     <span className="text-sm text-gray-500">Duration:</span>
                     <span className="font-semibold text-gray-900 text-sm ml-1">{appointment.duration} min</span>
                   </div>
@@ -343,7 +343,7 @@ export default function AppointmentCard({
         </p>
         <Button
           className="text-white hover:opacity-90 transition-all duration-300 shadow-md text-sm"
-          style={{ backgroundColor: '#8159A8' }}
+          style={{ backgroundColor: 'var(--color-primary)' }}
           onClick={() => window.location.href = '/parent/findTherapist'}
         >
           {child.therapist ? "Book Session" : "Find a Therapist"}
@@ -353,17 +353,17 @@ export default function AppointmentCard({
   );
 
   return (
-    <Card className={`appointments-card bg-white/80 backdrop-blur-sm shadow-lg border hover:shadow-xl transition-all duration-300 ${
+    <Card className={`appointments-card bg-[var(--color-card)]/80 backdrop-blur-sm shadow-lg border hover:shadow-xl transition-all duration-300 ${
       isHighlighted 
-        ? 'border-purple-500 ring-2 ring-purple-500/20 shadow-purple-200/50' 
-        : 'border-white/20'
+        ? 'border-[var(--color-primary)] ring-2 ring-[var(--color-primary)]/20 shadow-[var(--color-primary)]/20' 
+        : 'border-[var(--color-border)]'
     }`}>
       <CardHeader className="pb-3 px-3 sm:px-6">
         <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-0">
           <div className="flex items-center space-x-3">
             {child.id !== "all" && (
               <div className="relative">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg" style={{ backgroundColor: '#8159A8' }}>
+                <div className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg" style={{ backgroundColor: 'var(--color-primary)' }}>
                   <span className="font-bold text-white text-sm">
                     {child.firstName?.[0]?.toUpperCase()}{child.lastName?.[0]?.toUpperCase()}
                   </span>
@@ -386,7 +386,7 @@ export default function AppointmentCard({
             <Button
               size="sm"
               className="text-white hover:opacity-90 transition-all duration-300 shadow-md text-xs px-3 py-1"
-              style={{ backgroundColor: '#8159A8' }}
+              style={{ backgroundColor: 'var(--color-primary)' }}
               onClick={() => window.location.href = '/parent/bookSession'}
             >
               Book Session
@@ -398,13 +398,13 @@ export default function AppointmentCard({
       {/* Therapist Information */}
       {child.therapist && (upcomingAppointments.length > 0 || pastAppointments.length > 0) && (
         <div 
-          className="therapist-info p-2 sm:p-3 bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg border cursor-pointer shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 transform mx-2 sm:mx-6 mt-2 mb-2" 
-          style={{ borderColor: '#8159A8' }}
+          className="therapist-info p-2 sm:p-3 bg-gradient-to-r from-[var(--color-primary-foreground)] to-[var(--color-secondary)] rounded-lg border cursor-pointer shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 transform mx-2 sm:mx-6 mt-2 mb-2" 
+          style={{ borderColor: 'var(--color-primary)' }}
           onClick={() => onTherapistClick(child.therapist)}
         >
           <div className="flex items-center space-x-2">
-            <User className="w-3 h-3" style={{ color: '#8159A8' }} />
-            <p className="text-xs" style={{ color: '#8159A8' }}>
+            <User className="w-3 h-3" style={{ color: 'var(--color-primary)' }} />
+            <p className="text-xs" style={{ color: 'var(--color-primary)' }}>
               {child.firstName}&apos;s therapist is{' '}
               <span className="font-semibold">
                 {child.therapist.name || 'Unknown Therapist'}
@@ -417,7 +417,7 @@ export default function AppointmentCard({
       {/* Tabs for Sessions */}
       <div className="px-2 sm:px-6 pt-2 pb-4">
         <Tabs value={activeTab} onValueChange={(value: string) => setActiveTab(value as 'upcoming' | 'completed' | 'cancelled' | 'all')} className="w-full">
-          <TabsList className="w-full flex bg-[#f6f8fa] rounded-2xl border border-gray-200 shadow-sm">
+          <TabsList className="w-full flex bg-[var(--color-secondary)]/30 rounded-2xl border border-[var(--color-border)] shadow-sm">
             <TabsTrigger value="upcoming" className="flex-1 text-xs sm:text-sm">
               Upcoming ({upcomingAppointments.length})
             </TabsTrigger>
