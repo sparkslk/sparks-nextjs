@@ -519,8 +519,8 @@ export default function PatientDetailsPage() {
         {/* Tabs */}
         <Card className="shadow-sm hover:shadow-md transition-shadow bg-white dark:bg-slate-950">
           <CardContent className="p-6">
-            <Tabs defaultValue="info" value={tab} onValueChange={setTab} className="w-full">              
-                <TabsList className="grid w-full grid-cols-6 mb-6">
+            <Tabs defaultValue="info" value={tab} onValueChange={setTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-6 mb-6">
                 <TabsTrigger value="info" className="text-xs sm:text-sm">Information</TabsTrigger>
                 <TabsTrigger value="sessions" className="text-xs sm:text-sm">Sessions</TabsTrigger>
                 <TabsTrigger value="medications" className="text-xs sm:text-sm">Medication</TabsTrigger>
