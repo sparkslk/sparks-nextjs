@@ -4,10 +4,10 @@ import { useState, useEffect, Fragment } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import {
-    TherapistSearchBar,
-    TherapistFilters,
+    TherapistSearchBar, 
     TherapistCard,
-    TherapistEmptyState
+    TherapistEmptyState,
+    TherapistFilters
 } from "@/components/FindTherapist";
 import { Dialog, Transition } from "@headlessui/react";
 
@@ -525,6 +525,7 @@ export default function FindTherapistPage() {
                         </div>
                     </div> */}
 
+                    
                     {/* Therapists Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-7">
                         {filteredTherapists.map((therapist) => (
