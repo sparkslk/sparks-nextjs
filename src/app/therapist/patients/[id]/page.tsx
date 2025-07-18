@@ -69,6 +69,8 @@ export default function PatientDetailsPage() {
   const [therapistFilter, setTherapistFilter] = useState("");
   const [sortFilter, setSortFilter] = useState("date-desc");
 
+  
+
   // Filter function
   const getFilteredSessions = () => {
     if (!sessionHistory) return [];
@@ -314,72 +316,26 @@ export default function PatientDetailsPage() {
   };
 
   // Assigned Tasks data
-  const assignedTasks = [
-    {
-      id: 1,
-      title: "Daily Mindfulness Practice",
-      description: "Practice mindfulness meditation for 10 minutes every morning",
-      assignedDate: "June 18, 2025",
-      dueDate: "July 18, 2025",
-      status: "In Progress",
-      priority: "High",
-      progress: 65,
-      category: "Mindfulness",
-      instructions: "Use the Headspace app or guided meditation videos. Focus on breathing exercises and body awareness.",
-      completedSessions: 13,
-      totalSessions: 20,
-      lastCompleted: "June 27, 2025",
-      notes: "Patient showing good consistency. Reports feeling more calm and focused during work hours."
-    },
-    {
-      id: 2,
-      title: "Time Management Tracking",
-      description: "Use a planner to break down large tasks into smaller, manageable steps",
-      assignedDate: "June 11, 2025",
-      dueDate: "July 11, 2025",
-      status: "Completed",
-      priority: "Medium",
-      progress: 100,
-      category: "Organization",
-      instructions: "Create daily task lists, prioritize activities, and track completion times. Review weekly with therapist.",
-      completedSessions: 15,
-      totalSessions: 15,
-      lastCompleted: "June 25, 2025",
-      notes: "Successfully implemented organizational system. Patient reports significant improvement in work productivity."
-    },
-    {
-      id: 3,
-      title: "Attention Span Exercises",
-      description: "Complete focused attention exercises using cognitive training apps",
-      assignedDate: "June 20, 2025",
-      dueDate: "July 20, 2025",
-      status: "Pending",
-      priority: "Medium",
-      progress: 25,
-      category: "Cognitive Training",
-      instructions: "Use Lumosity or similar apps for 15 minutes daily. Focus on attention and memory games.",
-      completedSessions: 5,
-      totalSessions: 20,
-      lastCompleted: "June 26, 2025",
-      notes: "Started recently. Initial results show improvement in sustained attention tasks."
-    },
-    {
-      id: 4,
-      title: "Sleep Hygiene Implementation",
-      description: "Follow sleep routine guidelines to improve rest quality",
-      assignedDate: "June 15, 2025",
-      dueDate: "July 15, 2025",
-      status: "Overdue",
-      priority: "High",
-      progress: 40,
-      category: "Lifestyle",
-      instructions: "Maintain consistent bedtime, avoid screens 1 hour before sleep, create relaxing bedtime routine.",
-      completedSessions: 8,
-      totalSessions: 20,
-      lastCompleted: "June 22, 2025",
-      notes: "Patient struggling with consistency due to work demands. Need to discuss flexible alternatives."
-    }
-  ];
+  const assignedAssessments = [
+  {
+    id: "1",
+    title: "Auditory Processing - Listening Task",
+    type: "LISTENING_TASK",
+    assignedDate: "July 10, 2024",
+    status: "Completed",
+    score: 78,
+    completedAt: "July 22, 2024",
+  },
+  {
+    id: "2",
+    title: "Visual Perception - Picture Description",
+    type: "PICTURE_DESCRIPTION",
+    assignedDate: "July 8, 2024",
+    status: "Pending",
+    score: null,
+    completedAt: null,
+  },
+];
 
   // Uploaded Documents data
   const uploadedDocuments = [
@@ -523,7 +479,6 @@ export default function PatientDetailsPage() {
                 <TabsTrigger value="info" className="text-xs sm:text-sm">Information</TabsTrigger>
                 <TabsTrigger value="sessions" className="text-xs sm:text-sm">Sessions</TabsTrigger>
                 <TabsTrigger value="medications" className="text-xs sm:text-sm">Medication</TabsTrigger>
-                <TabsTrigger value="history" className="text-xs sm:text-sm">Medical History</TabsTrigger>
                 <TabsTrigger value="tasks" className="text-xs sm:text-sm">Tasks</TabsTrigger>
                 <TabsTrigger value="docs" className="text-xs sm:text-sm">Documents</TabsTrigger>
               </TabsList>
@@ -573,7 +528,7 @@ export default function PatientDetailsPage() {
                     <p className="text-gray-600 text-sm sm:text-base">Track progress and therapy milestones</p>
                   </div>
                   <div className="w-full sm:w-auto">
-                    <div className="grid grid-cols-3 gap-4 text-center">
+                    <div className="grid grid-cols-2 gap-4 text-center">
                       <Card className="shadow-sm hover:shadow-md transition-shadow bg-white dark:bg-slate-950">
                         <CardContent className="p-3">
                           <div className="text-lg sm:text-2xl font-bold" style={{ color: '#8159A8' }}>
@@ -594,16 +549,7 @@ export default function PatientDetailsPage() {
                         </CardContent>
                       </Card>
                       
-                      <Card className="shadow-sm hover:shadow-md transition-shadow bg-white dark:bg-slate-950">
-                        <CardContent className="p-3">
-                          <div className="text-lg sm:text-2xl font-bold" style={{ color: '#8159A8' }}>
-                            {getFilteredSessions().length > 0 ? new Date(getFilteredSessions()[0].scheduledAt).getDate() : "-"}
-                          </div>
-                          <div className="text-xs sm:text-sm text-gray-600">
-                            {getFilteredSessions().length > 0 ? new Date(getFilteredSessions()[0].scheduledAt).toLocaleDateString('en-US', { month: 'short' }) : "No Data"}
-                          </div>
-                        </CardContent>
-                      </Card>
+                      
                     </div>
                   </div>
                 </div>
@@ -1144,308 +1090,97 @@ export default function PatientDetailsPage() {
             patientId={params.id as string} 
             medications={medications}
             onMedicationUpdate={() => fetchMedications(params.id as string)}
-          />
+          />       
         </TabsContent>
 
-        <TabsContent value="history" className="pt-6">
-          {medicalHistory ? (
-            <div className="space-y-6">
-              {/* Medical History Header */}
-              <div className="bg-transparent">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h3 className="text-2xl font-bold mb-2 text-[#8159A8]">Medical History</h3>
-                    <p className="text-gray-600">Track medication adherence and patterns</p>
-                  </div>
-                  <div className="text-right">
-                    <div className="grid grid-cols-3 gap-4 text-center">
-                      <div className="bg-gray-50 rounded-lg p-3 border">
-                        <div className="text-2xl font-bold text-[#8159A8]">{medicalHistory.adherenceRate}</div>
-                        <div className="text-sm text-gray-600">Adherence Rate</div>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-3 border">
-                        <div className="text-2xl font-bold text-[#8159A8]">{medicalHistory.currentStreak}</div>
-                        <div className="text-sm text-gray-600">Current Streak</div>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-3 border">
-                        <div className="text-2xl font-bold text-[#8159A8]">{medicalHistory.totalDoses}</div>
-                        <div className="text-sm text-gray-600">Total Doses</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+      
 
-              {/* Controls */}
+        <TabsContent value="tasks" className="pt-6">
+          {assignedAssessments && assignedAssessments.length > 0 ? (
+          <div className="space-y-6">
+            {/* Assigned Assessments Header */}
+            <div className="bg-transparent">
               <div className="flex justify-between items-center">
-                <div className="flex gap-2">
-                  <select className="border rounded-lg px-3 py-2 text-sm bg-white shadow-sm">
-                    <option>Last 3 Months</option>
-                    <option>Last 6 Months</option>
-                    <option>Last Year</option>
-                  </select>
-                  <select className="border rounded-lg px-3 py-2 text-sm bg-white shadow-sm">
-                    <option>All Medications</option>
-                    <option>Adderall XR</option>
-                    <option>Strattera</option>
-                  </select>
+                <div>
+                  <h3 className="text-2xl font-bold mb-2 text-[#8159A8]">Assigned Assessments</h3>
+                  <p className="text-gray-600">Assessments assigned by the therapist</p>
                 </div>
-                <Button variant="outline" size="sm" className="bg-white">Export Report</Button>
-              </div>
-
-              {/* Statistics Cards */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-white p-6 rounded-xl border shadow-md text-center">
-                  <div className="text-2xl font-bold text-green-600">{medicalHistory.adherenceRate}</div>
-                  <div className="text-sm text-gray-600">Overall Adherence Rate</div>
-                </div>
-                <div className="bg-white p-6 rounded-xl border shadow-md text-center">
-                  <div className="text-2xl font-bold text-red-600">{medicalHistory.missedDoses}</div>
-                  <div className="text-sm text-gray-600">Missed Doses (30 days)</div>
-                </div>
-                <div className="bg-white p-6 rounded-xl border shadow-md text-center">
-                  <div className="text-2xl font-bold text-[#8159A8]">{medicalHistory.totalDoses}</div>
-                  <div className="text-sm text-gray-600">Total Doses Taken</div>
-                </div>
-                <div className="bg-white p-6 rounded-xl border shadow-md text-center">
-                  <div className="text-2xl font-bold text-orange-600">{medicalHistory.currentStreak}</div>
-                  <div className="text-sm text-gray-600">Current Streak (days)</div>
-                </div>
-              </div>
-
-              {/* Weekly Adherence Pattern */}
-              <div className="bg-white p-6 rounded-xl border shadow-md">
-                <h4 className="text-lg font-semibold text-[#8159A8] mb-4">Weekly Adherence Pattern</h4>
-                <div className="flex gap-2 mb-4">
-                  <span className="flex items-center gap-1 text-sm">
-                    <div className="w-3 h-3 bg-green-500 rounded"></div>
-                    Taken
-                  </span>
-                  <span className="flex items-center gap-1 text-sm">
-                    <div className="w-3 h-3 bg-red-500 rounded"></div>
-                    Missed
-                  </span>
-                </div>
-                <div className="flex gap-2">
-                  {medicalHistory.weeklyPattern.map((day, index) => (
-                    <div key={index} className="flex-1">
-                      <div className="text-xs text-center mb-2 font-medium">{day.day}</div>
-                      <div className={`h-12 rounded-lg ${
-                        day.status === 'taken' ? 'bg-green-500' : 'bg-red-500'
-                      }`}></div>
+                <div className="text-right">
+                  <div className="grid grid-cols-3 gap-4 text-center">
+                    <div className="bg-gray-50 rounded-lg p-3 border">
+                      <div className="text-2xl font-bold text-[#8159A8]">{assignedAssessments.length}</div>
+                      <div className="text-sm text-gray-600">Total</div>
                     </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Detailed Medication History */}
-              <div className="bg-white p-6 rounded-xl border shadow-md">
-                <h4 className="text-lg font-semibold text-[#8159A8] mb-2">Detailed Medication History</h4>
-                <p className="text-sm text-gray-600 mb-6">Chronological view of all medication events and adherence patterns</p>
-                
-                <div className="space-y-4">
-                  {medicalHistory.detailedHistory.map((entry) => (
-                    <div key={entry.id} className="flex gap-4 p-4 border-l-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors" 
-                         style={{borderLeftColor: 
-                           entry.status === 'EXCELLENT' ? '#10b981' : 
-                           entry.status === 'PARTIAL' ? '#f59e0b' : '#ef4444'
-                         }}>
-                      <div className={`w-3 h-3 rounded-full mt-2 ${
-                        entry.status === 'EXCELLENT' ? 'bg-green-500' : 
-                        entry.status === 'PARTIAL' ? 'bg-yellow-500' : 'bg-red-500'
-                      }`}></div>
-                      <div className="flex-1">
-                        <div className="flex justify-between items-start mb-3">
-                          <div>
-                            <p className="font-semibold text-gray-900">{entry.medication}</p>
-                            <p className="text-sm text-gray-600">{entry.time}</p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm text-gray-500">{entry.date}</span>
-                            <span className={`px-2 py-1 rounded text-xs font-medium ${
-                              entry.status === 'EXCELLENT' ? 'bg-green-100 text-green-700' : 
-                              entry.status === 'PARTIAL' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
-                            }`}>
-                              {entry.status}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="bg-white p-3 rounded-lg border">
-                          <p className="text-sm text-gray-700 font-medium mb-1">Patient Notes:</p>
-                          <p className="text-sm text-gray-600">{entry.notes}</p>
-                        </div>
+                    <div className="bg-gray-50 rounded-lg p-3 border">
+                      <div className="text-2xl font-bold text-[#8159A8]">
+                        {assignedAssessments.filter(a => a.status === 'Completed').length}
                       </div>
+                      <div className="text-sm text-gray-600">Completed</div>
                     </div>
-                  ))}
-                </div>
-
-                <div className="mt-6 text-center">
-                  <Button variant="outline" className="bg-white border-[#8159A8] text-[#8159A8] hover:bg-[#8159A8] hover:text-white">
-                    Load More History
-                  </Button>
+                    <div className="bg-gray-50 rounded-lg p-3 border">
+                      <div className="text-2xl font-bold text-[#8159A8]">
+                        {assignedAssessments.length > 0
+                          ? Math.round(
+                              (assignedAssessments.filter(a => a.status === 'Completed').length /
+                                assignedAssessments.length) *
+                                100
+                            )
+                          : 0}
+                        %
+                      </div>
+                      <div className="text-sm text-gray-600">Completion Rate</div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          ) : (
-            <p className="text-muted-foreground">No medical history provided.</p>
-          )}
-        </TabsContent>
 
-        <TabsContent value="tasks" className="pt-6">
-          {assignedTasks && assignedTasks.length > 0 ? (
-            <div className="space-y-6">
-              {/* Assigned Tasks Header */}
-              <div className="bg-transpaent">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h3 className="text-2xl font-bold mb-2 text-[#8159A8]">Assigned Tasks</h3>
-                    <p className="text-gray-600">Monitor patient progress and task completion</p>
-                  </div>
-                  <div className="text-right">
-                    <div className="grid grid-cols-2 gap-4 text-center">
-                      <div className="bg-gray-50 rounded-lg p-3 border">
-                        <div className="text-2xl font-bold text-[#8159A8]">{assignedTasks.length}</div>
-                        <div className="text-sm text-gray-600">Total Tasks</div>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-3 border">
-                        <div className="text-2xl font-bold text-[#8159A8]">
-                          {Math.round(assignedTasks.reduce((sum, task) => sum + task.progress, 0) / assignedTasks.length)}%
-                        </div>
-                        <div className="text-sm text-gray-600">Avg Progress</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Add Task Button */}
-              <div className="flex justify-end">
-                <Button className="bg-[#8159A8] hover:bg-[#6d4a8f] text-white">
-                  + Assign New Task
-                </Button>
-              </div>
-
-              {/* Task Statistics */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-white p-6 rounded-xl border shadow-md text-center">
-                  <div className="text-2xl font-bold text-[#8159A8]">{assignedTasks.length}</div>
-                  <div className="text-sm text-gray-600">Total Tasks</div>
-                </div>
-                <div className="bg-white p-6 rounded-xl border shadow-md text-center">
-                  <div className="text-2xl font-bold text-green-600">
-                    {assignedTasks.filter(task => task.status === 'Completed').length}
-                  </div>
-                  <div className="text-sm text-gray-600">Completed</div>
-                </div>
-                <div className="bg-white p-6 rounded-xl border shadow-md text-center">
-                  <div className="text-2xl font-bold text-blue-600">
-                    {assignedTasks.filter(task => task.status === 'In Progress').length}
-                  </div>
-                  <div className="text-sm text-gray-600">In Progress</div>
-                </div>
-                <div className="bg-white p-6 rounded-xl border shadow-md text-center">
-                  <div className="text-2xl font-bold text-red-600">
-                    {assignedTasks.filter(task => task.status === 'Overdue').length}
-                  </div>
-                  <div className="text-sm text-gray-600">Overdue</div>
-                </div>
-              </div>
-
-              {/* Tasks List */}
+              {/* Assessments List */}
               <div className="space-y-4">
-                {assignedTasks.map((task) => (
-                  <div key={task.id} className="bg-white border-l-4 border-[#8159A8] rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow">
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h4 className="text-xl font-bold text-[#8159A8]">{task.title}</h4>
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            task.status === 'Completed' ? 'bg-green-100 text-green-700' :
-                            task.status === 'In Progress' ? 'bg-blue-100 text-blue-700' :
-                            task.status === 'Overdue' ? 'bg-red-100 text-red-700' :
-                            'bg-gray-100 text-gray-700'
-                          }`}>
-                            {task.status}
+                {assignedAssessments.map((assessment) => (
+                  <div
+                    key={assessment.id}
+                    className="bg-[#FAF8FB] rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow flex flex-col md:flex-row md:items-center md:justify-between"
+                  >
+                    <div>
+                      <div className="flex items-center gap-3 mb-2">
+                        <h4 className="text-lg font-bold text-[#8159A8]">{assessment.title}</h4>
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-medium ${
+                            assessment.status === 'Completed'
+                              ? 'bg-green-100 text-green-700'
+                              : 'bg-yellow-100 text-yellow-700'
+                          }`}
+                        >
+                          {assessment.status}
+                        </span>
+                        {assessment.score !== null && (
+                          <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                            Score: {assessment.score}
                           </span>
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            task.priority === 'High' ? 'bg-red-50 text-red-600' :
-                            task.priority === 'Medium' ? 'bg-yellow-50 text-yellow-600' :
-                            'bg-green-50 text-green-600'
-                          }`}>
-                            {task.priority} Priority
-                          </span>
-                        </div>
-                        <p className="text-gray-600 mb-3">{task.description}</p>
+                        )}
                       </div>
+                      <p className="text-gray-600 text-sm mb-1">Assigned: {assessment.assignedDate}</p>
+                      {assessment.completedAt && (
+                        <p className="text-gray-500 text-xs">Completed: {assessment.completedAt}</p>
+                      )}
                     </div>
-
-                    {/* Progress Bar */}
-                    <div className="mb-6">
-                      <div className="flex justify-between text-sm text-gray-600 mb-2">
-                        <span>Progress: {task.completedSessions}/{task.totalSessions} sessions</span>
-                        <span className="font-semibold">{task.progress}%</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-3">
-                        <div 
-                          className="bg-[#8159A8] h-3 rounded-full transition-all duration-300"
-                          style={{ width: `${task.progress}%` }}
-                        ></div>
-                      </div>
-                    </div>
-
-                    {/* Task Details Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-xs uppercase text-gray-500 font-medium mb-1">Category</p>
-                        <p className="font-semibold text-gray-900">{task.category}</p>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-xs uppercase text-gray-500 font-medium mb-1">Assigned Date</p>
-                        <p className="font-semibold text-gray-900">{task.assignedDate}</p>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-xs uppercase text-gray-500 font-medium mb-1">Due Date</p>
-                        <p className="font-semibold text-gray-900">{task.dueDate}</p>
-                      </div>
-                    </div>
-
-                    {/* Instructions */}
-                    <div className="bg-gray-50 border-l-4 border-gray-400 rounded-lg p-4 mb-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <svg className="w-5 h-5 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                        </svg>
-                        <h5 className="font-semibold text-gray-900">Instructions</h5>
-                      </div>
-                      <p className="text-gray-700 text-sm leading-relaxed">{task.instructions}</p>
-                    </div>
-
-                    {/* Therapist Notes */}
-                    <div className="bg-gray-50 border-l-4 border-gray-400 rounded-lg p-4 mb-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <svg className="w-5 h-5 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z" />
-                        </svg>
-                        <h5 className="font-semibold text-gray-900">Therapist Notes</h5>
-                      </div>
-                      <p className="text-gray-700 text-sm leading-relaxed">{task.notes}</p>
-                    </div>
-
-                    {/* Last Activity */}
-                    <div className="flex justify-between items-center text-sm text-gray-500 pt-4 border-t border-gray-100">
-                      <span>Last completed: {task.lastCompleted}</span>
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm" className="hover:bg-blue-50">Edit Task</Button>
-                        <Button variant="outline" size="sm" className="hover:bg-gray-50">View Details</Button>
-                        <Button variant="outline" size="sm" className="text-red-600 hover:bg-red-50">Remove</Button>
-                      </div>
+                    <div className="mt-4 md:mt-0">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="hover:bg-blue-50"
+                        onClick={() => window.location.href = `/therapist/assessments/${assessment.id}`}
+                      >
+                        View Assessment
+                      </Button>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
           ) : (
-            <p className="text-muted-foreground">No assigned tasks found.</p>
+            <p className="text-muted-foreground">No assigned assessments found.</p>
           )}
         </TabsContent>
 
@@ -1460,18 +1195,14 @@ export default function PatientDetailsPage() {
                     <p className="text-gray-600">Manage and review patient documentation</p>
                   </div>
                   <div className="text-right">
-                    <div className="grid grid-cols-2 gap-4 text-center">
-                      <div className="bg-gray-50 rounded-lg p-3 border">
-                        <div className="text-2xl font-bold text-[#8159A8]">{uploadedDocuments.length}</div>
-                        <div className="text-sm text-gray-600">Total Documents</div>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-3 border">
-                        <div className="text-2xl font-bold text-[#8159A8]">
-                          {uploadedDocuments.filter(doc => doc.status === 'Verified').length}
-                        </div>
-                        <div className="text-sm text-gray-600">Verified</div>
-                      </div>
-                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="hover:bg-blue-50"
+                      onClick={() => window.location.href = `/therapist/documents/upload`}
+                    >
+                      Upload Document
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -1492,7 +1223,7 @@ export default function PatientDetailsPage() {
                             
                           </div>
                           <p className="text-sm text-gray-600 mb-3 leading-relaxed">{document.description}</p>
-                          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-xs">
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
                             <div className="bg-gray-50 px-3 py-2 rounded-lg">
                               <span className="text-gray-500">Type:</span>
                               <span className="font-medium text-gray-900 ml-1">{document.type}</span>
@@ -1508,10 +1239,6 @@ export default function PatientDetailsPage() {
                             <div className="bg-gray-50 px-3 py-2 rounded-lg">
                               <span className="text-gray-500">By:</span>
                               <span className="font-medium text-gray-900 ml-1">{document.uploadedBy}</span>
-                            </div>
-                            <div className="bg-gray-50 px-3 py-2 rounded-lg">
-                              <span className="text-gray-500">Last accessed:</span>
-                              <span className="font-medium text-gray-900 ml-1">{document.lastAccessed}</span>
                             </div>
                           </div>
                         </div>

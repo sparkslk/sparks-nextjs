@@ -4,7 +4,10 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
   Dialog, 
+  DialogClose, 
   DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
   DialogHeader, 
   DialogTitle,
   DialogTrigger
@@ -306,6 +309,7 @@ export default function MedicationManagement({
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isDiscontinueConfirmOpen, setIsDiscontinueConfirmOpen] = useState(false);
+  const [showAdherenceModal, setShowAdherenceModal] = useState(false);
   const [editingMedication, setEditingMedication] = useState<Medication | null>(null);
   const [selectedMedicationForHistory, setSelectedMedicationForHistory] = useState<Medication | null>(null);
   const [medicationToDiscontinue, setMedicationToDiscontinue] = useState<Medication | null>(null);
@@ -582,6 +586,100 @@ export default function MedicationManagement({
         </div>
       </div>
 
+      {/* Button to open Adherence Details Modal */}
+          <div className="flex justify-end mt-4">
+            <Dialog open={showAdherenceModal} onOpenChange={setShowAdherenceModal}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="bg-white">
+                  View Adherence Details
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Medication Adherence Details</DialogTitle>
+                  <DialogDescription>
+                    Hardcoded adherence statistics and weekly pattern for demonstration.
+                  </DialogDescription>
+                </DialogHeader>
+                {/* Adherence Details Content (moved from tab) */}
+                <div className="space-y-6">
+                  
+
+                <div className="flex justify-between items-center">
+                  <div className="flex gap-2">
+                    <select className="border rounded-1g px-3 py-2 text-sm bg-white shadow-sm">
+                      <option>Last 3 Months</option>
+                      <option>Last 6 Months</option>
+                      <option>Last Year</option>
+                    </select>
+                    <select className="border rounded-1g px-3 py-2 text-sm bg-white shadow-sm">
+                      <option>All Medications</option>
+                      <option>Adderall XR</option>
+                      <option>Strattera</option>
+                    </select>
+                  </div>
+                <Button variant="outline" size="sm" className="bg-white">Export Report</Button>
+                </div>
+                  {/* Statistics Cards */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-white p-6 rounded-xl border shadow-md text-center">
+                      <div className="text-2xl font-bold text-green-600">89%</div>
+                      <div className="text-sm text-gray-600">Overall Adherence Rate</div>
+                    </div>
+                    <div className="bg-white p-6 rounded-xl border shadow-md text-center">
+                      <div className="text-2xl font-bold text-red-600">12</div>
+                      <div className="text-sm text-gray-600">Missed Doses (30 days)</div>
+                    </div>
+                    <div className="bg-white p-6 rounded-xl border shadow-md text-center">
+                      <div className="text-2xl font-bold text-[#8159A8]">247</div>
+                      <div className="text-sm text-gray-600">Total Doses Taken</div>
+                    </div>
+                    <div className="bg-white p-6 rounded-xl border shadow-md text-center">
+                      <div className="text-2xl font-bold text-orange-600">7</div>
+                      <div className="text-sm text-gray-600">Current Streak (days)</div>
+                    </div>
+                  </div>
+
+                  {/* Weekly Adherence Pattern */}
+                  <div className="bg-white p-6 rounded-xl border shadow-md">
+                    <h4 className="text-lg font-semibold text-[#8159A8] mb-4">Weekly Adherence Pattern</h4>
+                    <div className="flex gap-2 mb-4">
+                      <span className="flex items-center gap-1 text-sm">
+                        <div className="w-3 h-3 bg-green-500 rounded"></div>
+                        Taken
+                      </span>
+                      <span className="flex items-center gap-1 text-sm">
+                        <div className="w-3 h-3 bg-red-500 rounded"></div>
+                        Missed
+                      </span>
+                    </div>
+                    <div className="flex gap-2">
+                      {[
+                        { day: "Mon", status: "taken" },
+                        { day: "Tue", status: "taken" },
+                        { day: "Wed", status: "taken" },
+                        { day: "Thu", status: "taken" },
+                        { day: "Fri", status: "missed" },
+                        { day: "Sat", status: "taken" },
+                        { day: "Sun", status: "taken" }
+                      ].map((day, index) => (
+                        <div key={index} className="flex-1">
+                          <div className="text-xs text-center mb-2 font-medium">{day.day}</div>
+                          <div className={`h-12 rounded-lg ${day.status === 'taken' ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <DialogClose asChild>
+                    <Button variant="outline">Close</Button>
+                  </DialogClose>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+          
       {/* Recent Activity Summary */}
       {(recentlyUpdated.length > 0 || recentlyDiscontinued.length > 0) && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
