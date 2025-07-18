@@ -105,10 +105,10 @@ export function RescheduleModal({ session, isOpen, onClose, onRescheduleConfirme
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
+            <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
             <Calendar className="w-5 h-5 text-[#8159A8]" />
             Reschedule Session
-          </DialogTitle>
+            </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -157,20 +157,19 @@ export function RescheduleModal({ session, isOpen, onClose, onRescheduleConfirme
             
             <Button
               onClick={handleSubmit}
-              style={{ backgroundColor: '#8159A8' }}
-              className="flex-1 text-white hover:opacity-90"
+              className="flex-1 bg-[#8159A8] hover:bg-[#6d4792] text-white"
               disabled={isSubmitting}
             >
               {isSubmitting ? (
-                <>
-                  <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  Sending...
-                </>
+              <>
+                <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                Sending...
+              </>
               ) : (
-                <>
-                  <Send className="w-4 h-4 mr-2" />
-                  Send Reschedule Request
-                </>
+              <>
+                <Send className="w-4 h-4 mr-2" />
+                Send Reschedule Request
+              </>
               )}
             </Button>
           </div>

@@ -122,23 +122,6 @@ export async function notifyEmergency(userId: string, message: string, senderId?
     });
 }
 
-export async function notifySessionRescheduleRequest(
-    patientId: string, 
-    therapistId: string, 
-    sessionDetails: SessionDetails, 
-    reason: string
-) {
-    const scheduledDate = new Date(sessionDetails.scheduledAt);
-    return createNotification({
-        title: 'Session Reschedule Request',
-        message: `Your therapist has requested to reschedule your session scheduled for ${scheduledDate.toLocaleDateString()} at ${scheduledDate.toLocaleTimeString()}. Reason: ${reason}. Please check your appointments to select a new time slot.`,
-        type: 'APPOINTMENT',
-        receiverId: patientId,
-        senderId: therapistId,
-        isUrgent: true
-    });
-}
-
 export async function notifySystemMessage(userId: string, title: string, message: string) {
     return createNotification({
         title,
