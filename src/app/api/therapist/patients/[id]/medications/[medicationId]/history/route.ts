@@ -31,7 +31,6 @@ export async function GET(
       where: {
         id: medicationId,
         patientId: patientId,
-        therapistId: therapist.id,
       },
       include: {
         Therapist: {
@@ -50,9 +49,81 @@ export async function GET(
       return NextResponse.json({ error: 'Medication not found or access denied' }, { status: 404 });
     }
 
-    // For now, generate comprehensive history from the medication data
-    // This will be replaced with actual database history once the schema is updated
-    const history: MedicationHistoryEntry[] = [];
+    // Get discontinuing therapist information if the medication was discontinued
+    let discontinuingTherapist = null;
+    if (medication.discontinuedBy) {
+      try {
+        discontinuingTherapist = await prisma.therapist.findUnique({
+          where: { userId: medication.discontinuedBy },
+          include: {
+            user: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        });
+      } catch (error) {
+        console.error('Error fetching discontinuing therapist:', error);
+      }
+    }
+
+    // Get actual medication history from the database
+    const medicationHistoryRecords = await prisma.medicationHistory.findMany({
+      where: {
+        medicationId: medicationId,
+      },
+      orderBy: {
+        changedAt: 'desc',
+      },
+    });
+
+    // Transform database records to include therapist information
+    const history: MedicationHistoryEntry[] = await Promise.all(
+      medicationHistoryRecords.map(async (record) => {
+        // Get therapist information for the person who made the change
+        let therapistInfo = null;
+        try {
+          const therapist = await prisma.therapist.findUnique({
+            where: { userId: record.changedBy },
+            include: {
+              user: {
+                select: {
+                  name: true,
+                },
+              },
+            },
+          });
+          
+          if (therapist) {
+            therapistInfo = {
+              user: {
+                name: therapist.user.name || 'Unknown Therapist',
+              },
+            };
+          }
+        } catch (error) {
+          console.error('Error fetching therapist for history record:', error);
+        }
+
+        return {
+          id: record.id,
+          medicationId: record.medicationId,
+          action: record.action as MedicationHistoryAction,
+          changedBy: record.changedBy,
+          changedAt: record.changedAt,
+          previousValues: record.previousValues as Record<string, any> | undefined,
+          newValues: record.newValues as Record<string, any> | undefined,
+          reason: record.reason || undefined,
+          notes: record.notes || undefined,
+          therapist: therapistInfo || {
+            user: {
+              name: 'Unknown Therapist',
+            },
+          },
+        };
+      })
+    );
 
     // If no history records exist in the database, generate basic history from medication data
     if (history.length === 0) {
@@ -130,8 +201,9 @@ export async function GET(
         });
       }
 
-    // Sort by date (newest first)
-    history.sort((a, b) => new Date(b.changedAt).getTime() - new Date(a.changedAt).getTime());
+      // Sort by date (newest first)
+      history.sort((a, b) => new Date(b.changedAt).getTime() - new Date(a.changedAt).getTime());
+    }
 
     return NextResponse.json(history);
   } catch (error) {

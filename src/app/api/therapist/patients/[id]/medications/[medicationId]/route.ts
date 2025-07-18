@@ -5,7 +5,8 @@ import { prisma } from '@/lib/prisma';
 import { 
   UpdateMedicationData, 
   DiscontinueMedicationData,
-  MedicationFrequency
+  MedicationFrequency,
+  MedicationHistoryAction
 } from '@/types/medications';
 
 export async function PUT(
@@ -247,7 +248,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Medication not found or access denied' }, { status: 404 });
     }
 
-    // Discontinue medication with reason
+    // Discontinue medication
     const discontinuedMedication = await prisma.medication.update({
       where: { id: medicationId },
       data: {
@@ -255,7 +256,6 @@ export async function PATCH(
         isDiscontinued: true,
         discontinuedAt: new Date(),
         discontinuedBy: session.user.id,
-        discontinueReason: body.reason,
       },
       include: {
         Patient: {

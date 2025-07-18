@@ -528,16 +528,7 @@ export default function SessionDetailsPage() {
                   )}
                 </div>
                 
-                {/* Action Button */}
-                <div className="pt-4 border-t border-border">
-                  <Button 
-                    onClick={() => setIsUpdateModalOpen(true)}
-                    className="w-full bg-green-600 hover:bg-green-700 text-white"
-                  >
-                    <Edit className="w-4 h-4 mr-2" />
-                    Update Clinical Documentation
-                  </Button>
-                </div>
+                
               </CardContent>
             </Card>
           </div>

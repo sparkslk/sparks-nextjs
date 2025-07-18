@@ -16,7 +16,6 @@ export interface Medication {
   isDiscontinued: boolean;
   discontinuedAt?: Date;
   discontinuedBy?: string;
-  discontinueReason?: string;
   createdAt: Date;
   updatedAt: Date;
   patient?: {
@@ -24,6 +23,11 @@ export interface Medication {
     lastName: string;
   };
   therapist?: {
+    user: {
+      name: string;
+    };
+  };
+  discontinuingTherapist?: {
     user: {
       name: string;
     };
