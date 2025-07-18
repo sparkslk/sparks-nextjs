@@ -178,3 +178,4 @@ export function RescheduleModal({ session, isOpen, onClose, onRescheduleConfirme
     </Dialog>
   );
 }
+
