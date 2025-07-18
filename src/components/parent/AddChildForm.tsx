@@ -37,27 +37,42 @@ export function AddChildForm({ onSuccess }: AddChildFormProps) {
         emergencyContactRelation: "",
         medicalHistory: ""
     });
+    const [parentDetails, setParentDetails] = useState<{ name: string; phone: string; relationship: string } | null>(null);
 
-    // Prefill emergency contact fields with parent's info if empty (only once per field)
+    // Fetch parent details on mount
     useEffect(() => {
+        async function fetchParentDetails() {
+            try {
+                const res = await fetch('/api/parent/parentDetails');
+                if (!res.ok) return;
+                const parent = await res.json();
+                setParentDetails(parent);
+            } catch {}
+        }
+        fetchParentDetails();
+    }, []);
+
+    // Prefill emergency contact fields as soon as parentDetails are loaded
+    useEffect(() => {
+        if (!parentDetails) return;
         setFormData(prev => {
-            let changed = false;
             const updated = { ...prev };
-            if (!updated.emergencyContactName && updated.firstName) {
-                updated.emergencyContactName = updated.firstName;
+            let changed = false;
+            if (!updated.emergencyContactName && parentDetails.name) {
+                updated.emergencyContactName = parentDetails.name;
                 changed = true;
             }
-            if (!updated.emergencyContactPhone && updated.phone) {
-                updated.emergencyContactPhone = updated.phone;
+            if (!updated.emergencyContactPhone && parentDetails.phone) {
+                updated.emergencyContactPhone = parentDetails.phone;
                 changed = true;
             }
-            if (!updated.emergencyContactRelation && updated.relationship) {
-                updated.emergencyContactRelation = updated.relationship.charAt(0).toUpperCase() + updated.relationship.slice(1);
+            if (!updated.emergencyContactRelation && parentDetails.relationship) {
+                updated.emergencyContactRelation = parentDetails.relationship.charAt(0).toUpperCase() + parentDetails.relationship.slice(1);
                 changed = true;
             }
             return changed ? updated : prev;
         });
-    }, [formData.firstName, formData.phone, formData.relationship]);
+    }, [parentDetails]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value, type } = e.target;
