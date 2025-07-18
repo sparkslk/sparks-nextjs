@@ -412,8 +412,8 @@ export default function TherapistSessionsPage() {
                 </>
               )}
 
-              {/* Completed Sessions: Show View Details for completed sessions only */}
-              {session.status === 'COMPLETED' && (
+              {/* Completed/Cancelled Sessions: Show View Details for non-scheduled status */}
+              {!isScheduledStatus && (
                 <Button
                   variant="outline"
                   size="sm"

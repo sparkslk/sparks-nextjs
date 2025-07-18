@@ -240,7 +240,7 @@ export default function FindTherapistPage() {
         };
 
         fetchTherapists();
-    }, [mockTherapists]);
+    }, []);
 
     // Helper functions for random data generation
     const getRandomAvailability = () => {

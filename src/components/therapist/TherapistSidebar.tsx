@@ -18,6 +18,7 @@ import {
   LogOut,
   ChevronUp,
   Bookmark,
+  Clock,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 
@@ -90,22 +91,36 @@ const getMenuItems = (pendingRequests: number) => ({
       ],
     },
     {
-      title: "Sessions",
+      title: "Appointments",
       icon: Calendar,
       items: [
         {
-          title: "All Sessions",
-          url: "/therapist/sessions",
+          title: "Schedule",
+          url: "/therapist/appointments",
         },
         {
-          title: "Set Availability",
-          url: "/therapist/setAvailability",
+          title: "New Appointment",
+          url: "/therapist/appointments/new",
+        },
+        {
+          title: "History",
+          url: "/therapist/appointments/history",
+        },
+      ],
+    },
+    {
+      title: "Sessions",
+      icon: Clock,
+      items: [
+        {
+          title: "Active Sessions",
+          url: "/therapist/sessions",
         },
         {
           title: "Schedule New",
           url: "/therapist/appointments/new",
         },
-        
+
         /* {
           title: "Session Notes",
           url: "/therapist/sessions/notes",
