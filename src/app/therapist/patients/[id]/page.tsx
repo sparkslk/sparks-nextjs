@@ -1480,7 +1480,7 @@ export default function PatientDetailsPage() {
               {/* Documents List */}
               <div className="space-y-4">
                 {uploadedDocuments.map((document) => (
-                    <div key={document.id} className="bg-purple-50 rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow">
+                    <div key={document.id} className="bg-[#FAF8FB] rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4 flex-1">
                         
