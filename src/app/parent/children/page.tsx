@@ -355,7 +355,6 @@ export default function MyChildrenPage() {
                       <span className="mr-2">📞</span>
                       Contact Therapist
                     </Button>
->>>>>>> origin/Development
                   </div>
                   {/* No therapist assigned notice moved here */}
                   {!child.therapist && (
@@ -413,57 +412,6 @@ export default function MyChildrenPage() {
                       </div>
                     </div>
                   )}
-                </div>
-
-                <div className="mb-4 bg-gray-50 rounded-lg p-3">
-                  <p className="text-sm text-gray-600 mb-1">
-                    Patient ID: <span className="font-mono text-xs bg-white px-2 py-1 rounded border">{child.id}</span>
-                  </p>
-                  <p className="text-sm text-gray-600 mb-1">
-                    Upcoming Sessions: <span className="font-medium">{child.upcomingSessions}</span>
-                  </p>
-                  {child.lastSession && (
-                    <p className="text-sm text-gray-600">
-                      Last Session: {new Date(child.lastSession).toLocaleDateString()}
-                    </p>
-                  )}
-                </div>
-
-                <div className="mb-4">
-                  <p className="text-sm text-gray-500 mb-2">
-                    {child.isPrimary ? 'You are the primary guardian for this child.' : 'You are connected as a guardian.'}
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="border-gray-300 text-gray-700 hover:bg-gray-50"
-                  >
-                    View Sessions
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="border-gray-300 text-gray-700 hover:bg-gray-50"
-                  >
-                    Reports
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="border-gray-300 text-gray-700 hover:bg-gray-50"
-                  >
-                    Medical Info
-                  </Button>
-                  <Button
-                    size="sm"
-                    style={{ backgroundColor: '#8159A8' }}
-                    className="text-white hover:opacity-90"
-                  >
-                    Contact Therapist
-                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -554,6 +502,19 @@ export default function MyChildrenPage() {
           </Card>
         )} */}
       </div>
+
+      {/* Session Details Modal */}
+      {selectedChild && (
+        <SessionDetailsModal
+          isOpen={sessionModalOpen}
+          onClose={() => {
+            setSessionModalOpen(false);
+            setSelectedChild(null);
+          }}
+          childName={`${selectedChild.firstName} ${selectedChild.lastName}`}
+          childId={selectedChild.id}
+        />
+      )}
     </div>
   );
 }
