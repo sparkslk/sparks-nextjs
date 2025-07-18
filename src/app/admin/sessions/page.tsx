@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Button } from "@/components/ui/button";
-import { RefreshCw, Plus } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+// ...existing code...
+import { RefreshCw } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 import SessionFilters from "@/components/admin/admin-session-filters";
 
@@ -154,14 +154,14 @@ export default function SessionsPage() {
       </div>
 
       {/* Filters */}
-        <SessionFilters
-          searchTerm={searchTerm}
-          selectedStatus={selectedStatus}
-          selectedType={selectedType}
-          onSearchChange={setSearchTerm}
-          onStatusChange={setSelectedStatus}
-          onTypeChange={setSelectedType}
-        />
+      <SessionFilters
+        searchTerm={searchTerm}
+        selectedStatus={selectedStatus}
+        selectedType={selectedType}
+        onSearchChange={setSearchTerm}
+        onStatusChange={setSelectedStatus}
+        onTypeChange={setSelectedType}
+      />
 
       {/* Table */}
       <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
@@ -187,13 +187,12 @@ export default function SessionsPage() {
                   <td className="py-4 px-4">{session.date}</td>
                   <td className="py-4 px-4">{session.time}</td>
                   <td className="py-4 px-4">
-                    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                      session.status === "Upcoming"
+                    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${session.status === "Upcoming"
                         ? "bg-blue-100 text-blue-800"
                         : session.status === "Completed"
-                        ? "bg-green-100 text-green-800"
-                        : "bg-red-100 text-red-800"
-                    }`}>
+                          ? "bg-green-100 text-green-800"
+                          : "bg-red-100 text-red-800"
+                      }`}>
                       {session.status}
                     </span>
                   </td>

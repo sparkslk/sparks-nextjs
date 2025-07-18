@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Calendar, FileText, Download, TrendingUp, DollarSign, Users, RefreshCw } from 'lucide-react';
+import { Calendar, FileText } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 // TypeScript interfaces
@@ -28,41 +28,15 @@ interface RecentReportProps {
 }
 
 const FinancialDashboard: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('Financial Reports');
+  // Removed unused activeTab and setActiveTab
   const [fromDate, setFromDate] = useState('01/04/2025');
   const [toDate, setToDate] = useState('30/04/2025');
   const [reportFormat, setReportFormat] = useState('PDF Document');
   const [detailLevel, setDetailLevel] = useState('Summary');
 
-  const tabs = [
-    'Overview',
-    'User Management', 
-    'Session Oversight',
-    'Game Management',
-    'Financial Reports'
-  ];
+  // Removed unused tabs array
 
-  const MetricCard: React.FC<MetricCardProps> = ({ title, value, subtitle, color }) => {
-    const colorClasses = {
-      green: 'border-green-200 bg-green-50',
-      purple: 'border-purple-200 bg-purple-50', 
-      blue: 'border-blue-200 bg-blue-50'
-    };
-
-    const textColorClasses = {
-      green: 'text-green-600',
-      purple: 'text-purple-600',
-      blue: 'text-blue-600'
-    };
-
-    return (
-      <div className={`p-6 rounded-lg border-2 ${colorClasses[color]}`}>
-        <h3 className="text-sm font-medium text-gray-600 mb-2">{title}</h3>
-        <p className={`text-2xl font-bold ${textColorClasses[color]} mb-1`}>{value}</p>
-        <p className="text-xs text-gray-500">{subtitle}</p>
-      </div>
-    );
-  };
+  // Removed unused MetricCard component
 
   const ReportItem: React.FC<ReportItemProps> = ({ title, description, isPinned, isRecent, date, size }) => {
     return (
@@ -201,24 +175,24 @@ const FinancialDashboard: React.FC = () => {
               <FileText className="w-5 h-5 text-gray-600" />
               <h3 className="text-lg font-semibold text-gray-900">Generate New Report</h3>
             </div>
-            
+
             <div className="space-y-6">
               <ReportItem
                 title="Revenue Report"
                 description="Monthly, quarterly, and annual revenue including session subscriptions, and donations"
                 isPinned={true}
               />
-              
+
               <ReportItem
                 title="Therapist Performance"
                 description="Individual therapist earnings, session counts, and performance metrics"
               />
-              
+
               <ReportItem
                 title="Transaction History"
                 description="Detailed transaction log with payment details, refunds, and adjustments"
               />
-              
+
               <div className="pt-4 border-t">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                   <div>
@@ -250,7 +224,7 @@ const FinancialDashboard: React.FC = () => {
                     </select>
                   </div>
                 </div>
-                
+
                 <button className="w-full bg-purple-600 text-white py-3 rounded-md hover:bg-purple-700 transition-colors font-medium">
                   Generate & Download Report
                 </button>
@@ -264,20 +238,20 @@ const FinancialDashboard: React.FC = () => {
               <Calendar className="w-5 h-5 text-gray-600" />
               <h3 className="text-lg font-semibold text-gray-900">Recent Reports</h3>
             </div>
-            
+
             <div className="space-y-4">
               <RecentReport
                 title="Monthly Revenue Report - June 2025"
                 date="Generated on Jun 30, 2025"
                 size="CSV • 4.3 MB"
               />
-              
+
               <RecentReport
                 title="Therapist Performance - Q2 2025"
                 date="Generated on Jun 28, 2025"
                 size="PDF • 1.8 MB"
               />
-              
+
               <RecentReport
                 title="Transaction History - May 2025"
                 date="Generated on May 31, 2025"
