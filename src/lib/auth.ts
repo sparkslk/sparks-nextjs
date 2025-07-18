@@ -12,8 +12,8 @@ export const UserRole = $Enums.UserRole;
 export type UserRole = $Enums.UserRole;
 
 export const authOptions: NextAuthOptions = {
-    // Only use adapter for OAuth providers, not for credentials
-    adapter: undefined,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    adapter: PrismaAdapter(prisma as any) as Adapter,
     providers: [
         GoogleProvider({
             clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -21,7 +21,6 @@ export const authOptions: NextAuthOptions = {
             allowDangerousEmailAccountLinking: true,
         }),
         CredentialsProvider({
-            id: "credentials",
             name: "credentials",
             credentials: {
                 email: { label: "Email", type: "email" },
@@ -29,37 +28,27 @@ export const authOptions: NextAuthOptions = {
             },
             async authorize(credentials) {
                 if (!credentials?.email || !credentials?.password) {
-                    throw new Error("Missing credentials");
-                }
-
-                try {
-                    const user = await prisma.user.findUnique({
-                        where: { email: credentials.email },
-                    });
-
-                    if (!user || !user.password) {
-                        throw new Error("Invalid credentials");
-                    }
-
-                    const isPasswordValid = await bcrypt.compare(
-                        credentials.password,
-                        user.password
-                    );
-
-                    if (!isPasswordValid) {
-                        throw new Error("Invalid credentials");
-                    }
-
-                    return {
-                        id: user.id,
-                        email: user.email,
-                        name: user.name,
-                        role: user.role,
-                    };
-                } catch (error) {
-                    console.error("Auth error:", error);
                     return null;
                 }
+
+                const user = await prisma.user.findUnique({
+                    where: { email: credentials.email },
+                });
+
+                if (!user || !user.password) {
+                    return null;
+                }
+
+                const isPasswordValid = await bcrypt.compare(
+                    credentials.password,
+                    user.password
+                );
+
+                if (!isPasswordValid) {
+                    return null;
+                }
+
+                return user;
             },
         }),
     ],
@@ -77,11 +66,6 @@ export const authOptions: NextAuthOptions = {
                 });
             }
 
-            // For credentials provider, user must exist and have been authenticated
-            if (account?.provider === "credentials") {
-                return !!user;
-            }
-
             // For Google OAuth, ensure user exists in database
             if (account?.provider === "google") {
                 try {
@@ -95,22 +79,6 @@ export const authOptions: NextAuthOptions = {
                             existsInDb: !!existingUser,
                             dbRole: existingUser?.role
                         });
-                    }
-
-                    // If user doesn't exist, create them with NORMAL_USER role
-                    if (!existingUser) {
-                        const newUser = await prisma.user.create({
-                            data: {
-                                email: user.email!,
-                                name: user.name || '',
-                                role: UserRole.NORMAL_USER,
-                                // No password for OAuth users
-                            }
-                        });
-
-                        if (process.env.NODE_ENV === "development") {
-                            console.log("Created new Google OAuth user:", { id: newUser.id, email: newUser.email });
-                        }
                     }
 
                     return true;
@@ -135,7 +103,7 @@ export const authOptions: NextAuthOptions = {
                 });
             }
 
-            // If this is the first time (user object exists), set user data
+            // If this is the first time (user object exists), get user data from database
             if (user) {
                 token.id = user.id;
                 token.role = user.role;
@@ -145,8 +113,8 @@ export const authOptions: NextAuthOptions = {
                 }
             }
 
-            // For Google OAuth users, ensure we have their data from database
-            if (account?.provider === "google" && token.email && !token.role) {
+            // For subsequent requests, if we don't have role info, fetch from database
+            if (!token.role && token.email) {
                 try {
                     const dbUser = await prisma.user.findUnique({
                         where: { email: token.email },
@@ -157,7 +125,7 @@ export const authOptions: NextAuthOptions = {
                         token.role = dbUser.role;
 
                         if (process.env.NODE_ENV === "development") {
-                            console.log("JWT: Fetched role from DB for Google user:", { id: dbUser.id, role: dbUser.role });
+                            console.log("JWT: Fetched role from DB:", { id: dbUser.id, role: dbUser.role });
                         }
                     }
                 } catch (error) {
@@ -234,28 +202,9 @@ export const authOptions: NextAuthOptions = {
         error: "/login", // Redirect errors to login page
         signOut: "/login", // Redirect after sign out
     },
-    secret: process.env.NEXTAUTH_SECRET,
     cookies: {
         sessionToken: {
             name: process.env.NODE_ENV === "production" ? "__Secure-next-auth.session-token" : "next-auth.session-token",
-            options: {
-                httpOnly: true,
-                sameSite: "lax",
-                path: "/",
-                secure: process.env.NODE_ENV === "production",
-            },
-        },
-        callbackUrl: {
-            name: process.env.NODE_ENV === "production" ? "__Secure-next-auth.callback-url" : "next-auth.callback-url",
-            options: {
-                httpOnly: true,
-                sameSite: "lax",
-                path: "/",
-                secure: process.env.NODE_ENV === "production",
-            },
-        },
-        csrfToken: {
-            name: process.env.NODE_ENV === "production" ? "__Host-next-auth.csrf-token" : "next-auth.csrf-token",
             options: {
                 httpOnly: true,
                 sameSite: "lax",
