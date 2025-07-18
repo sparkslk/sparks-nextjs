@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
   Dialog, 
@@ -49,7 +49,6 @@ interface MedicationManagementProps {
   onMedicationUpdate: () => void;
 }
 
-<<<<<<< HEAD
 // Helper function to convert technical field names to user-friendly labels
 const getFieldDisplayName = (key: string): string => {
   const fieldMap: Record<string, string> = {
@@ -276,8 +275,6 @@ const MedicationFormComponent: React.FC<MedicationFormProps> = ({
   </form>
 );
 
-=======
->>>>>>> 28b45a7719cbffab30ddddccc7d005bed47893e8
 interface MedicationFormData {
   name: string;
   dosage: string;
@@ -323,6 +320,36 @@ export default function MedicationManagement({
     setError('');
   };
 
+  // Reset form when dialog opens
+  useEffect(() => {
+    if (isAddOpen && !editingMedication) {
+      resetForm();
+    }
+  }, [isAddOpen, editingMedication]);
+
+  // Populate form when editing
+  useEffect(() => {
+    if (editingMedication) {
+      setFormData({
+        name: editingMedication.name,
+        dosage: editingMedication.dosage,
+        frequency: editingMedication.frequency,
+        customFrequency: editingMedication.customFrequency || '',
+        mealTiming: editingMedication.mealTiming,
+        startDate: new Date(editingMedication.startDate),
+        endDate: editingMedication.endDate ? new Date(editingMedication.endDate) : undefined,
+        instructions: editingMedication.instructions || ''
+      });
+    }
+  }, [editingMedication]);
+
+  const handleCancel = () => {
+    resetForm();
+    setIsAddOpen(false);
+    setIsEditOpen(false);
+    setEditingMedication(null);
+  };
+
   const fetchMedicationHistory = async (medicationId: string) => {
     setIsLoadingHistory(true);
     try {
@@ -331,58 +358,8 @@ export default function MedicationManagement({
         const history = await response.json();
         setMedicationHistory(history);
       } else {
-        // If history endpoint doesn't exist yet, create mock history from medication data
-        const medication = medications.find(m => m.id === medicationId);
-        if (medication) {
-          const mockHistory: MedicationHistoryEntry[] = [
-            {
-              id: 'hist_1',
-              medicationId: medication.id,
-              action: MedicationHistoryAction.CREATED,
-              changedBy: medication.therapistId,
-              changedAt: medication.createdAt,
-              newValues: {
-                name: medication.name,
-                dosage: medication.dosage,
-                frequency: medication.frequency,
-                mealTiming: medication.mealTiming,
-                startDate: medication.startDate
-              },
-              therapist: medication.therapist
-            }
-          ];
-
-          // Add update history if the medication was updated
-          if (medication.updatedAt > medication.createdAt) {
-            mockHistory.push({
-              id: 'hist_2',
-              medicationId: medication.id,
-              action: MedicationHistoryAction.UPDATED,
-              changedBy: medication.therapistId,
-              changedAt: medication.updatedAt,
-              therapist: medication.therapist
-            });
-          }
-
-          // Add discontinuation history if discontinued
-          if (medication.isDiscontinued && medication.discontinuedAt) {
-            mockHistory.push({
-              id: 'hist_3',
-              medicationId: medication.id,
-              action: MedicationHistoryAction.DISCONTINUED,
-              changedBy: medication.discontinuedBy || medication.therapistId,
-              changedAt: medication.discontinuedAt,
-              reason: medication.discontinueReason,
-              newValues: {
-                isActive: false,
-                isDiscontinued: true
-              },
-              therapist: medication.therapist
-            });
-          }
-
-          setMedicationHistory(mockHistory);
-        }
+        console.error('Failed to fetch medication history:', response.status, response.statusText);
+        setMedicationHistory([]);
       }
     } catch (error) {
       console.error('Error fetching medication history:', error);
@@ -583,156 +560,6 @@ export default function MedicationManagement({
     return daysSinceDiscontinued <= 7; // Discontinued in last 7 days
   });
 
-  const MedicationForm = () => (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-2">
-          <AlertCircle className="h-4 w-4 text-red-600" />
-          <span className="text-red-700 text-sm">{error}</span>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="name">Medication Name *</Label>
-          <Input
-            id="name"
-            value={formData.name}
-            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-            placeholder="e.g., Adderall XR"
-            required
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="dosage">Dosage *</Label>
-          <Input
-            id="dosage"
-            value={formData.dosage}
-            onChange={(e) => setFormData(prev => ({ ...prev, dosage: e.target.value }))}
-            placeholder="e.g., 10mg"
-            required
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label>Frequency *</Label>
-          <Select
-            value={formData.frequency}
-            onValueChange={(value) => setFormData(prev => ({ 
-              ...prev, 
-              frequency: value as MedicationFrequency,
-              customFrequency: value === MedicationFrequency.CUSTOM ? prev.customFrequency : ''
-            }))}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select frequency" />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(FREQUENCY_LABELS).map(([value, label]) => (
-                <SelectItem key={value} value={value}>
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {formData.frequency === MedicationFrequency.CUSTOM && (
-          <div>
-            <Label htmlFor="customFrequency">Custom Frequency *</Label>
-            <Input
-              id="customFrequency"
-              value={formData.customFrequency}
-              onChange={(e) => setFormData(prev => ({ ...prev, customFrequency: e.target.value }))}
-              placeholder="e.g., Every Monday, Wednesday, Friday"
-              required
-            />
-          </div>
-        )}
-
-        <div>
-          <Label>Meal Timing</Label>
-          <Select
-            value={formData.mealTiming}
-            onValueChange={(value) => setFormData(prev => ({ ...prev, mealTiming: value as MealTiming }))}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(MEAL_TIMING_LABELS).map(([value, label]) => (
-                <SelectItem key={value} value={value}>
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="startDate">Start Date *</Label>
-          <Input
-            id="startDate"
-            type="date"
-            value={formData.startDate ? format(formData.startDate, 'yyyy-MM-dd') : ''}
-            onChange={(e) => setFormData(prev => ({ 
-              ...prev, 
-              startDate: e.target.value ? new Date(e.target.value) : undefined 
-            }))}
-            required
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="endDate">End Date (Optional)</Label>
-          <Input
-            id="endDate"
-            type="date"
-            value={formData.endDate ? format(formData.endDate, 'yyyy-MM-dd') : ''}
-            onChange={(e) => setFormData(prev => ({ 
-              ...prev, 
-              endDate: e.target.value ? new Date(e.target.value) : undefined 
-            }))}
-          />
-        </div>
-      </div>
-
-      <div>
-        <Label htmlFor="instructions">Instructions</Label>
-        <Textarea
-          id="instructions"
-          value={formData.instructions}
-          onChange={(e) => setFormData(prev => ({ ...prev, instructions: e.target.value }))}
-          placeholder="Special instructions for taking this medication..."
-          rows={3}
-        />
-      </div>
-
-      <div className="flex gap-2 pt-4">
-        <Button type="submit" disabled={isLoading} className="bg-[#8159A8] hover:bg-[#6d4a8f]">
-          {isLoading ? 'Saving...' : editingMedication ? 'Update Medication' : 'Add Medication'}
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => {
-            resetForm();
-            setIsAddOpen(false);
-            setIsEditOpen(false);
-            setEditingMedication(null);
-          }}
-        >
-          Cancel
-        </Button>
-      </div>
-    </form>
-  );
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -742,7 +569,7 @@ export default function MedicationManagement({
           <p className="text-gray-600">Monitor and manage patient prescriptions</p>
         </div>
         <div className="text-right">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-center mb-4">
+          <div className="grid grid-cols-2 lg:grid-cols-2 gap-4 text-center mb-4">
             <div className="bg-gray-50 rounded-lg p-3 border">
               <div className="text-2xl font-bold text-[#8159A8]">{activeMedications.length}</div>
               <div className="text-sm text-gray-600">Active Medications</div>
@@ -750,14 +577,6 @@ export default function MedicationManagement({
             <div className="bg-gray-50 rounded-lg p-3 border">
               <div className="text-2xl font-bold text-[#8159A8]">{discontinuedMedications.length}</div>
               <div className="text-sm text-gray-600">Discontinued</div>
-            </div>
-            <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
-              <div className="text-2xl font-bold text-blue-600">{recentlyUpdated.length}</div>
-              <div className="text-sm text-blue-600">Updated (7 days)</div>
-            </div>
-            <div className="bg-red-50 rounded-lg p-3 border border-red-200">
-              <div className="text-2xl font-bold text-red-600">{recentlyDiscontinued.length}</div>
-              <div className="text-sm text-red-600">Recently Discontinued</div>
             </div>
           </div>
         </div>
@@ -790,7 +609,6 @@ export default function MedicationManagement({
               <div key={`discontinued-${med.id}`} className="flex items-center justify-between bg-white rounded p-2">
                 <span className="text-amber-700">
                   <strong>{med.name}</strong> was discontinued on {med.discontinuedAt ? format(new Date(med.discontinuedAt), 'MMM dd') : 'Unknown'}
-                  {med.discontinueReason && <span className="text-gray-600"> - {med.discontinueReason}</span>}
                 </span>
                 <Button
                   variant="outline"
@@ -819,7 +637,15 @@ export default function MedicationManagement({
             <DialogHeader>
               <DialogTitle>Add New Medication</DialogTitle>
             </DialogHeader>
-            <MedicationForm />
+            <MedicationFormComponent
+              formData={formData}
+              setFormData={setFormData}
+              onSubmit={handleSubmit}
+              onCancel={handleCancel}
+              isLoading={isLoading}
+              error={error}
+              editingMedication={editingMedication}
+            />
           </DialogContent>
         </Dialog>
       </div>
@@ -834,7 +660,7 @@ export default function MedicationManagement({
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <h5 className="text-xl font-bold text-[#8159A8] mb-2">{medication.name}</h5>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-4">
                       <div className="bg-gray-50 rounded-lg p-3">
                         <p className="text-xs uppercase text-gray-500 font-medium mb-1">Dosage</p>
                         <p className="font-semibold text-gray-900">{medication.dosage}</p>
@@ -850,6 +676,18 @@ export default function MedicationManagement({
                       <div className="bg-gray-50 rounded-lg p-3">
                         <p className="text-xs uppercase text-gray-500 font-medium mb-1">Start Date</p>
                         <p className="font-semibold text-gray-900">{format(new Date(medication.startDate), 'MMM dd, yyyy')}</p>
+                      </div>
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <p className="text-xs uppercase text-gray-500 font-medium mb-1">End Date</p>
+                        <p className="font-semibold text-gray-900">
+                          {medication.endDate ? format(new Date(medication.endDate), 'MMM dd, yyyy') : 'Ongoing'}
+                        </p>
+                      </div>
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <p className="text-xs uppercase text-gray-500 font-medium mb-1">Prescribed By</p>
+                        <p className="font-semibold text-gray-900">
+                          {medication.therapist?.user?.name || 'Unknown'}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -921,7 +759,7 @@ export default function MedicationManagement({
                       <h5 className="text-xl font-bold text-gray-600">{medication.name}</h5>
                       <Badge variant="secondary">Discontinued</Badge>
                     </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <div className="grid grid-cols-2 md:grid-cols-8 gap-4 mb-4">
                       <div className="bg-gray-50 rounded-lg p-3">
                         <p className="text-xs uppercase text-gray-500 font-medium mb-1">Dosage</p>
                         <p className="font-semibold text-gray-900">{medication.dosage}</p>
@@ -931,13 +769,35 @@ export default function MedicationManagement({
                         <p className="font-semibold text-gray-900">{getFrequencyDisplay(medication)}</p>
                       </div>
                       <div className="bg-gray-50 rounded-lg p-3">
+                        <p className="text-xs uppercase text-gray-500 font-medium mb-1">Meal Timing</p>
+                        <p className="font-semibold text-gray-900">{MEAL_TIMING_LABELS[medication.mealTiming]}</p>
+                      </div>
+                      <div className="bg-gray-50 rounded-lg p-3">
                         <p className="text-xs uppercase text-gray-500 font-medium mb-1">Start Date</p>
                         <p className="font-semibold text-gray-900">{format(new Date(medication.startDate), 'MMM dd, yyyy')}</p>
+                      </div>
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <p className="text-xs uppercase text-gray-500 font-medium mb-1">End Date</p>
+                        <p className="font-semibold text-gray-900">
+                          {medication.endDate ? format(new Date(medication.endDate), 'MMM dd, yyyy') : 'Not Set'}
+                        </p>
                       </div>
                       <div className="bg-gray-50 rounded-lg p-3">
                         <p className="text-xs uppercase text-gray-500 font-medium mb-1">Discontinued</p>
                         <p className="font-semibold text-gray-900">
                           {medication.discontinuedAt ? format(new Date(medication.discontinuedAt), 'MMM dd, yyyy') : 'N/A'}
+                        </p>
+                      </div>
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <p className="text-xs uppercase text-gray-500 font-medium mb-1">Prescribed By</p>
+                        <p className="font-semibold text-gray-900">
+                          {medication.therapist?.user?.name || 'Unknown'}
+                        </p>
+                      </div>
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <p className="text-xs uppercase text-gray-500 font-medium mb-1">Discontinued By</p>
+                        <p className="font-semibold text-gray-900">
+                          {medication.discontinuingTherapist?.user?.name || 'Unknown'}
                         </p>
                       </div>
                     </div>
@@ -955,13 +815,13 @@ export default function MedicationManagement({
                   </div>
                 </div>
 
-                {medication.discontinueReason && (
-                  <div className="bg-yellow-50 rounded-lg p-4">
+                {medication.instructions && (
+                  <div className="bg-blue-50 rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-2">
-                      <AlertCircle className="w-5 h-5 text-yellow-600" />
-                      <h6 className="font-semibold text-yellow-900">Discontinuation Reason</h6>
+                      <AlertCircle className="w-5 h-5 text-blue-600" />
+                      <h6 className="font-semibold text-blue-900">Instructions</h6>
                     </div>
-                    <p className="text-yellow-700 text-sm leading-relaxed">{medication.discontinueReason}</p>
+                    <p className="text-blue-700 text-sm leading-relaxed">{medication.instructions}</p>
                   </div>
                 )}
               </CardContent>
@@ -976,7 +836,15 @@ export default function MedicationManagement({
           <DialogHeader>
             <DialogTitle>Edit Medication</DialogTitle>
           </DialogHeader>
-          <MedicationForm />
+          <MedicationFormComponent
+            formData={formData}
+            setFormData={setFormData}
+            onSubmit={handleSubmit}
+            onCancel={handleCancel}
+            isLoading={isLoading}
+            error={error}
+            editingMedication={editingMedication}
+          />
         </DialogContent>
       </Dialog>
 
