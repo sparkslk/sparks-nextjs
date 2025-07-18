@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { prisma } from "@/lib/prisma";
+import { PrismaClient } from "@prisma/client";
 import { authOptions } from "@/lib/auth";
+
+const prisma = new PrismaClient();
 
 export async function GET() {
   try {
@@ -15,31 +17,41 @@ export async function GET() {
       );
     }
 
-    // For now, fetch all blogs (you might want to add pagination later)
+    // For therapist users, fetch only their blogs
     const blogs = await prisma.blogs.findMany({
-      select: {
-        id: true,
-        title: true,
-        summary: true,
-        content: true,
-        therapist_id: true,
-        status: true,
-        category: true,
-        tags: true,
-        // Don't include image_data in the initial fetch to reduce payload size
-        image_type: true,
-        image_name: true,
-        views: true,
-        created_at: true,
-        updated_at: true,
-        published_at: true,
+      where: {
+        therapist_id: session.user.id, // Only fetch blogs for the logged-in therapist
+      },
+      include: {
+        User: {
+          select: {
+            name: true,
+            email: true,
+          },
+        },
       },
       orderBy: {
         updated_at: "desc",
       },
     });
 
-    return NextResponse.json(blogs);
+    // Process blogs to include image URLs and proper structure
+    const processedBlogs = blogs.map((blog) => {
+      let imageUrl = null;
+      if (blog.image_data && blog.image_type) {
+        const base64Data = Buffer.from(blog.image_data).toString("base64");
+        imageUrl = `data:${blog.image_type};base64,${base64Data}`;
+      }
+
+      return {
+        ...blog,
+        imageUrl,
+        image_data: undefined, // Remove binary data from response
+        authorName: blog.User?.name || "Unknown Author",
+      };
+    });
+
+    return NextResponse.json(processedBlogs);
   } catch (error) {
     console.error("Error fetching blogs:", error);
     return NextResponse.json(
