@@ -253,8 +253,14 @@ export async function PUT(req: NextRequest) {
             );
         }
 
+
         // Prepare update data
-        const updateData: any = {};
+        type TherapistUpdateData = {
+            bio?: string;
+            specialization?: string[];
+            experience?: number;
+        };
+        const updateData: TherapistUpdateData = {};
         if (typeof bio !== 'undefined') updateData.bio = bio;
         if (typeof specialization !== 'undefined') updateData.specialization = specialization;
         if (typeof experience !== 'undefined') updateData.experience = experience;

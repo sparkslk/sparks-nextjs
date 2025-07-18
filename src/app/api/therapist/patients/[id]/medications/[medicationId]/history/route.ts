@@ -144,7 +144,7 @@ export async function GET(
           startDate: medication.startDate.toISOString(),
           endDate: medication.endDate?.toISOString(),
         },
-        notes: 'Initial medication prescription',
+        notes: `New medication prescribed: ${medication.name} ${medication.dosage}`,
         therapist: {
           user: {
             name: medication.Therapist.user.name || 'Unknown Therapist',
@@ -160,7 +160,7 @@ export async function GET(
           action: MedicationHistoryAction.UPDATED,
           changedBy: medication.therapistId,
           changedAt: medication.updatedAt,
-          notes: `Medication details were updated on ${format(new Date(medication.updatedAt), 'MMM dd, yyyy HH:mm')}`,
+          notes: `${medication.name} details were updated on ${format(new Date(medication.updatedAt), 'MMM dd, yyyy')}`,
           newValues: {
             currentName: medication.name,
             currentDosage: medication.dosage,
@@ -192,7 +192,7 @@ export async function GET(
             isDiscontinued: true,
           },
           reason: 'Medication discontinued',
-          notes: 'Medication discontinued',
+          notes: `${medication.name} has been discontinued`,
           therapist: {
             user: {
               name: discontinuingTherapist?.user?.name || medication.Therapist.user.name || 'Unknown Therapist',

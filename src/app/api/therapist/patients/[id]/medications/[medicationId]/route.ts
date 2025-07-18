@@ -121,6 +121,21 @@ export async function PUT(
         newValues[field] = change.to;
       });
 
+      // Create user-friendly description of changes
+      const changeDescriptions = Object.keys(changes).map(field => {
+        switch (field) {
+          case 'name': return 'medication name';
+          case 'dosage': return 'dosage';
+          case 'frequency': return 'schedule';
+          case 'customFrequency': return 'custom schedule';
+          case 'instructions': return 'instructions';
+          case 'mealTiming': return 'meal timing';
+          case 'startDate': return 'start date';
+          case 'endDate': return 'end date';
+          default: return field;
+        }
+      });
+
       await prisma.medicationHistory.create({
         data: {
           medicationId: medicationId,
@@ -128,7 +143,7 @@ export async function PUT(
           changedBy: session.user.id,
           previousValues: previousValues as Record<string, any>,
           newValues: newValues as Record<string, any>,
-          notes: `Updated fields: ${Object.keys(changes).join(', ')}`,
+          notes: `Updated ${changeDescriptions.join(', ')} for ${updatedMedication.name}`,
         },
       });
     }
@@ -288,7 +303,7 @@ export async function PATCH(
           discontinuedAt: discontinuedMedication.discontinuedAt?.toISOString(),
         } as Record<string, any>,
         reason: body.reason,
-        notes: 'Medication discontinued',
+        notes: `${discontinuedMedication.name} has been discontinued${body.reason ? `: ${body.reason}` : ''}`,
       },
     });
 

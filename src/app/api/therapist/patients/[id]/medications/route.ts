@@ -211,7 +211,7 @@ export async function POST(
           startDate: medication.startDate.toISOString(),
           endDate: medication.endDate?.toISOString(),
         },
-        notes: 'Initial medication prescription',
+        notes: `New medication prescribed: ${medication.name} ${medication.dosage}`,
       },
     });
 

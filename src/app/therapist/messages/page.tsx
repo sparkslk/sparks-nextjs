@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Search, Phone, Video, MoreVertical, Send, Paperclip, Smile, Clock, CheckCheck, Check } from "lucide-react";
+import { Search, Send, Paperclip, Smile, Clock, CheckCheck, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ChatMessage {
@@ -366,7 +366,7 @@ export default function TherapistMessagesPage() {
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2">
+                    {/* <div className="flex items-center space-x-2">
                       <Button variant="outline" size="sm" className="text-[#8159A8] border-[#8159A8] hover:bg-[#F5F3FB]">
                         <Phone className="h-4 w-4" />
                       </Button>
@@ -376,7 +376,7 @@ export default function TherapistMessagesPage() {
                       <Button variant="outline" size="sm" className="text-[#8159A8] border-[#8159A8] hover:bg-[#F5F3FB]">
                         <MoreVertical className="h-4 w-4" />
                       </Button>
-                    </div>
+                    </div> */}
                   </div>
                 </CardHeader>
                 
@@ -400,7 +400,7 @@ export default function TherapistMessagesPage() {
                         <Avatar className="h-8 w-8 mb-1">
                           <AvatarFallback className={cn(
                             "text-white text-sm font-medium",
-                            message.sender === 'therapist' ? 'bg-[#8159A8]' : 'bg-green-500'
+                            message.sender === 'therapist' ? 'bg-[#8159A8]' : 'bg-[#8159A8]'
                           )}>
                             {message.sender === 'therapist' ? 'DR' : 
                              message.sender === 'parent' ? 'P' : 'PT'}
@@ -416,7 +416,7 @@ export default function TherapistMessagesPage() {
                             className={cn(
                               "px-4 py-3 rounded-2xl relative",
                               message.sender === 'therapist'
-                                ? 'bg-[#8159A8] text-white rounded-br-md'
+                                ? 'bg-[#F5F3FB] text-gray-900 rounded-br-md'
                                 : 'bg-white text-gray-900 rounded-bl-md border border-gray-100 shadow-sm'
                             )}
                           >

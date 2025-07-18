@@ -277,6 +277,17 @@ export async function PUT(
         }
 
         // Update the therapy session with new documentation using Prisma's safer update method
+        console.log("About to update session with data:", {
+            attendanceStatus: attendanceStatus || null,
+            overallProgress: overallProgress || null,
+            patientEngagement: patientEngagement || null,
+            riskAssessment: riskAssessment || null,
+            primaryFocusAreas: focusAreas || [],
+            sessionNotes: sessionNotes || null,
+            nextSessionGoals: nextSessionGoals || null,
+            status: newStatus
+        });
+        
         await prisma.therapySession.update({
             where: { id: sessionId },
             data: {

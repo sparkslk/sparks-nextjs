@@ -30,11 +30,10 @@ interface Assessment {
 }
 
 export default function AssessmentsPage() {
-  const { data: session, status: authStatus } = useSession();
+  const { status: authStatus } = useSession();
   const router = useRouter();
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [assessmentToDelete, setAssessmentToDelete] = useState<Assessment | null>(null);
   const [selectedAssessment, setSelectedAssessment] = useState<Assessment | null>(null);
@@ -53,7 +52,7 @@ export default function AssessmentsPage() {
 
   const fetchAssessments = async () => {
     setLoading(true);
-    setError(null);
+    // setError(null);
 
     try {
       // Mock data for now - replace with actual API call
@@ -127,16 +126,12 @@ export default function AssessmentsPage() {
       setAssessments(mockAssessments);
     } catch (err) {
       console.error("Error fetching assessments:", err);
-      setError("Failed to load assessments. Please try again later.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleViewAssessment = (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
-    router.push(`/therapist/assessments/${id}`);
-  };
+
 
   const handleEditAssessment = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
@@ -413,7 +408,7 @@ export default function AssessmentsPage() {
                   No assessments found
                 </h3>
                 <p className="text-gray-500 mb-6">
-                  You haven't created any assessments yet.
+                  You haven&apos;t created any assessments yet.
                 </p>
                 <Button
                   onClick={handleNewAssessment}

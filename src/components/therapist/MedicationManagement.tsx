@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { DeleteConfirmationModal } from '@/components/ui/delete-confirmation-modal';
 import { 
   Plus, 
   Edit, 
@@ -47,6 +48,68 @@ interface MedicationManagementProps {
   medications: Medication[];
   onMedicationUpdate: () => void;
 }
+
+// Helper function to convert technical field names to user-friendly labels
+const getFieldDisplayName = (key: string): string => {
+  const fieldMap: Record<string, string> = {
+    name: 'Medication Name',
+    dosage: 'Dosage',
+    frequency: 'How Often',
+    customFrequency: 'Custom Schedule',
+    instructions: 'Instructions',
+    mealTiming: 'When to Take',
+    startDate: 'Start Date',
+    endDate: 'End Date',
+    isActive: 'Status',
+    isDiscontinued: 'Discontinued',
+    discontinuedAt: 'Discontinued Date',
+    currentName: 'Current Name',
+    currentDosage: 'Current Dosage',
+    currentFrequency: 'Current Schedule',
+    currentMealTiming: 'Current Timing'
+  };
+  
+  return fieldMap[key] || key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+};
+
+// Helper function to format field values for better readability
+const formatFieldValue = (key: string, value: any): string => {
+  if (value === null || value === undefined) {
+    return 'Not set';
+  }
+  
+  // Handle different field types
+  switch (key) {
+    case 'frequency':
+    case 'currentFrequency':
+      return FREQUENCY_LABELS[value as MedicationFrequency] || value;
+    
+    case 'mealTiming':
+    case 'currentMealTiming':
+      return MEAL_TIMING_LABELS[value as MealTiming] || value;
+    
+    case 'startDate':
+    case 'endDate':
+    case 'discontinuedAt':
+      if (typeof value === 'string') {
+        try {
+          return format(new Date(value), 'MMM dd, yyyy');
+        } catch {
+          return value;
+        }
+      }
+      return value;
+    
+    case 'isActive':
+      return value ? 'Active' : 'Inactive';
+    
+    case 'isDiscontinued':
+      return value ? 'Yes' : 'No';
+    
+    default:
+      return String(value);
+  }
+};
 
 // Separate MedicationForm component to prevent re-rendering issues
 interface MedicationFormProps {
@@ -242,8 +305,10 @@ export default function MedicationManagement({
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isDiscontinueConfirmOpen, setIsDiscontinueConfirmOpen] = useState(false);
   const [editingMedication, setEditingMedication] = useState<Medication | null>(null);
   const [selectedMedicationForHistory, setSelectedMedicationForHistory] = useState<Medication | null>(null);
+  const [medicationToDiscontinue, setMedicationToDiscontinue] = useState<Medication | null>(null);
   const [medicationHistory, setMedicationHistory] = useState<MedicationHistoryEntry[]>([]);
   const [formData, setFormData] = useState<MedicationFormData>(initialFormData);
   const [isLoading, setIsLoading] = useState(false);
@@ -356,13 +421,30 @@ export default function MedicationManagement({
 
       let response;
       if (editingMedication) {
+        // Helper function to normalize empty values for comparison
+        const normalizeEmpty = (value: any): string | null => {
+          if (value === null || value === undefined || value === '') {
+            return null;
+          }
+          return String(value);
+        };
+
         // Track what changed for updates
         const changes: string[] = [];
         if (editingMedication.name !== formData.name) changes.push('name');
         if (editingMedication.dosage !== formData.dosage) changes.push('dosage');
         if (editingMedication.frequency !== formData.frequency) changes.push('frequency');
-        if (editingMedication.customFrequency !== formData.customFrequency) changes.push('custom frequency');
-        if (editingMedication.instructions !== formData.instructions) changes.push('instructions');
+        
+        // Compare custom frequency with proper null handling
+        const oldCustomFreq = normalizeEmpty(editingMedication.customFrequency);
+        const newCustomFreq = normalizeEmpty(formData.customFrequency);
+        if (oldCustomFreq !== newCustomFreq) changes.push('custom frequency');
+        
+        // Compare instructions with proper null handling
+        const oldInstructions = normalizeEmpty(editingMedication.instructions);
+        const newInstructions = normalizeEmpty(formData.instructions);
+        if (oldInstructions !== newInstructions) changes.push('instructions');
+        
         if (editingMedication.mealTiming !== formData.mealTiming) changes.push('meal timing');
         if (new Date(editingMedication.startDate).toDateString() !== formData.startDate.toDateString()) changes.push('start date');
         
@@ -429,12 +511,31 @@ export default function MedicationManagement({
       }
 
       onMedicationUpdate();
+      // Close the confirmation modal
+      setIsDiscontinueConfirmOpen(false);
+      setMedicationToDiscontinue(null);
     } catch (error) {
       console.error('Error discontinuing medication:', error);
       setError(error instanceof Error ? error.message : 'Failed to discontinue medication');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleDiscontinueClick = (medication: Medication) => {
+    setMedicationToDiscontinue(medication);
+    setIsDiscontinueConfirmOpen(true);
+  };
+
+  const handleConfirmDiscontinue = () => {
+    if (medicationToDiscontinue) {
+      handleDiscontinue(medicationToDiscontinue.id, 'Discontinued by therapist');
+    }
+  };
+
+  const handleCancelDiscontinue = () => {
+    setIsDiscontinueConfirmOpen(false);
+    setMedicationToDiscontinue(null);
   };
 
   const getFrequencyDisplay = (medication: Medication) => {
@@ -612,7 +713,7 @@ export default function MedicationManagement({
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleDiscontinue(medication.id, 'Discontinued by therapist')}
+                      onClick={() => handleDiscontinueClick(medication)}
                       className="text-red-600 border-red-600 hover:bg-red-50"
                       disabled={isLoading}
                     >
@@ -770,7 +871,7 @@ export default function MedicationManagement({
                 {medicationHistory
                   .sort((a, b) => new Date(b.changedAt).getTime() - new Date(a.changedAt).getTime())
                   .map((entry) => (
-                    <Card key={entry.id} className="border-l-4 border-l-[#8159A8]">
+                    <Card key={entry.id} className="bg-purple-50 shadow-md">
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex items-center gap-2">
@@ -807,41 +908,47 @@ export default function MedicationManagement({
                           </div>
                         )}
 
-                        {(entry.previousValues && Object.keys(entry.previousValues).length > 0) && (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <div>
-                              <p className="text-sm font-medium text-gray-700 mb-2">Previous Values:</p>
-                              <div className="bg-red-50 rounded p-3 space-y-1">
-                                {Object.entries(entry.previousValues).map(([key, value]) => (
-                                  <div key={key} className="text-xs">
-                                    <span className="font-medium">{key}:</span> {String(value)}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                            {entry.newValues && Object.keys(entry.newValues).length > 0 && (
-                              <div>
-                                <p className="text-sm font-medium text-gray-700 mb-2">New Values:</p>
-                                <div className="bg-green-50 rounded p-3 space-y-1">
-                                  {Object.entries(entry.newValues).map(([key, value]) => (
-                                    <div key={key} className="text-xs">
-                                      <span className="font-medium">{key}:</span> {String(value)}
+                        {/* Display changes in a user-friendly way - but not for discontinuation */}
+                        {(entry.previousValues && Object.keys(entry.previousValues).length > 0 && 
+                          entry.action !== MedicationHistoryAction.DISCONTINUED) && (
+                          <div className="mb-3">
+                            <p className="text-sm font-medium text-gray-700 mb-2">What Changed:</p>
+                            <div className="bg-blue-50 rounded p-3 space-y-2">
+                              {Object.entries(entry.previousValues).map(([key, oldValue]) => {
+                                const newValue = entry.newValues?.[key as keyof typeof entry.newValues];
+                                const fieldName = getFieldDisplayName(key);
+                                
+                                return (
+                                  <div key={key} className="text-sm">
+                                    <span className="font-medium text-blue-800">{fieldName}</span>
+                                    <div className="flex items-center gap-2 mt-1">
+                                      <span className="text-red-700 bg-red-100 px-2 py-1 rounded text-xs">
+                                        {formatFieldValue(key, oldValue)}
+                                      </span>
+                                      <span className="text-gray-500">→</span>
+                                      <span className="text-green-700 bg-green-100 px-2 py-1 rounded text-xs">
+                                        {formatFieldValue(key, newValue)}
+                                      </span>
                                     </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
+                                  </div>
+                                );
+                              })}
+                            </div>
                           </div>
                         )}
 
+                        {/* For creation entries, show initial values */}
                         {entry.newValues && Object.keys(entry.newValues).length > 0 && 
                          (!entry.previousValues || Object.keys(entry.previousValues).length === 0) && (
-                          <div>
-                            <p className="text-sm font-medium text-gray-700 mb-2">Values:</p>
+                          <div className="mb-3">
+                            <p className="text-sm font-medium text-gray-700 mb-2">
+                              {entry.action === MedicationHistoryAction.CREATED ? 'Initial Details:' : 'Details:'}
+                            </p>
                             <div className="bg-blue-50 rounded p-3 space-y-1">
                               {Object.entries(entry.newValues).map(([key, value]) => (
-                                <div key={key} className="text-xs">
-                                  <span className="font-medium">{key}:</span> {String(value)}
+                                <div key={key} className="text-sm">
+                                  <span className="font-medium text-blue-800">{getFieldDisplayName(key)}:</span>{' '}
+                                  <span className="text-gray-700">{formatFieldValue(key, value)}</span>
                                 </div>
                               ))}
                             </div>
@@ -860,6 +967,18 @@ export default function MedicationManagement({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Discontinue Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={isDiscontinueConfirmOpen}
+        onClose={handleCancelDiscontinue}
+        onDelete={handleConfirmDiscontinue}
+        title="Discontinue Medication"
+        description="Are you sure you want to discontinue this medication"
+        itemName={medicationToDiscontinue?.name}
+        buttonLabel="Discontinue"
+        buttonVariant="destructive"
+      />
     </div>
   );
 }
