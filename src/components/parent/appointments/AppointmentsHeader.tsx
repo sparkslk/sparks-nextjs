@@ -17,10 +17,10 @@ export default function AppointmentsHeader({ childrenCount, upcomingSessionsCoun
               <Calendar className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-transparent bg-clip-text" style={{ backgroundImage: 'linear-gradient(to right, #8159A8, #6B4C93)' }}>
-                Appointments
+              <h1 className="text-4xl font-extrabold bg-gradient-to-r from-primary to-foreground bg-clip-text text-transparent tracking-tight mb-1" >
+                Sessions
               </h1>
-              <p className="mt-1 text-sm" style={{ color: '#8159A8' }}>
+              <p className="text-muted-foreground text-base font-medium" >
                 Manage your children&apos;s therapy sessions with ease
               </p>
             </div>
