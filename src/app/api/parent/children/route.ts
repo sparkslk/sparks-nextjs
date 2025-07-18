@@ -100,18 +100,30 @@ export async function GET(req: NextRequest) {
 =======
         const children = await Promise.all(
             parentGuardianRelations.map(async (relation) => {
-                // Calculate progress percentage based on completed sessions vs total scheduled
-                const totalSessions = await prisma.therapySession.count({
-                    where: { patientId: relation.patient.id }
-                });
-                const completedSessions = await prisma.therapySession.count({
+                // Calculate progress percentage as tasks completed for the current month
+                const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+                const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+                const allTasksThisMonth = await prisma.task.findMany({
                     where: {
                         patientId: relation.patient.id,
-                        status: 'COMPLETED'
+                        dueDate: {
+                            gte: startOfMonth,
+                            lte: endOfMonth
+                        }
                     }
                 });
-                // Calculate progress percentage (as decimal from 0-100)
-                const progressPercentage = totalSessions > 0 ? Math.round((completedSessions / totalSessions) * 100) : 0;
+                const completedTasksThisMonth = allTasksThisMonth.filter(task => task.status === 'COMPLETED');
+                const progressPercentage = allTasksThisMonth.length > 0 ? Math.round((completedTasksThisMonth.length / allTasksThisMonth.length) * 100) : 0;
+
+                // Fetch patient user image if userId exists
+                let patientImage = null;
+                if (relation.patient.userId) {
+                    const patientUser = await prisma.user.findUnique({
+                        where: { id: relation.patient.userId },
+                        select: { image: true }
+                    });
+                    patientImage = patientUser?.image || null;
+                }
 
                 return {
                     id: relation.patient.id,
@@ -161,7 +173,8 @@ export async function GET(req: NextRequest) {
                         availability: relation.patient.primaryTherapist.availability,
                         organizationId: relation.patient.primaryTherapist.organizationId
                     } : null,
-                    progressPercentage
+                    progressPercentage,
+                    image: patientImage
                 };
             })
         );
@@ -264,6 +277,22 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        // Create a User record for the child if email is provided
+        let childUser = null;
+        if (email) {
+            // Check if user already exists
+            childUser = await prisma.user.findUnique({ where: { email } });
+            if (!childUser) {
+                childUser = await prisma.user.create({
+                    data: {
+                        email,
+                        name: `${firstName} ${lastName}`.trim(),
+                        role: "NORMAL_USER"
+                    }
+                });
+            }
+        }
+
         // Create the patient record
         const patient = await prisma.patient.create({
             data: {
@@ -276,6 +305,8 @@ export async function POST(request: NextRequest) {
                 address: address || null,
                 emergencyContact: emergencyContact || undefined,
                 medicalHistory: medicalHistory || null,
+                // Link to user if created
+                ...(childUser ? { userId: childUser.id } : {}),
                 // Note: primaryTherapistId will be set later when a therapist is assigned
             }
         });

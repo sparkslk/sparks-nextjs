@@ -30,10 +30,58 @@ interface Patient {
     gender: string;
     phone?: string;
     email?: string;
+    image?: string | null;
     lastSession?: string;
     nextSession?: string;
     status: "active" | "inactive" | "completed";
     age: number;
+}
+
+interface PatientAvatarProps {
+    patient: Patient;
+    size?: "sm" | "md";
+}
+
+function PatientAvatar({ patient, size = "sm" }: PatientAvatarProps) {
+    const [imageError, setImageError] = useState(false);
+    const [imageLoaded, setImageLoaded] = useState(false);
+
+    const sizeClasses = size === "sm"
+        ? "w-10 h-10"
+        : "w-10 h-10 lg:w-12 lg:h-12";
+    const iconSizeClasses = size === "sm"
+        ? "h-5 w-5"
+        : "h-5 w-5 lg:h-6 lg:w-6";
+
+    const handleImageError = () => {
+        setImageError(true);
+        setImageLoaded(false);
+    };
+
+    const handleImageLoad = () => {
+        setImageLoaded(true);
+        setImageError(false);
+    };
+
+    const showUserIcon = !patient.image || imageError || !imageLoaded;
+
+    return (
+        <div className={`${sizeClasses} bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden relative`}>
+            {patient.image && !imageError && (
+                <img
+                    src={patient.image}
+                    alt={`${patient.firstName} ${patient.lastName}`}
+                    className="w-full h-full object-cover"
+                    onError={handleImageError}
+                    onLoad={handleImageLoad}
+                    style={{ display: imageLoaded && !imageError ? 'block' : 'none' }}
+                />
+            )}
+            {showUserIcon && (
+                <User className={`${iconSizeClasses} text-gray-600`} />
+            )}
+        </div>
+    );
 }
 
 export default function PatientsPage() {
@@ -253,7 +301,6 @@ export default function PatientsPage() {
                             <SelectItem value="all">All statuses</SelectItem>
                             <SelectItem value="active">Active</SelectItem>
                             <SelectItem value="inactive">Inactive</SelectItem>
-                            <SelectItem value="completed">Completed</SelectItem>
                         </SelectContent>
                     </Select>
 
@@ -364,7 +411,7 @@ export default function PatientsPage() {
                                                     >
                                                         <MessageCircle className="h-4 w-4" />
                                                     </Button>
-                                                    <Button
+                                                    {/* <Button
                                                         variant="ghost"
                                                         size="icon"
                                                         onClick={() => router.push(`/therapist/appointments/new?patientId=${patient.id}`)}

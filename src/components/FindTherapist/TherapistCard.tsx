@@ -8,9 +8,9 @@ import {
   Clock,
   AlertCircle,
   CheckCircle,
-  Calendar,
   Coins
 } from "lucide-react";
+import Image from "next/image";
 
 interface Therapist {
   id: string;
@@ -36,15 +36,17 @@ interface Therapist {
   languages: string[];
   location?: string;
   tags: string[];
+  image?: string | null;
 }
 
 interface TherapistCardProps {
   therapist: Therapist;
   bookingStatus: 'idle' | 'booking' | 'success' | 'error';
   onBookSession: (therapistId: string) => void;
+  onViewProfile: () => void;
 }
 
-export function TherapistCard({ therapist, bookingStatus, onBookSession }: TherapistCardProps) {
+export function TherapistCard({ therapist, bookingStatus, onBookSession, onViewProfile }: TherapistCardProps) {
   const getAvailabilityBadgeColor = (availability: string) => {
     if (availability.includes("Today")) return "bg-green-100 text-green-800";
     if (availability.includes("Tomorrow")) return "bg-blue-100 text-blue-800";
@@ -52,27 +54,39 @@ export function TherapistCard({ therapist, bookingStatus, onBookSession }: Thera
     return "bg-gray-100 text-gray-800";
   };
 
+  console.log("Therapist Card Rendered:", therapist.name, bookingStatus);
+
   return (
     <Card className="shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-105 bg-white cursor-pointer">
       <CardContent className="p-6">
         {/* Header */}
-        <div className="flex items-center space-x-3 mb-4">
+        <div className="flex items-center gap-4 mb-4">
           <div
-            className="w-12 h-12 rounded-full flex items-center justify-center"
-            style={{ backgroundColor: '#EDE6F3' }}
+            className="w-14 h-14 rounded-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-[#e0d7ed] border border-[#e0d7ed] shadow-sm overflow-hidden"
           >
-            <span className="font-semibold text-lg" style={{ color: '#8159A8' }}>
-              {therapist.name.split(' ').map(n => n[0]).join('')}
-            </span>
+            {therapist.image && typeof therapist.image === 'string' && therapist.image.trim() !== '' ? (
+              <Image
+                src={therapist.image}
+                alt={therapist.name}
+                width={56}
+                height={56}
+                className="object-cover w-14 h-14 rounded-full"
+                priority
+              />
+            ) : (
+              <span className="font-bold text-xl text-primary">
+                {therapist.name.split(' ').map(n => n[0]).join('')}
+              </span>
+            )}
           </div>
-          <div className="flex-1">
-            <h3 className="font-semibold text-gray-900">{therapist.name}</h3>
-            <p className="text-sm text-gray-600">{therapist.title}</p>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-lg text-foreground truncate">{therapist.name}</h3>
+            <p className="text-xs text-muted-foreground">{therapist.title}</p>
           </div>
           <div className="flex items-center gap-1">
             <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-            <span className="font-medium text-sm">{therapist.rating}</span>
-            <span className="text-xs text-gray-500">({therapist.reviewCount})</span>
+            <span className="font-medium text-sm text-foreground">{therapist.rating}</span>
+            <span className="text-xs text-muted-foreground">({therapist.reviewCount})</span>
           </div>
         </div>
 

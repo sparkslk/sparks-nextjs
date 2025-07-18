@@ -23,6 +23,7 @@ interface ParentData {
         lastName: string;
     }>;
     parentName: string;
+    parentImage?: string | null;
 }
 
 export default function ParentNavigation() {
@@ -55,6 +56,12 @@ export default function ParentNavigation() {
     };
 
     const getActiveTab = () => {
+        if (pathname === '/parent/children' || (pathname ?? "").startsWith('/parent/children/tasks')) {
+            return 'My Children';
+        }
+        if ((pathname ?? "").startsWith('/parent/sessions')) {
+            return 'Appointments';
+        }
         const currentTab = tabs.find(tab => tab.path === pathname);
         return currentTab?.name || 'Overview';
     };
@@ -81,8 +88,26 @@ export default function ParentNavigation() {
                                     {parentData?.parentName}
                                 </span>
                             </div>
-                            <Bell className="w-5 h-5 text-muted-foreground" />
-                            <div className="w-8 h-8 rounded-full" style={{ backgroundColor: '#8159A8' }}></div>
+                            <NotificationBell />
+                            <Button variant="ghost" size="icon" className="hover:bg-accent">
+                                <Settings className="h-5 w-5" />
+                            </Button>
+                            <div className="flex items-center space-x-2">
+                                {parentData?.parentImage ? (
+                                    <Image
+                                        src={parentData.parentImage}
+                                        alt={parentData.parentName || 'Parent'}
+                                        width={32}
+                                        height={32}
+                                        className="object-cover w-8 h-8 rounded-full"
+                                        priority
+                                    />
+                                ) : (
+                                    <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#8159A8' }}>
+                                        <User className="h-4 w-4 text-white" />
+                                    </div>
+                                )}
+                            </div>
                             <Button variant="outline" onClick={handleSignOut}>
                                 Sign Out
                             </Button>
@@ -90,6 +115,47 @@ export default function ParentNavigation() {
                     </div>
                 </div>
             </div>
+
+            {/* Mobile Menu */}
+            {isMobileMenuOpen && (
+                <div className="md:hidden bg-background border-b border-border">
+                    <div className="max-w-7xl mx-auto px-4 py-4">
+                        <div className="flex flex-col space-y-4">
+                            <div className="text-center">
+                                <span className="text-md font-semibold" style={{ color: '#8159A8' }}>
+                                    {parentData?.parentName}
+                                </span>
+                            </div>
+                            <div className="flex justify-center space-x-4">
+                                <NotificationBell />
+                                <Button variant="ghost" size="icon" className="hover:bg-accent">
+                                    <Settings className="h-5 w-5" />
+                                </Button>
+                                <div className="flex items-center space-x-2">
+                                    {parentData?.parentImage ? (
+                                        <Image
+                                            src={parentData.parentImage}
+                                            alt={parentData.parentName || 'Parent'}
+                                            width={32}
+                                            height={32}
+                                            className="object-cover w-8 h-8 rounded-full"
+                                            priority
+                                        />
+                                    ) : (
+                                        <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#8159A8' }}>
+                                            <User className="h-4 w-4 text-white" />
+                                        </div>
+                                    )}
+                                </div>
+                                <Button variant="outline" onClick={handleSignOut}>
+                                    <LogOut className="h-4 w-4 mr-2" />
+                                    Sign Out
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Navigation Section */}
             <div className="bg-background border-b border-border">
