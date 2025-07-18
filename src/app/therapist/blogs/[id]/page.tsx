@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Edit, Trash2, Eye, BarChart3 } from "lucide-react";
+import { ArrowLeft, Edit, Trash2 } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { DeleteConfirmationModal } from "@/components/ui/delete-confirmation-modal";
 
@@ -36,18 +36,8 @@ export default function BlogDetailPage({ params }: { params: { id: string } }) {
   const [error, setError] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  useEffect(() => {
-    if (authStatus === "unauthenticated") {
-      router.push("/login");
-      return;
-    }
-
-    if (authStatus === "authenticated") {
-      fetchBlog();
-    }
-  }, [authStatus, router, params.id]);
-
-  const fetchBlog = async () => {
+  // Fetch blog data - wrapped in useCallback to avoid dependency issues
+  const fetchBlog = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -189,7 +179,27 @@ Many adults with ADHD lead successful, fulfilling lives. Strategies include:
     } finally {
       setLoading(false);
     }
-  };
+  }, [params.id]); // Add params.id as dependency
+
+  useEffect(() => {
+    if (authStatus === "unauthenticated") {
+      router.push("/login");
+      return;
+    }
+
+    if (authStatus === "authenticated") {
+      // Use session data for authorization if needed
+      if (session && session.user) {
+        // Example permission check
+        // const userRole = session.user.role;
+        // if (userRole !== 'therapist' && userRole !== 'admin') {
+        //   router.push('/unauthorized');
+        //   return;
+        // }
+      }
+      fetchBlog();
+    }
+  }, [authStatus, router, fetchBlog, session]); // Add fetchBlog and session to dependency array
 
   const handleDeleteClick = () => {
     setShowDeleteModal(true);
@@ -236,11 +246,6 @@ Many adults with ADHD lead successful, fulfilling lives. Strategies include:
     }
   };
 
-  const handlePreviewOnPublicSite = () => {
-    // Open blog in a new tab on the public-facing site
-    window.open(`/blogs/${blog?.slug}`, "_blank");
-  };
-
   if (authStatus === "loading" || loading) {
     return <LoadingSpinner message="Loading blog details..." />;
   }
@@ -270,7 +275,8 @@ Many adults with ADHD lead successful, fulfilling lives. Strategies include:
               Blog Not Found
             </h2>
             <p className="text-gray-600 mb-4">
-              The blog you're looking for doesn't exist or has been removed.
+              The blog you&apos;re looking for doesn&apos;t exist or has been
+              removed.
             </p>
             <Button onClick={() => router.push("/therapist/blogs")}>
               Return to Blog Management
