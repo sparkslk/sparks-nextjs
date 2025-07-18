@@ -192,18 +192,18 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
     try {
       const updateData = {
         sessionId: session.id,
-        // Clinical documentation fields - send only if they have values
+        // Clinical documentation fields - send null for empty strings to match DB schema
         attendanceStatus,
         overallProgress: overallProgress || null,
         patientEngagement: patientEngagement || null,
         riskAssessment: riskAssessment || null,
         focusAreas,
-        sessionNotes: sessionNotes || null,
-        nextSessionGoals: nextSessionGoals || null,
+        sessionNotes: sessionNotes.trim() || null,
+        nextSessionGoals: nextSessionGoals.trim() || null,
         saveOnly // Pass the save mode to the API
       };
 
-      // Debugging log removed to prevent exposure of sensitive session data
+      console.log("Sending update data:", updateData);
 
       const response = await fetch(`/api/therapist/sessions/${session.id}`, {
         method: 'PUT',
@@ -229,24 +229,16 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
         }
       } else {
         const errorData = await response.json();
-        if (process.env.NODE_ENV !== 'production') {
-          console.error("Server error response:", errorData);
-        } else {
-          console.error("An error occurred while updating the session.");
-        }
+        console.error("Server error response:", errorData);
         setSubmitError(errorData.error || 'Failed to update session');
         
         // Log additional details if available
-        if (errorData.details && process.env.NODE_ENV !== 'production') {
+        if (errorData.details) {
           console.error("Error details:", errorData.details);
         }
       }
     } catch (error) {
-      if (process.env.NODE_ENV !== 'production') {
-        console.error('Error updating session:', error);
-      } else {
-        console.error("A network error occurred while updating the session.");
-      }
+      console.error('Error updating session:', error);
       setSubmitError('Network error occurred. Please try again.');
     } finally {
       setIsSubmitting(false);

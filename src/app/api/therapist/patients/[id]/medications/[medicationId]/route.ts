@@ -5,7 +5,8 @@ import { prisma } from '@/lib/prisma';
 import { 
   UpdateMedicationData, 
   DiscontinueMedicationData,
-  MedicationFrequency
+  MedicationFrequency,
+  MedicationHistoryAction
 } from '@/types/medications';
 
 export async function PUT(
@@ -110,6 +111,41 @@ export async function PUT(
         changes: changes,
         changeLog: (body as unknown as Record<string, unknown>).changeLog // From frontend tracking
       });
+
+      // Create history record for medication update
+      const previousValues: Record<string, unknown> = {};
+      const newValues: Record<string, unknown> = {};
+      
+      Object.entries(changes).forEach(([field, change]) => {
+        previousValues[field] = change.from;
+        newValues[field] = change.to;
+      });
+
+      // Create user-friendly description of changes
+      const changeDescriptions = Object.keys(changes).map(field => {
+        switch (field) {
+          case 'name': return 'medication name';
+          case 'dosage': return 'dosage';
+          case 'frequency': return 'schedule';
+          case 'customFrequency': return 'custom schedule';
+          case 'instructions': return 'instructions';
+          case 'mealTiming': return 'meal timing';
+          case 'startDate': return 'start date';
+          case 'endDate': return 'end date';
+          default: return field;
+        }
+      });
+
+      await prisma.medicationHistory.create({
+        data: {
+          medicationId: medicationId,
+          action: 'UPDATED',
+          changedBy: session.user.id,
+          previousValues: previousValues as Record<string, any>,
+          newValues: newValues as Record<string, any>,
+          notes: `Updated ${changeDescriptions.join(', ')} for ${updatedMedication.name}`,
+        },
+      });
     }
 
     return NextResponse.json(updatedMedication);
@@ -212,7 +248,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Medication not found or access denied' }, { status: 404 });
     }
 
-    // Discontinue medication with reason
+    // Discontinue medication
     const discontinuedMedication = await prisma.medication.update({
       where: { id: medicationId },
       data: {
@@ -220,7 +256,6 @@ export async function PATCH(
         isDiscontinued: true,
         discontinuedAt: new Date(),
         discontinuedBy: session.user.id,
-        discontinueReason: body.reason,
       },
       include: {
         Patient: {
@@ -250,6 +285,26 @@ export async function PATCH(
         isActive: existingMedication.isActive,
         isDiscontinued: existingMedication.isDiscontinued
       }
+    });
+
+    // Create history record for medication discontinuation
+    await prisma.medicationHistory.create({
+      data: {
+        medicationId: medicationId,
+        action: 'DISCONTINUED',
+        changedBy: session.user.id,
+        previousValues: {
+          isActive: existingMedication.isActive,
+          isDiscontinued: existingMedication.isDiscontinued,
+        } as Record<string, any>,
+        newValues: {
+          isActive: false,
+          isDiscontinued: true,
+          discontinuedAt: discontinuedMedication.discontinuedAt?.toISOString(),
+        } as Record<string, any>,
+        reason: body.reason,
+        notes: `${discontinuedMedication.name} has been discontinued${body.reason ? `: ${body.reason}` : ''}`,
+      },
     });
 
     return NextResponse.json(discontinuedMedication);

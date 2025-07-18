@@ -5,9 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Clock, User, FileText, Edit, Eye, CheckCircle, Plus, Activity, RotateCcw, Video, ArrowRight } from "lucide-react";
+import { Calendar, Clock, User, FileText, Edit, Eye, CheckCircle, Plus, Activity, RotateCcw, X, Video, ArrowRight } from "lucide-react";
 import { SessionUpdateModal } from "@/components/therapist/SessionUpdateModal";
-import { RescheduleModal } from "@/components/therapist/RescheduleModal";
 
 interface Session {
   id: string;
@@ -30,7 +29,6 @@ export default function TherapistSessionsPage() {
   const [loading, setLoading] = useState(true);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
-  const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("scheduled");
 
   // Helper function to safely parse and format dates (similar to parent tasks page)
@@ -209,22 +207,16 @@ export default function TherapistSessionsPage() {
   };
 
   const handleRescheduleSession = (session: Session) => {
-    setSelectedSession(session);
-    setIsRescheduleModalOpen(true);
+    // For now, just show an alert - will implement reschedule functionality later
+    alert(`Reschedule session with ${session.patientName}`);
   };
 
-  const handleRescheduleConfirmed = () => {
-    fetchSessions();
-    setIsRescheduleModalOpen(false);
-    setSelectedSession(null);
-  };
-
-  /* const handleCancelSession = (session: Session) => {
+  const handleCancelSession = (session: Session) => {
     // For now, just show an alert - will implement cancel functionality later
     if (confirm(`Are you sure you want to cancel the session with ${session.patientName}?`)) {
       alert(`Session with ${session.patientName} has been cancelled`);
     }
-  }; */
+  };
 
   const handleJoinSession = (session: Session) => {
     // For now, just show an alert - will implement video call functionality later
@@ -341,14 +333,14 @@ export default function TherapistSessionsPage() {
                   <Button
                     onClick={() => handleRescheduleSession(session)}
                     variant="outline"
-                    className="text-sm border-purple-300 text-purple-700 hover:bg-purple-50"
+                    className="text-sm border-blue-300 text-blue-700 hover:bg-blue-50"
                     size="sm"
                   >
                     <RotateCcw className="w-4 h-4 mr-2" />
                     Reschedule
                   </Button>
                   
-                  {/* <Button
+                  <Button
                     onClick={() => handleCancelSession(session)}
                     variant="outline"
                     className="text-sm border-red-300 text-red-700 hover:bg-red-50"
@@ -356,7 +348,7 @@ export default function TherapistSessionsPage() {
                   >
                     <X className="w-4 h-4 mr-2" />
                     Cancel
-                  </Button> */}
+                  </Button>
                 </>
               )}
 
@@ -420,8 +412,8 @@ export default function TherapistSessionsPage() {
                 </>
               )}
 
-              {/* Completed/Cancelled Sessions: Show View Details for non-scheduled status */}
-              {!isScheduledStatus && (
+              {/* Completed Sessions: Show View Details for completed sessions only */}
+              {session.status === 'COMPLETED' && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -715,17 +707,6 @@ export default function TherapistSessionsPage() {
             setSelectedSession(null);
           }}
           onSessionUpdated={handleSessionUpdated}
-        />
-
-        {/* Reschedule Modal */}
-        <RescheduleModal
-          session={selectedSession}
-          isOpen={isRescheduleModalOpen}
-          onClose={() => {
-            setIsRescheduleModalOpen(false);
-            setSelectedSession(null);
-          }}
-          onRescheduleConfirmed={handleRescheduleConfirmed}
         />
       </div>
     </div>
