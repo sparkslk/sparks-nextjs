@@ -165,10 +165,6 @@ export default function AssessmentsPage() {
     }
   };
 
- 
-
-  
-
   // Since we removed status, we don't need filtering anymore
   const filteredAssessments = assessments;
 
