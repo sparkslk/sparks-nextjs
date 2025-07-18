@@ -192,19 +192,22 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
     try {
       const updateData = {
         sessionId: session.id,
-        // Clinical documentation fields - send null for empty strings to match DB schema
+        // Clinical documentation fields - send only if they have values
         attendanceStatus,
         overallProgress: overallProgress || null,
         patientEngagement: patientEngagement || null,
         riskAssessment: riskAssessment || null,
         focusAreas,
-        sessionNotes: sessionNotes.trim() || null,
-        nextSessionGoals: nextSessionGoals.trim() || null,
+        sessionNotes: sessionNotes || null,
+        nextSessionGoals: nextSessionGoals || null,
         saveOnly // Pass the save mode to the API
       };
 
+<<<<<<< HEAD
       console.log("Sending update data:", updateData);
 
+=======
+>>>>>>> 28b45a7719cbffab30ddddccc7d005bed47893e8
       const response = await fetch(`/api/therapist/sessions/${session.id}`, {
         method: 'PUT',
         headers: {
@@ -229,6 +232,7 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
         }
       } else {
         const errorData = await response.json();
+<<<<<<< HEAD
         console.error("Server error response:", errorData);
         setSubmitError(errorData.error || 'Failed to update session');
         
@@ -236,6 +240,9 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
         if (errorData.details) {
           console.error("Error details:", errorData.details);
         }
+=======
+        setSubmitError(errorData.error || 'Failed to update session');
+>>>>>>> 28b45a7719cbffab30ddddccc7d005bed47893e8
       }
     } catch (error) {
       console.error('Error updating session:', error);
@@ -298,8 +305,12 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center justify-between">
-                Clinical Assessment
-                
+                Clinical Documentation
+                {detailedSession && (
+                  <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                    Data loaded from database
+                  </span>
+                )}
               </CardTitle>
               <p className="text-sm text-gray-600">
                 <span className="text-red-500">*</span> Required fields. Other fields are optional.
@@ -488,18 +499,32 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
               Cancel
             </Button>
             <Button 
+              variant="secondary" 
               onClick={() => handleSubmit(true)} 
               disabled={isSubmitting}
             >
               {isSubmitting ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2"></div>
                   Saving...
                 </>
               ) : (
                 <>
                   <Save className="w-4 h-4 mr-2" />
                   Save
+                </>
+              )}
+            </Button>
+            <Button onClick={() => handleSubmit(false)} disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Saving Documentation...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Save and Mark as Completed
                 </>
               )}
             </Button>

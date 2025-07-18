@@ -123,7 +123,6 @@ export async function GET(req: NextRequest) {
             experience: therapist.experience,
             bio: therapist.bio,
             availability: therapist.availability,
-            rating: therapist.rating ? parseFloat(therapist.rating.toString()) : null,
             user: therapist.user,
             organization: therapist.organization,
             createdAt: therapist.createdAt,

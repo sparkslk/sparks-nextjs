@@ -62,26 +62,23 @@ export async function GET(req: NextRequest) {
             }
         });
 
-        // Use a single 'now' variable for the whole function
-        const now = new Date();
-
         // Format children data with complete information
         const children = await Promise.all(
             parentGuardianRelations.map(async (relation) => {
-                // Calculate progress percentage as tasks completed for the current month
-                const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-                const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-                const allTasksThisMonth = await prisma.task.findMany({
+                // Calculate progress percentage based on completed sessions vs total scheduled
+                const totalSessions = await prisma.therapySession.count({
+                    where: { patientId: relation.patient.id }
+                });
+                const completedSessions = await prisma.therapySession.count({
                     where: {
                         patientId: relation.patient.id,
-                        dueDate: {
-                            gte: startOfMonth,
-                            lte: endOfMonth
-                        }
+                        status: 'COMPLETED'
                     }
                 });
-                const completedTasksThisMonth = allTasksThisMonth.filter(task => task.status === 'COMPLETED');
-                const progressPercentage = allTasksThisMonth.length > 0 ? Math.round((completedTasksThisMonth.length / allTasksThisMonth.length) * 100) : 0;
+                
+                // Calculate progress percentage (as decimal from 0-100)
+                const progressPercentage = totalSessions > 0 ? Math.round((completedSessions / totalSessions) * 100) : 0;
+                console.log("Progress percentage is : " , progressPercentage);
 
                 // Get last session date
                 const lastSession = await prisma.therapySession.findFirst({
@@ -91,35 +88,7 @@ export async function GET(req: NextRequest) {
                     },
                     orderBy: { scheduledAt: 'desc' }
                 });
-
-                // Fetch patient user image
-                let patientImage = null;
-                if (relation.patient.userId) {
-                    const patientUser = await prisma.user.findUnique({
-                        where: { id: relation.patient.userId },
-                        select: { image: true }
-                    });
-                    patientImage = patientUser?.image || null;
-                }
-
-                // Fix: Count upcoming sessions with status SCHEDULED and scheduledAt >= now
-                const upcomingSessions = await prisma.therapySession.count({
-                    where: {
-                        patientId: relation.patient.id,
-                        status: 'SCHEDULED',
-                        scheduledAt: { gte: now }
-                    }
-                });
-
-                // Get next upcoming session (soonest SCHEDULED session in the future)
-                const nextUpcomingSession = await prisma.therapySession.findFirst({
-                    where: {
-                        patientId: relation.patient.id,
-                        status: 'SCHEDULED',
-                        scheduledAt: { gte: now }
-                    },
-                    orderBy: { scheduledAt: 'asc' }
-                });
+                console.log(lastSession);
 
                 return {
                     id: relation.patient.id,
@@ -128,24 +97,21 @@ export async function GET(req: NextRequest) {
                     dateOfBirth: relation.patient.dateOfBirth?.toISOString() || '',
                     relationship: relation.relationship,
                     isPrimary: relation.isPrimary,
-                    upcomingSessions,
-                    nextUpcomingSession: nextUpcomingSession?.scheduledAt
-                        ? new Date(nextUpcomingSession.scheduledAt).toLocaleString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            hour12: true,
-                            timeZone: 'Asia/Colombo'
-                        })
-                        : null,
+                    upcomingSessions: relation.patient.therapySessions.length,
                     progressReports: relation.patient.assessments.length,
                     progressPercentage,
                     lastSession: lastSession?.scheduledAt
   ? (() => {
       const d = new Date(lastSession.scheduledAt);
-      return d.toLocaleString('en-US', {
+      const utc = new Date(
+        d.getUTCFullYear(),
+        d.getUTCMonth(),
+        d.getUTCDate(),
+        d.getUTCHours(),
+        d.getUTCMinutes(),
+        d.getUTCSeconds()
+      );
+      return utc.toLocaleString('en-US', {
         month: 'short',
         day: 'numeric',
         year: 'numeric',
@@ -158,10 +124,8 @@ export async function GET(req: NextRequest) {
   : null,
                     therapist: relation.patient.primaryTherapist ? {
                         name: relation.patient.primaryTherapist.user.name || 'Unknown Therapist',
-                        email: relation.patient.primaryTherapist.user.email || '',
-                        image: relation.patient.primaryTherapist.user.image || null
-                    } : null,
-                    image: patientImage
+                        email: relation.patient.primaryTherapist.user.email || ''
+                    } : null
                 };
             })
         );
@@ -169,14 +133,17 @@ export async function GET(req: NextRequest) {
         // Calculate total upcoming sessions across all children
         const totalUpcomingSessions = children.reduce((sum, child) => sum + child.upcomingSessions, 0);
 
-        // Get parent's name and image from user table
+        // Get parent's name from user table
         const parentUser = await prisma.user.findUnique({
             where: { id: session.user.id },
-            select: { name: true, image: true }
+            select: { name: true }
         });
 
-        // Format recent updates from notifications
-        let recentUpdates = notifications.map(notification => ({
+        console.log("Parent User Query Result:", parentUser);
+        console.log("Session User ID:", session.user.id);
+
+        // Format recent updates from notificationsfications
+        const recentUpdates = notifications.map(notification => ({
             id: notification.id,
             message: notification.message,
             timestamp: new Date(notification.createdAt).toLocaleDateString('en-US', {
@@ -188,32 +155,12 @@ export async function GET(req: NextRequest) {
             type: notification.isUrgent ? "warning" as const : "info" as const
         }));
 
-        // Add mock therapist messages if no real updates
-        if (recentUpdates.length === 0) {
-            recentUpdates = [
-                {
-                    id: 'mock1',
-                    message: 'Dr. Ravindi Fernando: Your child had a great session today! Keep up the good work at home.',
-                    timestamp: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
-                    type: 'info'
-                },
-                {
-                    id: 'mock2',
-                    message: 'Dr. Ravindi Fernando: Please remember to complete the progress questionnaire before the next session.',
-                    timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
-                    type: 'info'
-                }
-                
-            ];
-        }
-
         const parentData = {
             children,
             totalUpcomingSessions,
             unreadMessages,
             recentUpdates,
-            parentName: parentUser?.name,
-            parentImage: parentUser?.image
+            parentName: parentUser?.name
         };
 
         return NextResponse.json(parentData);

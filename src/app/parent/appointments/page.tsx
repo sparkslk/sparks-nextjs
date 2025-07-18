@@ -8,7 +8,6 @@ import EmptyState from "@/components/parent/appointments/EmptyState";
 import { Child, Appointment } from "@/types/appointments";
 // import { Select } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { useRouter } from "next/navigation";
 
 export default function AppointmentsPage() {
   const [children, setChildren] = useState<Child[]>([]);
@@ -17,19 +16,21 @@ export default function AppointmentsPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedTherapist, setSelectedTherapist] = useState<Child['therapist'] | null>(null);
   const [showTherapistModal, setShowTherapistModal] = useState(false);
-  // const [highlightedChildId, setHighlightedChildId] = useState<string | null>(null);
+  const [highlightedChildId, setHighlightedChildId] = useState<string | null>(null);
+  const [showZoomedCard, setShowZoomedCard] = useState(false);
   const [selectedChildId, setSelectedChildId] = useState<string | "all">("all");
-  const router = useRouter();
 
   useEffect(() => {
     fetchData();
+    
     // Check for highlighted child from URL params
-    // const urlParams = new URLSearchParams(window.location.search);
-    // const highlightChild = urlParams.get('highlightChild');
-    // if (highlightChild) {
-    //   setHighlightedChildId(highlightChild);
-    //   setSelectedChildId(highlightChild); // Set selector to the highlighted child
-    // }
+    const urlParams = new URLSearchParams(window.location.search);
+    const highlightChild = urlParams.get('highlightChild');
+    if (highlightChild) {
+      setHighlightedChildId(highlightChild);
+      // Show zoomed card after a short delay to allow page to load
+      setTimeout(() => setShowZoomedCard(true), 500);
+    }
   }, []);
 
   const fetchData = async () => {
@@ -109,8 +110,8 @@ export default function AppointmentsPage() {
     }
   };
 
-  const getChildAppointments = (childId: string, statuses: Array<'SCHEDULED' | 'COMPLETED' | 'CANCELLED'>) => {
-    return appointments.filter(apt => apt.childId === childId && statuses.includes(apt.status as 'SCHEDULED' | 'COMPLETED' | 'CANCELLED'));
+  const getChildAppointments = (childId: string, statuses: Array<'APPROVED' | 'REQUESTED' | 'COMPLETED' | 'CANCELLED'>) => {
+    return appointments.filter(apt => apt.childId === childId && statuses.includes(apt.status as 'APPROVED' | 'REQUESTED' | 'COMPLETED' | 'CANCELLED'));
   };
 
   const formatDate = (dateString: string) => {
@@ -122,18 +123,18 @@ export default function AppointmentsPage() {
     });
   };
 
-  // const handleBackgroundClick = () => {
-  //   setShowZoomedCard(false);
-  //   setHighlightedChildId(null);
-  //   // Remove URL params
-  //   const url = new URL(window.location.href);
-  //   url.searchParams.delete('highlightChild');
-  //   window.history.replaceState({}, '', url.toString());
-  // };
+  const handleBackgroundClick = () => {
+    setShowZoomedCard(false);
+    setHighlightedChildId(null);
+    // Remove URL params
+    const url = new URL(window.location.href);
+    url.searchParams.delete('highlightChild');
+    window.history.replaceState({}, '', url.toString());
+  };
 
-  // const getHighlightedChild = () => {
-  //   return children.find(child => child.id === highlightedChildId);
-  // };
+  const getHighlightedChild = () => {
+    return children.find(child => child.id === highlightedChildId);
+  };
 
   if (loading) {
     return <EmptyState type="loading" />;
@@ -145,45 +146,12 @@ export default function AppointmentsPage() {
 
   return (
     <div className="min-h-screen relative">
-      
-
       <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 py-4 md:py-6">
         {/* Enhanced Header */}
         <AppointmentsHeader 
           childrenCount={children.length}
-          upcomingSessionsCount={appointments.filter(apt => apt.status === 'SCHEDULED').length}
+          upcomingSessionsCount={appointments.filter(apt => ['APPROVED', 'REQUESTED'].includes(apt.status)).length}
         />
-
-        {/* Schedule Session Section */}
-      <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 pt-2 pb-6">
-        <div className="space-y-3">
-          {(selectedChildId === "all" ? children : children.filter(child => child.id === selectedChildId)).map(child => (
-            <div key={child.id} className="flex items-center justify-between bg-[#F3EAFB] rounded-lg px-4 py-3 shadow-sm">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                <span className="font-semibold text-gray-800">{child.firstName} {child.lastName}</span>
-                <span className="text-gray-500 text-sm">{child.therapist ? `Therapist: ${child.therapist.name || child.therapist}` : 'No therapist assigned'}</span>
-              </div>
-              {child.therapist ? (
-                <button
-                  className="w-40 px-4 py-2 rounded-lg font-semibold transition text-white text-center"
-                  style={{ backgroundColor: '#8159A8' }}
-                  onClick={() => {/* Implement schedule logic here */}}
-                >
-                  Schedule Session
-                </button>
-              ) : (
-                <button
-                  className="w-40 px-4 py-2 rounded-lg font-semibold transition text-center border hover:bg-[#f6f1fa]"
-                  style={{ color: '#8159A8', borderColor: '#8159A8', backgroundColor: '#fff' }}
-                  onClick={() => router.push('/parent/findTherapist')}
-                >
-                  Find Therapist
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
 
         {/* Child Selection Dropdown */}
         <div className="mb-6 flex flex-col sm:flex-row items-center gap-4">
@@ -222,18 +190,9 @@ export default function AppointmentsPage() {
           <AppointmentCard
             key="all"
             child={{ id: "all", firstName: "All", lastName: "Children", therapist: null }}
-            upcomingAppointments={appointments.filter(apt => apt.status === 'SCHEDULED').map(apt => {
-              const child = children.find(c => c.id === apt.childId);
-              return { ...apt, childFirstName: child?.firstName, childLastName: child?.lastName };
-            })}
-            pastAppointments={appointments.filter(apt => apt.status === 'COMPLETED').map(apt => {
-              const child = children.find(c => c.id === apt.childId);
-              return { ...apt, childFirstName: child?.firstName, childLastName: child?.lastName };
-            })}
-            cancelledAppointments={appointments.filter(apt => apt.status === 'CANCELLED').map(apt => {
-              const child = children.find(c => c.id === apt.childId);
-              return { ...apt, childFirstName: child?.firstName, childLastName: child?.lastName };
-            })}
+            upcomingAppointments={appointments.filter(apt => ['APPROVED', 'REQUESTED'].includes(apt.status))}
+            pastAppointments={appointments.filter(apt => apt.status === 'COMPLETED')}
+            cancelledAppointments={appointments.filter(apt => apt.status === 'CANCELLED')}
             onTherapistClick={() => {}}
             formatDate={formatDate}
             isHighlighted={false}
@@ -242,7 +201,7 @@ export default function AppointmentsPage() {
           (() => {
             const child = children.find(c => c.id === selectedChildId);
             if (!child) return null;
-            const upcomingAppointments = getChildAppointments(child.id, ['SCHEDULED']);
+            const upcomingAppointments = getChildAppointments(child.id, ['APPROVED', 'REQUESTED']);
             const pastAppointments = getChildAppointments(child.id, ['COMPLETED']);
             const cancelledAppointments = getChildAppointments(child.id, ['CANCELLED']);
             return (
@@ -257,7 +216,7 @@ export default function AppointmentsPage() {
                   setShowTherapistModal(true);
                 }}
                 formatDate={formatDate}
-                isHighlighted={false}
+                isHighlighted={child.id === highlightedChildId && !showZoomedCard}
               />
             );
           })()
@@ -265,6 +224,44 @@ export default function AppointmentsPage() {
 
         {children.length === 0 && <EmptyState type="no-children" />}
       </div>
+
+      {/* Zoomed Card Overlay */}
+      {showZoomedCard && highlightedChildId && (
+        <div 
+          className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4"
+          onClick={handleBackgroundClick}
+        >
+          <div 
+            className="relative w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl bg-white rounded-2xl shadow-2xl flex flex-col items-center justify-center p-0 sm:p-0"
+            style={{ boxShadow: '0 8px 32px rgba(129,89,168,0.15)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {(() => {
+              const highlightedChild = getHighlightedChild();
+              if (!highlightedChild) return null;
+              
+              const upcomingAppointments = getChildAppointments(highlightedChild.id, ['APPROVED', 'REQUESTED']);
+              const pastAppointments = getChildAppointments(highlightedChild.id, ['COMPLETED']);
+              const cancelledAppointments = getChildAppointments(highlightedChild.id, ['CANCELLED']);
+              
+              return (
+                <AppointmentCard
+                  child={highlightedChild}
+                  upcomingAppointments={upcomingAppointments}
+                  pastAppointments={pastAppointments}
+                  cancelledAppointments={cancelledAppointments}
+                  onTherapistClick={(therapist) => {
+                    setSelectedTherapist(therapist);
+                    setShowTherapistModal(true);
+                  }}
+                  formatDate={formatDate}
+                  isHighlighted={false}
+                />
+              );
+            })()}
+          </div>
+        </div>
+      )}
 
       {/* Therapist Details Modal */}
       <TherapistModal

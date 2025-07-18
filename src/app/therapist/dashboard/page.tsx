@@ -108,7 +108,7 @@ export default function TherapistDashboard() {
             onClick: () => router.push("/therapist/requests")
         },
         {
-            title: "Schedule Session",
+            title: "Schedule Appointment",
             description: "Book a new therapy session",
             icon: Calendar,
             onClick: () => router.push("/therapist/appointments/new")
@@ -196,7 +196,7 @@ export default function TherapistDashboard() {
                         color="primary"
                     />
                     <StatCard
-                        title="Today's Sessions"
+                        title="Today's Appointments"
                         value={stats.todayAppointments}
                         description="Scheduled sessions for today"
                         icon={Calendar}

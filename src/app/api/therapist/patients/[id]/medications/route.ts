@@ -5,8 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { 
   CreateMedicationData, 
   MedicationFrequency,
-  MealTiming,
-  MedicationHistoryAction
+  MealTiming
 } from '@/types/medications';
 
 export async function GET(
@@ -70,39 +69,7 @@ export async function GET(
       ],
     });
 
-    // For discontinued medications, fetch the discontinuing therapist information
-    const medicationsWithDiscontinuingTherapist = await Promise.all(
-      medications.map(async (medication) => {
-        let discontinuingTherapist = null;
-        
-        if (medication.discontinuedBy) {
-          try {
-            discontinuingTherapist = await prisma.therapist.findUnique({
-              where: { userId: medication.discontinuedBy },
-              include: {
-                user: {
-                  select: {
-                    name: true,
-                  },
-                },
-              },
-            });
-          } catch (error) {
-            console.error('Error fetching discontinuing therapist:', error);
-          }
-        }
-        
-        // Transform the response to match the expected interface
-        return {
-          ...medication,
-          therapist: medication.Therapist, // Map Therapist to therapist
-          discontinuingTherapist,
-          Therapist: undefined, // Remove the uppercase field
-        };
-      })
-    );
-
-    return NextResponse.json(medicationsWithDiscontinuingTherapist);
+    return NextResponse.json(medications);
   } catch (error) {
     console.error('Error fetching medications:', error);
     return NextResponse.json(
@@ -226,14 +193,7 @@ export async function POST(
       }
     });
 
-    // Transform the response to match the expected interface
-    const responseData = {
-      ...medication,
-      therapist: medication.Therapist, // Map Therapist to therapist
-      Therapist: undefined, // Remove the uppercase field
-    };
-
-    return NextResponse.json(responseData, { status: 201 });
+    return NextResponse.json(medication, { status: 201 });
   } catch (error) {
     console.error('Error creating medication:', error);
     return NextResponse.json(

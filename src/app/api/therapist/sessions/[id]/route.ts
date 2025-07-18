@@ -232,40 +232,6 @@ export async function PUT(
             saveOnly
         });
 
-        // Validate enum values
-        const validAttendanceStatus = ['PRESENT', 'LATE', 'NO_SHOW', 'CANCELLED'];
-        const validProgressLevels = ['EXCELLENT', 'GOOD', 'FAIR', 'POOR', 'CONCERNING'];
-        const validEngagementLevels = ['HIGH', 'MEDIUM', 'LOW', 'RESISTANT'];
-        const validRiskLevels = ['NONE', 'LOW', 'MEDIUM', 'HIGH'];
-
-        if (!validAttendanceStatus.includes(attendanceStatus)) {
-            return NextResponse.json(
-                { error: `Invalid attendance status: ${attendanceStatus}` },
-                { status: 400 }
-            );
-        }
-
-        if (overallProgress && !validProgressLevels.includes(overallProgress)) {
-            return NextResponse.json(
-                { error: `Invalid progress level: ${overallProgress}` },
-                { status: 400 }
-            );
-        }
-
-        if (patientEngagement && !validEngagementLevels.includes(patientEngagement)) {
-            return NextResponse.json(
-                { error: `Invalid engagement level: ${patientEngagement}` },
-                { status: 400 }
-            );
-        }
-
-        if (riskAssessment && !validRiskLevels.includes(riskAssessment)) {
-            return NextResponse.json(
-                { error: `Invalid risk level: ${riskAssessment}` },
-                { status: 400 }
-            );
-        }
-
         // Determine session status based on attendance and save mode
         let newStatus = existingSession.status;
         if (attendanceStatus === "NO_SHOW") {
@@ -371,27 +337,8 @@ export async function PUT(
             return error;
         }
         console.error("Error updating session:", error);
-        
-        // More detailed error logging
-        if (error instanceof Error) {
-            console.error("Error message:", error.message);
-            console.error("Error stack:", error.stack);
-        }
-        
-        // Return more specific error message if possible
-        let errorMessage = "Internal server error";
-        if (error instanceof Error) {
-            if (error.message.includes("invalid input syntax")) {
-                errorMessage = "Invalid data format provided";
-            } else if (error.message.includes("column") && error.message.includes("does not exist")) {
-                errorMessage = "Database schema mismatch - please contact administrator";
-            } else if (error.message.includes("foreign key constraint")) {
-                errorMessage = "Invalid session or therapist reference";
-            }
-        }
-        
         return NextResponse.json(
-            { error: errorMessage, details: error instanceof Error ? error.message : "Unknown error" },
+            { error: "Internal server error" },
             { status: 500 }
         );
     }
