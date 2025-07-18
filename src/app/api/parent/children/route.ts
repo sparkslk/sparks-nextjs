@@ -65,15 +65,7 @@ export async function GET(req: NextRequest) {
                             orderBy: { scheduledAt: 'desc' }
                         },
                         primaryTherapist: {
-                            select: {
-                                id: true,
-                                userId: true,
-                                organizationId: true,
-                                specialization: true,
-                                licenseNumber: true,
-                                experience: true,
-                                bio: true,
-                                availability: true,
+                            include: {
                                 user: {
                                     select: {
                                         name: true,
@@ -87,9 +79,25 @@ export async function GET(req: NextRequest) {
             }
         });
 
-        // Use a single 'now' variable for the whole function
-        const now = new Date();
-
+<<<<<<< HEAD
+        const children = parentGuardianRelations.map(relation => ({
+            id: relation.patient.id,
+            firstName: relation.patient.firstName,
+            lastName: relation.patient.lastName,
+            dateOfBirth: relation.patient.dateOfBirth,
+            gender: relation.patient.gender,
+            phone: relation.patient.phone,
+            email: relation.patient.email,
+            relationship: relation.relationship,
+            isPrimary: relation.isPrimary,
+            upcomingSessions: relation.patient.therapySessions.length,
+            lastSession: relation.patient.therapySessions[0]?.scheduledAt || null,
+            therapist: relation.patient.primaryTherapist ? {
+                name: relation.patient.primaryTherapist.user.name,
+                email: relation.patient.primaryTherapist.user.email
+            } : null
+        }));
+=======
         const children = await Promise.all(
             parentGuardianRelations.map(async (relation) => {
                 // Calculate progress percentage as tasks completed for the current month
@@ -170,6 +178,7 @@ export async function GET(req: NextRequest) {
                 };
             })
         );
+>>>>>>> origin/Development
 
         return NextResponse.json({ children });
 
@@ -218,7 +227,8 @@ export async function GET(req: NextRequest) {
  *               gender:
  *                 type: string
  *                 enum: ["MALE", "FEMALE", "OTHER", "PREFER_NOT_TO_SAY"]
- *
+ *               phone:
+ *                 type: string
  *               email:
  *                 type: string
  *                 format: email
@@ -242,6 +252,7 @@ export async function POST(request: NextRequest) {
             lastName,
             dateOfBirth,
             gender,
+            phone,
             email,
             address,
             relationship,
@@ -289,6 +300,7 @@ export async function POST(request: NextRequest) {
                 lastName,
                 dateOfBirth: new Date(dateOfBirth),
                 gender: gender as $Enums.Gender,
+                phone: phone || null,
                 email: email || null,
                 address: address || null,
                 emergencyContact: emergencyContact || undefined,

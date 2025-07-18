@@ -72,8 +72,7 @@ export async function GET(req: NextRequest) {
                 user: {
                     select: {
                         name: true,
-                        email: true,
-                        image: true
+                        email: true
                     }
                 },
                 organization: {
@@ -132,8 +131,7 @@ export async function GET(req: NextRequest) {
                     user: {
                         select: {
                             name: true,
-                            email: true,
-                            image: true
+                            email: true
                         }
                     },
                     organization: {
@@ -154,7 +152,6 @@ export async function GET(req: NextRequest) {
                     id: therapist.id,
                     name: therapist.user.name || therapist.user.email || "Unknown Therapist",
                     email: therapist.user.email,
-                    image: therapist.user.image || null,
                     specialization: therapist.specialization,
                     experience: therapist.experience,
                     bio: therapist.bio,
@@ -171,7 +168,6 @@ export async function GET(req: NextRequest) {
             id: therapist.id,
             name: therapist.user.name || therapist.user.email || "Unknown Therapist",
             email: therapist.user.email,
-            image: therapist.user.image || null,
             specialization: therapist.specialization,
             experience: therapist.experience,
             bio: therapist.bio,

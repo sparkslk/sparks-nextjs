@@ -4,6 +4,7 @@
 import { useRouter, usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Bell } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
@@ -14,7 +15,7 @@ const tabs = [
     { name: 'Session Oversight', path: '/admin/sessions' },
     { name: 'Financial Reports', path: '/admin/reports' },
     { name: 'Game Management', path: '/admin/games' }
-
+    
 ];
 
 interface AdminData {
@@ -94,7 +95,7 @@ export default function AdminNavigation() {
                                 className="rounded-lg"
                             />
                             <div>
-                                <span className="text-muted-foreground font-medium text-lg">SPARKS</span>
+                                <span className="text-foreground font-bold text-lg">SPARKS Admin</span>
                                 <div className="flex items-center space-x-2 mt-1">
                                     <div className={`w-2 h-2 rounded-full ${getSystemStatusColor()}`}></div>
                                     <span className="text-xs text-muted-foreground capitalize">
@@ -113,12 +114,14 @@ export default function AdminNavigation() {
                                 )}
                             </div>
                             <div className="text-right">
-                                <span className="text-md font-semibold" style={{ color: '#8159A8' }}>{adminData?.adminInfo?.name || 'System Administrator'}</span>
+                                <Badge variant="secondary" className="text-xs">
+                                    {adminData?.adminInfo?.name || 'System Administrator'}
+                                </Badge>
                                 {/*<div className="text-xs text-muted-foreground mt-0.5">
                                     {adminData?.totalUsers?.toLocaleString() || 0} total users
                                 </div>*/}
                             </div>
-                            <div className="w-8 h-8 rounded-full bg-[#8159A8] flex items-center justify-center">
+                            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
                                 <span className="text-white text-sm font-bold">A</span>
                             </div>
                             <Button variant="outline" onClick={handleSignOut}>
@@ -139,9 +142,9 @@ export default function AdminNavigation() {
                                 key={tab.name}
                                 onClick={() => handleTabClick(tab.path)}
                                 className={`pb-2 px-1 text-sm font-medium border-b-2 transition-colors ${getActiveTab() === tab.name
-                                    ? 'border-0 border-b-2' : 'border-transparent'} ${getActiveTab() === tab.name
-                                        ? '' : 'text-muted-foreground hover:text-[#8159A8] hover:border-[#8159A8]/50'} ${getActiveTab() === tab.name
-                                            ? 'text-[#8159A8] border-[#8159A8]' : ''}`}
+                                        ? 'border-primary text-primary'
+                                        : 'border-transparent text-muted-foreground hover:text-primary hover:border-primary/50'
+                                    }`}
                             >
                                 {tab.name}
                             </button>
