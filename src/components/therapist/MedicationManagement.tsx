@@ -567,13 +567,13 @@ export default function MedicationManagement({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h3 className="text-2xl font-bold mb-2 text-[#8159A8]">Medication Management</h3>
           <p className="text-gray-600">Monitor and manage patient prescriptions</p>
         </div>
-        <div className="text-right">
-          <div className="grid grid-cols-2 lg:grid-cols-2 gap-4 text-center mb-4">
+        <div className="w-full md:w-auto">
+          <div className="grid grid-cols-2 gap-4 text-center mb-4">
             <div className="bg-gray-50 rounded-lg p-3 border">
               <div className="text-2xl font-bold text-[#8159A8]">{activeMedications.length}</div>
               <div className="text-sm text-gray-600">Active Medications</div>
@@ -586,108 +586,133 @@ export default function MedicationManagement({
         </div>
       </div>
 
-      {/* Button to open Adherence Details Modal */}
-          <div className="flex justify-end mt-4">
-            <Dialog open={showAdherenceModal} onOpenChange={setShowAdherenceModal}>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="bg-white">
-                  View Adherence Details
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>Medication Adherence Details</DialogTitle>
-                  <DialogDescription>
-                    Hardcoded adherence statistics and weekly pattern for demonstration.
-                  </DialogDescription>
-                </DialogHeader>
-                {/* Adherence Details Content (moved from tab) */}
-                <div className="space-y-6">
-                  
+      {/* Buttons: View Adherence Details & Add Medication */}
+      <div className="flex flex-col sm:flex-row justify-end mt-4 gap-2">
+        {/* Adherence Details Button */}
+        <Dialog open={showAdherenceModal} onOpenChange={setShowAdherenceModal}>
+          <DialogTrigger asChild>
+            <Button variant="outline" size="sm" className="bg-white">
+              View Adherence Details
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Medication Adherence Details</DialogTitle>
+              <DialogDescription>
+                Hardcoded adherence statistics and weekly pattern for demonstration.
+              </DialogDescription>
+            </DialogHeader>
+            {/* Adherence Details Content (moved from tab) */}
+            <div className="space-y-6">
+              
 
-                <div className="flex justify-between items-center">
-                  <div className="flex gap-2">
-                    <select className="border rounded-1g px-3 py-2 text-sm bg-white shadow-sm">
-                      <option>Last 3 Months</option>
-                      <option>Last 6 Months</option>
-                      <option>Last Year</option>
-                    </select>
-                    <select className="border rounded-1g px-3 py-2 text-sm bg-white shadow-sm">
-                      <option>All Medications</option>
-                      <option>Adderall XR</option>
-                      <option>Strattera</option>
-                    </select>
-                  </div>
-                <Button variant="outline" size="sm" className="bg-white">Export Report</Button>
+            <div className="flex justify-between items-center">
+              <div className="flex gap-2">
+                <select className="border rounded-1g px-3 py-2 text-sm bg-white shadow-sm">
+                  <option>Last 3 Months</option>
+                  <option>Last 6 Months</option>
+                  <option>Last Year</option>
+                </select>
+                <select className="border rounded-1g px-3 py-2 text-sm bg-white shadow-sm">
+                  <option>All Medications</option>
+                  <option>Adderall XR</option>
+                  <option>Strattera</option>
+                </select>
+              </div>
+            <Button variant="outline" size="sm" className="bg-white">Export Report</Button>
+            </div>
+              {/* Statistics Cards */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-white p-6 rounded-xl border shadow-md text-center">
+                  <div className="text-2xl font-bold text-green-600">89%</div>
+                  <div className="text-sm text-gray-600">Overall Adherence Rate</div>
                 </div>
-                  {/* Statistics Cards */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="bg-white p-6 rounded-xl border shadow-md text-center">
-                      <div className="text-2xl font-bold text-green-600">89%</div>
-                      <div className="text-sm text-gray-600">Overall Adherence Rate</div>
-                    </div>
-                    <div className="bg-white p-6 rounded-xl border shadow-md text-center">
-                      <div className="text-2xl font-bold text-red-600">12</div>
-                      <div className="text-sm text-gray-600">Missed Doses (30 days)</div>
-                    </div>
-                    <div className="bg-white p-6 rounded-xl border shadow-md text-center">
-                      <div className="text-2xl font-bold text-[#8159A8]">247</div>
-                      <div className="text-sm text-gray-600">Total Doses Taken</div>
-                    </div>
-                    <div className="bg-white p-6 rounded-xl border shadow-md text-center">
-                      <div className="text-2xl font-bold text-orange-600">7</div>
-                      <div className="text-sm text-gray-600">Current Streak (days)</div>
-                    </div>
-                  </div>
+                <div className="bg-white p-6 rounded-xl border shadow-md text-center">
+                  <div className="text-2xl font-bold text-red-600">12</div>
+                  <div className="text-sm text-gray-600">Missed Doses (30 days)</div>
+                </div>
+                <div className="bg-white p-6 rounded-xl border shadow-md text-center">
+                  <div className="text-2xl font-bold text-[#8159A8]">247</div>
+                  <div className="text-sm text-gray-600">Total Doses Taken</div>
+                </div>
+                <div className="bg-white p-6 rounded-xl border shadow-md text-center">
+                  <div className="text-2xl font-bold text-orange-600">7</div>
+                  <div className="text-sm text-gray-600">Current Streak (days)</div>
+                </div>
+              </div>
 
-                  {/* Weekly Adherence Pattern */}
-                  <div className="bg-white p-6 rounded-xl border shadow-md">
-                    <h4 className="text-lg font-semibold text-[#8159A8] mb-4">Weekly Adherence Pattern</h4>
-                    <div className="flex gap-2 mb-4">
-                      <span className="flex items-center gap-1 text-sm">
-                        <div className="w-3 h-3 bg-green-500 rounded"></div>
-                        Taken
-                      </span>
-                      <span className="flex items-center gap-1 text-sm">
-                        <div className="w-3 h-3 bg-red-500 rounded"></div>
-                        Missed
-                      </span>
-                    </div>
-                    <div className="flex gap-2">
-                      {[
-                        { day: "Mon", status: "taken" },
-                        { day: "Tue", status: "taken" },
-                        { day: "Wed", status: "taken" },
-                        { day: "Thu", status: "taken" },
-                        { day: "Fri", status: "missed" },
-                        { day: "Sat", status: "taken" },
-                        { day: "Sun", status: "taken" }
-                      ].map((day, index) => (
-                        <div key={index} className="flex-1">
-                          <div className="text-xs text-center mb-2 font-medium">{day.day}</div>
-                          <div className={`h-12 rounded-lg ${day.status === 'taken' ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+              {/* Weekly Adherence Pattern */}
+              <div className="bg-white p-6 rounded-xl border shadow-md">
+                <h4 className="text-lg font-semibold text-[#8159A8] mb-4">Weekly Adherence Pattern</h4>
+                <div className="flex gap-2 mb-4">
+                  <span className="flex items-center gap-1 text-sm">
+                    <div className="w-3 h-3 bg-green-500 rounded"></div>
+                    Taken
+                  </span>
+                  <span className="flex items-center gap-1 text-sm">
+                    <div className="w-3 h-3 bg-red-500 rounded"></div>
+                    Missed
+                  </span>
                 </div>
-                <DialogFooter>
-                  <DialogClose asChild>
-                    <Button variant="outline">Close</Button>
-                  </DialogClose>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </div>
-          
+                <div className="flex gap-2">
+                  {[
+                    { day: "Mon", status: "taken" },
+                    { day: "Tue", status: "taken" },
+                    { day: "Wed", status: "taken" },
+                    { day: "Thu", status: "taken" },
+                    { day: "Fri", status: "missed" },
+                    { day: "Sat", status: "taken" },
+                    { day: "Sun", status: "taken" }
+                  ].map((day, index) => (
+                    <div key={index} className="flex-1">
+                      <div className="text-xs text-center mb-2 font-medium">{day.day}</div>
+                      <div className={`h-12 rounded-lg ${day.status === 'taken' ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button variant="outline">Close</Button>
+              </DialogClose>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Add Medication Button */}
+        <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+          <DialogTrigger asChild>
+            <Button className="bg-[#8159A8] hover:bg-[#6d4a8f] text-white" size="sm">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Medication
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Add New Medication</DialogTitle>
+            </DialogHeader>
+            <MedicationFormComponent
+              formData={formData}
+              setFormData={setFormData}
+              onSubmit={handleSubmit}
+              onCancel={handleCancel}
+              isLoading={isLoading}
+              error={error}
+              editingMedication={editingMedication}
+            />
+          </DialogContent>
+        </Dialog>
+      </div>
+
       {/* Recent Activity Summary */}
       {(recentlyUpdated.length > 0 || recentlyDiscontinued.length > 0) && (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-          <h4 className="text-amber-800 font-semibold mb-3 flex items-center gap-2">
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+          <h4 className="text-amber-800 font-semibold mb-2 flex items-center gap-2 text-sm">
             <Clock className="w-4 h-4" />
             Recent Activity (Last 7 Days)
           </h4>
-          <div className="space-y-2 text-sm">
+          <div className="space-y-2 text-xs max-h-40 overflow-y-auto pr-1">
             {recentlyUpdated.map(med => (
               <div key={`updated-${med.id}`} className="flex items-center justify-between bg-white rounded p-2">
                 <span className="text-amber-700">
@@ -722,43 +747,17 @@ export default function MedicationManagement({
         </div>
       )}
 
-      {/* Add Medication Button */}
-      <div className="flex justify-end">
-        <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-[#8159A8] hover:bg-[#6d4a8f] text-white">
-              <Plus className="w-4 h-4 mr-2" />
-              Add Medication
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Add New Medication</DialogTitle>
-            </DialogHeader>
-            <MedicationFormComponent
-              formData={formData}
-              setFormData={setFormData}
-              onSubmit={handleSubmit}
-              onCancel={handleCancel}
-              isLoading={isLoading}
-              error={error}
-              editingMedication={editingMedication}
-            />
-          </DialogContent>
-        </Dialog>
-      </div>
-
       {/* Active Medications */}
       {activeMedications.length > 0 ? (
         <div className="space-y-4">
           <h4 className="text-lg font-semibold text-[#8159A8]">Active Medications</h4>
           {activeMedications.map((medication) => (
             <Card key={medication.id} className="shadow-md">
-              <CardContent className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
+              <CardContent className="p-4 md:p-6">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
+                  <div className="w-full">
                     <h5 className="text-xl font-bold text-[#8159A8] mb-2">{medication.name}</h5>
-                    <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-4">
                       <div className="bg-gray-50 rounded-lg p-3">
                         <p className="text-xs uppercase text-gray-500 font-medium mb-1">Dosage</p>
                         <p className="font-semibold text-gray-900">{medication.dosage}</p>
@@ -789,7 +788,7 @@ export default function MedicationManagement({
                       </div>
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 w-full md:w-auto">
                     <Button
                       variant="outline"
                       size="sm"
@@ -850,14 +849,14 @@ export default function MedicationManagement({
           <h4 className="text-lg font-semibold text-gray-600">Discontinued Medications</h4>
           {discontinuedMedications.map((medication) => (
             <Card key={medication.id} className="shadow-md opacity-75">
-              <CardContent className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
+              <CardContent className="p-4 md:p-6">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
+                  <div className="w-full">
                     <div className="flex items-center gap-2 mb-2">
                       <h5 className="text-xl font-bold text-gray-600">{medication.name}</h5>
                       <Badge variant="secondary">Discontinued</Badge>
                     </div>
-                    <div className="grid grid-cols-2 md:grid-cols-8 gap-4 mb-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-4">
                       <div className="bg-gray-50 rounded-lg p-3">
                         <p className="text-xs uppercase text-gray-500 font-medium mb-1">Dosage</p>
                         <p className="font-semibold text-gray-900">{medication.dosage}</p>
@@ -900,7 +899,7 @@ export default function MedicationManagement({
                       </div>
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 w-full md:w-auto">
                     <Button
                       variant="outline"
                       size="sm"
