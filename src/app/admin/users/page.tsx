@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Plus } from "lucide-react";
 import UserFilters from "@/components/admin/admin-user-filters";
 
 export default function UsersPage() {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(new Date());
+  const [loading] = useState(false);
+  const [error] = useState<string | null>(null);
+  const [lastUpdated] = useState<Date | null>(new Date());
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRole, setSelectedRole] = useState("All Roles");
   const [selectedStatus, setSelectedStatus] = useState("All Status");
@@ -298,13 +298,12 @@ export default function UsersPage() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className={`text-xs ${
-                          user.status === "Suspended"
+                        className={`text-xs ${user.status === "Suspended"
                             ? "text-green-600 hover:text-green-700"
                             : user.status === "Pending"
-                            ? "text-blue-600 hover:text-blue-700"
-                            : "text-red-600 hover:text-red-700"
-                        }`}
+                              ? "text-blue-600 hover:text-blue-700"
+                              : "text-red-600 hover:text-red-700"
+                          }`}
                       >
                         {user.status === "Suspended" ? "Reactivate" : user.status === "Pending" ? "Verify" : "Suspend"}
                       </Button>
