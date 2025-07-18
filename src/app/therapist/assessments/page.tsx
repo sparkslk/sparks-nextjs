@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import {  ClipboardList, Users, CheckCircle, UserPlus, UserMinus } from "lucide-react";
+import { ClipboardList, Users, CheckCircle, UserPlus, UserMinus } from "lucide-react";
 
 interface Assessment {
   id: string;
@@ -29,11 +29,16 @@ interface Assessment {
 export default function AssessmentsPage() {
   const { status: authStatus } = useSession();
   const router = useRouter();
+  const params = useParams();
+  const assessmentId = params.id as string;
+
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [loading, setLoading] = useState(true);
   const [assessmentToDelete, setAssessmentToDelete] = useState<Assessment | null>(null);
   const [selectedAssessment, setSelectedAssessment] = useState<Assessment | null>(null);
   const [showPatientsModal, setShowPatientsModal] = useState(false);
+  const [showAddPatientList, setShowAddPatientList] = useState(false);
+
   // Hardcoded possible patients to add
   const possiblePatients = [
     { id: 'p10', name: 'Nimal Perera', email: 'nimal@email.com' },
@@ -41,11 +46,8 @@ export default function AssessmentsPage() {
     { id: 'p12', name: 'Sunethra Jayasuriya', email: 'sunethra@email.com' },
     { id: 'p13', name: 'Ruwanthi Fernando', email: 'ruwanthi@email.com' },
   ];
-  const [availablePatients, setAvailablePatients] = useState(possiblePatients);
-  const [showAddPatientList, setShowAddPatientList] = useState(false);
   
-    const params = useParams();
-    const assessmentId = params.id as string;
+  const [availablePatients, setAvailablePatients] = useState(possiblePatients);
 
   useEffect(() => {
     if (authStatus === "unauthenticated") {
@@ -65,13 +67,11 @@ export default function AssessmentsPage() {
     try {
       // Mock data for now - replace with actual API call
       const mockAssessments: Assessment[] = [
-        
         {
           id: "1",
           title: "Auditory Processing - Listening Task",
           description: "Audio-based assessment to evaluate listening comprehension, auditory memory, and processing speed through various listening exercises.",
           type: "LISTENING_TASK",
-          
           createdAt: "2024-07-10",
           updatedAt: "2024-07-22",
           assignedPatients: [
@@ -84,7 +84,6 @@ export default function AssessmentsPage() {
           title: "Visual Perception - Picture Description",
           description: "Assessment involving detailed description of complex images to evaluate visual processing, attention to detail, and verbal expression skills.",
           type: "PICTURE_DESCRIPTION",
-          
           createdAt: "2024-07-08",
           updatedAt: "2024-07-08",
           assignedPatients: [
@@ -98,7 +97,6 @@ export default function AssessmentsPage() {
           title: "Attention & Focus - Find the Differences",
           description: "Visual attention task requiring patients to identify differences between similar images to assess concentration and visual attention skills.",
           type: "FIND_DIFFERENCES",
-          
           createdAt: "2024-07-05",
           updatedAt: "2024-07-20",
           score: 91,
@@ -116,7 +114,6 @@ export default function AssessmentsPage() {
       setLoading(false);
     }
   };
-
 
   const handleViewPatients = (e: React.MouseEvent, assessment: Assessment) => {
     e.stopPropagation();
@@ -165,10 +162,6 @@ export default function AssessmentsPage() {
     }
   };
 
- 
-
-  
-
   // Since we removed status, we don't need filtering anymore
   const filteredAssessments = assessments;
 
@@ -204,15 +197,13 @@ export default function AssessmentsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#F5F3FB] via-white to-[#F5F3FB] p-6">
-      
-
       {/* Patients Modal */}
       {showPatientsModal && selectedAssessment && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-semibold text-gray-800">
-                Assigned Patients  - {selectedAssessment.title}
+                Assigned Patients - {selectedAssessment.title}
               </h3>
               <Button
                 variant="ghost"
@@ -318,48 +309,45 @@ export default function AssessmentsPage() {
               Create and manage patient assessments and evaluations.
             </p>
           </div>
-
-          
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="bg-white p-6 rounded-lg border shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center justify-between">
+          <Card className="bg-white p-6 rounded-lg border shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center justify-between">
             <div className="text-left">
               <div className="text-3xl font-bold text-[#8159A8]">
-              {totalAssessments}
+                {totalAssessments}
               </div>
               <div className="text-gray-500 text-sm">Total Assessments</div>
             </div>
             <div className="flex-shrink-0 ml-4">
               <ClipboardList className="w-10 h-10 text-[#8159A8]" />
             </div>
-            </Card>
+          </Card>
 
-            <Card className="bg-white p-6 rounded-lg border shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center justify-between">
+          <Card className="bg-white p-6 rounded-lg border shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center justify-between">
             <div className="text-left">
               <div className="text-3xl font-bold text-[#8159A8]">
-              {totalPatients}
+                {totalPatients}
               </div>
               <div className="text-gray-500 text-sm">Total Assignments</div>
             </div>
             <div className="flex-shrink-0 ml-4">
               <Users className="w-10 h-10 text-[#8159A8]" />
             </div>
-            </Card>
+          </Card>
 
-            <Card className="bg-white p-6 rounded-lg border shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center justify-between">
+          <Card className="bg-white p-6 rounded-lg border shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center justify-between">
             <div className="text-left">
               <div className="text-3xl font-bold text-[#8159A8]">
-              {assessments.filter(a => a.assignedPatients.some(p => p.completedAt)).length}
+                {assessments.filter(a => a.assignedPatients.some(p => p.completedAt)).length}
               </div>
               <div className="text-gray-500 text-sm">Assessments with Completions</div>
             </div>
             <div className="flex-shrink-0 ml-4">
               <CheckCircle className="w-10 h-10 text-[#8159A8]" />
             </div>
-            </Card>
-              
+          </Card>
         </div>
 
         {/* Assessment Grid */}
@@ -392,7 +380,6 @@ export default function AssessmentsPage() {
 
                     {/* Assessment Info */}
                     <div className="space-y-2">
-                      
                       <div className="flex items-center text-sm text-gray-500">
                         <Users className="w-4 h-4 mr-2" />
                         {assessment.assignedPatients.length} patients assigned
@@ -410,12 +397,14 @@ export default function AssessmentsPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => router.push(`/therapist/assessments/${assessmentId}`)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/therapist/assessments/${assessment.id}`);
+                        }}
                         className="bg-[#FAF8FB] hover:bg-[#FAF8FB] text-[#8159A8]"
                       >
                         View Assessment
                       </Button>
-                      
 
                       <Button
                         variant="outline"
@@ -423,11 +412,8 @@ export default function AssessmentsPage() {
                         className="bg-[#FAF8FB] hover:bg-[#FAF8FB] text-[#8159A8]"
                         onClick={(e) => handleViewPatients(e, assessment)}
                       >
-                        
                         Assigned Patients
                       </Button>
-
-                      
                     </div>
                   </div>
                 </Card>
@@ -441,7 +427,6 @@ export default function AssessmentsPage() {
                 <p className="text-gray-500 mb-6">
                   You haven&apos;t created any assessments yet.
                 </p>
-                
               </div>
             )}
           </div>
