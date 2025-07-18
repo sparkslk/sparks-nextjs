@@ -192,16 +192,18 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
     try {
       const updateData = {
         sessionId: session.id,
-        // Clinical documentation fields - send only if they have values
+        // Clinical documentation fields - send null for empty strings to match DB schema
         attendanceStatus,
         overallProgress: overallProgress || null,
         patientEngagement: patientEngagement || null,
         riskAssessment: riskAssessment || null,
         focusAreas,
-        sessionNotes: sessionNotes || null,
-        nextSessionGoals: nextSessionGoals || null,
+        sessionNotes: sessionNotes.trim() || null,
+        nextSessionGoals: nextSessionGoals.trim() || null,
         saveOnly // Pass the save mode to the API
       };
+
+      // Debugging log removed to prevent exposure of sensitive session data
 
       const response = await fetch(`/api/therapist/sessions/${session.id}`, {
         method: 'PUT',
@@ -227,10 +229,24 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
         }
       } else {
         const errorData = await response.json();
+        if (process.env.NODE_ENV !== 'production') {
+          console.error("Server error response:", errorData);
+        } else {
+          console.error("An error occurred while updating the session.");
+        }
         setSubmitError(errorData.error || 'Failed to update session');
+        
+        // Log additional details if available
+        if (errorData.details && process.env.NODE_ENV !== 'production') {
+          console.error("Error details:", errorData.details);
+        }
       }
     } catch (error) {
-      console.error('Error updating session:', error);
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('Error updating session:', error);
+      } else {
+        console.error("A network error occurred while updating the session.");
+      }
       setSubmitError('Network error occurred. Please try again.');
     } finally {
       setIsSubmitting(false);
@@ -290,12 +306,8 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center justify-between">
-                Clinical Documentation
-                {detailedSession && (
-                  <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-                    Data loaded from database
-                  </span>
-                )}
+                Clinical Assessment
+                
               </CardTitle>
               <p className="text-sm text-gray-600">
                 <span className="text-red-500">*</span> Required fields. Other fields are optional.
@@ -484,32 +496,18 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
               Cancel
             </Button>
             <Button 
-              variant="secondary" 
               onClick={() => handleSubmit(true)} 
               disabled={isSubmitting}
             >
               {isSubmitting ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2"></div>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                   Saving...
                 </>
               ) : (
                 <>
                   <Save className="w-4 h-4 mr-2" />
                   Save
-                </>
-              )}
-            </Button>
-            <Button onClick={() => handleSubmit(false)} disabled={isSubmitting}>
-              {isSubmitting ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Saving Documentation...
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4 mr-2" />
-                  Save and Mark as Completed
                 </>
               )}
             </Button>

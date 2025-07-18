@@ -5,7 +5,8 @@ import { prisma } from '@/lib/prisma';
 import { 
   UpdateMedicationData, 
   DiscontinueMedicationData,
-  MedicationFrequency
+  MedicationFrequency,
+  MedicationHistoryAction
 } from '@/types/medications';
 
 export async function PUT(
@@ -110,6 +111,26 @@ export async function PUT(
         changes: changes,
         changeLog: (body as unknown as Record<string, unknown>).changeLog // From frontend tracking
       });
+
+      // Create history record for medication update
+      const previousValues: Record<string, unknown> = {};
+      const newValues: Record<string, unknown> = {};
+      
+      Object.entries(changes).forEach(([field, change]) => {
+        previousValues[field] = change.from;
+        newValues[field] = change.to;
+      });
+
+      await prisma.medicationHistory.create({
+        data: {
+          medicationId: medicationId,
+          action: 'UPDATED',
+          changedBy: session.user.id,
+          previousValues: previousValues as Record<string, any>,
+          newValues: newValues as Record<string, any>,
+          notes: `Updated fields: ${Object.keys(changes).join(', ')}`,
+        },
+      });
     }
 
     return NextResponse.json(updatedMedication);
@@ -212,7 +233,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Medication not found or access denied' }, { status: 404 });
     }
 
-    // Discontinue medication with reason
+    // Discontinue medication
     const discontinuedMedication = await prisma.medication.update({
       where: { id: medicationId },
       data: {
@@ -220,7 +241,6 @@ export async function PATCH(
         isDiscontinued: true,
         discontinuedAt: new Date(),
         discontinuedBy: session.user.id,
-        discontinueReason: body.reason,
       },
       include: {
         Patient: {
@@ -250,6 +270,26 @@ export async function PATCH(
         isActive: existingMedication.isActive,
         isDiscontinued: existingMedication.isDiscontinued
       }
+    });
+
+    // Create history record for medication discontinuation
+    await prisma.medicationHistory.create({
+      data: {
+        medicationId: medicationId,
+        action: 'DISCONTINUED',
+        changedBy: session.user.id,
+        previousValues: {
+          isActive: existingMedication.isActive,
+          isDiscontinued: existingMedication.isDiscontinued,
+        } as Record<string, any>,
+        newValues: {
+          isActive: false,
+          isDiscontinued: true,
+          discontinuedAt: discontinuedMedication.discontinuedAt?.toISOString(),
+        } as Record<string, any>,
+        reason: body.reason,
+        notes: 'Medication discontinued',
+      },
     });
 
     return NextResponse.json(discontinuedMedication);
