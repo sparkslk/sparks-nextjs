@@ -314,7 +314,7 @@ export default function SessionDetailsPage() {
           </div>
           
           <div className="flex justify-between items-center mb-6">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">
+            <h1 className="text-3xl font-bold bg-black bg-clip-text text-transparent">
               Session Details
             </h1>
             
@@ -337,10 +337,10 @@ export default function SessionDetailsPage() {
                 <User className="w-4 h-4 mr-2" />
                 View Profile
                 </Button>
-                <Button variant="outline" size="sm" className="hover:bg-purple-50 border-purple-200 bg-purple-25">
+                {/* <Button variant="outline" size="sm" className="hover:bg-purple-50 border-purple-200 bg-purple-25">
                 <Download className="w-4 h-4 mr-2" />
                 Export Session
-                </Button>
+                </Button> */}
             </div>
           </div>
           

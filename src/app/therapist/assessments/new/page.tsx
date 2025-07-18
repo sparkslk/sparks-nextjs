@@ -153,7 +153,6 @@ export default function NewAssessmentPage() {
         assignedPatients: selectedPatients,
       };
 
-      console.log("Saving assessment:", assessmentData);
       
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 2000));

@@ -192,18 +192,16 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
     try {
       const updateData = {
         sessionId: session.id,
-        // Clinical documentation fields - send null for empty strings to match DB schema
+        // Clinical documentation fields - send only if they have values
         attendanceStatus,
         overallProgress: overallProgress || null,
         patientEngagement: patientEngagement || null,
         riskAssessment: riskAssessment || null,
         focusAreas,
-        sessionNotes: sessionNotes.trim() || null,
-        nextSessionGoals: nextSessionGoals.trim() || null,
+        sessionNotes: sessionNotes || null,
+        nextSessionGoals: nextSessionGoals || null,
         saveOnly // Pass the save mode to the API
       };
-
-      console.log("Sending update data:", updateData);
 
       const response = await fetch(`/api/therapist/sessions/${session.id}`, {
         method: 'PUT',
@@ -229,13 +227,7 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
         }
       } else {
         const errorData = await response.json();
-        console.error("Server error response:", errorData);
         setSubmitError(errorData.error || 'Failed to update session');
-        
-        // Log additional details if available
-        if (errorData.details) {
-          console.error("Error details:", errorData.details);
-        }
       }
     } catch (error) {
       console.error('Error updating session:', error);

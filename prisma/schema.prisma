@@ -285,6 +285,7 @@ model Medication {
   isDiscontinued    Boolean             @default(false)
   discontinuedAt    DateTime?
   discontinuedBy    String?
+  discontinueReason String?
   createdAt         DateTime            @default(now())
   updatedAt         DateTime
   Patient           Patient             @relation(fields: [patientId], references: [id], onDelete: Cascade)

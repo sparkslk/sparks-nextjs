@@ -519,7 +519,8 @@ export default function PatientDetailsPage() {
         {/* Tabs */}
         <Card className="shadow-sm hover:shadow-md transition-shadow bg-white dark:bg-slate-950">
           <CardContent className="p-6">
-            <Tabs defaultValue="info" value={tab} onValueChange={setTab} className="w-full">              <TabsList className="grid w-full grid-cols-6 mb-6">
+            <Tabs defaultValue="info" value={tab} onValueChange={setTab} className="w-full">              
+                <TabsList className="grid w-full grid-cols-6 mb-6">
                 <TabsTrigger value="info" className="text-xs sm:text-sm">Information</TabsTrigger>
                 <TabsTrigger value="sessions" className="text-xs sm:text-sm">Sessions</TabsTrigger>
                 <TabsTrigger value="medications" className="text-xs sm:text-sm">Medication</TabsTrigger>
@@ -1532,11 +1533,7 @@ export default function PatientDetailsPage() {
                           </svg>
                           Download
                         </Button>
-                        {/* <Button variant="outline" size="sm" className="text-red-600 hover:bg-red-50">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </Button> */}
+                        
                       </div>
                     </div>
                   </div>

@@ -5,8 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { 
   CreateMedicationData, 
   MedicationFrequency,
-  MealTiming,
-  MedicationHistoryAction
+  MealTiming
 } from '@/types/medications';
 
 export async function GET(
@@ -70,39 +69,7 @@ export async function GET(
       ],
     });
 
-    // For discontinued medications, fetch the discontinuing therapist information
-    const medicationsWithDiscontinuingTherapist = await Promise.all(
-      medications.map(async (medication) => {
-        let discontinuingTherapist = null;
-        
-        if (medication.discontinuedBy) {
-          try {
-            discontinuingTherapist = await prisma.therapist.findUnique({
-              where: { userId: medication.discontinuedBy },
-              include: {
-                user: {
-                  select: {
-                    name: true,
-                  },
-                },
-              },
-            });
-          } catch (error) {
-            console.error('Error fetching discontinuing therapist:', error);
-          }
-        }
-        
-        // Transform the response to match the expected interface
-        return {
-          ...medication,
-          therapist: medication.Therapist, // Map Therapist to therapist
-          discontinuingTherapist,
-          Therapist: undefined, // Remove the uppercase field
-        };
-      })
-    );
-
-    return NextResponse.json(medicationsWithDiscontinuingTherapist);
+    return NextResponse.json(medications);
   } catch (error) {
     console.error('Error fetching medications:', error);
     return NextResponse.json(
@@ -195,26 +162,6 @@ export async function POST(
       },
     });
 
-    // Create history record for medication creation
-    await prisma.medicationHistory.create({
-      data: {
-        medicationId: medication.id,
-        action: 'CREATED',
-        changedBy: session.user.id,
-        newValues: {
-          name: medication.name,
-          dosage: medication.dosage,
-          frequency: medication.frequency,
-          customFrequency: medication.customFrequency,
-          instructions: medication.instructions,
-          mealTiming: medication.mealTiming,
-          startDate: medication.startDate.toISOString(),
-          endDate: medication.endDate?.toISOString(),
-        },
-        notes: 'Initial medication prescription',
-      },
-    });
-
     // Log the creation action (this would go to a proper history table in production)
     console.log(`Medication created: ${medication.id} for patient ${patientId} by therapist ${therapist.id}`, {
       action: 'CREATED',
@@ -226,14 +173,7 @@ export async function POST(
       }
     });
 
-    // Transform the response to match the expected interface
-    const responseData = {
-      ...medication,
-      therapist: medication.Therapist, // Map Therapist to therapist
-      Therapist: undefined, // Remove the uppercase field
-    };
-
-    return NextResponse.json(responseData, { status: 201 });
+    return NextResponse.json(medication, { status: 201 });
   } catch (error) {
     console.error('Error creating medication:', error);
     return NextResponse.json(

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireApiAuth } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
+import { createNotification } from "@/lib/notifications";
 
 /**
  * @swagger
@@ -119,6 +120,114 @@ export async function GET(req: NextRequest) {
         console.error("Error fetching notifications:", error);
         return NextResponse.json(
             { error: "Failed to fetch notifications" },
+            { status: 500 }
+        );
+    }
+}
+
+/**
+ * @swagger
+ * /api/notifications:
+ *   post:
+ *     summary: Create a new notification
+ *     description: Create and send a notification to a user
+ *     tags:
+ *       - Notifications
+ *     security:
+ *       - sessionAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - title
+ *               - message
+ *               - type
+ *               - receiverId
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 description: Notification title
+ *               message:
+ *                 type: string
+ *                 description: Notification message
+ *               type:
+ *                 type: string
+ *                 enum: ["INFO", "WARNING", "ERROR", "SUCCESS", "APPOINTMENT", "TASK", "REMINDER", "EMERGENCY", "SYSTEM"]
+ *                 description: Notification type
+ *               receiverId:
+ *                 type: string
+ *                 description: ID of the user who will receive the notification
+ *               isUrgent:
+ *                 type: boolean
+ *                 description: Whether this is an urgent notification
+ *                 default: false
+ *               metadata:
+ *                 type: object
+ *                 description: Additional metadata for the notification
+ *     responses:
+ *       201:
+ *         description: Notification created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 notification:
+ *                   type: object
+ *       400:
+ *         description: Invalid request data
+ *       401:
+ *         description: Authentication required
+ *       500:
+ *         description: Internal server error
+ */
+export async function POST(req: NextRequest) {
+    try {
+        const session = await requireApiAuth(req);
+        const { title, message, type, receiverId, isUrgent = false, metadata } = await req.json();
+
+        // Validate required fields
+        if (!title || !message || !type || !receiverId) {
+            return NextResponse.json(
+                { error: "Missing required fields: title, message, type, receiverId" },
+                { status: 400 }
+            );
+        }
+
+        // Create the notification
+        const notification = await createNotification({
+            title,
+            message,
+            type,
+            receiverId,
+            senderId: session.user.id,
+            isUrgent
+        });
+
+        return NextResponse.json({
+            message: "Notification created successfully",
+            notification: {
+                id: notification.id,
+                title: notification.title,
+                message: notification.message,
+                type: notification.type,
+                isUrgent: notification.isUrgent,
+                createdAt: notification.createdAt
+            }
+        }, { status: 201 });
+
+    } catch (error) {
+        if (error instanceof NextResponse) {
+            return error;
+        }
+        console.error("Error creating notification:", error);
+        return NextResponse.json(
+            { error: "Failed to create notification" },
             { status: 500 }
         );
     }
