@@ -101,7 +101,23 @@ export async function PATCH(
     const data = await request.json();
 
     // Handle status change to published
-    const updates: any = { ...data };
+    const updates: any = {
+      title: data.title,
+      summary: data.summary,
+      content: data.content,
+      category: data.category,
+      tags: data.tags || [],
+      status: data.status,
+    };
+
+    // Handle image data if provided
+    if (data.image_data && data.image_type) {
+      updates.image_data = Buffer.from(data.image_data, "base64");
+      updates.image_type = data.image_type;
+      updates.image_name = data.image_name;
+    }
+
+    // Set published_at if status is changing to published
     if (data.status === "published" && blog.status !== "published") {
       updates.published_at = new Date();
     }
@@ -110,9 +126,28 @@ export async function PATCH(
     const updatedBlog = await prisma.blogs.update({
       where: { id },
       data: updates,
+      include: {
+        User: {
+          select: {
+            name: true,
+            email: true,
+          },
+        },
+      },
     });
 
-    return NextResponse.json(updatedBlog);
+    // Convert image data to base64 for response
+    let imageUrl = null;
+    if (updatedBlog.image_data && updatedBlog.image_type) {
+      const base64Data = Buffer.from(updatedBlog.image_data).toString("base64");
+      imageUrl = `data:${updatedBlog.image_type};base64,${base64Data}`;
+    }
+
+    return NextResponse.json({
+      ...updatedBlog,
+      imageUrl,
+      image_data: undefined, // Remove binary data from response
+    });
   } catch (error) {
     console.error("Error updating blog:", error);
     return NextResponse.json(
