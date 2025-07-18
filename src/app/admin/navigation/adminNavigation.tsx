@@ -4,7 +4,6 @@
 import { useRouter, usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Bell } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
@@ -15,7 +14,7 @@ const tabs = [
     { name: 'Session Oversight', path: '/admin/sessions' },
     { name: 'Financial Reports', path: '/admin/reports' },
     { name: 'Game Management', path: '/admin/games' }
-    
+
 ];
 
 interface AdminData {
@@ -140,9 +139,9 @@ export default function AdminNavigation() {
                                 key={tab.name}
                                 onClick={() => handleTabClick(tab.path)}
                                 className={`pb-2 px-1 text-sm font-medium border-b-2 transition-colors ${getActiveTab() === tab.name
-                                        ? 'border-0 border-b-2' : 'border-transparent'} ${getActiveTab() === tab.name
+                                    ? 'border-0 border-b-2' : 'border-transparent'} ${getActiveTab() === tab.name
                                         ? '' : 'text-muted-foreground hover:text-[#8159A8] hover:border-[#8159A8]/50'} ${getActiveTab() === tab.name
-                                        ? 'text-[#8159A8] border-[#8159A8]' : ''}`}
+                                            ? 'text-[#8159A8] border-[#8159A8]' : ''}`}
                             >
                                 {tab.name}
                             </button>
