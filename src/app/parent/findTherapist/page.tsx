@@ -37,6 +37,7 @@ interface Therapist {
     tags: string[];
     image?: string | null;
     isCurrentTherapist?: boolean;
+    bio?: string;
 }
 
 export default function FindTherapistPage() {
@@ -48,7 +49,7 @@ export default function FindTherapistPage() {
     const [selectedTimeAvailability, setSelectedTimeAvailability] = useState("all");
     const [selectedCost, setSelectedCost] = useState("all");
     const [showFilters, setShowFilters] = useState(false);
-    const [bookingStatus, setBookingStatus] = useState<{ [key: string]: 'idle' | 'booking' | 'success' | 'error' }>({});
+    // const [bookingStatus, setBookingStatus] = useState<{ [key: string]: 'idle' | 'booking' | 'success' | 'error' }>({});
     const [currentTherapist, setCurrentTherapist] = useState<Therapist | null>(null);
     const [profileModalOpen, setProfileModalOpen] = useState(false);
     const [selectedTherapist, setSelectedTherapist] = useState<Therapist | null>(null);
@@ -113,6 +114,7 @@ export default function FindTherapistPage() {
                         specialization?: string[];
                         experience?: number;
                         image?: string | null;
+                        bio?: string;
                     }) => ({
                         id: therapist.id,
                         name: therapist.name,
@@ -133,7 +135,8 @@ export default function FindTherapistPage() {
                         },
                         languages: ["English"],
                         tags: ["English"],
-                        image: therapist.image || null
+                        image: therapist.image || null,
+                        bio: therapist.bio || ""
                     })) || [];
 
                     setTherapists(formattedTherapists);
@@ -211,23 +214,23 @@ export default function FindTherapistPage() {
         setFilteredTherapists(filtered);
     }, [searchQuery, selectedSpecialty, selectedTimeAvailability, selectedCost, therapists]);
 
-    const handleBookSession = async (therapistId: string) => {
-        setBookingStatus(prev => ({ ...prev, [therapistId]: 'booking' }));
+    // const handleBookSession = async (therapistId: string) => {
+    //     setBookingStatus(prev => ({ ...prev, [therapistId]: 'booking' }));
 
-        // Simulate API call
-        try {
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            setBookingStatus(prev => ({ ...prev, [therapistId]: 'success' }));
-            setTimeout(() => {
-                setBookingStatus(prev => ({ ...prev, [therapistId]: 'idle' }));
-            }, 3000);
-        } catch {
-            setBookingStatus(prev => ({ ...prev, [therapistId]: 'error' }));
-            setTimeout(() => {
-                setBookingStatus(prev => ({ ...prev, [therapistId]: 'idle' }));
-            }, 3000);
-        }
-    };
+    //     // Simulate API call
+    //     try {
+    //         await new Promise(resolve => setTimeout(resolve, 1500));
+    //         setBookingStatus(prev => ({ ...prev, [therapistId]: 'success' }));
+    //         setTimeout(() => {
+    //             setBookingStatus(prev => ({ ...prev, [therapistId]: 'idle' }));
+    //         }, 3000);
+    //     } catch {
+    //         setBookingStatus(prev => ({ ...prev, [therapistId]: 'error' }));
+    //         setTimeout(() => {
+    //             setBookingStatus(prev => ({ ...prev, [therapistId]: 'idle' }));
+    //         }, 3000);
+    //     }
+    // };
 
     // Handler for viewing profile
     const handleViewProfile = (therapist: Therapist) => {
@@ -281,70 +284,55 @@ export default function FindTherapistPage() {
                                 enter="ease-out duration-300" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100"
                                 leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95"
                             >
-                                <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-card border border-border p-7 text-left align-middle shadow-2xl transition-all">
-                                    <Dialog.Title as="h3" className="text-2xl font-bold leading-7 text-primary mb-4 text-center">
-                                        Therapist Profile
-                                    </Dialog.Title>
+                                <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white border border-[#e0d7ed] p-0 text-left align-middle shadow-2xl transition-all">
                                     {selectedTherapist && (
-                                        <div className="space-y-4">
-                                            <div className="flex flex-col items-center gap-2 mb-2">
-                                                <div className="w-16 h-16 bg-gradient-to-br from-primary/10 to-[#e0d7ed] rounded-full flex items-center justify-center border border-[#e0d7ed] shadow">
+                                        <div className="flex flex-col">
+                                            {/* Profile Header */}
+                                            <div className="bg-[#f5f3fb] px-7 pt-7 pb-4 rounded-t-2xl flex flex-col items-center">
+                                                <div className="w-20 h-20 bg-gradient-to-br from-primary/10 to-[#e0d7ed] rounded-full flex items-center justify-center border border-[#e0d7ed] shadow mb-3">
                                                     {selectedTherapist.image && typeof selectedTherapist.image === 'string' && selectedTherapist.image.trim() !== '' ? (
                                                         <Image
                                                             src={selectedTherapist.image}
                                                             alt={selectedTherapist.name}
-                                                            width={64}
-                                                            height={64}
-                                                            className="object-cover w-16 h-16 rounded-full"
+                                                            width={80}
+                                                            height={80}
+                                                            className="object-cover w-20 h-20 rounded-full"
                                                         />
                                                     ) : (
-                                                        <span className="font-bold text-2xl text-primary">
+                                                        <span className="font-bold text-3xl text-primary">
                                                             {selectedTherapist.name.split(' ').map(n => n[0]).join('')}
                                                         </span>
                                                     )}
                                                 </div>
                                                 <div className="text-center">
-                                                    <div className="font-semibold text-lg text-foreground">{selectedTherapist.name}</div>
-                                                    <div className="text-xs text-muted-foreground">{selectedTherapist.title}</div>
+                                                    <div className="font-bold text-xl text-foreground">{selectedTherapist.name}</div>
+                                                    <div className="text-sm text-muted-foreground">{selectedTherapist.title}</div>
+                                                </div>
+                                                {/* Info Cards */}
+                                                <div className="flex gap-3 mt-5 mb-2 w-full justify-center">
+                                                    <div className="bg-white rounded-xl border border-[#e0d7ed] px-4 py-2 flex flex-col items-center min-w-[80px]">
+                                                        <span className="text-base font-semibold text-primary flex items-center gap-1">{selectedTherapist.rating} <svg className="w-4 h-4 text-yellow-400 inline" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.967a1 1 0 00.95.69h4.175c.969 0 1.371 1.24.588 1.81l-3.38 2.455a1 1 0 00-.364 1.118l1.287 3.966c.3.922-.755 1.688-1.54 1.118l-3.38-2.454a1 1 0 00-1.175 0l-3.38 2.454c-.784.57-1.838-.196-1.54-1.118l1.287-3.966a1 1 0 00-.364-1.118L2.05 9.394c-.783-.57-.38-1.81.588-1.81h4.175a1 1 0 00.95-.69l1.286-3.967z"/></svg></span>
+                                                        <span className="text-xs text-muted-foreground mt-1">Rating</span>
+                                                    </div>
+                                                    <div className="bg-white rounded-xl border border-[#e0d7ed] px-4 py-2 flex flex-col items-center min-w-[80px]">
+                                                        <span className="text-base font-semibold text-primary">1000+</span>
+                                                        <span className="text-xs text-muted-foreground mt-1">Patients</span>
+                                                    </div>
+                                                    <div className="bg-white rounded-xl border border-[#e0d7ed] px-4 py-2 flex flex-col items-center min-w-[80px]">
+                                                        <span className="text-base font-semibold text-primary">10+ Years</span>
+                                                        <span className="text-xs text-muted-foreground mt-1">Experience</span>
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <div className="grid grid-cols-1 gap-2 text-sm">
-                                                <div>
-                                                    <span className="font-medium text-muted-foreground">Specialties: </span>
-                                                    <span className="text-foreground">{selectedTherapist.specialties.join(', ')}</span>
-                                                </div>
-                                                <div>
-                                                    <span className="font-medium text-muted-foreground">Experience: </span>
-                                                    <span className="text-foreground">{selectedTherapist.experience}</span>
-                                                </div>
-                                                <div>
-                                                    <span className="font-medium text-muted-foreground">Languages: </span>
-                                                    <span className="text-foreground">{selectedTherapist.languages.join(', ')}</span>
-                                                </div>
-                                                <div>
-                                                    <span className="font-medium text-muted-foreground">Session Types: </span>
-                                                    <span className="text-foreground">{selectedTherapist.sessionTypes.inPerson && 'In-Person'}{selectedTherapist.sessionTypes.inPerson && selectedTherapist.sessionTypes.online ? ', ' : ''}{selectedTherapist.sessionTypes.online && 'Online'}</span>
-                                                </div>
-                                                <div>
-                                                    <span className="font-medium text-muted-foreground">Availability: </span>
-                                                    <span className="text-foreground">{selectedTherapist.availability.nextSlot} ({selectedTherapist.availability.timeSlot})</span>
-                                                </div>
-                                                <div>
-                                                    <span className="font-medium text-muted-foreground">Cost: </span>
-                                                    <span className="text-foreground">{selectedTherapist.cost.priceRange}</span>
-                                                </div>
-                                                <div>
-                                                    <span className="font-medium text-muted-foreground">Tags: </span>
-                                                    <span className="text-foreground">{selectedTherapist.tags.join(', ')}</span>
-                                                </div>
+                                            {/* About Section */}
+                                            <div className="px-7 pt-4 pb-2">
+                                                <div className="font-semibold text-primary mb-1">About</div>
+                                                <div className="text-sm text-muted-foreground mb-2">{selectedTherapist.bio}</div>
                                             </div>
-                                            <div className="flex justify-end pt-4 gap-2">
-                                                <Button variant="default" className="font-semibold" onClick={() => alert(`Connect with ${selectedTherapist.name}`)}>
-                                                    Connect
-                                                </Button>
-                                                <Button variant="outline" className="font-semibold border-primary text-primary hover:bg-primary/10" onClick={() => setProfileModalOpen(false)}>
-                                                    Close
-                                                </Button>
+                                            {/* Action Buttons */}
+                                            <div className="flex flex-col gap-2 px-7 pb-7 pt-2">
+                                                <Button variant="default" className="font-semibold w-full h-11 text-base rounded-xl">Choose Therapist</Button>
+                                                <Button variant="outline" className="font-semibold w-full h-11 text-base rounded-xl border-primary text-primary hover:bg-primary/10">View Other Therapists</Button>
                                             </div>
                                         </div>
                                     )}
@@ -358,15 +346,24 @@ export default function FindTherapistPage() {
             <div className="max-w-5xl mx-auto px-4 py-8">
                 {/* Header Section */}
                 <div className="mb-6">
-                    <h1 className="text-4xl font-extrabold bg-gradient-to-r from-primary to-foreground bg-clip-text text-transparent tracking-tight mb-1">
-                        {currentTherapist ? 'Your Therapist & Explore More' : 'Find a Therapist'}
-                    </h1>
-                    <p className="text-muted-foreground text-base font-medium">
-                        {currentTherapist
-                            ? 'Manage your current therapist relationship and find additional support.'
-                            : 'Find the right mental health professional for your needs.'
-                        }
-                    </p>
+                    <h1 className="text-2xl font-bold text-foreground mb-3">Choose your therapist</h1>
+                    <div className="flex items-center gap-2 mb-2">
+                        <div className="relative flex-1">
+                            <TherapistSearchBar
+                                searchQuery={searchQuery}
+                                onSearchChange={setSearchQuery}
+                            />
+                        </div>
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            className="border-muted-foreground/20 text-muted-foreground hover:bg-primary/10"
+                            onClick={() => setShowFilters(true)}
+                            aria-label="Show filters"
+                        >
+                            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 5h18M6 12h12M9 19h6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                        </Button>
+                    </div>
                 </div>
 
                 <div className="space-y-8">
@@ -496,14 +493,14 @@ export default function FindTherapistPage() {
                     </div>
 
                     {/* Therapists Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-7">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-7">
                         {filteredTherapists.map((therapist) => (
                             <TherapistCard
                                 key={therapist.id}
                                 therapist={therapist}
-                                bookingStatus={bookingStatus[therapist.id] || 'idle'}
-                                onBookSession={handleBookSession}
+                                bookingStatus={'idle'}
                                 onViewProfile={() => handleViewProfile(therapist)}
+                                viewDetailsText="View Details"
                             />
                         ))}
                     </div>
