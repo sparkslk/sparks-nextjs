@@ -229,16 +229,24 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
         }
       } else {
         const errorData = await response.json();
-        console.error("Server error response:", errorData);
+        if (process.env.NODE_ENV !== 'production') {
+          console.error("Server error response:", errorData);
+        } else {
+          console.error("An error occurred while updating the session.");
+        }
         setSubmitError(errorData.error || 'Failed to update session');
         
         // Log additional details if available
-        if (errorData.details) {
+        if (errorData.details && process.env.NODE_ENV !== 'production') {
           console.error("Error details:", errorData.details);
         }
       }
     } catch (error) {
-      console.error('Error updating session:', error);
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('Error updating session:', error);
+      } else {
+        console.error("A network error occurred while updating the session.");
+      }
       setSubmitError('Network error occurred. Please try again.');
     } finally {
       setIsSubmitting(false);
