@@ -39,20 +39,29 @@ export function AddChildForm({ onSuccess }: AddChildFormProps) {
     });
 
     // Prefill emergency contact fields with parent's info if empty (only once per field)
+    const prefilledFields = {
+        name: useRef(false),
+        phone: useRef(false),
+        relation: useRef(false),
+    };
+
     useEffect(() => {
         setFormData(prev => {
             let changed = false;
             const updated = { ...prev };
-            if (!updated.emergencyContactName && updated.firstName) {
+            if (!prefilledFields.name.current && !updated.emergencyContactName && updated.firstName) {
                 updated.emergencyContactName = updated.firstName;
+                prefilledFields.name.current = true;
                 changed = true;
             }
-            if (!updated.emergencyContactPhone && updated.phone) {
+            if (!prefilledFields.phone.current && !updated.emergencyContactPhone && updated.phone) {
                 updated.emergencyContactPhone = updated.phone;
+                prefilledFields.phone.current = true;
                 changed = true;
             }
-            if (!updated.emergencyContactRelation && updated.relationship) {
+            if (!prefilledFields.relation.current && !updated.emergencyContactRelation && updated.relationship) {
                 updated.emergencyContactRelation = updated.relationship.charAt(0).toUpperCase() + updated.relationship.slice(1);
+                prefilledFields.relation.current = true;
                 changed = true;
             }
             return changed ? updated : prev;
