@@ -5,8 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { 
   CreateMedicationData, 
   MedicationFrequency,
-  MealTiming,
-  MedicationHistoryAction
+  MealTiming
 } from '@/types/medications';
 
 export async function GET(
