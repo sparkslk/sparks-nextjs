@@ -354,16 +354,49 @@ export default function FindTherapistPage() {
                                 onSearchChange={setSearchQuery}
                             />
                         </div>
-                        <Button
-                            variant="outline"
-                            size="icon"
-                            className="border-muted-foreground/20 text-muted-foreground hover:bg-primary/10"
-                            onClick={() => setShowFilters(true)}
-                            aria-label="Show filters"
-                        >
-                            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 5h18M6 12h12M9 19h6" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                        </Button>
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className="border-muted-foreground/20 text-muted-foreground hover:bg-primary/10 relative"
+                                onClick={() => setShowFilters((prev) => !prev)}
+                                aria-label="Show filters"
+                            >
+                                <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 5h18M6 12h12M9 19h6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                {getActiveFiltersCount() > 0 && (
+                                    <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground rounded-full text-xs px-1.5 py-0.5 font-semibold border border-white">
+                                        {getActiveFiltersCount()}
+                                    </span>
+                                )}
+                            </Button>
+                            {getActiveFiltersCount() > 0 && (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={clearAllFilters}
+                                    className="text-muted-foreground hover:text-primary font-medium"
+                                >
+                                    Clear all
+                                </Button>
+                            )}
+                        </div>
                     </div>
+                    {showFilters && (
+                        <div className="mt-2">
+                            <TherapistFilters
+                                selectedSpecialty={selectedSpecialty}
+                                setSelectedSpecialty={setSelectedSpecialty}
+                                selectedTimeAvailability={selectedTimeAvailability}
+                                setSelectedTimeAvailability={setSelectedTimeAvailability}
+                                selectedCost={selectedCost}
+                                setSelectedCost={setSelectedCost}
+                                showFilters={showFilters}
+                                setShowFilters={setShowFilters}
+                                activeFiltersCount={getActiveFiltersCount()}
+                                onClearAllFilters={clearAllFilters}
+                            />
+                        </div>
+                    )}
                 </div>
 
                 <div className="space-y-8">
@@ -468,7 +501,7 @@ export default function FindTherapistPage() {
                     )} */}
 
                     {/* Search and Filters */}
-                    <div className="space-y-3">
+                    {/* <div className="space-y-3">
                         <div className="bg-white rounded-xl border border-[#e0d7ed] shadow-sm p-4">
                             <TherapistSearchBar
                                 searchQuery={searchQuery}
@@ -490,7 +523,7 @@ export default function FindTherapistPage() {
                                 onClearAllFilters={clearAllFilters}
                             />
                         </div>
-                    </div>
+                    </div> */}
 
                     {/* Therapists Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-7">

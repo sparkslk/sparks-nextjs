@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Filter, X } from "lucide-react";
+import {  X } from "lucide-react";
 
 interface TherapistFiltersProps {
   selectedSpecialty: string;
@@ -26,7 +26,7 @@ export function TherapistFilters({
   selectedCost,
   setSelectedCost,
   showFilters,
-  setShowFilters,
+  // setShowFilters,
   activeFiltersCount,
   onClearAllFilters
 }: TherapistFiltersProps) {
@@ -35,20 +35,7 @@ export function TherapistFilters({
       {/* Filter Controls */}
       <div className="flex flex-wrap gap-4 items-center">
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-2 border-primary text-primary hover:bg-primary/10 font-semibold rounded-lg"
-          >
-            <Filter className="w-4 h-4" />
-            Filters
-            {activeFiltersCount > 0 && (
-              <Badge variant="secondary" className="ml-1 px-1.5 py-0.5 text-xs bg-primary text-primary-foreground font-semibold">
-                {activeFiltersCount}
-              </Badge>
-            )}
-          </Button>
+
           {activeFiltersCount > 0 && (
             <Button
               variant="ghost"
