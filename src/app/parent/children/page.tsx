@@ -51,6 +51,7 @@ export default function MyChildrenPage() {
   const [sessionModalOpen, setSessionModalOpen] = useState(false);
   const [selectedChild, setSelectedChild] = useState<Child | null>(null);
   const [showAddChild, setShowAddChild] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
     fetchChildren();
@@ -158,6 +159,21 @@ export default function MyChildrenPage() {
 
   return (
     <div className="min-h-screen pb-16">
+      {/* Success Popup */}
+      {showSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(0,0,0,0.4)]">
+          <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
+            <h2 className="text-xl font-bold mb-4 text-green-700">Patient Added Successfully!</h2>
+            <p className="mb-4 text-gray-700">The patient has been added. They will receive an email with instructions to connect to the dashboard.</p>
+            <button
+              className="mt-2 px-6 py-2 bg-primary text-white rounded hover:bg-primary/90 font-semibold"
+              onClick={() => setShowSuccess(false)}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
       <div className="max-w-6xl mx-auto px-4 sm:px-8 py-8">
         {/* Header Section */}
         <div className="mb-10 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
@@ -187,6 +203,7 @@ export default function MyChildrenPage() {
               <AddChildForm onSuccess={() => {
                 setShowAddChild(false);
                 fetchChildren();
+                setTimeout(() => setShowSuccess(true), 300); // Show popup after dialog closes
               }} />
             </DialogContent>
           </Dialog>
