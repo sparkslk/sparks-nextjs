@@ -8,8 +8,7 @@ import { DonationModal } from '@/components/admin/donation-modal';
 import { SessionModal } from '@/components/admin/session-modal';
 import {
     Users,
-    BarChart3,
-    Shield,
+    BarChart3,Shield,
     Database,
     Zap,
     CalendarCheck,
@@ -335,7 +334,7 @@ export default function AdminDashboard() {
                         </CardContent>
                     </Card>*/}
 
-                    <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                    {/*<Card className="hover:shadow-lg transition-shadow cursor-pointer">
                         <CardHeader>
                             <CardTitle className="flex items-center">
                                 <Shield className="mr-2 h-5 w-5" />
@@ -384,7 +383,7 @@ export default function AdminDashboard() {
                                 View Analytics
                             </Button>
                         </CardContent>
-                    </Card>
+                    </Card>*/}
 
                     {/*<Card className="hover:shadow-lg transition-shadow cursor-pointer">
                         <CardHeader>

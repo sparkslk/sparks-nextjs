@@ -251,7 +251,7 @@ const FinancialDashboard: React.FC = () => {
                   </div>
                 </div>
                 
-                <button className="w-full bg-purple-600 text-white py-3 rounded-md hover:bg-purple-700 transition-colors font-medium">
+                <button className="w-full bg-[#8159A8] text-white py-3 rounded-md hover:bg-purple-700 transition-colors font-medium">
                   Generate & Download Report
                 </button>
               </div>
