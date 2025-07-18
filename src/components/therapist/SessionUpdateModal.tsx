@@ -203,7 +203,7 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
         saveOnly // Pass the save mode to the API
       };
 
-      console.log("Sending update data:", updateData);
+      // Debugging log removed to prevent exposure of sensitive session data
 
       const response = await fetch(`/api/therapist/sessions/${session.id}`, {
         method: 'PUT',
