@@ -162,6 +162,26 @@ export async function POST(
       },
     });
 
+    // Create history record for medication creation
+    await prisma.medicationHistory.create({
+      data: {
+        medicationId: medication.id,
+        action: 'CREATED',
+        changedBy: session.user.id,
+        newValues: {
+          name: medication.name,
+          dosage: medication.dosage,
+          frequency: medication.frequency,
+          customFrequency: medication.customFrequency,
+          instructions: medication.instructions,
+          mealTiming: medication.mealTiming,
+          startDate: medication.startDate.toISOString(),
+          endDate: medication.endDate?.toISOString(),
+        },
+        notes: `New medication prescribed: ${medication.name} ${medication.dosage}`,
+      },
+    });
+
     // Log the creation action (this would go to a proper history table in production)
     console.log(`Medication created: ${medication.id} for patient ${patientId} by therapist ${therapist.id}`, {
       action: 'CREATED',

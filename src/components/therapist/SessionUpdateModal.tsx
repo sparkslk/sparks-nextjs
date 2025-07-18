@@ -203,6 +203,11 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
         saveOnly // Pass the save mode to the API
       };
 
+<<<<<<< HEAD
+      console.log("Sending update data:", updateData);
+
+=======
+>>>>>>> 28b45a7719cbffab30ddddccc7d005bed47893e8
       const response = await fetch(`/api/therapist/sessions/${session.id}`, {
         method: 'PUT',
         headers: {
@@ -227,7 +232,17 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
         }
       } else {
         const errorData = await response.json();
+<<<<<<< HEAD
+        console.error("Server error response:", errorData);
         setSubmitError(errorData.error || 'Failed to update session');
+        
+        // Log additional details if available
+        if (errorData.details) {
+          console.error("Error details:", errorData.details);
+        }
+=======
+        setSubmitError(errorData.error || 'Failed to update session');
+>>>>>>> 28b45a7719cbffab30ddddccc7d005bed47893e8
       }
     } catch (error) {
       console.error('Error updating session:', error);

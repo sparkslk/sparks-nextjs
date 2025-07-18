@@ -423,6 +423,44 @@ export default function PatientDetailsPage() {
         </div>
       </div>
 
+<<<<<<< HEAD
+            {/* Desktop Layout */}
+            <div className="hidden sm:flex items-center justify-between">
+              <div className="flex items-center gap-4 lg:gap-6">
+                <div className="bg-[#a174c6] text-white text-xl font-semibold w-12 h-12 lg:w-16 lg:h-16 rounded-full flex items-center justify-center">
+                  {patient.initials}
+                </div>
+                <div>
+                  <h2 className="text-lg lg:text-xl font-bold text-[#8159A8]">
+                    {patient.firstName} {patient.lastName}
+                  </h2>
+                  <div className="text-sm text-gray-600 flex flex-col md:flex-row md:gap-4">
+                    <span>Age: {patient.age}</span>
+                    <span>ID: {patient.id}</span>
+                    <span>Last Session: {patient.lastSession}</span>
+                    <span>Next Session: {patient.nextSession}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-green-100 text-green-700 font-medium px-3 lg:px-4 py-1 rounded-full text-sm">
+                {patient.status}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Tabs */}
+        <Card className="shadow-sm hover:shadow-md transition-shadow bg-white dark:bg-slate-950">
+          <CardContent className="p-6">
+            <Tabs defaultValue="info" value={tab} onValueChange={setTab} className="w-full">              <TabsList className="grid w-full grid-cols-6 mb-6">
+                <TabsTrigger value="info" className="text-xs sm:text-sm">Information</TabsTrigger>
+                <TabsTrigger value="sessions" className="text-xs sm:text-sm">Sessions</TabsTrigger>
+                <TabsTrigger value="medications" className="text-xs sm:text-sm">Medication</TabsTrigger>
+                <TabsTrigger value="history" className="text-xs sm:text-sm">Medical History</TabsTrigger>
+                <TabsTrigger value="tasks" className="text-xs sm:text-sm">Tasks</TabsTrigger>
+                <TabsTrigger value="docs" className="text-xs sm:text-sm">Documents</TabsTrigger>
+              </TabsList>
+=======
       {/* Tabs */}
       <Tabs defaultValue="info" value={tab} onValueChange={setTab} className="bg-white p-4 rounded-xl shadow-md">
         <TabsList className="flex border-b gap-4 px-2 pb-2">
@@ -433,6 +471,7 @@ export default function PatientDetailsPage() {
           <TabsTrigger value="tasks">Assigned Tasks</TabsTrigger>
           <TabsTrigger value="docs">Uploaded Documents</TabsTrigger>
         </TabsList>
+>>>>>>> 28b45a7719cbffab30ddddccc7d005bed47893e8
 
         {/* Tab Panels */}
         <TabsContent value="info" className="pt-6">

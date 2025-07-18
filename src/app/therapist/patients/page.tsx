@@ -1,4 +1,6 @@
+
 "use client";
+import Image from "next/image";
 
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -68,13 +70,19 @@ function PatientAvatar({ patient, size = "sm" }: PatientAvatarProps) {
     return (
         <div className={`${sizeClasses} bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden relative`}>
             {patient.image && !imageError && (
+<<<<<<< HEAD
+                <Image
+=======
                 <img
+>>>>>>> 28b45a7719cbffab30ddddccc7d005bed47893e8
                     src={patient.image}
                     alt={`${patient.firstName} ${patient.lastName}`}
                     className="w-full h-full object-cover"
                     onError={handleImageError}
                     onLoad={handleImageLoad}
                     style={{ display: imageLoaded && !imageError ? 'block' : 'none' }}
+                    fill
+                    sizes="100vw"
                 />
             )}
             {showUserIcon && (

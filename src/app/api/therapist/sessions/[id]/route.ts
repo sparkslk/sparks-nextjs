@@ -242,49 +242,32 @@ export async function PUT(
             newStatus = "COMPLETED";
         }
 
-        // Update the therapy session with new documentation using raw SQL with proper null handling
-        const updateQuery = `
-            UPDATE "TherapySession" 
-            SET 
-                "attendanceStatus" = $1,
-                "overallProgress" = $2,
-                "patientEngagement" = $3,
-                "riskAssessment" = $4,
-                "primaryFocusAreas" = $5,
-                "sessionNotes" = $6,
-                "nextSessionGoals" = $7,
-                "status" = $8,
-                "updatedAt" = $9
-            WHERE "id" = $10
-        `;
+        // Update the therapy session with new documentation using Prisma's safer update method
+        console.log("About to update session with data:", {
+            attendanceStatus: attendanceStatus || null,
+            overallProgress: overallProgress || null,
+            patientEngagement: patientEngagement || null,
+            riskAssessment: riskAssessment || null,
+            primaryFocusAreas: focusAreas || [],
+            sessionNotes: sessionNotes || null,
+            nextSessionGoals: nextSessionGoals || null,
+            status: newStatus
+        });
         
-        console.log("About to update session with query:", updateQuery);
-        console.log("Parameters:", [
-            attendanceStatus || null,
-            overallProgress || null,
-            patientEngagement || null,
-            riskAssessment || null,
-            JSON.stringify(focusAreas || []),
-            sessionNotes || null,
-            nextSessionGoals || null,
-            newStatus,
-            new Date(),
-            sessionId
-        ]);
-        
-        await prisma.$executeRawUnsafe(
-            updateQuery,
-            attendanceStatus || null,
-            overallProgress || null,
-            patientEngagement || null,
-            riskAssessment || null,
-            JSON.stringify(focusAreas || []),
-            sessionNotes || null,
-            nextSessionGoals || null,
-            newStatus,
-            new Date(),
-            sessionId
-        );
+        await prisma.therapySession.update({
+            where: { id: sessionId },
+            data: {
+                attendanceStatus: attendanceStatus || null,
+                overallProgress: overallProgress || null,
+                patientEngagement: patientEngagement || null,
+                riskAssessment: riskAssessment || null,
+                primaryFocusAreas: focusAreas || [],
+                sessionNotes: sessionNotes || null,
+                nextSessionGoals: nextSessionGoals || null,
+                status: newStatus,
+                updatedAt: new Date()
+            }
+        });
 
         console.log("Session updated successfully with ID:", sessionId);
 

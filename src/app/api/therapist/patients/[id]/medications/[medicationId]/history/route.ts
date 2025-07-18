@@ -54,81 +54,81 @@ export async function GET(
     // This will be replaced with actual database history once the schema is updated
     const history: MedicationHistoryEntry[] = [];
 
-    // 1. Creation entry
-    history.push({
-      id: `hist_created_${medication.id}`,
-      medicationId: medication.id,
-      action: MedicationHistoryAction.CREATED,
-      changedBy: medication.therapistId,
-      changedAt: medication.createdAt,
-      newValues: {
-        name: medication.name,
-        dosage: medication.dosage,
-        frequency: medication.frequency,
-        customFrequency: medication.customFrequency,
-        instructions: medication.instructions,
-        mealTiming: medication.mealTiming,
-        startDate: medication.startDate.toISOString(),
-        endDate: medication.endDate?.toISOString(),
-      },
-      notes: 'Initial medication prescription',
-      therapist: {
-        user: {
-          name: medication.Therapist.user.name || 'Unknown Therapist',
-        },
-      },
-    });
-
-    // 2. Update entry (if medication was updated after creation)
-    if (medication.updatedAt > medication.createdAt) {
-      // In a real implementation, you'd query the actual history table
-      // For now, we can only show that something was updated
+    // If no history records exist in the database, generate basic history from medication data
+    if (history.length === 0) {
+      // Generate basic history entries from medication data as fallback
       history.push({
-        id: `hist_updated_${medication.id}`,
+        id: `hist_created_${medication.id}`,
         medicationId: medication.id,
-        action: MedicationHistoryAction.UPDATED,
+        action: MedicationHistoryAction.CREATED,
         changedBy: medication.therapistId,
-        changedAt: medication.updatedAt,
-        notes: `Medication details were updated on ${format(new Date(medication.updatedAt), 'MMM dd, yyyy HH:mm')}`,
+        changedAt: medication.createdAt,
         newValues: {
-          currentName: medication.name,
-          currentDosage: medication.dosage,
-          currentFrequency: medication.frequency,
-          currentMealTiming: medication.mealTiming,
+          name: medication.name,
+          dosage: medication.dosage,
+          frequency: medication.frequency,
+          customFrequency: medication.customFrequency,
+          instructions: medication.instructions,
+          mealTiming: medication.mealTiming,
+          startDate: medication.startDate.toISOString(),
+          endDate: medication.endDate?.toISOString(),
         },
+        notes: `New medication prescribed: ${medication.name} ${medication.dosage}`,
         therapist: {
           user: {
             name: medication.Therapist.user.name || 'Unknown Therapist',
           },
         },
       });
-    }
 
-    // 3. Discontinuation entry (if discontinued)
-    if (medication.isDiscontinued && medication.discontinuedAt) {
-      history.push({
-        id: `hist_discontinued_${medication.id}`,
-        medicationId: medication.id,
-        action: MedicationHistoryAction.DISCONTINUED,
-        changedBy: medication.discontinuedBy || medication.therapistId,
-        changedAt: medication.discontinuedAt,
-        previousValues: {
-          isActive: true,
-          isDiscontinued: false,
-        },
-        newValues: {
-          isActive: false,
-          isDiscontinued: true,
-        },
-        reason: medication.discontinueReason || 'No reason provided',
-        notes: 'Medication discontinued',
-        therapist: {
-          user: {
-            name: medication.Therapist.user.name || 'Unknown Therapist',
+      // Add update entry if medication was updated
+      if (medication.updatedAt > medication.createdAt) {
+        history.push({
+          id: `hist_updated_${medication.id}`,
+          medicationId: medication.id,
+          action: MedicationHistoryAction.UPDATED,
+          changedBy: medication.therapistId,
+          changedAt: medication.updatedAt,
+          notes: `${medication.name} details were updated on ${format(new Date(medication.updatedAt), 'MMM dd, yyyy')}`,
+          newValues: {
+            currentName: medication.name,
+            currentDosage: medication.dosage,
+            currentFrequency: medication.frequency,
+            currentMealTiming: medication.mealTiming,
           },
-        },
-      });
-    }
+          therapist: {
+            user: {
+              name: medication.Therapist.user.name || 'Unknown Therapist',
+            },
+          },
+        });
+      }
+
+      // Add discontinuation entry if discontinued
+      if (medication.isDiscontinued && medication.discontinuedAt) {
+        history.push({
+          id: `hist_discontinued_${medication.id}`,
+          medicationId: medication.id,
+          action: MedicationHistoryAction.DISCONTINUED,
+          changedBy: medication.discontinuedBy || medication.therapistId,
+          changedAt: medication.discontinuedAt,
+          previousValues: {
+            isActive: true,
+            isDiscontinued: false,
+          },
+          newValues: {
+            isActive: false,
+            isDiscontinued: true,
+          },
+          reason: 'Medication discontinued',
+          notes: `${medication.name} has been discontinued`,
+          therapist: {
+            user: {
+              name: discontinuingTherapist?.user?.name || medication.Therapist.user.name || 'Unknown Therapist',
+            },
+          },
+        });
+      }
 
     // Sort by date (newest first)
     history.sort((a, b) => new Date(b.changedAt).getTime() - new Date(a.changedAt).getTime());
