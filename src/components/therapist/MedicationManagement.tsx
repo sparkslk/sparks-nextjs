@@ -706,7 +706,7 @@ export default function MedicationManagement({
       </div>
 
       {/* Recent Activity Summary */}
-      {(recentlyUpdated.length > 0 || recentlyDiscontinued.length > 0) && (
+      {/* {(recentlyUpdated.length > 0 || recentlyDiscontinued.length > 0) && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
           <h4 className="text-amber-800 font-semibold mb-2 flex items-center gap-2 text-sm">
             <Clock className="w-4 h-4" />
@@ -745,7 +745,7 @@ export default function MedicationManagement({
             ))}
           </div>
         </div>
-      )}
+      )} */}
 
       {/* Active Medications */}
       {activeMedications.length > 0 ? (
