@@ -39,6 +39,7 @@ interface Therapist {
     isCurrentTherapist?: boolean;
     bio?: string;
     patientsCount?: number;
+    isChildConnection?: boolean; // Added for modal logic
 }
 
 export default function FindTherapistPage() {
@@ -51,52 +52,53 @@ export default function FindTherapistPage() {
     const [selectedCost, setSelectedCost] = useState("all");
     const [showFilters, setShowFilters] = useState(false);
     // const [bookingStatus, setBookingStatus] = useState<{ [key: string]: 'idle' | 'booking' | 'success' | 'error' }>({});
-    const [currentTherapist, setCurrentTherapist] = useState<Therapist | null>(null);
+    // const [currentTherapist, setCurrentTherapist] = useState<Therapist | null>(null);
     const [profileModalOpen, setProfileModalOpen] = useState(false);
     const [selectedTherapist, setSelectedTherapist] = useState<Therapist | null>(null);
+    const [childTherapistConnections, setChildTherapistConnections] = useState<{ childName: string; therapist: Therapist }[]>([]);
 
     // Fetch current therapist from patient data
-    useEffect(() => {
-        const fetchCurrentTherapist = async () => {
-            try {
-                const response = await fetch("/api/dashboard");
-                if (response.ok) {
-                    const data = await response.json();
+    // useEffect(() => {
+    //     const fetchCurrentTherapist = async () => {
+    //         try {
+    //             const response = await fetch("/api/dashboard");
+    //             if (response.ok) {
+    //                 const data = await response.json();
 
-                    if (data.therapist) {
-                        // Convert therapist data to Therapist interface format
-                        const therapistData: Therapist = {
-                            id: `current-therapist`,
-                            name: data.therapist.name,
-                            title: "Licensed Therapist", // Default title
-                            specialties: data.therapist.specialization || ["General Psychology"], // Use specialization from API
-                            rating: 4.8, // Default rating
-                            reviewCount: 0,
-                            experience: "Licensed Professional",
-                            sessionTypes: { inPerson: false, online: true },
-                            availability: {
-                                nextSlot: "Contact for availability",
-                                timeSlot: "Schedule via contact",
-                                timeCategory: "thisWeek" as const
-                            },
-                            cost: { isFree: false, priceRange: "Contact for pricing" },
-                            languages: ["English"],
-                            tags: ["English"],
-                            isCurrentTherapist: true
-                        };
+    //                 if (data.therapist) {
+    //                     // Convert therapist data to Therapist interface format
+    //                     const therapistData: Therapist = {
+    //                         id: `current-therapist`,
+    //                         name: data.therapist.name,
+    //                         title: "Licensed Therapist", // Default title
+    //                         specialties: data.therapist.specialization || ["General Psychology"], // Use specialization from API
+    //                         rating: 4.8, // Default rating
+    //                         reviewCount: 0,
+    //                         experience: "Licensed Professional",
+    //                         sessionTypes: { inPerson: false, online: true },
+    //                         availability: {
+    //                             nextSlot: "Contact for availability",
+    //                             timeSlot: "Schedule via contact",
+    //                             timeCategory: "thisWeek" as const
+    //                         },
+    //                         cost: { isFree: false, priceRange: "Contact for pricing" },
+    //                         languages: ["English"],
+    //                         tags: ["English"],
+    //                         isCurrentTherapist: true
+    //                     };
 
-                        console.log("Current Therapist Data:", therapistData);
+    //                     console.log("Current Therapist Data:", therapistData);
 
-                        setCurrentTherapist(therapistData);
-                    }
-                }
-            } catch (error) {
-                console.error("Error fetching current therapist:", error);
-            }
-        };
+    //                     setCurrentTherapist(therapistData);
+    //                 }
+    //             }
+    //         } catch (error) {
+    //             console.error("Error fetching current therapist:", error);
+    //         }
+    //     };
 
-        fetchCurrentTherapist();
-    }, []);
+    //     fetchCurrentTherapist();
+    // }, []);
 
 
 
@@ -118,12 +120,13 @@ export default function FindTherapistPage() {
                         image?: string | null;
                         bio?: string;
                         patientsCount?: number;
+                        rating?: number | string;
                     }) => ({
                         id: therapist.id,
                         name: therapist.name,
                         title: "Licensed Therapist",
                         specialties: therapist.specialization || ["General Psychology"],
-                        rating: Math.round((4.5 + Math.random() * 0.5) * 10) / 10, // Random rating between 4.5-5.0, rounded to 1 decimal
+                        rating: typeof therapist.rating === 'number' ? therapist.rating : parseFloat(therapist.rating || '0'), // Parse rating as number
                         // reviewCount: Math.floor(Math.random() * 200) + 50, // Random review count
                         experience: therapist.experience ? `${therapist.experience}+ years` : "0 years",
                         sessionTypes: { inPerson: false, online: true },
@@ -162,6 +165,62 @@ export default function FindTherapistPage() {
         };
 
         fetchTherapists();
+    }, []);
+
+    // Fetch child-therapist connections
+    useEffect(() => {
+        const fetchChildTherapistConnections = async () => {
+            try {
+                const response = await fetch("/api/parent/child-therapists");
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log(data);
+                    // Use the API data directly, no mock/random fields
+                    interface ChildTherapistConnection {
+                        childName: string;
+                        therapist: {
+                            id: string;
+                            name: string;
+                            specialization?: string[];
+                            experience?: number;
+                            image?: string | null;
+                            bio?: string;
+                            patientsCount?: number;
+                            rating?: number; // Add rating property
+                        };
+                    }
+
+                    const formatted = (data.connections || []).map((conn: ChildTherapistConnection) => ({
+                        childName: conn.childName,
+                        therapist: {
+                            id: conn.therapist.id,
+                            name: conn.therapist.name,
+                            title: "Licensed Therapist",
+                            specialties: conn.therapist.specialization || ["General Psychology"],
+                            rating: typeof conn.therapist.rating === 'number' ? conn.therapist.rating : parseFloat(conn.therapist.rating || '0'), // Parse rating as number
+                            reviewCount: 0,
+                            experience: conn.therapist.experience ? `${conn.therapist.experience}+ years` : "0 years",
+                            sessionTypes: { inPerson: false, online: true },
+                            availability: {
+                                nextSlot: "Contact for availability",
+                                timeSlot: "Schedule via contact",
+                                timeCategory: "thisWeek"
+                            },
+                            cost: { isFree: false, priceRange: "Contact for pricing" },
+                            languages: ["English"],
+                            tags: ["English"],
+                            image: conn.therapist.image || null,
+                            bio: conn.therapist.bio || "",
+                            patientsCount: typeof conn.therapist.patientsCount === 'number' ? conn.therapist.patientsCount : 0
+                        }
+                    }));
+                    setChildTherapistConnections(formatted);
+                }
+            } catch {
+                setChildTherapistConnections([]);
+            }
+        };
+        fetchChildTherapistConnections();
     }, []);
 
     // Helper functions for random data generation
@@ -219,8 +278,8 @@ export default function FindTherapistPage() {
     }, [searchQuery, selectedSpecialty, selectedTimeAvailability, selectedCost, therapists]);
 
     // Handler for viewing profile
-    const handleViewProfile = (therapist: Therapist) => {
-        setSelectedTherapist(therapist);
+    const handleViewProfile = (therapist: Therapist, isChildConnection: boolean = false) => {
+        setSelectedTherapist({ ...therapist, isChildConnection });
         setProfileModalOpen(true);
     };
 
@@ -321,7 +380,17 @@ export default function FindTherapistPage() {
                                             </div>
                                             {/* Action Buttons */}
                                             <div className="flex flex-col gap-2 px-7 pb-7 pt-2">
-                                                <Button variant="default" className="font-semibold w-full h-11 text-base rounded-xl">Choose Therapist</Button>
+                                                {selectedTherapist.isChildConnection ? (
+                                                    <Button
+                                                        variant="default"
+                                                        className="font-semibold w-full h-11 text-base rounded-xl"
+                                                        onClick={() => window.location.href = '/parent/messages'}
+                                                    >
+                                                        Contact Therapist
+                                                    </Button>
+                                                ) : (
+                                                    <Button variant="default" className="font-semibold w-full h-11 text-base rounded-xl">Choose Therapist</Button>
+                                                )}
                                             </div>
                                         </div>
                                     )}
@@ -336,6 +405,27 @@ export default function FindTherapistPage() {
                 {/* Header Section */}
                 <div className="mb-6">
                     <h1 className="text-4xl font-extrabold bg-gradient-to-r from-primary to-foreground bg-clip-text text-transparent tracking-tight mb-3">Choose your therapist</h1>
+                    {/* Child-therapist connections section */}
+                    {childTherapistConnections.length > 0 && (
+                        <div className="mb-6">
+                            <h2 className="text-lg font-semibold text-primary mb-2">Your children and their therapists</h2>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                                {childTherapistConnections.map((conn) => (
+                                    <div key={conn.therapist.id + conn.childName} className="relative">
+                                        <TherapistCard
+                                            therapist={conn.therapist}
+                                            bookingStatus={'idle'}
+                                            onViewProfile={() => handleViewProfile(conn.therapist, true)}
+                                            viewDetailsText="View Details"
+                                        />
+                                        <div className="absolute top-2 right-2 bg-primary/90 text-white text-xs px-3 py-1 rounded-full shadow">
+                                            Connected to: <span className="font-semibold">{conn.childName}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                     <div className="flex items-center gap-2 mb-2">
                         <div className="relative flex-1">
                             <TherapistSearchBar
@@ -396,7 +486,7 @@ export default function FindTherapistPage() {
                         </p>
                     </div>
 
-                    {/* No Current Therapist Message */}
+                    {/* No Current Therapist Message
                     {!currentTherapist && (
                         <div className="bg-white rounded-2xl border border-[#e0d7ed] shadow-sm p-8 flex items-center gap-6">
                             <div className="flex-shrink-0">
@@ -428,7 +518,7 @@ export default function FindTherapistPage() {
                                 </div>
                             </div>
                         </div>
-                    )}
+                    )} */}
 
                     
                     {/* Therapists Grid */}

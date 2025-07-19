@@ -176,7 +176,8 @@ export async function GET(req: NextRequest) {
                     availableSlots: [
                         "09:00", "10:00", "11:00", "14:00", "15:00", "16:00"
                     ],
-                    patientsCount: therapistPatientCount[therapist.id] || 0
+                    patientsCount: therapistPatientCount[therapist.id] || 0,
+                    rating: therapist.rating ?? null
                 }))
             });
         }
@@ -193,8 +194,6 @@ export async function GET(req: NextRequest) {
             experience: therapist.experience,
             bio: therapist.bio,
             organization: therapist.organization?.name,
-            // For now, we'll provide sample available slots
-            // In a real app, this would be calculated based on their schedule
             availableSlots: [
                 "09:00",
                 "10:00",
@@ -203,7 +202,8 @@ export async function GET(req: NextRequest) {
                 "15:00",
                 "16:00"
             ],
-            patientsCount: therapistPatientCount[therapist.id] || 0
+            patientsCount: therapistPatientCount[therapist.id] || 0,
+            rating: therapist.rating ?? null
         }));
 
         return NextResponse.json({
