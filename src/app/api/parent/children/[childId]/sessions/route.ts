@@ -86,6 +86,7 @@ export async function GET(
       // Get therapist details
       const therapist = therapistMap.get(session.therapistId);
       const therapistName = therapist?.name || 'Assigned Therapist';
+      console.log(`Processing session for therapist: ${therapistName}`);
       // Format time in 'Asia/Colombo' timezone using UTC conversion (like dashboard/route)
       const utcDate = new Date(
         sessionDate.getUTCFullYear(),

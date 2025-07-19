@@ -264,6 +264,11 @@ export async function GET(req: NextRequest) {
                 lastName: 'asc' // Order by last name alphabetically
             },
             include: {
+                user: {
+                    select: {
+                        image: true
+                    }
+                },
                 therapySessions: {
                     orderBy: { scheduledAt: 'desc' },
                     select: {
@@ -320,6 +325,7 @@ export async function GET(req: NextRequest) {
                 gender: patient.gender,
                 phone: patient.phone || "-",
                 email: patient.email || "-",
+                image: patient.user?.image || null,
                 lastSession: lastSession ? lastSession.scheduledAt.toISOString().split('T')[0] : "-",
                 nextSession: nextSession ? nextSession.scheduledAt.toISOString().split('T')[0] : "-",
                 status: status,

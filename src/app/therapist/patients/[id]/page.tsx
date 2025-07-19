@@ -4,7 +4,10 @@ import { useRouter, useParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Calendar, Clock, User, FileText, Activity, Eye, ArrowLeft } from "lucide-react";
 import MedicationManagement from "@/components/therapist/MedicationManagement";
 import { Medication } from "@/types/medications";
 
@@ -14,6 +17,7 @@ interface TherapySession {
   status: string;
   type: string;
   duration?: number;
+  therapistName?: string;
   attendanceStatus?: string;
   overallProgress?: string;
   patientEngagement?: string;
@@ -53,9 +57,101 @@ export default function PatientDetailsPage() {
   const { status } = useSession();
   const [patient, setPatient] = useState<Patient | null>(null);
   const [medications, setMedications] = useState<Medication[]>([]);
+  const [sessionHistory, setSessionHistory] = useState<TherapySession[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState("info");
+
+  // Filter states
+  const [statusFilter, setStatusFilter] = useState("");
+  const [dateFilter, setDateFilter] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
+  const [therapistFilter, setTherapistFilter] = useState("");
+  const [sortFilter, setSortFilter] = useState("date-desc");
+
+  
+
+  // Filter function
+  const getFilteredSessions = () => {
+    if (!sessionHistory) return [];
+    
+    let filtered = [...sessionHistory];
+    
+    // Status filter
+    if (statusFilter) {
+      filtered = filtered.filter(session => session.status === statusFilter);
+    }
+    
+    // Date filter
+    if (dateFilter) {
+      const now = new Date();
+      const filterDate = new Date();
+      
+      switch (dateFilter) {
+        case 'last-week':
+          filterDate.setDate(now.getDate() - 7);
+          break;
+        case 'last-month':
+          filterDate.setMonth(now.getMonth() - 1);
+          break;
+        case 'last-3-months':
+          filterDate.setMonth(now.getMonth() - 3);
+          break;
+        case 'last-6-months':
+          filterDate.setMonth(now.getMonth() - 6);
+          break;
+        case 'this-year':
+          filterDate.setMonth(0, 1);
+          break;
+      }
+      
+      if (dateFilter !== 'this-year') {
+        filtered = filtered.filter(session => new Date(session.scheduledAt) >= filterDate);
+      } else {
+        filtered = filtered.filter(session => new Date(session.scheduledAt).getFullYear() === now.getFullYear());
+      }
+    }
+    
+    // Type filter
+    if (typeFilter) {
+      filtered = filtered.filter(session => session.type === typeFilter);
+    }
+    
+    // Therapist filter (mock implementation)
+    if (therapistFilter) {
+      filtered = filtered.filter(session => {
+        const therapistName = session.therapistName?.toLowerCase() || '';
+        return therapistName.includes(therapistFilter.replace('dr-', ''));
+      });
+    }
+    
+    // Sort
+    filtered.sort((a, b) => {
+      switch (sortFilter) {
+        case 'date-asc':
+          return new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime();
+        case 'date-desc':
+          return new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime();
+        case 'status':
+          return a.status.localeCompare(b.status);
+        case 'type':
+          return (a.type || '').localeCompare(b.type || '');
+        default:
+          return new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime();
+      }
+    });
+    
+    return filtered;
+  };
+
+  // Clear filters function
+  const clearFilters = () => {
+    setStatusFilter("");
+    setDateFilter("");
+    setTypeFilter("");
+    setTherapistFilter("");
+    setSortFilter("date-desc");
+  };
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -90,6 +186,7 @@ export default function PatientDetailsPage() {
 
       const data = await response.json();
       setPatient(data.patient);
+      setSessionHistory(data.patient.therapySessions || []);
     } catch (error) {
       console.error("Error fetching patient data:", error);
       setError(error instanceof Error ? error.message : "Failed to fetch patient data");
@@ -156,9 +253,6 @@ export default function PatientDetailsPage() {
     );
   }
 
-  // Session history data - use actual data from API or fallback
-  const sessionHistory = patient.therapySessions || [];
-
   // For now, keeping the hardcoded data for other sections as they don't exist in the API yet
   // These can be moved to the API later
 
@@ -222,72 +316,26 @@ export default function PatientDetailsPage() {
   };
 
   // Assigned Tasks data
-  const assignedTasks = [
-    {
-      id: 1,
-      title: "Daily Mindfulness Practice",
-      description: "Practice mindfulness meditation for 10 minutes every morning",
-      assignedDate: "June 18, 2025",
-      dueDate: "July 18, 2025",
-      status: "In Progress",
-      priority: "High",
-      progress: 65,
-      category: "Mindfulness",
-      instructions: "Use the Headspace app or guided meditation videos. Focus on breathing exercises and body awareness.",
-      completedSessions: 13,
-      totalSessions: 20,
-      lastCompleted: "June 27, 2025",
-      notes: "Patient showing good consistency. Reports feeling more calm and focused during work hours."
-    },
-    {
-      id: 2,
-      title: "Time Management Tracking",
-      description: "Use a planner to break down large tasks into smaller, manageable steps",
-      assignedDate: "June 11, 2025",
-      dueDate: "July 11, 2025",
-      status: "Completed",
-      priority: "Medium",
-      progress: 100,
-      category: "Organization",
-      instructions: "Create daily task lists, prioritize activities, and track completion times. Review weekly with therapist.",
-      completedSessions: 15,
-      totalSessions: 15,
-      lastCompleted: "June 25, 2025",
-      notes: "Successfully implemented organizational system. Patient reports significant improvement in work productivity."
-    },
-    {
-      id: 3,
-      title: "Attention Span Exercises",
-      description: "Complete focused attention exercises using cognitive training apps",
-      assignedDate: "June 20, 2025",
-      dueDate: "July 20, 2025",
-      status: "Pending",
-      priority: "Medium",
-      progress: 25,
-      category: "Cognitive Training",
-      instructions: "Use Lumosity or similar apps for 15 minutes daily. Focus on attention and memory games.",
-      completedSessions: 5,
-      totalSessions: 20,
-      lastCompleted: "June 26, 2025",
-      notes: "Started recently. Initial results show improvement in sustained attention tasks."
-    },
-    {
-      id: 4,
-      title: "Sleep Hygiene Implementation",
-      description: "Follow sleep routine guidelines to improve rest quality",
-      assignedDate: "June 15, 2025",
-      dueDate: "July 15, 2025",
-      status: "Overdue",
-      priority: "High",
-      progress: 40,
-      category: "Lifestyle",
-      instructions: "Maintain consistent bedtime, avoid screens 1 hour before sleep, create relaxing bedtime routine.",
-      completedSessions: 8,
-      totalSessions: 20,
-      lastCompleted: "June 22, 2025",
-      notes: "Patient struggling with consistency due to work demands. Need to discuss flexible alternatives."
-    }
-  ];
+  const assignedAssessments = [
+  {
+    id: "1",
+    title: "Auditory Processing - Listening Task",
+    type: "LISTENING_TASK",
+    assignedDate: "July 10, 2024",
+    status: "Completed",
+    score: 78,
+    completedAt: "July 22, 2024",
+  },
+  {
+    id: "2",
+    title: "Visual Perception - Picture Description",
+    type: "PICTURE_DESCRIPTION",
+    assignedDate: "July 8, 2024",
+    status: "Pending",
+    score: null,
+    completedAt: null,
+  },
+];
 
   // Uploaded Documents data
   const uploadedDocuments = [
@@ -360,72 +408,80 @@ export default function PatientDetailsPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#f7f5fb] p-3 sm:p-6">
-      <Button variant="outline" onClick={() => router.back()} className="mb-4 sm:mb-6">
-        ← Back to Patients
-      </Button>
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto p-6">
+        <Button 
+          variant="outline" 
+          onClick={() => router.back()} 
+          className="mb-6 hover:shadow-md transition-all duration-200"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back to Patients
+        </Button>
 
-      {/* Header */}
-      <div className="bg-white rounded-xl shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
-        {/* Mobile Layout */}
-        <div className="flex flex-col space-y-4 sm:hidden">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="bg-[#a174c6] text-white text-lg font-semibold w-12 h-12 rounded-full flex items-center justify-center">
-                {patient.initials}
+        {/* Header */}
+        <Card className="shadow-sm hover:shadow-md transition-shadow bg-white dark:bg-slate-950 mb-6">
+          <CardContent className="p-6">
+            {/* Mobile Layout */}
+            <div className="flex flex-col space-y-4 sm:hidden">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="bg-[#a174c6] text-white text-lg font-semibold w-12 h-12 rounded-full flex items-center justify-center">
+                    {patient.initials}
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-[#8159A8]">
+                      {patient.firstName} {patient.lastName}
+                    </h2>
+                    <p className="text-xs text-gray-600">Age: {patient.age}</p>
+                  </div>
+                </div>
+                <div className="bg-green-100 text-green-700 font-medium px-3 py-1 rounded-full text-xs">
+                  {patient.status}
+                </div>
               </div>
-              <div>
-                <h2 className="text-lg font-bold text-[#8159A8]">
-                  {patient.firstName} {patient.lastName}
-                </h2>
-                <p className="text-xs text-gray-600">Age: {patient.age}</p>
-              </div>
-            </div>
-            <div className="bg-green-100 text-green-700 font-medium px-3 py-1 rounded-full text-xs">
-              {patient.status}
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
-            <span>ID: {patient.id}</span>
-            <span>Last: {patient.lastSession}</span>
-            <span className="col-span-2">Next: {patient.nextSession}</span>
-          </div>
-        </div>
-
-        {/* Desktop Layout */}
-        <div className="hidden sm:flex items-center justify-between">
-          <div className="flex items-center gap-4 lg:gap-6">
-            <div className="bg-[#a174c6] text-white text-xl font-semibold w-12 h-12 lg:w-16 lg:h-16 rounded-full flex items-center justify-center">
-              {patient.initials}
-            </div>
-            <div>
-              <h2 className="text-lg lg:text-xl font-bold text-[#8159A8]">
-                {patient.firstName} {patient.lastName}
-              </h2>
-              <div className="text-sm text-gray-600 flex flex-col md:flex-row md:gap-4">
-                <span>Age: {patient.age}</span>
+              <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
                 <span>ID: {patient.id}</span>
-                <span>Last Session: {patient.lastSession}</span>
-                <span>Next Session: {patient.nextSession}</span>
+                <span>Last: {patient.lastSession}</span>
+                <span className="col-span-2">Next: {patient.nextSession}</span>
               </div>
             </div>
-          </div>
-          <div className="bg-green-100 text-green-700 font-medium px-3 lg:px-4 py-1 rounded-full text-sm">
-            {patient.status}
-          </div>
-        </div>
-      </div>
 
-      {/* Tabs */}
-      <Tabs defaultValue="info" value={tab} onValueChange={setTab} className="bg-white p-3 sm:p-4 rounded-xl shadow-md">
-        <TabsList className="flex flex-wrap border-b gap-1 sm:gap-2 px-1 sm:px-2 pb-2">
-          <TabsTrigger value="info" className="text-xs sm:text-sm flex-shrink-0">Infomation</TabsTrigger>
-          <TabsTrigger value="sessions" className="text-xs sm:text-sm flex-shrink-0">Sessions</TabsTrigger>
-          <TabsTrigger value="medications" className="text-xs sm:text-sm flex-shrink-0">Medication</TabsTrigger>
-          <TabsTrigger value="history" className="text-xs sm:text-sm flex-shrink-0">Medical History</TabsTrigger>
-          <TabsTrigger value="tasks" className="text-xs sm:text-sm flex-shrink-0">Tasks</TabsTrigger>
-          <TabsTrigger value="docs" className="text-xs sm:text-sm flex-shrink-0">Documents</TabsTrigger>
-        </TabsList>
+            {/* Desktop Layout */}
+            <div className="hidden sm:flex items-center justify-between">
+              <div className="flex items-center gap-4 lg:gap-6">
+                <div className="bg-[#a174c6] text-white text-xl font-semibold w-12 h-12 lg:w-16 lg:h-16 rounded-full flex items-center justify-center">
+                  {patient.initials}
+                </div>
+                <div>
+                  <h2 className="text-lg lg:text-xl font-bold text-[#8159A8]">
+                    {patient.firstName} {patient.lastName}
+                  </h2>
+                  <div className="text-sm text-gray-600 flex flex-col md:flex-row md:gap-4">
+                    <span>Age: {patient.age}</span>
+                    <span>ID: {patient.id}</span>
+                    <span>Last Session: {patient.lastSession}</span>
+                    <span>Next Session: {patient.nextSession}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-green-100 text-green-700 font-medium px-3 lg:px-4 py-1 rounded-full text-sm">
+                {patient.status}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Tabs */}
+        <Card className="shadow-sm hover:shadow-md transition-shadow bg-white dark:bg-slate-950">
+          <CardContent className="p-6">
+            <Tabs defaultValue="info" value={tab} onValueChange={setTab} className="w-full">              <TabsList className="grid w-full grid-cols-6 mb-6">
+                <TabsTrigger value="info" className="text-xs sm:text-sm">Information</TabsTrigger>
+                <TabsTrigger value="sessions" className="text-xs sm:text-sm">Sessions</TabsTrigger>
+                <TabsTrigger value="medications" className="text-xs sm:text-sm">Medication</TabsTrigger>
+                <TabsTrigger value="tasks" className="text-xs sm:text-sm">Tasks</TabsTrigger>
+                <TabsTrigger value="docs" className="text-xs sm:text-sm">Documents</TabsTrigger>
+              </TabsList>
 
         {/* Tab Panels */}
         <TabsContent value="info" className="pt-4 sm:pt-6">
@@ -468,33 +524,195 @@ export default function PatientDetailsPage() {
               <div className="bg-transparent">
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-4 sm:space-y-0">
                   <div>
-                    <h3 className="text-xl sm:text-2xl font-bold mb-2 text-[#8159A8]">Session History</h3>
+                    <h3 className="text-xl sm:text-2xl font-bold mb-2" style={{ color: '#8159A8' }}>Session History</h3>
                     <p className="text-gray-600 text-sm sm:text-base">Track progress and therapy milestones</p>
                   </div>
                   <div className="w-full sm:w-auto">
-                    <div className="grid grid-cols-3 gap-2 sm:gap-4 text-center">
-                      <div className="bg-gray-50 rounded-lg p-2 sm:p-3 border">
-                        <div className="text-lg sm:text-2xl font-bold text-[#8159A8]">{sessionHistory.length}</div>
-                        <div className="text-xs sm:text-sm text-gray-600">Total Sessions</div>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-2 sm:p-3 border">
-                        <div className="text-lg sm:text-2xl font-bold text-[#8159A8]">
-                          {sessionHistory.length > 0 ? Math.round((sessionHistory.filter(s => s.status === 'COMPLETED').length / sessionHistory.length) * 100) : 0}%
-                        </div>
-                        <div className="text-xs sm:text-sm text-gray-600">Completion Rate</div>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-2 sm:p-3 border">
-                        <div className="text-lg sm:text-2xl font-bold text-[#8159A8]">
-                          {sessionHistory.length > 0 ? new Date(sessionHistory[0].scheduledAt).getDate() : "-"}
-                        </div>
-                        <div className="text-xs sm:text-sm text-gray-600">
-                          {sessionHistory.length > 0 ? new Date(sessionHistory[0].scheduledAt).toLocaleDateString('en-US', { month: 'short' }) : "No Data"}
-                        </div>
-                      </div>
+                    <div className="grid grid-cols-2 gap-4 text-center">
+                      <Card className="shadow-sm hover:shadow-md transition-shadow bg-white dark:bg-slate-950">
+                        <CardContent className="p-3">
+                          <div className="text-lg sm:text-2xl font-bold" style={{ color: '#8159A8' }}>
+                            {getFilteredSessions().length}
+                          </div>
+                          <div className="text-xs sm:text-sm text-gray-600">
+                            {statusFilter || dateFilter || typeFilter || therapistFilter ? 'Filtered' : 'Total'} Sessions
+                          </div>
+                        </CardContent>
+                      </Card>
+                      
+                      <Card className="shadow-sm hover:shadow-md transition-shadow bg-white dark:bg-slate-950">
+                        <CardContent className="p-3">
+                          <div className="text-lg sm:text-2xl font-bold" style={{ color: '#8159A8' }}>
+                            {getFilteredSessions().length > 0 ? Math.round((getFilteredSessions().filter(s => s.status === 'COMPLETED').length / getFilteredSessions().length) * 100) : 0}%
+                          </div>
+                          <div className="text-xs sm:text-sm text-gray-600">Completion Rate</div>
+                        </CardContent>
+                      </Card>
+                      
+                      
                     </div>
                   </div>
                 </div>
               </div>
+
+              {/* Session Filters */}
+              <div className="bg-white rounded-lg border border-gray-200 p-5 mb-6">
+                <div className="flex flex-wrap items-center gap-4 lg:gap-6">
+                  {/* Status Filter */}
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Status:</label>
+                    <select 
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white shadow-sm min-w-[120px] focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    >
+                      <option value="">All</option>
+                      <option value="COMPLETED">Completed</option>
+                      <option value="SCHEDULED">Scheduled</option>
+                      <option value="APPROVED">Approved</option>
+                      <option value="CANCELLED">Cancelled</option>
+                    </select>
+                  </div>
+                  
+                  {/* Date Range Filter */}
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Period:</label>
+                    <select 
+                      value={dateFilter}
+                      onChange={(e) => setDateFilter(e.target.value)}
+                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white shadow-sm min-w-[130px] focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    >
+                      <option value="">All Time</option>
+                      <option value="last-week">Last Week</option>
+                      <option value="last-month">Last Month</option>
+                      <option value="last-3-months">3 Months</option>
+                      <option value="last-6-months">6 Months</option>
+                      <option value="this-year">This Year</option>
+                    </select>
+                  </div>
+                  
+                  {/* Session Type Filter */}
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Type:</label>
+                    <select 
+                      value={typeFilter}
+                      onChange={(e) => setTypeFilter(e.target.value)}
+                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white shadow-sm min-w-[140px] focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    >
+                      <option value="">All Types</option>
+                      <option value="INDIVIDUAL">Individual</option>
+                      <option value="GROUP">Group</option>
+                      <option value="FAMILY">Family</option>
+                      <option value="ASSESSMENT">Assessment</option>
+                      <option value="CONSULTATION">Consultation</option>
+                      <option value="FOLLOW_UP">Follow-up</option>
+                    </select>
+                  </div>
+                  
+                  {/* Therapist Filter */}
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Therapist:</label>
+                    <select 
+                      value={therapistFilter}
+                      onChange={(e) => setTherapistFilter(e.target.value)}
+                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white shadow-sm min-w-[120px] focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    >
+                      <option value="">All</option>
+                      <option value="dr-smith">Dr. Smith</option>
+                      <option value="dr-johnson">Dr. Johnson</option>
+                      <option value="dr-williams">Dr. Williams</option>
+                      <option value="dr-brown">Dr. Brown</option>
+                      <option value="dr-davis">Dr. Davis</option>
+                    </select>
+                  </div>
+                  
+                  {/* Sort Filter */}
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Sort:</label>
+                    <select 
+                      value={sortFilter}
+                      onChange={(e) => setSortFilter(e.target.value)}
+                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white shadow-sm min-w-[120px] focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    >
+                      <option value="date-desc">Newest</option>
+                      <option value="date-asc">Oldest</option>
+                      <option value="status">By Status</option>
+                      <option value="type">By Type</option>
+                    </select>
+                  </div>
+                  
+                  {/* Clear Filters Button */}
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={clearFilters}
+                    className="text-gray-600 hover:text-gray-800 hover:bg-gray-50 border-gray-300 ml-auto"
+                  >
+                    Clear Filters
+                  </Button>
+                </div>
+              </div>
+
+              {/* Active Filters Summary */}
+              {(statusFilter || dateFilter || typeFilter || therapistFilter) && (
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-purple-800">Active Filters:</span>
+                      <div className="flex flex-wrap gap-2">
+                        {statusFilter && (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs">
+                            Status: {statusFilter}
+                            <button onClick={() => setStatusFilter("")} className="hover:bg-purple-200 rounded-full p-0.5">
+                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                              </svg>
+                            </button>
+                          </span>
+                        )}
+                        {dateFilter && (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs">
+                            Period: {dateFilter.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                            <button onClick={() => setDateFilter("")} className="hover:bg-purple-200 rounded-full p-0.5">
+                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                              </svg>
+                            </button>
+                          </span>
+                        )}
+                        {typeFilter && (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs">
+                            Type: {typeFilter}
+                            <button onClick={() => setTypeFilter("")} className="hover:bg-purple-200 rounded-full p-0.5">
+                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                              </svg>
+                            </button>
+                          </span>
+                        )}
+                        {therapistFilter && (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs">
+                            Therapist: {therapistFilter.replace('dr-', 'Dr. ').replace(/\b\w/g, l => l.toUpperCase())}
+                            <button onClick={() => setTherapistFilter("")} className="hover:bg-purple-200 rounded-full p-0.5">
+                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                              </svg>
+                            </button>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={clearFilters}
+                      className="text-purple-600 hover:text-purple-800 hover:bg-purple-100"
+                    >
+                      Clear All
+                    </Button>
+                  </div>
+                </div>
+              )}
 
               {/* Timeline Container */}
               <div className="relative">
@@ -503,7 +721,7 @@ export default function PatientDetailsPage() {
                 
                 {/* Session Cards */}
                 <div className="space-y-8">
-                  {sessionHistory.map((session, index) => {
+                  {getFilteredSessions().length > 0 ? getFilteredSessions().map((session, index) => {
                     const getStatusColor = (status: string) => {
                       switch (status) {
                         case 'COMPLETED':
@@ -659,59 +877,86 @@ export default function PatientDetailsPage() {
                       <div key={session.id} className="relative flex gap-6">
                         {/* Timeline Node */}
                         <div className="relative z-10 flex-shrink-0">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg ${getStatusColor(session.status)}`}>
-                            #{index + 1}
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg ${
+                            session.status === 'COMPLETED' ? 'bg-green-300' :
+                            session.status === 'SCHEDULED' || session.status === 'APPROVED' ? 'bg-blue-300' :
+                            'bg-red-300'
+                            }`}>
+                            #{getFilteredSessions().length - index}
                           </div>
                         </div>
 
                         {/* Session Card */}
-                        <div className="flex-1 bg-purple-50 rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow">
-                          {/* Card Header */}
-                          <div className="flex justify-between items-start mb-4">
-                            <div>
-                              <h4 className="text-xl font-bold text-[#8159A8] mb-1">Session - {session.type || 'Therapy Session'}</h4>
-                              <p className="text-gray-500 flex items-center gap-2">
-                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
-                                </svg>
-                                {formatDate(session.scheduledAt)} at {formatTimeManual(session.scheduledAt)}
-                              </p>
+                        <Card className="flex-1 w-full shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100 bg-white dark:bg-slate-950">
+                          <CardHeader className="pb-4">
+                            {/* Card Header */}
+                            <div className="flex justify-between items-start">
+                              <div className="flex items-center gap-3">
+                                
+                                <div>
+                                  <CardTitle className="text-lg font-bold text-gray-900 dark:text-white">
+                                    {formatDate(session.scheduledAt)} at {formatTimeManual(session.scheduledAt)}
+                                  </CardTitle>
+                                </div>
+                              </div>
+                              <div className="flex gap-2 flex-wrap">
+                                {session.status === 'COMPLETED' && (
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="flex items-center gap-2 text-sm"
+                                    onClick={() => window.location.href = `/therapist/sessions/${session.id}`}
+                                  >
+                                    <Eye className="w-4 h-4" />
+                                    View Details
+                                  </Button>
+                                )}
+                                <Badge className={`font-medium ${
+                                  session.status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
+                                  session.status === 'SCHEDULED' || session.status === 'APPROVED' ? 'bg-blue-100 text-blue-700' :
+                                  'bg-red-100 text-red-700'
+                                }`}>
+                                  {session.status.replace('_', ' ')}
+                                </Badge>
+                              </div>
                             </div>
-                            <div className="flex gap-2 flex-wrap">
-                              {session.status === 'COMPLETED' && (
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  className="flex items-center gap-2"
-                                  onClick={() => window.location.href = `/therapist/sessions/${session.id}`}
-                                >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                  </svg>
-                                  View Details
-                                </Button>
-                              )}
-                              <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                                session.status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
-                                session.status === 'SCHEDULED' || session.status === 'APPROVED' ? 'bg-blue-100 text-blue-700' :
-                                'bg-red-100 text-red-700'
-                              }`}>
-                                {session.status.replace('_', ' ')}
-                              </span>
+                          </CardHeader>
+                          
+                          <CardContent className="pt-0">
+                            {/* Session Info Grid */}
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+                              <div className="flex items-center gap-2">
+                                <FileText className="w-5 h-5" style={{ color: '#8159A8' }} />
+                                <div>
+                                  <p className="text-xs text-gray-500">Type</p>
+                                  <p className="text-sm font-medium">{session.type || 'Therapy Session'}</p>
+                                </div>
+                              </div>
                               
+                              <div className="flex items-center gap-2">
+                                <Clock className="w-5 h-5" style={{ color: '#8159A8' }} />
+                                <div>
+                                  <p className="text-xs text-gray-500">Duration</p>
+                                  <p className="text-sm font-medium">{session.duration || 50} minutes</p>
+                                </div>
+                              </div>
+                              
+                              <div className="flex items-center gap-2">
+                                <User className="w-5 h-5" style={{ color: '#8159A8' }} />
+                                <div>
+                                  <p className="text-xs text-gray-500">Therapist</p>
+                                  <p className="text-sm font-medium">Dr. {session.therapistName || 'Therapist'}</p>
+                                </div>
+                              </div>
                             </div>
-                          </div>
 
                           {/* Session Details Grid - Only show for completed sessions */}
                           {session.status === 'COMPLETED' && (
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                               <div className="bg-gray-50 rounded-lg p-3">
                                 <div className="flex items-center gap-2 text-gray-600 mb-1">
-                                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M13 17a1 1 0 01-.293-.707L9 12.586l-1.293 1.293a1 1 0 01-1.414-1.414L9 10.757a2 2 0 012.828 0l2.828 2.829a1 1 0 01-1.414 1.414L12 12.586l-3.707 3.707A1 1 0 018 17z" />
-                                  </svg>
-                                  <span className="text-xs font-medium uppercase">Progress</span>
+                                  
+                                  <span className="text-xs font-medium uppercase">Overall Progress</span>
                                 </div>
                                 <p className={`font-semibold ${getProgressColor(session.overallProgress || '').split(' ')[1]}`}>
                                   {getProgressText(session.overallProgress || '')}
@@ -719,28 +964,22 @@ export default function PatientDetailsPage() {
                               </div>
                               <div className="bg-gray-50 rounded-lg p-3">
                                 <div className="flex items-center gap-2 text-gray-600 mb-1">
-                                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
-                                  </svg>
-                                  <span className="text-xs font-medium uppercase">Attendance</span>
+                                  
+                                  <span className="text-xs font-medium uppercase">Attendance Status</span>
                                 </div>
                                 <p className="font-semibold text-gray-900">{getAttendanceText(session.attendanceStatus || '')}</p>
                               </div>
                               <div className="bg-gray-50 rounded-lg p-3">
                                 <div className="flex items-center gap-2 text-gray-600 mb-1">
-                                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                  </svg>
-                                  <span className="text-xs font-medium uppercase">Engagement</span>
+                                  
+                                  <span className="text-xs font-medium uppercase">Patient Engagement</span>
                                 </div>
                                 <p className="font-semibold text-gray-900">{getEngagementText(session.patientEngagement || '')}</p>
                               </div>
                               <div className="bg-gray-50 rounded-lg p-3">
                                 <div className="flex items-center gap-2 text-gray-600 mb-1">
-                                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                                  </svg>
-                                  <span className="text-xs font-medium uppercase">Risk Level</span>
+                                  
+                                  <span className="text-xs font-medium uppercase">Risk Assessment</span>
                                 </div>
                                 <p className={`font-semibold ${getRiskColor(session.riskAssessment || '')}`}>{getRiskText(session.riskAssessment || '')}</p>
                               </div>
@@ -749,16 +988,14 @@ export default function PatientDetailsPage() {
 
                           {/* Session Content - Only show clinical details for completed sessions */}
                           {session.status === 'COMPLETED' ? (
-                            <div className="space-y-4">
-                              {/* Focus Areas */}
-                              {session.primaryFocusAreas && parseFocusAreas(session.primaryFocusAreas).length > 0 && (
-                                <div className="bg-blue-50 border-l-4 border-blue-400 rounded-lg p-4">
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                                      <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                    <h5 className="font-semibold text-blue-900">Primary Focus Areas</h5>
-                                  </div>
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                              {/* Primary Focus Areas */}
+                              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                <div className="flex items-center gap-2 mb-3">
+                                  
+                                  <h5 className="font-semibold text-blue-900">Primary Focus Areas</h5>
+                                </div>
+                                {session.primaryFocusAreas && parseFocusAreas(session.primaryFocusAreas).length > 0 ? (
                                   <div className="flex flex-wrap gap-2">
                                     {parseFocusAreas(session.primaryFocusAreas).map((area, idx) => (
                                       <span key={idx} className="px-2 py-1 bg-blue-100 text-blue-800 rounded-lg text-sm">
@@ -766,51 +1003,85 @@ export default function PatientDetailsPage() {
                                       </span>
                                     ))}
                                   </div>
-                                </div>
-                              )}
+                                ) : (
+                                  <p className="text-blue-700 text-sm italic">No focus areas documented</p>
+                                )}
+                              </div>
 
                               {/* Session Notes */}
-
-                              {/* Progress Notes (fallback) */}
+                              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                                <div className="flex items-center gap-2 mb-3">
+                                  
+                                  <h5 className="font-semibold text-yellow-900">Session Notes</h5>
+                                </div>
+                                {session.sessionNotes ? (
+                                  <p className="text-yellow-700 text-sm leading-relaxed">{session.sessionNotes}</p>
+                                ) : (
+                                  <p className="text-yellow-700 text-sm italic">No session notes documented</p>
+                                )}
+                              </div>
 
                               {/* Next Session Goals */}
-                              {session.nextSessionGoals && (
-                                <div className="bg-green-50 border-l-4 border-green-400 rounded-lg p-4">
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                                      <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
-                                    </svg>
-                                    <h5 className="font-semibold text-green-900">Next Session Goals</h5>
-                                  </div>
-                                  <p className="text-green-700 text-sm leading-relaxed">{session.nextSessionGoals}</p>
+                              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                                <div className="flex items-center gap-2 mb-3">
+                                  
+                                  <h5 className="font-semibold text-green-900">Next Session Goals</h5>
                                 </div>
-                              )}
+                                {session.nextSessionGoals ? (
+                                  <p className="text-green-700 text-sm leading-relaxed">{session.nextSessionGoals}</p>
+                                ) : (
+                                  <p className="text-green-700 text-sm italic">No goals set for next session</p>
+                                )}
+                              </div>
                             </div>
                           ) : null}
 
-                          
-                        </div>
+                          </CardContent>
+                        </Card>
                       </div>
                     );
-                  })}
+                  }) : (
+                    <Card className="shadow-sm border border-gray-200">
+                      <CardContent className="p-12 text-center">
+                        <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                          <Calendar className="w-8 h-8 text-gray-400" />
+                        </div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">No sessions match your filters.</h3>
+                        <p className="text-gray-500 mb-4">Try adjusting your filter criteria to see more results.</p>
+                        <Button 
+                          variant="outline" 
+                          onClick={clearFilters}
+                          className="text-purple-600 border-purple-600 hover:bg-purple-50"
+                        >
+                          Clear All Filters
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  )}
                 </div>
 
                 {/* Load More Button */}
                 <div className="text-center mt-8">
-                  <Button variant="outline" className="bg-white border-[#8159A8] text-[#8159A8] hover:bg-[#8159A8] hover:text-white">
+                  <Button 
+                    variant="outline" 
+                    className="hover:shadow-md transition-all duration-200"
+                    style={{ borderColor: '#8159A8', color: '#8159A8' }}
+                  >
                     Load Previous Sessions
                   </Button>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="text-center py-12">
-              <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <p className="text-muted-foreground text-lg">No session history available yet.</p>
-              <p className="text-gray-500 text-sm mt-2">Sessions will appear here as they are completed.</p>
-            </div>
+            <Card className="shadow-sm border border-gray-200">
+              <CardContent className="p-12 text-center">
+                <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                  <Calendar className="w-8 h-8 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No session history available yet.</h3>
+                <p className="text-gray-500">Sessions will appear here as they are completed.</p>
+              </CardContent>
+            </Card>
           )}
         </TabsContent>
 
@@ -819,308 +1090,97 @@ export default function PatientDetailsPage() {
             patientId={params.id as string} 
             medications={medications}
             onMedicationUpdate={() => fetchMedications(params.id as string)}
-          />
+          />       
         </TabsContent>
 
-        <TabsContent value="history" className="pt-6">
-          {medicalHistory ? (
-            <div className="space-y-6">
-              {/* Medical History Header */}
-              <div className="bg-transparent">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h3 className="text-2xl font-bold mb-2 text-[#8159A8]">Medical History</h3>
-                    <p className="text-gray-600">Track medication adherence and patterns</p>
-                  </div>
-                  <div className="text-right">
-                    <div className="grid grid-cols-3 gap-4 text-center">
-                      <div className="bg-gray-50 rounded-lg p-3 border">
-                        <div className="text-2xl font-bold text-[#8159A8]">{medicalHistory.adherenceRate}</div>
-                        <div className="text-sm text-gray-600">Adherence Rate</div>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-3 border">
-                        <div className="text-2xl font-bold text-[#8159A8]">{medicalHistory.currentStreak}</div>
-                        <div className="text-sm text-gray-600">Current Streak</div>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-3 border">
-                        <div className="text-2xl font-bold text-[#8159A8]">{medicalHistory.totalDoses}</div>
-                        <div className="text-sm text-gray-600">Total Doses</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+      
 
-              {/* Controls */}
+        <TabsContent value="tasks" className="pt-6">
+          {assignedAssessments && assignedAssessments.length > 0 ? (
+          <div className="space-y-6">
+            {/* Assigned Assessments Header */}
+            <div className="bg-transparent">
               <div className="flex justify-between items-center">
-                <div className="flex gap-2">
-                  <select className="border rounded-lg px-3 py-2 text-sm bg-white shadow-sm">
-                    <option>Last 3 Months</option>
-                    <option>Last 6 Months</option>
-                    <option>Last Year</option>
-                  </select>
-                  <select className="border rounded-lg px-3 py-2 text-sm bg-white shadow-sm">
-                    <option>All Medications</option>
-                    <option>Adderall XR</option>
-                    <option>Strattera</option>
-                  </select>
+                <div>
+                  <h3 className="text-2xl font-bold mb-2 text-[#8159A8]">Assigned Assessments</h3>
+                  <p className="text-gray-600">Assessments assigned by the therapist</p>
                 </div>
-                <Button variant="outline" size="sm" className="bg-white">Export Report</Button>
-              </div>
-
-              {/* Statistics Cards */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-white p-6 rounded-xl border shadow-md text-center">
-                  <div className="text-2xl font-bold text-green-600">{medicalHistory.adherenceRate}</div>
-                  <div className="text-sm text-gray-600">Overall Adherence Rate</div>
-                </div>
-                <div className="bg-white p-6 rounded-xl border shadow-md text-center">
-                  <div className="text-2xl font-bold text-red-600">{medicalHistory.missedDoses}</div>
-                  <div className="text-sm text-gray-600">Missed Doses (30 days)</div>
-                </div>
-                <div className="bg-white p-6 rounded-xl border shadow-md text-center">
-                  <div className="text-2xl font-bold text-[#8159A8]">{medicalHistory.totalDoses}</div>
-                  <div className="text-sm text-gray-600">Total Doses Taken</div>
-                </div>
-                <div className="bg-white p-6 rounded-xl border shadow-md text-center">
-                  <div className="text-2xl font-bold text-orange-600">{medicalHistory.currentStreak}</div>
-                  <div className="text-sm text-gray-600">Current Streak (days)</div>
-                </div>
-              </div>
-
-              {/* Weekly Adherence Pattern */}
-              <div className="bg-white p-6 rounded-xl border shadow-md">
-                <h4 className="text-lg font-semibold text-[#8159A8] mb-4">Weekly Adherence Pattern</h4>
-                <div className="flex gap-2 mb-4">
-                  <span className="flex items-center gap-1 text-sm">
-                    <div className="w-3 h-3 bg-green-500 rounded"></div>
-                    Taken
-                  </span>
-                  <span className="flex items-center gap-1 text-sm">
-                    <div className="w-3 h-3 bg-red-500 rounded"></div>
-                    Missed
-                  </span>
-                </div>
-                <div className="flex gap-2">
-                  {medicalHistory.weeklyPattern.map((day, index) => (
-                    <div key={index} className="flex-1">
-                      <div className="text-xs text-center mb-2 font-medium">{day.day}</div>
-                      <div className={`h-12 rounded-lg ${
-                        day.status === 'taken' ? 'bg-green-500' : 'bg-red-500'
-                      }`}></div>
+                <div className="text-right">
+                  <div className="grid grid-cols-3 gap-4 text-center">
+                    <div className="bg-gray-50 rounded-lg p-3 border">
+                      <div className="text-2xl font-bold text-[#8159A8]">{assignedAssessments.length}</div>
+                      <div className="text-sm text-gray-600">Total</div>
                     </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Detailed Medication History */}
-              <div className="bg-white p-6 rounded-xl border shadow-md">
-                <h4 className="text-lg font-semibold text-[#8159A8] mb-2">Detailed Medication History</h4>
-                <p className="text-sm text-gray-600 mb-6">Chronological view of all medication events and adherence patterns</p>
-                
-                <div className="space-y-4">
-                  {medicalHistory.detailedHistory.map((entry) => (
-                    <div key={entry.id} className="flex gap-4 p-4 border-l-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors" 
-                         style={{borderLeftColor: 
-                           entry.status === 'EXCELLENT' ? '#10b981' : 
-                           entry.status === 'PARTIAL' ? '#f59e0b' : '#ef4444'
-                         }}>
-                      <div className={`w-3 h-3 rounded-full mt-2 ${
-                        entry.status === 'EXCELLENT' ? 'bg-green-500' : 
-                        entry.status === 'PARTIAL' ? 'bg-yellow-500' : 'bg-red-500'
-                      }`}></div>
-                      <div className="flex-1">
-                        <div className="flex justify-between items-start mb-3">
-                          <div>
-                            <p className="font-semibold text-gray-900">{entry.medication}</p>
-                            <p className="text-sm text-gray-600">{entry.time}</p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm text-gray-500">{entry.date}</span>
-                            <span className={`px-2 py-1 rounded text-xs font-medium ${
-                              entry.status === 'EXCELLENT' ? 'bg-green-100 text-green-700' : 
-                              entry.status === 'PARTIAL' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
-                            }`}>
-                              {entry.status}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="bg-white p-3 rounded-lg border">
-                          <p className="text-sm text-gray-700 font-medium mb-1">Patient Notes:</p>
-                          <p className="text-sm text-gray-600">{entry.notes}</p>
-                        </div>
+                    <div className="bg-gray-50 rounded-lg p-3 border">
+                      <div className="text-2xl font-bold text-[#8159A8]">
+                        {assignedAssessments.filter(a => a.status === 'Completed').length}
                       </div>
+                      <div className="text-sm text-gray-600">Completed</div>
                     </div>
-                  ))}
-                </div>
-
-                <div className="mt-6 text-center">
-                  <Button variant="outline" className="bg-white border-[#8159A8] text-[#8159A8] hover:bg-[#8159A8] hover:text-white">
-                    Load More History
-                  </Button>
+                    <div className="bg-gray-50 rounded-lg p-3 border">
+                      <div className="text-2xl font-bold text-[#8159A8]">
+                        {assignedAssessments.length > 0
+                          ? Math.round(
+                              (assignedAssessments.filter(a => a.status === 'Completed').length /
+                                assignedAssessments.length) *
+                                100
+                            )
+                          : 0}
+                        %
+                      </div>
+                      <div className="text-sm text-gray-600">Completion Rate</div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          ) : (
-            <p className="text-muted-foreground">No medical history provided.</p>
-          )}
-        </TabsContent>
 
-        <TabsContent value="tasks" className="pt-6">
-          {assignedTasks && assignedTasks.length > 0 ? (
-            <div className="space-y-6">
-              {/* Assigned Tasks Header */}
-              <div className="bg-transpaent">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h3 className="text-2xl font-bold mb-2 text-[#8159A8]">Assigned Tasks</h3>
-                    <p className="text-gray-600">Monitor patient progress and task completion</p>
-                  </div>
-                  <div className="text-right">
-                    <div className="grid grid-cols-2 gap-4 text-center">
-                      <div className="bg-gray-50 rounded-lg p-3 border">
-                        <div className="text-2xl font-bold text-[#8159A8]">{assignedTasks.length}</div>
-                        <div className="text-sm text-gray-600">Total Tasks</div>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-3 border">
-                        <div className="text-2xl font-bold text-[#8159A8]">
-                          {Math.round(assignedTasks.reduce((sum, task) => sum + task.progress, 0) / assignedTasks.length)}%
-                        </div>
-                        <div className="text-sm text-gray-600">Avg Progress</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Add Task Button */}
-              <div className="flex justify-end">
-                <Button className="bg-[#8159A8] hover:bg-[#6d4a8f] text-white">
-                  + Assign New Task
-                </Button>
-              </div>
-
-              {/* Task Statistics */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-white p-6 rounded-xl border shadow-md text-center">
-                  <div className="text-2xl font-bold text-[#8159A8]">{assignedTasks.length}</div>
-                  <div className="text-sm text-gray-600">Total Tasks</div>
-                </div>
-                <div className="bg-white p-6 rounded-xl border shadow-md text-center">
-                  <div className="text-2xl font-bold text-green-600">
-                    {assignedTasks.filter(task => task.status === 'Completed').length}
-                  </div>
-                  <div className="text-sm text-gray-600">Completed</div>
-                </div>
-                <div className="bg-white p-6 rounded-xl border shadow-md text-center">
-                  <div className="text-2xl font-bold text-blue-600">
-                    {assignedTasks.filter(task => task.status === 'In Progress').length}
-                  </div>
-                  <div className="text-sm text-gray-600">In Progress</div>
-                </div>
-                <div className="bg-white p-6 rounded-xl border shadow-md text-center">
-                  <div className="text-2xl font-bold text-red-600">
-                    {assignedTasks.filter(task => task.status === 'Overdue').length}
-                  </div>
-                  <div className="text-sm text-gray-600">Overdue</div>
-                </div>
-              </div>
-
-              {/* Tasks List */}
+              {/* Assessments List */}
               <div className="space-y-4">
-                {assignedTasks.map((task) => (
-                  <div key={task.id} className="bg-white border-l-4 border-[#8159A8] rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow">
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h4 className="text-xl font-bold text-[#8159A8]">{task.title}</h4>
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            task.status === 'Completed' ? 'bg-green-100 text-green-700' :
-                            task.status === 'In Progress' ? 'bg-blue-100 text-blue-700' :
-                            task.status === 'Overdue' ? 'bg-red-100 text-red-700' :
-                            'bg-gray-100 text-gray-700'
-                          }`}>
-                            {task.status}
+                {assignedAssessments.map((assessment) => (
+                  <div
+                    key={assessment.id}
+                    className="bg-[#FAF8FB] rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow flex flex-col md:flex-row md:items-center md:justify-between"
+                  >
+                    <div>
+                      <div className="flex items-center gap-3 mb-2">
+                        <h4 className="text-lg font-bold text-[#8159A8]">{assessment.title}</h4>
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-medium ${
+                            assessment.status === 'Completed'
+                              ? 'bg-green-100 text-green-700'
+                              : 'bg-yellow-100 text-yellow-700'
+                          }`}
+                        >
+                          {assessment.status}
+                        </span>
+                        {assessment.score !== null && (
+                          <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                            Score: {assessment.score}
                           </span>
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            task.priority === 'High' ? 'bg-red-50 text-red-600' :
-                            task.priority === 'Medium' ? 'bg-yellow-50 text-yellow-600' :
-                            'bg-green-50 text-green-600'
-                          }`}>
-                            {task.priority} Priority
-                          </span>
-                        </div>
-                        <p className="text-gray-600 mb-3">{task.description}</p>
+                        )}
                       </div>
+                      <p className="text-gray-600 text-sm mb-1">Assigned: {assessment.assignedDate}</p>
+                      {assessment.completedAt && (
+                        <p className="text-gray-500 text-xs">Completed: {assessment.completedAt}</p>
+                      )}
                     </div>
-
-                    {/* Progress Bar */}
-                    <div className="mb-6">
-                      <div className="flex justify-between text-sm text-gray-600 mb-2">
-                        <span>Progress: {task.completedSessions}/{task.totalSessions} sessions</span>
-                        <span className="font-semibold">{task.progress}%</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-3">
-                        <div 
-                          className="bg-[#8159A8] h-3 rounded-full transition-all duration-300"
-                          style={{ width: `${task.progress}%` }}
-                        ></div>
-                      </div>
-                    </div>
-
-                    {/* Task Details Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-xs uppercase text-gray-500 font-medium mb-1">Category</p>
-                        <p className="font-semibold text-gray-900">{task.category}</p>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-xs uppercase text-gray-500 font-medium mb-1">Assigned Date</p>
-                        <p className="font-semibold text-gray-900">{task.assignedDate}</p>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-xs uppercase text-gray-500 font-medium mb-1">Due Date</p>
-                        <p className="font-semibold text-gray-900">{task.dueDate}</p>
-                      </div>
-                    </div>
-
-                    {/* Instructions */}
-                    <div className="bg-gray-50 border-l-4 border-gray-400 rounded-lg p-4 mb-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <svg className="w-5 h-5 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                        </svg>
-                        <h5 className="font-semibold text-gray-900">Instructions</h5>
-                      </div>
-                      <p className="text-gray-700 text-sm leading-relaxed">{task.instructions}</p>
-                    </div>
-
-                    {/* Therapist Notes */}
-                    <div className="bg-gray-50 border-l-4 border-gray-400 rounded-lg p-4 mb-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <svg className="w-5 h-5 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z" />
-                        </svg>
-                        <h5 className="font-semibold text-gray-900">Therapist Notes</h5>
-                      </div>
-                      <p className="text-gray-700 text-sm leading-relaxed">{task.notes}</p>
-                    </div>
-
-                    {/* Last Activity */}
-                    <div className="flex justify-between items-center text-sm text-gray-500 pt-4 border-t border-gray-100">
-                      <span>Last completed: {task.lastCompleted}</span>
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm" className="hover:bg-blue-50">Edit Task</Button>
-                        <Button variant="outline" size="sm" className="hover:bg-gray-50">View Details</Button>
-                        <Button variant="outline" size="sm" className="text-red-600 hover:bg-red-50">Remove</Button>
-                      </div>
+                    <div className="mt-4 md:mt-0">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="hover:bg-blue-50"
+                        onClick={() => window.location.href = `/therapist/assessments/${assessment.id}`}
+                      >
+                        View Assessment
+                      </Button>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
           ) : (
-            <p className="text-muted-foreground">No assigned tasks found.</p>
+            <p className="text-muted-foreground">No assigned assessments found.</p>
           )}
         </TabsContent>
 
@@ -1135,18 +1195,14 @@ export default function PatientDetailsPage() {
                     <p className="text-gray-600">Manage and review patient documentation</p>
                   </div>
                   <div className="text-right">
-                    <div className="grid grid-cols-2 gap-4 text-center">
-                      <div className="bg-gray-50 rounded-lg p-3 border">
-                        <div className="text-2xl font-bold text-[#8159A8]">{uploadedDocuments.length}</div>
-                        <div className="text-sm text-gray-600">Total Documents</div>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-3 border">
-                        <div className="text-2xl font-bold text-[#8159A8]">
-                          {uploadedDocuments.filter(doc => doc.status === 'Verified').length}
-                        </div>
-                        <div className="text-sm text-gray-600">Verified</div>
-                      </div>
-                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="hover:bg-blue-50"
+                      onClick={() => window.location.href = `/therapist/documents/upload`}
+                    >
+                      Upload Document
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -1155,29 +1211,19 @@ export default function PatientDetailsPage() {
               {/* Documents List */}
               <div className="space-y-4">
                 {uploadedDocuments.map((document) => (
-                  <div key={document.id} className="bg-white border-l-4 border-[#8159A8] rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow">
+                    <div key={document.id} className="bg-[#FAF8FB] rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4 flex-1">
-                        {/* File Icon */}
-                        <div className="w-16 h-16 bg-[#8159A8] bg-opacity-10 rounded-xl flex items-center justify-center">
-                          <svg className="w-8 h-8 text-[#8159A8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                        </div>
+                        
 
                         {/* Document Info */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-3 mb-2">
                             <h4 className="text-lg font-bold text-[#8159A8] truncate">{document.name}</h4>
-                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                              document.status === 'Verified' ? 'bg-green-100 text-green-700' :
-                              'bg-yellow-100 text-yellow-700'
-                            }`}>
-                              {document.status}
-                            </span>
+                            
                           </div>
                           <p className="text-sm text-gray-600 mb-3 leading-relaxed">{document.description}</p>
-                          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-xs">
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
                             <div className="bg-gray-50 px-3 py-2 rounded-lg">
                               <span className="text-gray-500">Type:</span>
                               <span className="font-medium text-gray-900 ml-1">{document.type}</span>
@@ -1193,10 +1239,6 @@ export default function PatientDetailsPage() {
                             <div className="bg-gray-50 px-3 py-2 rounded-lg">
                               <span className="text-gray-500">By:</span>
                               <span className="font-medium text-gray-900 ml-1">{document.uploadedBy}</span>
-                            </div>
-                            <div className="bg-gray-50 px-3 py-2 rounded-lg">
-                              <span className="text-gray-500">Last accessed:</span>
-                              <span className="font-medium text-gray-900 ml-1">{document.lastAccessed}</span>
                             </div>
                           </div>
                         </div>
@@ -1217,11 +1259,11 @@ export default function PatientDetailsPage() {
                           </svg>
                           Download
                         </Button>
-                        <Button variant="outline" size="sm" className="text-red-600 hover:bg-red-50">
+                        {/* <Button variant="outline" size="sm" className="text-red-600 hover:bg-red-50">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </svg>
-                        </Button>
+                        </Button> */}
                       </div>
                     </div>
                   </div>
@@ -1235,6 +1277,9 @@ export default function PatientDetailsPage() {
           )}
         </TabsContent>
       </Tabs>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

@@ -53,6 +53,7 @@ model User {
   patientProfile        Patient?
   sessions              Session[]
   therapistProfile      Therapist?
+  blogs                 blogs[]
 }
 
 model VerificationToken {
@@ -236,6 +237,7 @@ model Task {
   completionNotes  String?
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
+  sessionid        String?
   patient          Patient    @relation(fields: [patientId], references: [id], onDelete: Cascade)
 }
 
@@ -268,27 +270,26 @@ model JournalEntry {
 }
 
 model Medication {
-  id                String              @id
-  patientId         String
-  therapistId       String
-  name              String
-  dosage            String
-  frequency         MedicationFrequency
-  customFrequency   String?
-  instructions      String?
-  mealTiming        MealTiming          @default(NONE)
-  startDate         DateTime
-  endDate           DateTime?
-  isActive          Boolean             @default(true)
-  isDiscontinued    Boolean             @default(false)
-  discontinuedAt    DateTime?
-  discontinuedBy    String?
-  discontinueReason String?
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime
-  Patient           Patient             @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  Therapist         Therapist           @relation(fields: [therapistId], references: [id], onDelete: Cascade)
-  history           MedicationHistory[]
+  id              String              @id
+  patientId       String
+  therapistId     String
+  name            String
+  dosage          String
+  frequency       MedicationFrequency
+  customFrequency String?
+  instructions    String?
+  mealTiming      MealTiming          @default(NONE)
+  startDate       DateTime
+  endDate         DateTime?
+  isActive        Boolean             @default(true)
+  isDiscontinued  Boolean             @default(false)
+  discontinuedAt  DateTime?
+  discontinuedBy  String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime
+  Patient         Patient             @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  Therapist       Therapist           @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+  history         MedicationHistory[]
 
   @@index([isActive])
   @@index([isDiscontinued])
@@ -297,20 +298,40 @@ model Medication {
 }
 
 model MedicationHistory {
-  id             String                    @id @default(cuid())
+  id             String                  @id @default(cuid())
   medicationId   String
   action         MedicationHistoryAction
-  changedBy      String                    // Just store therapist ID as string
-  changedAt      DateTime                  @default(now())
+  changedBy      String
+  changedAt      DateTime                @default(now())
   previousValues Json?
   newValues      Json?
   reason         String?
   notes          String?
-  medication     Medication                @relation(fields: [medicationId], references: [id], onDelete: Cascade)
+  medication     Medication              @relation(fields: [medicationId], references: [id], onDelete: Cascade)
 
   @@index([medicationId])
   @@index([changedBy])
   @@index([changedAt])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model blogs {
+  id           Int       @id @default(autoincrement())
+  title        String    @db.VarChar(255)
+  summary      String
+  content      String
+  therapist_id String
+  status       String    @default("draft") @db.VarChar(20)
+  category     String?   @db.VarChar(50)
+  tags         String[]
+  image_data   Bytes?
+  image_type   String?   @db.VarChar(50)
+  image_name   String?   @db.VarChar(255)
+  views        Int       @default(0)
+  created_at   DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime? @default(now()) @db.Timestamptz(6)
+  published_at DateTime? @db.Timestamptz(6)
+  User         User      @relation(fields: [therapist_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 enum UserRole {

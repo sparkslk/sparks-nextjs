@@ -16,7 +16,7 @@ export async function PATCH(
 
     const { childId, taskId } = await params;
     const body = await request.json();
-    const { completionNotes } = body;
+    const { completionNotes, unmark } = body;
 
     if (!childId || !taskId) {
       return NextResponse.json({ error: 'Child ID and Task ID are required' }, { status: 400 });
@@ -34,19 +34,36 @@ export async function PATCH(
       return NextResponse.json({ error: 'Child not found or unauthorized' }, { status: 404 });
     }
 
-    // Update the task to completed in the database
-    const updatedTask = await prisma.task.update({
-      where: {
-        id: taskId,
-        patientId: childId // Ensure the task belongs to the correct child
-      },
-      data: {
-        status: 'COMPLETED',
-        completedAt: new Date(),
-        completionNotes: completionNotes || null,
-        updatedAt: new Date()
-      }
-    });
+    let updatedTask;
+    if (unmark) {
+      // Unmark the task as completed
+      updatedTask = await prisma.task.update({
+        where: {
+          id: taskId,
+          patientId: childId
+        },
+        data: {
+          status: 'PENDING',
+          completedAt: null,
+          completionNotes: null,
+          updatedAt: new Date()
+        }
+      });
+    } else {
+      // Mark the task as completed
+      updatedTask = await prisma.task.update({
+        where: {
+          id: taskId,
+          patientId: childId // Ensure the task belongs to the correct child
+        },
+        data: {
+          status: 'COMPLETED',
+          completedAt: new Date(),
+          completionNotes: completionNotes || null,
+          updatedAt: new Date()
+        }
+      });
+    }
 
     if (!updatedTask) {
       return NextResponse.json({ error: 'Task not found or could not be updated' }, { status: 404 });
@@ -54,7 +71,7 @@ export async function PATCH(
 
     return NextResponse.json({
       success: true,
-      message: 'Task marked as completed',
+      message: unmark ? 'Task unmarked as completed' : 'Task marked as completed',
       task: {
         id: updatedTask.id,
         patientId: updatedTask.patientId,

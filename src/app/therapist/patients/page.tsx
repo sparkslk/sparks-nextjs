@@ -1,4 +1,6 @@
+
 "use client";
+import Image from "next/image";
 
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -30,10 +32,60 @@ interface Patient {
     gender: string;
     phone?: string;
     email?: string;
+    image?: string | null;
     lastSession?: string;
     nextSession?: string;
     status: "active" | "inactive" | "completed";
     age: number;
+}
+
+interface PatientAvatarProps {
+    patient: Patient;
+    size?: "sm" | "md";
+}
+
+function PatientAvatar({ patient, size = "sm" }: PatientAvatarProps) {
+    const [imageError, setImageError] = useState(false);
+    const [imageLoaded, setImageLoaded] = useState(false);
+    
+    const sizeClasses = size === "sm" 
+        ? "w-10 h-10" 
+        : "w-10 h-10 lg:w-12 lg:h-12";
+    const iconSizeClasses = size === "sm" 
+        ? "h-5 w-5" 
+        : "h-5 w-5 lg:h-6 lg:w-6";
+
+    const handleImageError = () => {
+        setImageError(true);
+        setImageLoaded(false);
+    };
+
+    const handleImageLoad = () => {
+        setImageLoaded(true);
+        setImageError(false);
+    };
+
+    const showUserIcon = !patient.image || imageError || !imageLoaded;
+
+    return (
+        <div className={`${sizeClasses} bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden relative`}>
+            {patient.image && !imageError && (
+                <Image
+                    src={patient.image}
+                    alt={`${patient.firstName} ${patient.lastName}`}
+                    className="w-full h-full object-cover"
+                    onError={handleImageError}
+                    onLoad={handleImageLoad}
+                    style={{ display: imageLoaded && !imageError ? 'block' : 'none' }}
+                    fill
+                    sizes="100vw"
+                />
+            )}
+            {showUserIcon && (
+                <User className={`${iconSizeClasses} text-gray-600`} />
+            )}
+        </div>
+    );
 }
 
 export default function PatientsPage() {
@@ -219,7 +271,6 @@ export default function PatientsPage() {
                             <SelectItem value="all">All statuses</SelectItem>
                             <SelectItem value="active">Active</SelectItem>
                             <SelectItem value="inactive">Inactive</SelectItem>
-                            <SelectItem value="completed">Completed</SelectItem>
                         </SelectContent>
                     </Select>
 
@@ -281,9 +332,7 @@ export default function PatientsPage() {
                                         <div className="flex flex-col space-y-4 sm:hidden">
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center space-x-3">
-                                                    <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
-                                                        <User className="h-5 w-5 text-gray-600" />
-                                                    </div>
+                                                    <PatientAvatar patient={patient} size="sm" />
                                                     <div>
                                                         <h3 className="font-semibold text-sm">
                                                             {patient.firstName} {patient.lastName}
@@ -317,30 +366,36 @@ export default function PatientsPage() {
                                                 </div>
                                             </div>
 
-                                            <div className="flex justify-end space-x-1">
+                                            <div className="flex justify-end space-x-2">
                                                 <Button
-                                                    variant="ghost"
+                                                    variant="outline"
                                                     size="sm"
                                                     onClick={() => router.push(`/therapist/patients/${patient.id}`)}
-                                                    className="px-2"
+                                                    className="px-3 py-2 hover:bg-primary/10"
+                                                    title="View patient details"
                                                 >
-                                                    <Eye className="h-4 w-4" />
+                                                    <Eye className="h-4 w-4 mr-1" />
+                                                    View
                                                 </Button>
                                                 <Button
-                                                    variant="ghost"
+                                                    variant="outline"
                                                     size="sm"
-                                                    onClick={() => router.push(`/therapist/patients/${patient.id}/notes`)}
-                                                    className="px-2"
+                                                    onClick={() => router.push(`/therapist/chat/${patient.id}`)}
+                                                    className="px-3 py-2 hover:bg-blue-50"
+                                                    title="Message patient"
                                                 >
-                                                    <MessageCircle className="h-4 w-4" />
+                                                    <MessageCircle className="h-4 w-4 mr-1" />
+                                                    Message
                                                 </Button>
                                                 <Button
-                                                    variant="ghost"
+                                                    variant="outline"
                                                     size="sm"
-                                                    onClick={() => router.push(`/therapist/appointments/new?patientId=${patient.id}`)}
-                                                    className="px-2"
+                                                    onClick={() => router.push(`/therapist/patients/${patient.id}/sessions`)}
+                                                    className="px-3 py-2 hover:bg-green-50"
+                                                    title="Edit session notes"
                                                 >
-                                                    <Edit3 className="h-4 w-4" />
+                                                    <Edit3 className="h-4 w-4 mr-1" />
+                                                    Edit
                                                 </Button>
                                             </div>
                                         </div>
@@ -348,9 +403,7 @@ export default function PatientsPage() {
                                         {/* Desktop Layout */}
                                         <div className="hidden sm:flex items-center justify-between">
                                             <div className="flex items-center space-x-4 lg:space-x-6">
-                                                <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
-                                                    <User className="h-5 w-5 lg:h-6 lg:w-6 text-gray-600" />
-                                                </div>
+                                                <PatientAvatar patient={patient} size="md" />
                                                 <div>
                                                     <h3 className="font-semibold text-sm lg:text-base">
                                                         {patient.firstName} {patient.lastName}
@@ -396,19 +449,19 @@ export default function PatientsPage() {
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
-                                                        onClick={() => router.push(`/therapist/patients/${patient.id}/notes`)}
+                                                        onClick={() => router.push(`/therapist/messages`)}
                                                         className="h-8 w-8 lg:h-10 lg:w-10"
                                                     >
                                                         <MessageCircle className="h-3 w-3 lg:h-4 lg:w-4" />
                                                     </Button>
-                                                    <Button
+                                                    {/* <Button
                                                         variant="ghost"
                                                         size="icon"
                                                         onClick={() => router.push(`/therapist/appointments/new?patientId=${patient.id}`)}
                                                         className="h-8 w-8 lg:h-10 lg:w-10"
                                                     >
                                                         <Edit3 className="h-3 w-3 lg:h-4 lg:w-4" />
-                                                    </Button>
+                                                    </Button> */}
                                                 </div>
                                             </div>
                                         </div>

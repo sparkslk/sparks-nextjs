@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,10 +16,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Save, ImagePlus } from "lucide-react";
+import { ArrowLeft, Save, Eye, Upload } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
-interface BlogForm {
+interface FormData {
   title: string;
   summary: string;
   content: string;
@@ -34,7 +34,7 @@ export default function NewBlogPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [saveAsDraft, setSaveAsDraft] = useState(true);
-  const [formData, setFormData] = useState<BlogForm>({
+  const [formData, setFormData] = useState<FormData>({
     title: "",
     summary: "",
     content: "",
@@ -44,33 +44,26 @@ export default function NewBlogPage() {
     imagePreview: null,
   });
 
+  // Use session for authorization check
+  useEffect(() => {
+    if (authStatus === "unauthenticated") {
+      router.push("/login");
+      return;
+    }
+  }, [authStatus, router]);
+
   // Handle file input changes
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-
-      // Validate file size (limit to ~5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        alert("Image is too large. Please select an image under 5MB.");
-        return;
-      }
-
-      // Validate file type
-      if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-        alert("Please select a JPEG, PNG or WEBP image.");
-        return;
-      }
-
       const reader = new FileReader();
 
-      reader.onload = (event) => {
-        if (event.target && typeof event.target.result === "string") {
-          setFormData({
-            ...formData,
-            image: file,
-            imagePreview: event.target.result,
-          });
-        }
+      reader.onload = (e) => {
+        setFormData((prev) => ({
+          ...prev,
+          image: file,
+          imagePreview: e.target?.result as string,
+        }));
       };
 
       reader.readAsDataURL(file);
@@ -78,7 +71,7 @@ export default function NewBlogPage() {
   };
 
   // Handle text input changes
-  const handleInputChange = (field: keyof BlogForm, value: string) => {
+  const handleInputChange = (field: keyof FormData, value: string) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
@@ -91,18 +84,80 @@ export default function NewBlogPage() {
     setLoading(true);
 
     try {
-      // In a real implementation, you'd have an API call here
-      // For now we'll simulate a successful submission
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // Validate required fields
+      if (
+        !formData.title.trim() ||
+        !formData.summary.trim() ||
+        !formData.content.trim()
+      ) {
+        alert(
+          "Please fill in all required fields (title, summary, and content)."
+        );
+        setLoading(false);
+        return;
+      }
 
-      // Redirect to blog list
-      router.push("/therapist/blogs");
+      // Prepare the data for submission
+      const submitData: any = {
+        title: formData.title.trim(),
+        summary: formData.summary.trim(),
+        content: formData.content.trim(),
+        category: formData.category || null,
+        tags: formData.tags
+          .split(",")
+          .map((tag) => tag.trim())
+          .filter((tag) => tag.length > 0),
+        status: saveAsDraft ? "draft" : "published",
+      };
+
+      // Handle image upload if there's an image
+      if (formData.image) {
+        const reader = new FileReader();
+        reader.onload = async () => {
+          const base64Data = reader.result as string;
+          const [, data] = base64Data.split(",");
+
+          submitData.image_data = data;
+          submitData.image_type = formData.image!.type;
+          submitData.image_name = formData.image!.name;
+
+          await submitBlog(submitData);
+        };
+        reader.readAsDataURL(formData.image);
+      } else {
+        await submitBlog(submitData);
+      }
     } catch (error) {
       console.error("Error creating blog:", error);
       alert("Failed to create blog. Please try again.");
-    } finally {
       setLoading(false);
     }
+  };
+
+  const submitBlog = async (data: any) => {
+    const response = await fetch("/api/blogs", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Failed to create blog");
+    }
+
+    const result = await response.json();
+
+    // Redirect to the new blog
+    router.push(`/therapist/blogs/${result.id}`);
+  };
+
+  const handlePreview = () => {
+    // For preview, we could open a modal or navigate to a preview page
+    // For now, let's just show an alert
+    alert("Preview functionality will be implemented soon!");
   };
 
   if (authStatus === "loading") {
@@ -110,262 +165,249 @@ export default function NewBlogPage() {
   }
 
   if (authStatus === "unauthenticated") {
-    router.push("/login");
     return null;
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#F5F3FB] via-white to-[#F5F3FB] p-6">
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-5xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-center space-x-4">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => router.back()}
-            className="transition-all duration-300 hover:bg-[#F5F3FB]"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold text-[#8159A8]">
-              Create New Blog
-            </h1>
-            <p className="text-gray-600">
-              Share your knowledge and expertise with the community
-            </p>
-          </div>
-        </div>
-
-        {/* Blog Creation Form */}
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <Card className="shadow-sm hover:shadow-md transition-shadow duration-300">
-            <CardHeader>
-              <CardTitle className="text-[#8159A8]">Blog Content</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="title">Title *</Label>
-                <Input
-                  id="title"
-                  placeholder="Enter a compelling title for your blog"
-                  required
-                  value={formData.title}
-                  onChange={(e) => handleInputChange("title", e.target.value)}
-                  className="focus-visible:ring-[#8159A8]/20"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="summary">Summary *</Label>
-                <Textarea
-                  id="summary"
-                  placeholder="Write a brief summary to appear in blog listings (100-150 words recommended)"
-                  required
-                  rows={3}
-                  value={formData.summary}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-                    handleInputChange("summary", e.target.value)
-                  }
-                  className="focus-visible:ring-[#8159A8]/20"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="content">Blog Content *</Label>
-                <Textarea
-                  id="content"
-                  placeholder="Write your full blog content here..."
-                  required
-                  rows={12}
-                  value={formData.content}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-                    handleInputChange("content", e.target.value)
-                  }
-                  className="focus-visible:ring-[#8159A8]/20"
-                />
-                <p className="text-xs text-gray-500">
-                  You can use Markdown formatting for headings, lists, links and
-                  emphasis.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-sm hover:shadow-md transition-shadow duration-300">
-            <CardHeader>
-              <CardTitle className="text-[#8159A8]">
-                Blog Details & Media
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="category">Category *</Label>
-                  <Select
-                    value={formData.category}
-                    onValueChange={(value) =>
-                      handleInputChange("category", value)
-                    }
-                  >
-                    <SelectTrigger
-                      id="category"
-                      className="focus-visible:ring-[#8159A8]/20"
-                    >
-                      <SelectValue placeholder="Select a category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="adhd">ADHD Resources</SelectItem>
-                      <SelectItem value="anxiety">
-                        Anxiety & Depression
-                      </SelectItem>
-                      <SelectItem value="parenting">
-                        Parenting Support
-                      </SelectItem>
-                      <SelectItem value="wellness">Mental Wellness</SelectItem>
-                      <SelectItem value="therapy">
-                        Therapy Approaches
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="tags">Tags</Label>
-                  <Input
-                    id="tags"
-                    placeholder="Enter tags separated by commas"
-                    value={formData.tags}
-                    onChange={(e) => handleInputChange("tags", e.target.value)}
-                    className="focus-visible:ring-[#8159A8]/20"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="image">Featured Image (Required)</Label>
-                <div className="flex items-center space-x-4">
-                  <div
-                    className={`
-                      relative border-2 border-dashed rounded-lg overflow-hidden w-full 
-                      ${
-                        formData.imagePreview
-                          ? "border-[#8159A8]"
-                          : "border-gray-300"
-                      }
-                      hover:border-[#8159A8] transition-colors duration-300
-                    `}
-                    style={{ height: "220px" }}
-                  >
-                    {formData.imagePreview ? (
-                      <>
-                        <Image
-                          src={formData.imagePreview}
-                          alt="Preview"
-                          fill
-                          className="object-cover"
-                        />
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setFormData({
-                              ...formData,
-                              image: null,
-                              imagePreview: null,
-                            })
-                          }
-                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 w-8 h-8 flex items-center justify-center hover:bg-red-600 transition-colors"
-                        >
-                          ✕
-                        </button>
-                      </>
-                    ) : (
-                      <label
-                        htmlFor="image"
-                        className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer"
-                      >
-                        <ImagePlus className="h-12 w-12 text-gray-400" />
-                        <p className="mt-2 text-sm text-gray-600">
-                          Click or drag to upload an image
-                        </p>
-                        <p className="text-xs text-gray-500 mt-2">
-                          JPEG, PNG or WEBP (max 5MB)
-                        </p>
-                      </label>
-                    )}
-                    <input
-                      id="image"
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      className="hidden"
-                      onChange={handleImageChange}
-                      required
-                    />
-                  </div>
-                </div>
-                <p className="text-xs text-gray-500">
-                  High-quality featured image will make your blog more engaging.
-                  Recommended size: 1200 x 630 pixels.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Publishing Options */}
-          <Card className="shadow-sm hover:shadow-md transition-shadow duration-300">
-            <CardHeader>
-              <CardTitle className="text-[#8159A8]">
-                Publishing Options
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="saveAsDraft"
-                  checked={saveAsDraft}
-                  onChange={() => setSaveAsDraft(!saveAsDraft)}
-                  className="rounded text-[#8159A8] focus:ring-[#8159A8]"
-                />
-                <Label htmlFor="saveAsDraft" className="cursor-pointer">
-                  Save as draft (unpublished)
-                </Label>
-              </div>
-              <p className="text-xs text-gray-500 mt-2">
-                {saveAsDraft
-                  ? "The blog will be saved but not visible to users until you publish it."
-                  : "The blog will be immediately visible to all users."}
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Submit Buttons */}
-          <div className="flex justify-end space-x-4">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="flex items-center gap-4">
             <Button
-              type="button"
               variant="outline"
               onClick={() => router.back()}
               className="transition-all duration-300 hover:bg-[#F5F3FB]"
             >
-              Cancel
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold text-[#8159A8]">
+                Create New Blog
+              </h1>
+              <p className="text-gray-600">Share your therapeutic insights</p>
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handlePreview}
+              className="transition-all duration-300 hover:bg-[#F5F3FB]"
+            >
+              <Eye className="mr-2 h-4 w-4" />
+              Preview
             </Button>
             <Button
               type="submit"
+              form="blog-form"
               disabled={loading}
+              onClick={() => setSaveAsDraft(true)}
+              className="bg-gray-600 hover:bg-gray-700 text-white transition-all duration-300"
+            >
+              <Save className="mr-2 h-4 w-4" />
+              {loading ? "Saving..." : "Save as Draft"}
+            </Button>
+            <Button
+              type="submit"
+              form="blog-form"
+              disabled={loading}
+              onClick={() => setSaveAsDraft(false)}
               className="bg-[#8159A8] hover:bg-[#6D4C93] text-white transition-all duration-300"
             >
-              {loading ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  {saveAsDraft ? "Saving..." : "Publishing..."}
-                </>
-              ) : (
-                <>
-                  <Save className="mr-2 h-4 w-4" />
-                  {saveAsDraft ? "Save as Draft" : "Publish Blog"}
-                </>
-              )}
+              <Save className="mr-2 h-4 w-4" />
+              {loading ? "Publishing..." : "Publish Now"}
             </Button>
+          </div>
+        </div>
+
+        <form id="blog-form" onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Main Content */}
+            <div className="lg:col-span-2 space-y-6">
+              <Card className="shadow-sm">
+                <CardHeader>
+                  <CardTitle className="text-lg text-[#8159A8]">
+                    Blog Content
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label htmlFor="title">Title *</Label>
+                    <Input
+                      id="title"
+                      value={formData.title}
+                      onChange={(e) =>
+                        handleInputChange("title", e.target.value)
+                      }
+                      placeholder="Enter an engaging blog title"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="summary">Summary *</Label>
+                    <Textarea
+                      id="summary"
+                      value={formData.summary}
+                      onChange={(e) =>
+                        handleInputChange("summary", e.target.value)
+                      }
+                      placeholder="Brief description of your blog (this will appear in blog previews)"
+                      rows={3}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="content">Content *</Label>
+                    <Textarea
+                      id="content"
+                      value={formData.content}
+                      onChange={(e) =>
+                        handleInputChange("content", e.target.value)
+                      }
+                      placeholder="Write your blog content here. You can use simple formatting:
+
+# Main Heading
+## Subheading
+### Small Heading
+
+- List item 1
+- List item 2
+
+Regular paragraphs..."
+                      rows={15}
+                      required
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Sidebar */}
+            <div className="space-y-6">
+              {/* Categories and Tags */}
+              <Card className="shadow-sm">
+                <CardHeader>
+                  <CardTitle className="text-lg text-[#8159A8]">
+                    Organization
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label htmlFor="category">Category</Label>
+                    <Select
+                      value={formData.category}
+                      onValueChange={(value) =>
+                        handleInputChange("category", value)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="adhd">ADHD Resources</SelectItem>
+                        <SelectItem value="anxiety">
+                          Anxiety & Depression
+                        </SelectItem>
+                        <SelectItem value="parenting">
+                          Parenting Support
+                        </SelectItem>
+                        <SelectItem value="wellness">
+                          Mental Wellness
+                        </SelectItem>
+                        <SelectItem value="therapy">
+                          Therapy Approaches
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="tags">Tags</Label>
+                    <Input
+                      id="tags"
+                      value={formData.tags}
+                      onChange={(e) =>
+                        handleInputChange("tags", e.target.value)
+                      }
+                      placeholder="mental health, therapy, wellness"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Separate tags with commas
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Featured Image */}
+              <Card className="shadow-sm">
+                <CardHeader>
+                  <CardTitle className="text-lg text-[#8159A8]">
+                    Featured Image
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {formData.imagePreview && (
+                    <div className="relative aspect-video">
+                      <Image
+                        src={formData.imagePreview}
+                        alt="Blog preview"
+                        fill
+                        className="object-cover rounded-lg"
+                      />
+                    </div>
+                  )}
+
+                  <div>
+                    <Label htmlFor="image">Upload Image</Label>
+                    <div className="mt-1">
+                      <input
+                        id="image"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        className="hidden"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() =>
+                          document.getElementById("image")?.click()
+                        }
+                        className="w-full"
+                      >
+                        <Upload className="mr-2 h-4 w-4" />
+                        {formData.imagePreview
+                          ? "Change Image"
+                          : "Choose Image"}
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Tips */}
+              <Card className="shadow-sm">
+                <CardHeader>
+                  <CardTitle className="text-lg text-[#8159A8]">
+                    Writing Tips
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-sm text-gray-600 space-y-2">
+                    <p>• Write a compelling title that grabs attention</p>
+                    <p>• Keep your summary concise but informative</p>
+                    <p>• Use headings to structure your content</p>
+                    <p>• Add relevant tags to help readers find your blog</p>
+                    <p>• Include an image to make your blog more engaging</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </form>
       </div>

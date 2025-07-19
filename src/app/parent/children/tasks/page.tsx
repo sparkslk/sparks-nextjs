@@ -26,8 +26,8 @@ interface Task {
 
 export default function TasksPage() {
   const searchParams = useSearchParams();
-  const childId = searchParams.get('childId');
-  const childName = searchParams.get('childName');
+  const childId = searchParams?.get('childId');
+  const childName = searchParams?.get('childName');
   
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
@@ -87,6 +87,24 @@ export default function TasksPage() {
       }
     } catch (error) {
       console.error("Error completing task:", error);
+    }
+  };
+
+  // Add unmarkTaskComplete function
+  const unmarkTaskComplete = async (taskId: string) => {
+    try {
+      const response = await fetch(`/api/parent/children/${childId}/tasks/${taskId}/complete`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ unmark: true }),
+      });
+      if (response.ok) {
+        refreshTasks();
+      }
+    } catch (error) {
+      console.error("Error unmarking task:", error);
     }
   };
 
@@ -151,7 +169,17 @@ export default function TasksPage() {
     }
 
     // Sort by priority (higher priority first)
-    filteredTasks.sort((a, b) => b.priority - a.priority);
+    // Custom sort only when showing all statuses
+if (filterStatus === 'all') {
+  const pending = filteredTasks.filter(t => t.status === 'PENDING' || t.status === 'IN_PROGRESS').sort((a, b) => b.priority - a.priority);
+  const overdue = filteredTasks.filter(t => t.status === 'OVERDUE' || isOverdue(t.dueDate));
+  const completed = filteredTasks.filter(t => t.status === 'COMPLETED');
+  return [...pending, ...overdue, ...completed];
+} else {
+  // For other filters, keep the current sort by priority
+  filteredTasks.sort((a, b) => b.priority - a.priority);
+  return filteredTasks;
+}
 
     return filteredTasks;
   };
@@ -564,6 +592,17 @@ export default function TasksPage() {
                         <Badge className={getStatusColor(task.status)}>
                           {task.status.toLowerCase()}
                         </Badge>
+                        {/* Show Unmark button for completed tasks */}
+                        {task.status === 'COMPLETED' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="mt-2 text-xs border-red-300 text-red-600 hover:bg-red-50"
+                            onClick={() => unmarkTaskComplete(task.id)}
+                          >
+                            Unmark
+                          </Button>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center justify-between mt-3">

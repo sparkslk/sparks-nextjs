@@ -24,6 +24,7 @@ interface ParentData {
         lastName: string;
     }>;
     parentName: string;
+    parentImage?: string | null;
 }
 
 export default function ParentNavigation() {
@@ -80,6 +81,12 @@ export default function ParentNavigation() {
     };
 
     const getActiveTab = () => {
+        if (pathname === '/parent/children' || (pathname ?? "").startsWith('/parent/children/tasks')) {
+            return 'My Children';
+        }
+        if ((pathname ?? "").startsWith('/parent/sessions')) {
+            return 'Appointments';
+        }
         const currentTab = tabs.find(tab => tab.path === pathname);
         return currentTab?.name || 'Overview';
     };
@@ -113,9 +120,20 @@ export default function ParentNavigation() {
                                 <Settings className="h-5 w-5" />
                             </Button>
                             <div className="flex items-center space-x-2">
-                                <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#8159A8' }}>
-                                    <User className="h-4 w-4 text-white" />
-                                </div>
+                                {parentData?.parentImage ? (
+                                    <Image
+                                        src={parentData.parentImage}
+                                        alt={parentData.parentName || 'Parent'}
+                                        width={32}
+                                        height={32}
+                                        className="object-cover w-8 h-8 rounded-full"
+                                        priority
+                                    />
+                                ) : (
+                                    <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#8159A8' }}>
+                                        <User className="h-4 w-4 text-white" />
+                                    </div>
+                                )}
                             </div>
                             <Button variant="outline" onClick={handleSignOut}>
                                 <LogOut className="h-4 w-4 mr-2" />
@@ -154,9 +172,20 @@ export default function ParentNavigation() {
                                     <Settings className="h-5 w-5" />
                                 </Button>
                                 <div className="flex items-center space-x-2">
-                                    <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#8159A8' }}>
-                                        <User className="h-4 w-4 text-white" />
-                                    </div>
+                                    {parentData?.parentImage ? (
+                                        <Image
+                                            src={parentData.parentImage}
+                                            alt={parentData.parentName || 'Parent'}
+                                            width={32}
+                                            height={32}
+                                            className="object-cover w-8 h-8 rounded-full"
+                                            priority
+                                        />
+                                    ) : (
+                                        <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#8159A8' }}>
+                                            <User className="h-4 w-4 text-white" />
+                                        </div>
+                                    )}
                                 </div>
                                 <Button variant="outline" onClick={handleSignOut}>
                                     <LogOut className="h-4 w-4 mr-2" />

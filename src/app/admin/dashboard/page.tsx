@@ -4,8 +4,12 @@ import React from 'react';
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+<<<<<<< HEAD
+//import { Badge } from "@/components/ui/badge";
+=======
 import { DonationModal } from '@/components/admin/donation-modal';
 import { SessionModal } from '@/components/admin/session-modal';
+>>>>>>> origin/Development
 import {
     Users,
     BarChart3,Shield,
@@ -96,9 +100,6 @@ export default function AdminDashboard() {
     const [adminData, setAdminData] = useState<AdminData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-    const [showDonationModal, setShowDonationModal] = useState(false);
-    const [showSessionModal, setShowSessionModal] = useState(false);
 
     useEffect(() => {
         fetchAdminData();
@@ -112,7 +113,6 @@ export default function AdminDashboard() {
             }
             const data = await response.json();
             setAdminData(data);
-            setLastUpdated(new Date());
         } catch (error) {
             console.error("Error fetching admin data:", error);
             setError("Failed to load dashboard data");
@@ -157,21 +157,15 @@ export default function AdminDashboard() {
     return (
         <div className="min-h-screen" style={{ backgroundColor: '#F5F3FB' }}>
             {/* Main Content */}
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-4 py-4">
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {/* Welcome Section */}
-                <div className="mb-8 mt-0">
+                <div className="mb-8">
                     <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">
                         Admin Dashboard
                     </h1>
                     <p className="text-muted-foreground mt-1">
                         Manage the entire SPARKS platform and all system operations.
                     </p>
-                    {lastUpdated && (
-                        <p className="text-xs text-gray-400 mt-2 flex items-center gap-1">
-                            <RefreshCw className="h-3 w-3" />
-                                Last updated: {lastUpdated.toLocaleTimeString()}
-                        </p>
-                    )}
                 </div>
 
                 {/* System Status Cards */}
@@ -179,7 +173,7 @@ export default function AdminDashboard() {
                     <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">System Status</CardTitle>
-                            <Zap className="h-12 w-12" style={{ color: '#8159A8' }} />
+                            <Zap className={`h-4 w-4 ${adminData?.systemStatus === 'online' ? 'text-green-500' : 'text-red-500'}`} />
                         </CardHeader>
                         <CardContent>
                             <div className={`text-2xl font-bold ${adminData?.systemStatus === 'online' ? 'text-green-600' : 'text-red-600'}`}>
@@ -192,7 +186,7 @@ export default function AdminDashboard() {
                     <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow">    
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-                            <Users className="h-12 w-12" style={{ color: '#8159A8' }} />
+                            <Users className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{adminData?.totalUsers?.toLocaleString() || 0}</div>
@@ -214,7 +208,7 @@ export default function AdminDashboard() {
                     <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Database Size</CardTitle>
-                            <Database className="h-12 w-12" style={{ color: '#8159A8' }} />
+                            <Database className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{adminData?.databaseSize || 'N/A'}</div>
@@ -253,12 +247,17 @@ export default function AdminDashboard() {
                             )}
                         </div>
                         <div className="mt-4 flex gap-2">
+<<<<<<< HEAD
+                            <Button className="hover:opacity-90 bg-primary text-white">
+                            View All Sessions
+=======
                             <Button 
                                 className="hover:opacity-90" 
                                 style={{ backgroundColor: '#8159A8', color: 'white' }} 
                                 onClick={() => setShowSessionModal(true)}
                             >
                                 View All Sessions
+>>>>>>> origin/Development
                             </Button>
                             {/* You may want to update SessionModal to accept real session data if needed */}
                             <SessionModal
@@ -294,18 +293,23 @@ export default function AdminDashboard() {
                                 <p className="text-xs text-muted-foreground">{donation.timeAgo}</p>
                                 </div>
                                 <div className="text-right">
-                                <p className="font-semibold text-green-600">{donation.amount}</p>
+                                <p className="font-semibold text-purple-600">{donation.amount}</p>
                                 </div>
                             </div>
                             ))}
                         </div>
                         <div className="mt-4">
+<<<<<<< HEAD
+                            <Button className="hover:opacity-90 bg-primary text-white">
+                            View All Donations
+=======
                             <Button
                                 className="hover:opacity-90"
                                 style={{ backgroundColor: '#8159A8', color: 'white' }} 
                                 onClick={() => setShowDonationModal(true)}
                             >
                                 View All Donations
+>>>>>>> origin/Development
                             </Button>
                             <DonationModal
                                 isOpen={showDonationModal}
@@ -345,9 +349,7 @@ export default function AdminDashboard() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <Button className="w-full hover:opacity-90" style={{ backgroundColor: '#8159A8', color: 'white' }}>
-                                Security Settings
-                            </Button>
+                            <Button className="w-full">Security Settings</Button>
                         </CardContent>
                     </Card>
 
@@ -362,9 +364,7 @@ export default function AdminDashboard() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <Button className="w-full hover:opacity-90" style={{ backgroundColor: '#8159A8', color: 'white' }}>
-                                Database Admin
-                            </Button>
+                            <Button className="w-full">Database Admin</Button>
                         </CardContent>
                     </Card>
 
@@ -379,13 +379,11 @@ export default function AdminDashboard() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <Button className="w-full hover:opacity-90" style={{ backgroundColor: '#8159A8', color: 'white' }}>
-                                View Analytics
-                            </Button>
+                            <Button className="w-full">View Analytics</Button>
                         </CardContent>
                     </Card>*/}
 
-                    {/*<Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                    <Card className="hover:shadow-lg transition-shadow cursor-pointer">
                         <CardHeader>
                             <CardTitle className="flex items-center">
                                 <Globe className="mr-2 h-5 w-5" />
@@ -456,6 +454,7 @@ export default function AdminDashboard() {
                     </Card>
                 </div>
                 
+>>>>>>> origin/Development
             </main>
         </div>
     );
