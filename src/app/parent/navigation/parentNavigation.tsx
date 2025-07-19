@@ -126,11 +126,13 @@ export default function ParentNavigation() {
                                         alt={parentData.parentName || 'Parent'}
                                         width={32}
                                         height={32}
-                                        className="object-cover w-8 h-8 rounded-full"
+                                        className="object-cover w-8 h-8 rounded-full cursor-pointer"
                                         priority
+                                        onClick={() => router.push('/parent/profile')}
                                     />
                                 ) : (
-                                    <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#8159A8' }}>
+                                    <div className="w-8 h-8 rounded-full flex items-center justify-center cursor-pointer" style={{ backgroundColor: '#8159A8' }}
+                                        onClick={() => router.push('/parent/profile')}>
                                         <User className="h-4 w-4 text-white" />
                                     </div>
                                 )}
@@ -178,11 +180,13 @@ export default function ParentNavigation() {
                                             alt={parentData.parentName || 'Parent'}
                                             width={32}
                                             height={32}
-                                            className="object-cover w-8 h-8 rounded-full"
+                                            className="object-cover w-8 h-8 rounded-full cursor-pointer"
                                             priority
+                                            onClick={() => router.push('/parent/profile')}
                                         />
                                     ) : (
-                                        <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#8159A8' }}>
+                                        <div className="w-8 h-8 rounded-full flex items-center justify-center cursor-pointer" style={{ backgroundColor: '#8159A8' }}
+                                            onClick={() => router.push('/parent/profile')}>
                                             <User className="h-4 w-4 text-white" />
                                         </div>
                                     )}
