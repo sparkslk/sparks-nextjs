@@ -492,7 +492,7 @@ export default function ParentDashboard() {
                         <div className="mt-6 p-4 bg-accent/10 rounded-lg border border-accent">
                             <p className="text-sm text-accent-foreground font-medium mb-1">Need help getting started?</p>
                             <p className="text-xs text-accent-foreground">
-                                If your child is already receiving services, ask your therapist for their Patient ID to connect their account.
+                                If your Patient is already receiving services, ask your Patient for their Patient ID to connect their account.
                             </p>
                         </div>
                     </CardContent>
