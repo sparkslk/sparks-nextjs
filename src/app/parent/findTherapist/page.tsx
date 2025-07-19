@@ -67,6 +67,7 @@ export default function FindTherapistPage() {
     const [patients, setPatients] = useState<{ id: string; name: string }[]>([]); // List of patient objects
     const [patientTherapistMap, setPatientTherapistMap] = useState<{ [patient: string]: Therapist | null }>({});
     const [pendingTherapist, setPendingTherapist] = useState<Therapist | null>(null);
+    const [notification, setNotification] = useState<string | null>(null);
 
     // Fetch current therapist from patient data
     // useEffect(() => {
@@ -327,13 +328,29 @@ export default function FindTherapistPage() {
     // Handler for confirming therapist selection
     const confirmChooseTherapist = async () => {
         if (!selectedPatient || !pendingTherapist) return;
-        // Call API to assign therapist
-        // await fetch(...)
+        const patientObj = patients.find((p) => p.name === selectedPatient);
+        if (!patientObj) return;
+        try {
+            const response = await fetch("/api/parent/assign-therapist", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    patientId: patientObj.id,
+                    therapistId: pendingTherapist.id
+                })
+            });
+            if (!response.ok) {
+                throw new Error("Failed to assign therapist");
+            }
+            setNotification(`Now ${selectedPatient}'s therapist is ${pendingTherapist.name}`);
+            setTimeout(() => setNotification(null), 5000);
+        } catch (error) {
+            console.error(error);
+        }
         setChooseModalOpen(false);
         setProfileModalOpen(false);
         setSelectedPatient(null);
         setPendingTherapist(null);
-        // Optionally, refresh data
     };
 
     // Handler for viewing profile
@@ -614,6 +631,12 @@ export default function FindTherapistPage() {
                 </div>
 
                 <div className="space-y-8">
+                    {/* Notification */}
+                    {notification && (
+                        <div className="bg-green-100 border border-green-300 text-green-800 rounded-lg px-4 py-3 text-center font-medium">
+                            {notification}
+                        </div>
+                    )}
                     {/* Available Therapists Info */}
                     <div className="flex items-center justify-between">
                         <p className="text-sm text-muted-foreground">
@@ -657,19 +680,29 @@ export default function FindTherapistPage() {
 
                     
                     {/* Therapists Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-7">
-                        {filteredTherapists.map((therapist) => (
-                            <TherapistCard
-                                key={therapist.id}
-                                therapist={therapist}
-                                bookingStatus={'idle'}
-                                onViewProfile={() => handleViewProfile(therapist)}
-                                viewDetailsText="View Details"
-                            />
-                        ))}
-                    </div>
+                    {(() => {
+                        // Exclude therapists already connected to a child
+                        const connectedTherapistIds = new Set(childTherapistConnections.map(conn => conn.therapist.id));
+                        const unconnectedTherapists = filteredTherapists.filter(t => !connectedTherapistIds.has(t.id));
+                        return (
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-7">
+                                {unconnectedTherapists.map((therapist) => (
+                                    <TherapistCard
+                                        key={therapist.id}
+                                        therapist={therapist}
+                                        bookingStatus={'idle'}
+                                        onViewProfile={() => handleViewProfile(therapist)}
+                                        viewDetailsText="View Details"
+                                    />
+                                ))}
+                            </div>
+                        );
+                    })()}
 
-                    {filteredTherapists.length === 0 && (
+                    {filteredTherapists.filter(t => {
+                        const connectedTherapistIds = new Set(childTherapistConnections.map(conn => conn.therapist.id));
+                        return !connectedTherapistIds.has(t.id);
+                    }).length === 0 && (
                         <TherapistEmptyState onClearFilters={clearAllFilters} />
                     )}
                 </div>
