@@ -41,6 +41,11 @@ interface Therapist {
     bio?: string;
     patientsCount?: number;
     isChildConnection?: boolean; // Added for modal logic
+    highestEducation?: string;
+    adhdExperience?: string; // Added for ADHD experience
+    email?: string; // Added for email
+    dob?: string; // Added for date of birth
+    gender?: string
 }
 
 export default function FindTherapistPage() {
@@ -427,8 +432,23 @@ export default function FindTherapistPage() {
                                                     </div>
                                                 </div>
                                             </div>
-                                            {/* About Section */}
+                                            {/* Details Section */}
                                             <div className="px-7 pt-4 pb-2">
+                                                <div className="font-semibold text-primary mb-3 text-lg">Therapist Details</div>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 bg-[#f8f6fc] rounded-xl p-4 border border-[#e0d7ed]">
+                                                    <div className="flex flex-col"><span className="text-xs text-muted-foreground font-semibold uppercase mb-1">Specialty</span><span className="text-base text-foreground">{selectedTherapist.specialties?.join(', ') || 'General Psychology'}</span></div>
+                                                    <div className="flex flex-col"><span className="text-xs text-muted-foreground font-semibold uppercase mb-1">Email Address</span><span className="text-base text-foreground">{selectedTherapist.email || 'therapist@email.com'}</span></div>
+                                                    <div className="flex flex-col"><span className="text-xs text-muted-foreground font-semibold uppercase mb-1">Highest Education</span><span className="text-base text-foreground">{selectedTherapist.highestEducation || 'PhD in Clinical Psychology'}</span></div>
+                                                    <div className="flex flex-col"><span className="text-xs text-muted-foreground font-semibold uppercase mb-1">Gender</span><span className="text-base text-foreground">{selectedTherapist.gender || 'Female'}</span></div>
+                                                </div>
+                                            </div>
+                                            {/* ADHD Experience Section */}
+                                            <div className="px-7 pt-2 pb-2">
+                                                <div className="font-semibold text-primary mb-1">ADHD-Specific Experience</div>
+                                                <div className="text-base text-muted-foreground mb-2">{selectedTherapist.adhdExperience || '5+ years working with ADHD children'}</div>
+                                            </div>
+                                            {/* About Section */}
+                                            <div className="px-7 pt-2 pb-2">
                                                 <div className="font-semibold text-primary mb-1">About</div>
                                                 <div className="text-sm text-muted-foreground mb-2">{selectedTherapist.bio}</div>
                                             </div>
