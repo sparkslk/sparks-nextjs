@@ -10,6 +10,7 @@ import {
     TherapistFilters
 } from "@/components/FindTherapist";
 import { Dialog, Transition } from "@headlessui/react";
+import { Listbox } from "@headlessui/react";
 
 interface Therapist {
     id: string;
@@ -56,6 +57,11 @@ export default function FindTherapistPage() {
     const [profileModalOpen, setProfileModalOpen] = useState(false);
     const [selectedTherapist, setSelectedTherapist] = useState<Therapist | null>(null);
     const [childTherapistConnections, setChildTherapistConnections] = useState<{ childName: string; therapist: Therapist }[]>([]);
+    const [chooseModalOpen, setChooseModalOpen] = useState(false);
+    const [selectedPatient, setSelectedPatient] = useState<string | null>(null);
+    const [patients, setPatients] = useState<{ id: string; name: string }[]>([]); // List of patient objects
+    const [patientTherapistMap, setPatientTherapistMap] = useState<{ [patient: string]: Therapist | null }>({});
+    const [pendingTherapist, setPendingTherapist] = useState<Therapist | null>(null);
 
     // Fetch current therapist from patient data
     // useEffect(() => {
@@ -277,6 +283,54 @@ export default function FindTherapistPage() {
         setFilteredTherapists(filtered);
     }, [searchQuery, selectedSpecialty, selectedTimeAvailability, selectedCost, therapists]);
 
+    // Fetch patients and their therapists (mocked for now)
+    useEffect(() => {
+        // Replace with real API call
+
+        const fetchPatients = async () => {
+            // Example: [{ id: '1', name: 'Alice', therapist: { ... } }, ...]
+            const response = await fetch("/api/parent/children");
+            if (response.ok) {
+                const data = await response.json();
+                interface ApiPatient {
+                    id: string;
+                    firstName: string;
+                    lastName?: string;
+                    therapist?: Therapist | null;
+                }
+                setPatients(data.children.map((p: ApiPatient) => ({ id: p.id, name: p.firstName + (p.lastName ? ' ' + p.lastName : '') })));
+                const map: { [patient: string]: Therapist | null } = {};
+                data.children.forEach((p: ApiPatient) => {
+                    const patientName = p.firstName + (p.lastName ? ' ' + p.lastName : '');
+                    map[patientName] = p.therapist || null;
+                });
+                setPatientTherapistMap(map);
+            } else {
+                setPatients([]);
+                setPatientTherapistMap({});
+            }
+        };
+        fetchPatients();
+    }, []);
+
+    // Handler for 'Choose Therapist' button
+    const handleChooseTherapist = (therapist: Therapist) => {
+        setPendingTherapist(therapist);
+        setChooseModalOpen(true);
+    };
+
+    // Handler for confirming therapist selection
+    const confirmChooseTherapist = async () => {
+        if (!selectedPatient || !pendingTherapist) return;
+        // Call API to assign therapist
+        // await fetch(...)
+        setChooseModalOpen(false);
+        setProfileModalOpen(false);
+        setSelectedPatient(null);
+        setPendingTherapist(null);
+        // Optionally, refresh data
+    };
+
     // Handler for viewing profile
     const handleViewProfile = (therapist: Therapist, isChildConnection: boolean = false) => {
         setSelectedTherapist({ ...therapist, isChildConnection });
@@ -389,11 +443,72 @@ export default function FindTherapistPage() {
                                                         Contact Therapist
                                                     </Button>
                                                 ) : (
-                                                    <Button variant="default" className="font-semibold w-full h-11 text-base rounded-xl">Choose Therapist</Button>
+                                                    <Button variant="default" className="font-semibold w-full h-11 text-base rounded-xl" onClick={() => handleChooseTherapist(selectedTherapist)}>
+                                                        Choose Therapist
+                                                    </Button>
                                                 )}
                                             </div>
                                         </div>
                                     )}
+                                </Dialog.Panel>
+                            </Transition.Child>
+                        </div>
+                    </div>
+                </Dialog>
+            </Transition.Root>
+
+            {/* Choose Therapist Modal */}
+            <Transition.Root show={chooseModalOpen} as={Fragment}>
+                <Dialog as="div" className="relative z-50" onClose={setChooseModalOpen}>
+                    <Transition.Child
+                        as={Fragment}
+                        enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100"
+                        leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0"
+                    >
+                        <div className="fixed inset-0 bg-black/40 transition-opacity" />
+                    </Transition.Child>
+                    <div className="fixed inset-0 z-50 overflow-y-auto">
+                        <div className="flex min-h-full items-center justify-center p-4 text-center">
+                            <Transition.Child
+                                as={Fragment}
+                                enter="ease-out duration-300" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100"
+                                leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95"
+                            >
+                                <Dialog.Panel className="w-full max-w-lg min-h-[380px] transform overflow-hidden rounded-2xl bg-white border border-[#e0d7ed] p-0 text-left align-middle shadow-2xl transition-all">
+                                    <div className="p-9 flex flex-col gap-6">
+                                        <Dialog.Title as="h3" className="font-bold text-2xl text-primary mb-2">Choose Therapist for Patient</Dialog.Title>
+                                        <div>
+                                            <label className="block text-sm font-medium mb-2">Select Patient</label>
+                                            <Listbox value={selectedPatient} onChange={setSelectedPatient}>
+                                                <div className="relative">
+                                                    <Listbox.Button className="w-full border rounded-lg px-3 py-2 text-left bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-primary/40">
+                                                        <span>{selectedPatient || "Select a patient"}</span>
+                                                        <svg className="w-5 h-5 text-gray-400 ml-2 pointer-events-none" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                                    </Listbox.Button>
+                                                    <Listbox.Options className="absolute z-50 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-72 overflow-auto">
+                                                        {patients.map((patient) => (
+                                                            <Listbox.Option key={patient.id} value={patient.name} className={({ active }) => `cursor-pointer select-none px-4 py-2 ${active ? 'bg-primary/10' : ''}` }>
+                                                                {patient.name}
+                                                            </Listbox.Option>
+                                                        ))}
+                                                    </Listbox.Options>
+                                                </div>
+                                            </Listbox>
+                                        </div>
+                                        {selectedPatient && patientTherapistMap[selectedPatient] && (
+                                            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800">
+                                                <strong>Note:</strong> {selectedPatient} already has a primary therapist. If you confirm, their primary therapist will be changed to <span className="font-semibold">{pendingTherapist?.name}</span>. The previous therapist will be politely notified about this change.
+                                            </div>
+                                        )}
+                                        <div className="flex gap-2 mt-6">
+                                            <Button variant="default" className="flex-1 rounded-lg h-12 text-base font-semibold" disabled={!selectedPatient} onClick={confirmChooseTherapist}>
+                                                Confirm
+                                            </Button>
+                                            <Button variant="outline" className="flex-1 rounded-lg h-12 text-base font-semibold" onClick={() => setChooseModalOpen(false)}>
+                                                Cancel
+                                            </Button>
+                                        </div>
+                                    </div>
                                 </Dialog.Panel>
                             </Transition.Child>
                         </div>
