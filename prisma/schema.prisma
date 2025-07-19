@@ -301,18 +301,14 @@ model Medication {
 
 model MedicationHistory {
   id             String                  @id @default(cuid())
-  id             String                  @id @default(cuid())
   medicationId   String
   action         MedicationHistoryAction
-  changedBy      String
-  changedAt      DateTime                @default(now())
   changedBy      String
   changedAt      DateTime                @default(now())
   previousValues Json?
   newValues      Json?
   reason         String?
   notes          String?
-  medication     Medication              @relation(fields: [medicationId], references: [id], onDelete: Cascade)
   medication     Medication              @relation(fields: [medicationId], references: [id], onDelete: Cascade)
 
   @@index([medicationId])
