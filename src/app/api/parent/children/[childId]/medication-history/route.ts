@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
 export async function GET(req: NextRequest, context: { params: { childId: string } }) {
-  const { childId } = context.params;
+  const { childId } = await context.params; // Await params before destructuring
 
   // Get all medications for this child (using patientId)
   const medications = await prisma.medication.findMany({
@@ -10,6 +10,7 @@ export async function GET(req: NextRequest, context: { params: { childId: string
     select: { id: true, name: true, dosage: true, frequency: true, customFrequency: true, instructions: true, mealTiming: true, isActive: true, isDiscontinued: true, startDate: true, endDate: true },
   });
   const medicationIds = medications.map((m: { id: string }) => m.id);
+
   type Medication = {
     id: string;
     name: string;
@@ -23,6 +24,7 @@ export async function GET(req: NextRequest, context: { params: { childId: string
     startDate: Date | null;
     endDate: Date | null;
   };
+
   const medIdToDetails = Object.fromEntries(medications.map((m: Medication) => [m.id, m]));
 
   // Get all medication history for these medications, include user info
