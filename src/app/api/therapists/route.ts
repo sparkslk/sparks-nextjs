@@ -89,6 +89,20 @@ export async function GET(req: NextRequest) {
             }
         });
 
+        const patients = await prisma.patient.findMany({
+            select: {
+                id: true,
+                primaryTherapistId: true
+            }
+        });
+        const therapistPatientCount: Record<string, number> = {};
+        for (const patient of patients) {
+            if (patient.primaryTherapistId) {
+                therapistPatientCount[patient.primaryTherapistId] = (therapistPatientCount[patient.primaryTherapistId] || 0) + 1;
+            }
+        }
+        console.log("Therapist patient count:", therapistPatientCount);
+
         // If no therapists found in Therapist table, create them from existing THERAPIST users
         if (therapists.length === 0) {
             console.log("No therapists found in Therapist table, checking for THERAPIST users...");
@@ -161,10 +175,13 @@ export async function GET(req: NextRequest) {
                     organization: therapist.organization?.name,
                     availableSlots: [
                         "09:00", "10:00", "11:00", "14:00", "15:00", "16:00"
-                    ]
+                    ],
+                    patientsCount: therapistPatientCount[therapist.id] || 0
                 }))
             });
         }
+
+    
 
         // Format therapists data for the frontend
         const formattedTherapists = therapists.map(therapist => ({
@@ -185,7 +202,8 @@ export async function GET(req: NextRequest) {
                 "14:00",
                 "15:00",
                 "16:00"
-            ]
+            ],
+            patientsCount: therapistPatientCount[therapist.id] || 0
         }));
 
         return NextResponse.json({
