@@ -322,6 +322,7 @@ export default function PatientDetailsPage() {
     title: "Auditory Processing - Listening Task",
     type: "LISTENING_TASK",
     assignedDate: "July 10, 2024",
+    deadline: "July 25, 2024", // <-- Added deadline
     status: "Completed",
     score: 78,
     completedAt: "July 22, 2024",
@@ -331,6 +332,7 @@ export default function PatientDetailsPage() {
     title: "Visual Perception - Picture Description",
     type: "PICTURE_DESCRIPTION",
     assignedDate: "July 8, 2024",
+    deadline: "July 20, 2024", // <-- Added deadline
     status: "Pending",
     score: null,
     completedAt: null,
@@ -345,66 +347,29 @@ export default function PatientDetailsPage() {
       type: "Medical Records",
       uploadDate: "January 15, 2024",
       size: "2.3 MB",
-      status: "Verified",
       description: "Complete medical history including previous diagnoses, treatments, and family history",
-      uploadedBy: "Patient",
-      lastAccessed: "June 18, 2025"
+      uploadedBy: "Patient"
     },
+    
     {
       id: 2,
-      name: "Insurance Card - Front & Back.jpg",
-      type: "Insurance",
-      uploadDate: "January 15, 2024",
-      size: "1.8 MB",
-      status: "Verified",
-      description: "Health insurance card documentation for billing purposes",
-      uploadedBy: "Patient",
-      lastAccessed: "January 20, 2024"
-    },
-    {
-      id: 3,
       name: "Previous Therapy Records.pdf",
       type: "Therapy Records",
       uploadDate: "January 16, 2024",
       size: "4.7 MB",
-      status: "Verified",
       description: "Records from previous therapy sessions with Dr. Sarah Williams (2022-2023)",
-      uploadedBy: "Patient",
-      lastAccessed: "February 5, 2024"
+      uploadedBy: "Patient"
     },
     {
-      id: 4,
+      id: 3,
       name: "ADHD Assessment Report.pdf",
       type: "Assessment",
       uploadDate: "January 18, 2024",
       size: "3.2 MB",
-      status: "Verified",
       description: "Comprehensive ADHD assessment conducted by Dr. Michael Chen in December 2023",
-      uploadedBy: "Patient",
-      lastAccessed: "June 10, 2025"
+      uploadedBy: "Patient"
     },
-    {
-      id: 5,
-      name: "Emergency Contact Information.pdf",
-      type: "Personal",
-      uploadDate: "January 15, 2024",
-      size: "0.5 MB",
-      status: "Verified",
-      description: "Emergency contact details and consent forms",
-      uploadedBy: "Patient",
-      lastAccessed: "March 12, 2024"
-    },
-    {
-      id: 6,
-      name: "Work Accommodation Letter.pdf",
-      type: "Legal",
-      uploadDate: "February 10, 2024",
-      size: "1.2 MB",
-      status: "Pending Review",
-      description: "Letter requesting workplace accommodations for ADHD management",
-      uploadedBy: "Patient",
-      lastAccessed: "February 12, 2024"
-    }
+   
   ];
 
   return (
@@ -1005,7 +970,8 @@ export default function PatientDetailsPage() {
                                   </div>
                                 ) : (
                                   <p className="text-blue-700 text-sm italic">No focus areas documented</p>
-                                )}
+                                )
+                                }
                               </div>
 
                               {/* Session Notes */}
@@ -1097,83 +1063,98 @@ export default function PatientDetailsPage() {
 
         <TabsContent value="tasks" className="pt-6">
           {assignedAssessments && assignedAssessments.length > 0 ? (
-          <div className="space-y-6">
-            {/* Assigned Assessments Header */}
-            <div className="bg-transparent">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h3 className="text-2xl font-bold mb-2 text-[#8159A8]">Assigned Assessments</h3>
-                  <p className="text-gray-600">Assessments assigned by the therapist</p>
-                </div>
-                <div className="text-right">
-                  <div className="grid grid-cols-3 gap-4 text-center">
-                    <div className="bg-gray-50 rounded-lg p-3 border">
-                      <div className="text-2xl font-bold text-[#8159A8]">{assignedAssessments.length}</div>
-                      <div className="text-sm text-gray-600">Total</div>
-                    </div>
-                    <div className="bg-gray-50 rounded-lg p-3 border">
-                      <div className="text-2xl font-bold text-[#8159A8]">
-                        {assignedAssessments.filter(a => a.status === 'Completed').length}
+            <div className="space-y-6">
+              {/* Assigned Assessments Header */}
+              <div className="bg-transparent">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h3 className="text-2xl font-bold mb-2 text-[#8159A8]">Assigned Assessments</h3>
+                    <p className="text-gray-600">Assessments assigned by the therapist</p>
+                  </div>
+                  <div className="text-right">
+                    <div className="grid grid-cols-3 gap-4 text-center">
+                      <div className="bg-gray-50 rounded-lg p-3 border">
+                        <div className="text-2xl font-bold text-[#8159A8]">{assignedAssessments.length}</div>
+                        <div className="text-sm text-gray-600">Total</div>
                       </div>
-                      <div className="text-sm text-gray-600">Completed</div>
-                    </div>
-                    <div className="bg-gray-50 rounded-lg p-3 border">
-                      <div className="text-2xl font-bold text-[#8159A8]">
-                        {assignedAssessments.length > 0
-                          ? Math.round(
-                              (assignedAssessments.filter(a => a.status === 'Completed').length /
-                                assignedAssessments.length) *
-                                100
-                            )
-                          : 0}
+                      <div className="bg-gray-50 rounded-lg p-3 border">
+                        <div className="text-2xl font-bold text-[#8159A8]">
+                          {assignedAssessments.filter(a => a.status === 'Completed').length}
+                        </div>
+                        <div className="text-sm text-gray-600">Completed</div>
+                      </div>
+                      <div className="bg-gray-50 rounded-lg p-3 border">
+                        <div className="text-2xl font-bold text-[#8159A8]">
+                          {assignedAssessments.length > 0
+                            ? Math.round(
+                                (assignedAssessments.filter(a => a.status === 'Completed').length /
+                                  assignedAssessments.length) *
+                                  100
+                              )
+                            : 0}
                         %
+                        </div>
+                        <div className="text-sm text-gray-600">Completion Rate</div>
                       </div>
-                      <div className="text-sm text-gray-600">Completion Rate</div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
 
               {/* Assessments List */}
-              <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {assignedAssessments.map((assessment) => (
                   <div
                     key={assessment.id}
-                    className="bg-[#FAF8FB] rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow flex flex-col md:flex-row md:items-center md:justify-between"
+                    className="bg-[#FAF8FB] rounded-xl p-5 shadow-md hover:shadow-lg transition-shadow flex flex-col h-full border border-[#e9e1f3]"
                   >
-                    <div>
-                      <div className="flex items-center gap-3 mb-2">
-                        <h4 className="text-lg font-bold text-[#8159A8]">{assessment.title}</h4>
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            assessment.status === 'Completed'
-                              ? 'bg-green-100 text-green-700'
-                              : 'bg-yellow-100 text-yellow-700'
-                          }`}
-                        >
-                          {assessment.status}
-                        </span>
-                        {assessment.score !== null && (
-                          <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-                            Score: {assessment.score}
-                          </span>
-                        )}
+                    {/* Badges on top */}
+                    <div className="flex gap-2 mb-2">
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                          assessment.status === 'Completed'
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-yellow-100 text-yellow-700'
+                        }`}
+                      >
+                        {assessment.status}
+                      </span>
+                      
                       </div>
-                      <p className="text-gray-600 text-sm mb-1">Assigned: {assessment.assignedDate}</p>
+                    {/* Title below badges */}
+                    <h4 className="text-lg font-semibold text-[#8159A8] mb-2 truncate">{assessment.title}</h4>
+                    <div className="flex flex-col gap-1 text-sm text-gray-700 flex-1 mt-1">
+                      <div>
+                      <span className="font-medium text-black">Assigned:</span> {assessment.assignedDate}
+                      </div>
+                      <div>
+                      <span className="font-medium text-black">Deadline:</span> {assessment.deadline}
+                      </div>
                       {assessment.completedAt && (
-                        <p className="text-gray-500 text-xs">Completed: {assessment.completedAt}</p>
+                      <div>
+                        <div>
+                        <span className="font-medium text-black">Completed:</span> {assessment.completedAt}
+                        </div>
+                        <div>
+                        <span className="font-medium text-black">Score: </span> {assessment.score}
+                        </div>
+                      </div>
                       )}
                     </div>
-                    <div className="mt-4 md:mt-0">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="hover:bg-blue-50"
-                        onClick={() => window.location.href = `/therapist/assessments/${assessment.id}`}
-                      >
-                        View Assessment
-                      </Button>
+                    <div className="mt-4 flex gap-2">
+                      <div className="flex-1 flex justify-end">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="hover:bg-red-50 text-red-600"
+                          onClick={() => {
+                            // TODO: Replace with API call to unassign the assessment
+                            alert(`Unassigned "${assessment.title}" (mock action)`);
+                          }}
+                        >
+                          Unassign
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -1209,62 +1190,50 @@ export default function PatientDetailsPage() {
 
               
               {/* Documents List */}
-              <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {uploadedDocuments.map((document) => (
-                    <div key={document.id} className="bg-[#FAF8FB] rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4 flex-1">
-                        
-
-                        {/* Document Info */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-3 mb-2">
-                            <h4 className="text-lg font-bold text-[#8159A8] truncate">{document.name}</h4>
-                            
-                          </div>
-                          <p className="text-sm text-gray-600 mb-3 leading-relaxed">{document.description}</p>
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-                            <div className="bg-gray-50 px-3 py-2 rounded-lg">
-                              <span className="text-gray-500">Type:</span>
-                              <span className="font-medium text-gray-900 ml-1">{document.type}</span>
-                            </div>
-                            <div className="bg-gray-50 px-3 py-2 rounded-lg">
-                              <span className="text-gray-500">Size:</span>
-                              <span className="font-medium text-gray-900 ml-1">{document.size}</span>
-                            </div>
-                            <div className="bg-gray-50 px-3 py-2 rounded-lg">
-                              <span className="text-gray-500">Uploaded:</span>
-                              <span className="font-medium text-gray-900 ml-1">{document.uploadDate}</span>
-                            </div>
-                            <div className="bg-gray-50 px-3 py-2 rounded-lg">
-                              <span className="text-gray-500">By:</span>
-                              <span className="font-medium text-gray-900 ml-1">{document.uploadedBy}</span>
-                            </div>
-                          </div>
+                  <div key={document.id} className="bg-[#FAF8FB] rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow flex flex-col h-full border border-[#e9e1f3]">
+                    <div className="flex flex-col flex-1 min-w-0">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h4 className="text-lg font-bold text-[#8159A8] truncate">{document.name}</h4>
+                      </div>
+                      <p className="text-sm text-gray-600 mb-3 leading-relaxed line-clamp-3">{document.description}</p>
+                      <div className="grid grid-cols-2 gap-2 text-xs mb-3">
+                        <div className="bg-gray-50 px-3 py-2 rounded-lg">
+                          <span className="text-gray-500">Type:</span>
+                          <span className="font-medium text-gray-900 ml-1">{document.type}</span>
+                        </div>
+                        <div className="bg-gray-50 px-3 py-2 rounded-lg">
+                          <span className="text-gray-500">Size:</span>
+                          <span className="font-medium text-gray-900 ml-1">{document.size}</span>
+                        </div>
+                        <div className="bg-gray-50 px-3 py-2 rounded-lg">
+                          <span className="text-gray-500">Uploaded:</span>
+                          <span className="font-medium text-gray-900 ml-1">{document.uploadDate}</span>
+                        </div>
+                        <div className="bg-gray-50 px-3 py-2 rounded-lg">
+                          <span className="text-gray-500">By:</span>
+                          <span className="font-medium text-gray-900 ml-1">{document.uploadedBy}</span>
                         </div>
                       </div>
-
-                      {/* Actions */}
-                      <div className="flex items-center gap-2 ml-6">
-                        <Button variant="outline" size="sm" className="hover:bg-blue-50">
-                          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          </svg>
-                          View
-                        </Button>
-                        <Button variant="outline" size="sm" className="hover:bg-green-50">
-                          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                          Download
-                        </Button>
-                        {/* <Button variant="outline" size="sm" className="text-red-600 hover:bg-red-50">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </Button> */}
-                      </div>
+                       
+                       
+                    </div>
+                    {/* Actions */}
+                    <div className="flex gap-2 mt-auto">
+                      <Button variant="outline" size="sm" className="hover:bg-blue-50 flex-1">
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        View
+                      </Button>
+                      <Button variant="outline" size="sm" className="hover:bg-green-50 flex-1">
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Download
+                      </Button>
                     </div>
                   </div>
                 ))}
