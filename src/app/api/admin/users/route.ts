@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
         await requireApiAuth(req, ['ADMIN']);
 
         const url = new URL(req.url);
-        const patientId = url.searchParams.get('id');
+        //const patientId = url.searchParams.get('id');
         const page = parseInt(url.searchParams.get('page') || '1');
         const limit = parseInt(url.searchParams.get('limit') || '20');
         const search = url.searchParams.get('search'); // Search by name or email
@@ -44,9 +44,9 @@ export async function GET(req: NextRequest) {
         }
 
         // Get total count for pagination
-        const totalPatients = await prisma.patient.count({
+        /*const totalPatients = await prisma.patient.count({
             where: whereClause
-        });
+        });*/
 
         const patients = await prisma.patient.findMany({
             where: whereClause,

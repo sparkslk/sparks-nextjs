@@ -18,14 +18,14 @@ interface UserFiltersProps {
 export default function UserFilters({
   searchTerm,
   selectedRole,
-  selectedStatus,
-  selectedTime,
-  selectedVerification,
+  //selectedStatus,
+  //selectedTime,
+  //selectedVerification,
   onSearchChange,
   onRoleChange,
-  onStatusChange,
-  onTimeChange,
-  onVerificationChange
+  //onStatusChange,
+  //onTimeChange,
+  //onVerificationChange
 }: UserFiltersProps) {
   return (
 
