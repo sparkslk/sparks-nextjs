@@ -9,13 +9,14 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { ArrowLeft, Calendar, ClipboardList, Users, Edit, BarChart3 } from "lucide-react";
+import { ArrowLeft, Calendar, ClipboardList, Users, BarChart3, UserPlus, UserMinus } from "lucide-react";
 
 interface Assessment {
   id: string;
   title: string;
   description: string;
-  type: "INITIAL" | "PROGRESS" | "FINAL" | "FOLLOW_UP";
+    type: "QUESTIONNAIRE" | "LISTENING_TASK" | "PICTURE_DESCRIPTION" | "FIND_DIFFERENCES" | "COGNITIVE_ASSESSMENT" | "BEHAVIORAL_ASSESSMENT";
+
   assessmentDate: string;
   createdAt: string;
   updatedAt: string;
@@ -39,6 +40,13 @@ interface Assessment {
 }
 
 
+const possiblePatients = [
+  { id: 'p10', name: 'Nimal Perera', email: 'nimal@email.com' },
+  { id: 'p11', name: 'Kamal Silva', email: 'kamal@email.com' },
+  { id: 'p12', name: 'Sunethra Jayasuriya', email: 'sunethra@email.com' },
+  { id: 'p13', name: 'Ruwanthi Fernando', email: 'ruwanthi@email.com' },
+];
+
 export default function AssessmentDetailsPage() {
   const { status: authStatus } = useSession();
   const router = useRouter();
@@ -46,6 +54,8 @@ export default function AssessmentDetailsPage() {
   const assessmentId = params.id as string;
 
   const [assessment, setAssessment] = useState<Assessment | null>(null);
+  const [availablePatients, setAvailablePatients] = useState(possiblePatients);
+  const [showAddPatientList, setShowAddPatientList] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -53,61 +63,70 @@ export default function AssessmentDetailsPage() {
     setLoading(true);
     setError(null);
     try {
-      // Mock data - replace with actual API call
+      // Use the 'Auditory Processing - Listening Task' assessment as the mock data
       const mockAssessment: Assessment = {
-        id: assessmentId,
-        title: "ADHD Initial Assessment",
-        description: "Comprehensive initial assessment for ADHD diagnosis including attention span, hyperactivity, and impulsivity measures.",
-        type: "INITIAL",
-        assessmentDate: "2024-07-20",
-        createdAt: "2024-07-15",
-        updatedAt: "2024-07-15",
+        id: "1",
+        title: "Auditory Processing - Listening Task",
+        description: "Audio-based assessment to evaluate listening comprehension, auditory memory, and processing speed through various listening exercises.",
+        type: "LISTENING_TASK",
+        assessmentDate: "2024-07-10",
+        createdAt: "2024-07-10",
+        updatedAt: "2024-07-22",
         questions: [
           {
             id: "q1",
-            text: "How often do you find it difficult to pay attention to details?",
-            type: "scale",
+            text: "Listen to the audio and answer the following comprehension question.",
+            type: "text",
             required: true,
           },
           {
             id: "q2",
-            text: "Which of the following symptoms do you experience most frequently?",
-            type: "multiple_choice",
-            options: ["Difficulty concentrating", "Restlessness", "Impulsive behavior", "Forgetfulness"],
+            text: "How many words did you recall from the audio?",
+            type: "scale",
             required: true,
           },
           {
             id: "q3",
-            text: "Describe any specific situations where you notice attention difficulties.",
-            type: "text",
+            text: "Rate the difficulty of the listening task.",
+            type: "scale",
             required: false,
           },
         ],
         assignedPatients: [
-          { 
-            id: "p1", 
-            name: "Sarah Johnson", 
-            email: "sarah.johnson@email.com",
-            completedAt: "2024-07-20", 
-            score: 85 
-          },
-          { 
-            id: "p2", 
-            name: "Michael Chen", 
-            email: "michael.chen@email.com",
-            completedAt: "2024-07-18", 
-            score: 72 
-          },
-          { 
-            id: "p3", 
-            name: "Emma Davis", 
-            email: "emma.davis@email.com"
-          },
+          { id: "p2", name: "Pasandi Piyathma", email: "pasandi@email.com", completedAt: "2024-07-22", score: 78 },
+          { id: "p4", name: "Anuki Tiyara", email: "anuki@email.com" },
         ],
-        averageScore: 78.5,
-        completionRate: 67, // 2 out of 3 completed
+        averageScore: 78,
+        completionRate: 50, // 1 out of 2 completed
       };
       setAssessment(mockAssessment);
+      // Remove already assigned patients from availablePatients
+      const assignedIds = new Set(mockAssessment.assignedPatients.map(p => p.id));
+      setAvailablePatients(possiblePatients.filter(p => !assignedIds.has(p.id)));
+  // Add patient to assignedPatients
+  const handleAddPatient = (patient: { id: string; name: string; email: string }) => {
+    if (!assessment) return;
+    const updated = {
+      ...assessment,
+      assignedPatients: [...assessment.assignedPatients, patient],
+    };
+    setAssessment(updated);
+    setAvailablePatients(prev => prev.filter(p => p.id !== patient.id));
+    setShowAddPatientList(false);
+  };
+
+  // Remove patient from assignedPatients
+  const handleUnassignPatient = (patient: { id: string; name: string; email: string }) => {
+    if (!assessment) return;
+    const updated = {
+      ...assessment,
+      assignedPatients: assessment.assignedPatients.filter(p => p.id !== patient.id),
+    };
+    setAssessment(updated);
+    // Add back to availablePatients if in possiblePatients
+    const found = possiblePatients.find(p => p.id === patient.id);
+    if (found) setAvailablePatients(prev => [...prev, found]);
+  };
     } catch (err) {
       console.error("Error fetching assessment:", err);
       setError("Failed to load assessment. Please try again later.");
@@ -142,9 +161,7 @@ export default function AssessmentDetailsPage() {
     }
   };
 
-  const handleEdit = () => {
-    router.push(`/therapist/assessments/${assessmentId}/edit`);
-  };
+  
 
   if (authStatus === "loading" || loading) {
     return <LoadingSpinner message="Loading assessment..." />;
@@ -200,6 +217,31 @@ export default function AssessmentDetailsPage() {
     );
   }
 
+  // Add patient to assignedPatients
+  const handleAddPatient = (patient: { id: string; name: string; email: string }) => {
+    if (!assessment) return;
+    const updated = {
+      ...assessment,
+      assignedPatients: [...assessment.assignedPatients, patient],
+    };
+    setAssessment(updated);
+    setAvailablePatients(prev => prev.filter(p => p.id !== patient.id));
+    setShowAddPatientList(false);
+  };
+
+  // Remove patient from assignedPatients
+  const handleUnassignPatient = (patient: { id: string; name: string; email: string }) => {
+    if (!assessment) return;
+    const updated = {
+      ...assessment,
+      assignedPatients: assessment.assignedPatients.filter(p => p.id !== patient.id),
+    };
+    setAssessment(updated);
+    // Add back to availablePatients if in possiblePatients
+    const found = possiblePatients.find(p => p.id === patient.id);
+    if (found) setAvailablePatients(prev => [...prev, found]);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#F5F3FB] via-white to-[#F5F3FB] p-6">
       <div className="max-w-6xl mx-auto space-y-8">
@@ -227,13 +269,6 @@ export default function AssessmentDetailsPage() {
             </div>
           </div>
           
-          <Button
-            onClick={handleEdit}
-            className="bg-[#8159A8] hover:bg-[#6D4C93] text-white"
-          >
-            <Edit className="mr-2 h-4 w-4" />
-            Edit Assessment
-          </Button>
         </div>
 
         {/* Stats Cards */}
@@ -336,6 +371,43 @@ export default function AssessmentDetailsPage() {
           {/* Assigned Patients */}
           <Card className="p-6">
             <h2 className="text-xl font-semibold text-gray-800 mb-6">Assigned Patients</h2>
+            <div className="mb-4">
+              <Button
+                variant="outline"
+                size="sm"
+                className="bg-[#FAF8FB] hover:bg-[#FAF8FB] text-[#8159A8]"
+                onClick={() => setShowAddPatientList((prev) => !prev)}
+              >
+                + Add Patient
+              </Button>
+              {showAddPatientList && (
+                <div className="mt-3">
+                  <h4 className="font-semibold text-gray-700 mb-2">Select a patient to add</h4>
+                  {availablePatients.length > 0 ? (
+                    <ul className="space-y-2">
+                      {availablePatients.map((patient) => (
+                        <li key={patient.id} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                          <div>
+                            <span className="font-medium text-gray-800">{patient.name}</span>
+                            <span className="ml-2 text-xs text-gray-500">{patient.email}</span>
+                          </div>
+                          <Button size="icon" variant="outline" className="text-green-700 border-green-300" onClick={() => handleAddPatient(patient)} title="Add Patient">
+                            <UserPlus className="w-4 h-4" />
+                          </Button>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-gray-500">No more patients to add.</p>
+                  )}
+                  <div className="flex justify-end mt-2">
+                    <Button size="sm" variant="ghost" onClick={() => setShowAddPatientList(false)}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
             <div className="space-y-4">
               {assessment.assignedPatients.map((patient) => (
                 <div
@@ -356,7 +428,6 @@ export default function AssessmentDetailsPage() {
                       )}
                     </div>
                   </div>
-                  
                   <div className="flex items-center space-x-2">
                     {patient.score && (
                       <Badge className="bg-blue-100 text-blue-800">
@@ -372,6 +443,9 @@ export default function AssessmentDetailsPage() {
                     >
                       {patient.completedAt ? "Completed" : "Pending"}
                     </Badge>
+                    <Button size="icon" variant="outline" className="text-red-700 border-red-300" onClick={() => handleUnassignPatient(patient)} title="Unassign Patient">
+                      <UserMinus className="w-4 h-4" />
+                    </Button>
                   </div>
                 </div>
               ))}
