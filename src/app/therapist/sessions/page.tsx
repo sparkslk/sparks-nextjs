@@ -336,7 +336,7 @@ export default function TherapistSessionsPage() {
                   <Button
                     onClick={() => handleRescheduleSession(session)}
                     variant="outline"
-                    className="text-sm border-purple-300 text-purple-700 hover:bg-purple-50"
+                    className="text-sm border-black-300 text-black-700 hover:bg-purple-50"
                     size="sm"
                   >
                     <RotateCcw className="w-4 h-4 mr-2" />
@@ -348,15 +348,7 @@ export default function TherapistSessionsPage() {
               {/* Ongoing Sessions: Show Join Session, Move to Completed, and Document buttons */}
               {isOngoing && isScheduledStatus && (
                 <>
-                  <Button
-                    onClick={() => handleJoinSession(session)}
-                    style={{ backgroundColor: '#10b981' }}
-                    className="text-white hover:opacity-90 text-sm"
-                    size="sm"
-                  >
-                    <Video className="w-4 h-4 mr-2" />
-                    Join Session
-                  </Button>
+                  
                   
                   <Button
                     onClick={() => handleMoveToCompleted(session)}
@@ -369,14 +361,24 @@ export default function TherapistSessionsPage() {
                   </Button>
                   
                   <Button
+                    variant="outline"
                     onClick={() => handleUpdateSession(session)}
-                    style={{ backgroundColor: '#8159A8' }}
-                    className="text-white hover:opacity-90 text-sm"
+                    className="text-purple-700 hover:opacity-90 text-sm"
                     size="sm"
                   >
                     <Edit className="w-4 h-4 mr-2" />
                     Document Session
                   </Button>
+                  <Button
+                    onClick={() => handleJoinSession(session)}
+                    style={{ backgroundColor: '#8159A8' }}
+                    className="text-white hover:opacity-90 text-sm"
+                    size="sm"
+                  >
+                    <Video className="w-4 h-4 mr-2" />
+                    Join Session
+                  </Button>
+                  
                 </>
               )}
 
@@ -394,9 +396,9 @@ export default function TherapistSessionsPage() {
                   </Button>
                   
                   <Button
+                    variant="outline"
                     onClick={() => handleUpdateSession(session)}
-                    style={{ backgroundColor: '#8159A8' }}
-                    className="text-white hover:opacity-90 text-sm"
+                    className="text-purple-700 hover:opacity-90 text-sm"
                     size="sm"
                   >
                     <Edit className="w-4 h-4 mr-2" />
@@ -405,17 +407,17 @@ export default function TherapistSessionsPage() {
                 </>
               )}
 
-              {/* Completed/Cancelled Sessions: Show View Details for non-scheduled status */}
-              {!isScheduledStatus && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleViewDetails(session)}
-                  className="text-sm"
-                >
-                  <Eye className="w-4 h-4 mr-2" />
-                  View Details
-                </Button>
+              {!isScheduledStatus &&
+                !['CANCELLED', 'DECLINED', 'NO_SHOW'].includes(session.status) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleViewDetails(session)}
+                    className="text-sm"
+                  >
+                    <Eye className="w-4 h-4 mr-2" />
+                    View Details
+                  </Button>
               )}
             </div>
           </div>
@@ -450,15 +452,7 @@ export default function TherapistSessionsPage() {
                 Manage your therapy sessions and track patient progress
               </p>
             </div>
-            <Button 
-              onClick={() => window.location.href = '/therapist/appointments/new'}
-              style={{ backgroundColor: '#8159A8' }}
-              className="text-white hover:opacity-90 transition-all duration-200 hover:shadow-md"
-              size="lg"
-            >
-              <Plus className="w-5 h-5 mr-2" />
-              Schedule New Session
-            </Button>
+            
           </div>
         </div>
 

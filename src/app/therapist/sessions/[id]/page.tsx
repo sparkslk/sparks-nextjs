@@ -5,26 +5,23 @@ import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
 import { SessionUpdateModal } from "@/components/therapist/SessionUpdateModal";
-import { 
-  Calendar,  
-  User, 
-  FileText, 
-  Pill, 
-  CheckSquare, 
+import {
+  Calendar,
+  User,
+  FileText,
+  Pill,
+  CheckSquare,
   ArrowLeft,
-  Phone,
-  Mail,
-  Heart,
   AlertCircle,
   CheckCircle,
   XCircle,
   Clock3,
-  Edit
+  Edit,
+  Plus
 } from "lucide-react";
 import { format, differenceInYears } from "date-fns";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"; // Make sure you have a Dialog component
 
 interface DetailedSession {
   id: string;
@@ -58,9 +55,7 @@ interface DetailedSession {
     email?: string;
     medicalHistory?: string;
     tasks: Task[];
-    treatments: Treatment[];
     assessments: Assessment[];
-    treatmentPlans: TreatmentPlan[];
   };
   sessionHistory: SessionHistory[];
 }
@@ -80,21 +75,6 @@ interface Task {
   createdAt: string;
 }
 
-interface Treatment {
-  id: string;
-  name: string;
-  description: string;
-  instructions?: string;
-  frequency?: string;
-  dosage?: string;
-  startDate: string;
-  endDate?: string;
-  isActive: boolean;
-  treatmentPlan: {
-    title: string;
-    description: string;
-  };
-}
 
 interface Assessment {
   id: string;
@@ -107,15 +87,6 @@ interface Assessment {
   assessmentDate: string;
 }
 
-interface TreatmentPlan {
-  id: string;
-  title: string;
-  description: string;
-  goals: string[];
-  startDate: string;
-  targetEndDate?: string;
-  isActive: boolean;
-}
 
 interface SessionHistory {
   id: string;
@@ -128,12 +99,61 @@ interface SessionHistory {
   engagement?: number;
 }
 
+const hardcodedMedications = [
+  {
+    id: "1",
+    name: "Methylphenidate",
+    dosage: "7",
+    frequency: "Twice daily",
+    mealTiming: "Before meals",
+    startDate: "2025-07-07",
+    endDate: "2025-07-12",
+    prescribedBy: "Ravindi Fernando",
+    instructions: "Take with a full glass of water. Do not exceed recommended dose.",
+    isActive: true,
+  },
+  {
+    id: "2",
+    name: "Amoxicillin",
+    dosage: "500mg",
+    frequency: "Three times daily",
+    mealTiming: "After meals",
+    startDate: "2025-07-01",
+    endDate: "2025-07-10",
+    prescribedBy: "Dr. Nimal Perera",
+    instructions: "Complete the full course even if you feel better.",
+    isActive: true,
+  }
+];
+
+const hardcodedTasks = [
+  {
+    id: "1",
+    title: "Auditory Processing - Listening Task",
+    assignedDate: "2024-07-10",
+    completedDate: "2024-07-22",
+    status: "Completed",
+    score: 78,
+  },
+  {
+    id: "2",
+    title: "Visual Perception - Picture Description",
+    assignedDate: "2024-07-08",
+    status: "Pending",
+  }
+];
+
 export default function SessionDetailsPage() {
   const [session, setSession] = useState<DetailedSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState("clinical");
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+  const [showMedications, setShowMedications] = useState(false);
+  const [showTasks, setShowTasks] = useState(false);
+  const [showAddMedication, setShowAddMedication] = useState(false);
+  const [showEditMedication, setShowEditMedication] = useState(false);
+  const [editMedication, setEditMedication] = useState<any>(null);
+  const [showAssignTask, setShowAssignTask] = useState(false);
   
   const params = useParams();
   const router = useRouter();
@@ -251,6 +271,47 @@ export default function SessionDetailsPage() {
     return differenceInYears(new Date(), new Date(dateOfBirth));
   };
 
+  const availableTasks = [
+    {
+      id: "a1",
+      type: "Listening Task",
+      typeColor: "bg-blue-100 text-blue-700",
+      title: "Auditory Processing - Listening Task",
+      description: "Audio-based assessment to evaluate listening comprehension, auditory memory, and processing speed through various listening exercises.",
+      assignedCount: 2,
+    },
+    {
+      id: "a2",
+      type: "Picture Description",
+      typeColor: "bg-green-100 text-green-700",
+      title: "Visual Perception - Picture Description",
+      description: "Assessment involving detailed description of complex images to evaluate visual processing, attention to detail, and verbal expression skills.",
+      assignedCount: 3,
+    },
+    {
+      id: "a3",
+      type: "Find Differences",
+      typeColor: "bg-orange-100 text-orange-700",
+      title: "Attention & Focus - Find the Differences",
+      description: "Visual attention task requiring patients to identify differences between similar images to assess concentration and visual attention skills.",
+      assignedCount: 2,
+      latestScore: "91%",
+    },
+  ];
+
+  useEffect(() => {
+    const openMedicationsModal = () => setShowMedications(true);
+    const openTasksModal = () => setShowTasks(true);
+
+    window.addEventListener("openMedicationsModal", openMedicationsModal);
+    window.addEventListener("openTasksModal", openTasksModal);
+
+    return () => {
+      window.removeEventListener("openMedicationsModal", openMedicationsModal);
+      window.removeEventListener("openTasksModal", openTasksModal);
+    };
+  }, []);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-purple-50/30">
@@ -296,421 +357,539 @@ export default function SessionDetailsPage() {
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-6">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => router.back()}
-              className="hover:bg-primary/10 border-primary/20 text-primary"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back
-            </Button>
-            {/* <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <span>Sessions</span>
-              <ChevronRight className="w-4 h-4" />
-              <span className="text-primary font-medium">Session Details</span>
-            </div> */}
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => router.back()}
+          className="hover:bg-primary/10 border-primary/20 text-primary"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back
+        </Button>
           </div>
           
           <div className="flex justify-between items-center mb-6">
-            <h1 className="text-3xl font-bold bg-black bg-clip-text text-transparent">
-              Session Details
-            </h1>
-            
-            <div className="flex gap-3">
-                <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => setIsUpdateModalOpen(true)}
-                className="hover:bg-purple-50 border-purple-200 bg-purple-25"
-                >
-                <Edit className="w-4 h-4 mr-2" />
-                Edit
-                </Button>
-                <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => router.push(`/therapist/patients/${session.patientId}`)}
-                className="hover:bg-purple-50 border-purple-200 bg-purple-25"
-                >
-                <User className="w-4 h-4 mr-2" />
-                View Profile
-                </Button>
-                {/* <Button variant="outline" size="sm" className="hover:bg-purple-50 border-purple-200 bg-purple-25">
-                <Download className="w-4 h-4 mr-2" />
-                Export Session
-                </Button> */}
-            </div>
+        <h1 className="text-3xl font-bold bg-[#8159A8] bg-clip-text text-transparent">
+          Session Details
+        </h1>
+        
+        <div className="flex gap-3">
+            <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setIsUpdateModalOpen(true)}
+            className="hover:bg-purple-50 border-purple-200 bg-purple-25"
+            >
+            <Edit className="w-4 h-4 mr-2" />
+            Edit
+            </Button>
+            <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => router.push(`/therapist/patients/${session.patientId}`)}
+            className="hover:bg-purple-50 border-purple-200 bg-purple-25"
+            >
+            <User className="w-4 h-4 mr-2" />
+            View Profile
+            </Button>
+        </div>
           </div>
           
           {/* Session Details - Full Width */}
-          <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-primary/5 rounded-lg border border-primary/10 w-full">
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <User className="w-4 h-4 text-purple-600 flex-shrink-0" />
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Patient</p>
-                <p className="text-base font-semibold text-foreground capitalize truncate">{session.patientName}</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <FileText className="w-4 h-4 text-purple-600 flex-shrink-0" />
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Type</p>
-                <p className="text-base font-semibold text-foreground capitalize truncate">{session.type}</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <Clock3 className="w-4 h-4 text-purple-600 flex-shrink-0" />
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Duration</p>
-                <p className="text-base font-semibold text-foreground">{session.duration} min</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <Calendar className="w-4 h-4 text-purple-600 flex-shrink-0" />
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Date</p>
-                <p className="text-base font-semibold text-foreground truncate">
-                  {formatDate(session.scheduledAt)}
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <Clock3 className="w-4 h-4 text-purple-600 flex-shrink-0" />
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Time</p>
-                <p className="text-base font-semibold text-foreground">
-                  {formatTimeManual(session.scheduledAt)}
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-center justify-center flex-shrink-0">
-              <Badge className={`${getStatusColor(session.status)} px-4 py-2 text-sm font-medium shadow-sm whitespace-nowrap`}>
-                {session.status.replace('_', ' ')}
-              </Badge>
-            </div>
+          <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-white rounded-lg border border-primary/10 w-full">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <span className="bg-[#FAF8FB] rounded-full p-1 flex items-center justify-center">
+            <User className="w-4 h-4 text-[#8159A8]" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Patient</p>
+            <p className="text-base font-semibold text-foreground capitalize truncate">{session.patientName}</p>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <span className="bg-[#FAF8FB] rounded-full p-1 flex items-center justify-center">
+            <FileText className="w-4 h-4 text-[#8159A8]" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Type</p>
+            <p className="text-base font-semibold text-foreground capitalize truncate">{session.type}</p>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <span className="bg-[#FAF8FB] rounded-full p-1 flex items-center justify-center">
+            <Clock3 className="w-4 h-4 text-[#8159A8]" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Duration</p>
+            <p className="text-base font-semibold text-foreground">{session.duration} min</p>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <span className="bg-[#FAF8FB] rounded-full p-1 flex items-center justify-center">
+            <Calendar className="w-4 h-4 text-[#8159A8]" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Date</p>
+            <p className="text-base font-semibold text-foreground truncate">
+          {formatDate(session.scheduledAt)}
+            </p>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <span className="bg-[#FAF8FB] rounded-full p-1 flex items-center justify-center">
+            <Clock3 className="w-4 h-4 text-[#8159A8]" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Time</p>
+            <p className="text-base font-semibold text-foreground">
+          {formatTimeManual(session.scheduledAt)}
+            </p>
+          </div>
+        </div>
+        
+        <div className="flex items-center justify-center flex-shrink-0">
+          <Badge className={`${getStatusColor(session.status)} px-4 py-2 text-sm font-medium shadow-sm whitespace-nowrap`}>
+            {session.status.replace('_', ' ')}
+          </Badge>
+        </div>
           </div>
         </div>
 
-
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="clinical">
-            Clinical Documentation
-          </TabsTrigger>
-          <TabsTrigger value="treatments">
-            Medications
-          </TabsTrigger>
-          <TabsTrigger value="tasks">
-            Tasks
-          </TabsTrigger>
-        </TabsList>
-
-        {/* Clinical Documentation Tab */}
-        <TabsContent value="clinical" className="mt-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Clinical Assessment */}
-            <Card className="shadow-lg border-0">
-              <CardHeader className="border-b border-border">
-                <CardTitle className="flex items-center gap-3 text-xl">
-                  {/* <div className="p-2 bg-green-100 rounded-full">
-                    <FileText className="w-6 h-6 text-green-600" />
-                  </div> */}
-                  Clinical Assessment
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Attendance Status</p>
-                    <Badge className={`${
-                      session.attendanceStatus === 'PRESENT' ? 'bg-green-100 text-green-800' :
-                      session.attendanceStatus === 'LATE' ? 'bg-yellow-100 text-yellow-800' :
-                      session.attendanceStatus === 'NO_SHOW' ? 'bg-red-100 text-red-800' :
-                      session.attendanceStatus === 'CANCELLED' ? 'bg-gray-100 text-gray-800' :
-                      'bg-gray-100 text-gray-600'
-                    } text-xs`}>
-                      {session.attendanceStatus || 'Not Documented'}
-                    </Badge>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Overall Progress</p>
-                    <Badge className={`${
-                      session.overallProgress === 'EXCELLENT' ? 'bg-green-100 text-green-800' :
-                      session.overallProgress === 'GOOD' ? 'bg-blue-100 text-blue-800' :
-                      session.overallProgress === 'FAIR' ? 'bg-yellow-100 text-yellow-800' :
-                      session.overallProgress === 'POOR' ? 'bg-orange-100 text-orange-800' :
-                      session.overallProgress === 'CONCERNING' ? 'bg-red-100 text-red-800' :
-                      'bg-gray-100 text-gray-600'
-                    } text-xs`}>
-                      {session.overallProgress || 'Not Assessed'}
-                    </Badge>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Patient Engagement</p>
-                    <Badge className={`${
-                      session.patientEngagement === 'HIGH' ? 'bg-green-100 text-green-800' :
-                      session.patientEngagement === 'MEDIUM' ? 'bg-blue-100 text-blue-800' :
-                      session.patientEngagement === 'LOW' ? 'bg-yellow-100 text-yellow-800' :
-                      session.patientEngagement === 'RESISTANT' ? 'bg-red-100 text-red-800' :
-                      'bg-gray-100 text-gray-600'
-                    } text-xs`}>
-                      {session.patientEngagement || 'Not Assessed'}
-                    </Badge>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Risk Assessment</p>
-                    <Badge className={`${
-                      session.riskAssessment === 'HIGH' ? 'bg-red-100 text-red-800' :
-                      session.riskAssessment === 'MEDIUM' ? 'bg-orange-100 text-orange-800' :
-                      session.riskAssessment === 'LOW' ? 'bg-yellow-100 text-yellow-800' :
-                      session.riskAssessment === 'NONE' ? 'bg-green-100 text-green-800' :
-                      'bg-gray-100 text-gray-600'
-                    } text-xs`}>
-                      {session.riskAssessment || 'Not Assessed'}
-                    </Badge>
-                  </div>
-                </div>
-                
-                {/* Focus Areas */}
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-2">Primary Focus Areas</p>
-                  {session.primaryFocusAreas && session.primaryFocusAreas.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {session.primaryFocusAreas.map((area, index) => (
-                        <Badge key={index} variant="outline" className="text-xs">
-                          {area}
-                        </Badge>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No focus areas documented</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Session Notes */}
-            <Card className="shadow-lg border-0">
-              <CardHeader className="border-b border-border">
-                <CardTitle className="flex items-center gap-3 text-xl">
-                  {/* <div className="p-2 bg-blue-100 rounded-full">
-                    <FileText className="w-6 h-6 text-blue-600" />
-                  </div> */}
-                  Session Notes
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-2">Clinical Observations</p>
-                  {session.sessionNotes ? (
-                    <div className="bg-gray-50 rounded-md p-3">
-                      <p className="text-sm leading-relaxed whitespace-pre-wrap">{session.sessionNotes}</p>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No clinical observations recorded</p>
-                  )}
-                </div>
-                
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-2">Next Session Goals</p>
-                  {session.nextSessionGoals ? (
-                    <div className="bg-blue-50 rounded-md p-3">
-                      <p className="text-sm leading-relaxed whitespace-pre-wrap">{session.nextSessionGoals}</p>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No goals set for next session</p>
-                  )}
-                </div>
-                
-                
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        {/* Patient Info Tab */}
-        <TabsContent value="patient" className="mt-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="w-5 h-5" />
-                  Patient Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Full Name</p>
-                    <p className="text-sm">{session.patient.firstName} {session.patient.lastName}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Age</p>
-                    <p className="text-sm">{calculateAge(session.patient.dateOfBirth)} years old</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Date of Birth</p>
-                    <p className="text-sm">
-                      {format(new Date(session.patient.dateOfBirth), "MMMM dd, yyyy")}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Gender</p>
-                    <p className="text-sm capitalize">{session.patient.gender.toLowerCase()}</p>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="space-y-3">
-                  {session.patient.phone && (
-                    <div className="flex items-center gap-2">
-                      <Phone className="w-4 h-4 text-gray-500" />
-                      <div>
-                        <p className="text-sm font-medium">Phone</p>
-                        <p className="text-sm text-gray-600">{session.patient.phone}</p>
-                      </div>
-                    </div>
-                  )}
-                  {session.patient.email && (
-                    <div className="flex items-center gap-2">
-                      <Mail className="w-4 h-4 text-gray-500" />
-                      <div>
-                        <p className="text-sm font-medium">Email</p>
-                        <p className="text-sm text-gray-600">{session.patient.email}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {session.patient.medicalHistory && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Heart className="w-5 h-5" />
-                    Medical History
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="prose prose-sm max-w-none">
-                    <p className="text-sm whitespace-pre-wrap">{session.patient.medicalHistory}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </TabsContent>
-
-        {/* Medications Tab - Session-Related Changes */}
-        <TabsContent value="treatments" className="mt-6">
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold">Medication Updates for This Session</h3>
-              <Badge variant="outline" className="text-sm">
-                {session.patient.treatments.filter(t => t.isActive).length} Active
-              </Badge>
+        {/* Clinical Documentation Section (always visible) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Clinical Assessment */}
+          <Card className="shadow-lg border-0">
+        <CardHeader className="border-b border-border">
+          <CardTitle className="flex items-center gap-3 text-xl">
+            Clinical Assessment
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+          <p className="text-sm font-medium text-muted-foreground">Attendance Status</p>
+          <Badge className={`${
+            session.attendanceStatus === 'PRESENT' ? 'bg-green-100 text-green-800' :
+            session.attendanceStatus === 'LATE' ? 'bg-yellow-100 text-yellow-800' :
+            session.attendanceStatus === 'NO_SHOW' ? 'bg-red-100 text-red-800' :
+            session.attendanceStatus === 'CANCELLED' ? 'bg-gray-100 text-gray-800' :
+            'bg-gray-100 text-gray-600'
+          } text-xs`}>
+            {session.attendanceStatus || 'Not Documented'}
+          </Badge>
             </div>
-            
-            {session.patient.treatments.length === 0 ? (                <Card>
-                <CardContent className="p-8 text-center">
-                  <Pill className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No medications on record.</p>
-                </CardContent>
-              </Card>
+            <div>
+          <p className="text-sm font-medium text-muted-foreground">Overall Progress</p>
+          <Badge className={`${
+            session.overallProgress === 'EXCELLENT' ? 'bg-green-100 text-green-800' :
+            session.overallProgress === 'GOOD' ? 'bg-blue-100 text-blue-800' :
+            session.overallProgress === 'FAIR' ? 'bg-yellow-100 text-yellow-800' :
+            session.overallProgress === 'POOR' ? 'bg-orange-100 text-orange-800' :
+            session.overallProgress === 'CONCERNING' ? 'bg-red-100 text-red-800' :
+            'bg-gray-100 text-gray-600'
+          } text-xs`}>
+            {session.overallProgress || 'Not Assessed'}
+          </Badge>
+            </div>
+            <div>
+          <p className="text-sm font-medium text-muted-foreground">Patient Engagement</p>
+          <Badge className={`${
+            session.patientEngagement === 'HIGH' ? 'bg-green-100 text-green-800' :
+            session.patientEngagement === 'MEDIUM' ? 'bg-blue-100 text-blue-800' :
+            session.patientEngagement === 'LOW' ? 'bg-yellow-100 text-yellow-800' :
+            session.patientEngagement === 'RESISTANT' ? 'bg-red-100 text-red-800' :
+            'bg-gray-100 text-gray-600'
+          } text-xs`}>
+            {session.patientEngagement || 'Not Assessed'}
+          </Badge>
+            </div>
+            <div>
+          <p className="text-sm font-medium text-muted-foreground">Risk Assessment</p>
+          <Badge className={`${
+            session.riskAssessment === 'HIGH' ? 'bg-red-100 text-red-800' :
+            session.riskAssessment === 'MEDIUM' ? 'bg-orange-100 text-orange-800' :
+            session.riskAssessment === 'LOW' ? 'bg-yellow-100 text-yellow-800' :
+            session.riskAssessment === 'NONE' ? 'bg-green-100 text-green-800' :
+            'bg-gray-100 text-gray-600'
+          } text-xs`}>
+            {session.riskAssessment || 'Not Assessed'}
+          </Badge>
+            </div>
+          </div>
+          
+          {/* Focus Areas */}
+          <div>
+            <p className="text-sm font-medium text-muted-foreground mb-2">Primary Focus Areas</p>
+            {session.primaryFocusAreas && session.primaryFocusAreas.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {session.primaryFocusAreas.map((area, index) => (
+              <Badge key={index} variant="outline" className="text-xs">
+            {area}
+              </Badge>
+            ))}
+          </div>
             ) : (
-              session.patient.treatments.map((treatment) => (
-                <Card key={treatment.id} className={treatment.isActive ? "border-l-4 border-l-green-500" : "border-l-4 border-l-gray-300"}>
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <CardTitle className="flex items-center gap-2">
-                        <Pill className="w-5 h-5" />
-                        {treatment.name}
-                      </CardTitle>
-                      <div className="flex gap-2">
-                        <Badge variant={treatment.isActive ? "default" : "secondary"}>
-                          {treatment.isActive ? "Active" : "Discontinued"}
-                        </Badge>
-                        {new Date(treatment.startDate) >= new Date(session.scheduledAt) && (
-                          <Badge className="bg-primary/10 text-primary">
-                            New in Session
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <p className="text-sm text-muted-foreground">{treatment.description}</p>
-                    
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                      {treatment.dosage && (
-                        <div>
-                          <p className="font-medium text-muted-foreground">Dosage</p>
-                          <p className="font-medium text-primary">{treatment.dosage}</p>
-                        </div>
-                      )}
-                      {treatment.frequency && (
-                        <div>
-                          <p className="font-medium text-muted-foreground">Frequency</p>
-                          <p className="font-medium text-primary capitalize">{treatment.frequency}</p>
-                        </div>
-                      )}
-                      <div>
-                        <p className="font-medium text-muted-foreground">Start Date</p>
-                        <p className={`font-medium ${new Date(treatment.startDate) >= new Date(session.scheduledAt) ? 'text-green-600' : 'text-muted-foreground'}`}>
-                          {format(new Date(treatment.startDate), "MMM dd, yyyy")}
-                        </p>
-                      </div>
-                      {treatment.endDate && (
-                        <div>
-                          <p className="font-medium text-muted-foreground">End Date</p>
-                          <p className="font-medium text-red-600">{format(new Date(treatment.endDate), "MMM dd, yyyy")}</p>
-                        </div>
-                      )}
-                    </div>
-
-                    {treatment.instructions && (
-                      <div className="bg-primary/5 p-3 rounded">
-                        <p className="text-sm font-medium text-primary">Special Instructions</p>
-                        <p className="text-sm text-muted-foreground">{treatment.instructions}</p>
-                      </div>
-                    )}
-
-                    <div className="bg-muted p-3 rounded">
-                      <p className="text-sm font-medium text-foreground">Treatment Plan</p>
-                      <p className="text-sm text-muted-foreground">{treatment.treatmentPlan.title}</p>
-                      <p className="text-xs text-muted-foreground mt-1">{treatment.treatmentPlan.description}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
+          <p className="text-sm text-muted-foreground">No focus areas documented</p>
             )}
           </div>
-        </TabsContent>
+        </CardContent>
+          </Card>
 
-        {/* Tasks Tab - Session-Related Changes */}
-        <TabsContent value="tasks" className="mt-6">
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold">Task Updates for This Session</h3>
+          {/* Session Notes */}
+          <Card className="shadow-lg border-0">
+        <CardHeader className="border-b border-border">
+          <CardTitle className="flex items-center gap-3 text-xl">
+            Session Notes
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <p className="text-sm font-medium text-muted-foreground mb-2">Clinical Observations</p>
+            {session.sessionNotes ? (
+          <div className="bg-gray-50 rounded-md p-3">
+            <p className="text-sm leading-relaxed whitespace-pre-wrap">{session.sessionNotes}</p>
+          </div>
+            ) : (
+          <p className="text-sm text-muted-foreground">No clinical observations recorded</p>
+            )}
+          </div>
+          
+          <div>
+            <p className="text-sm font-medium text-muted-foreground mb-2">Next Session Goals</p>
+            {session.nextSessionGoals ? (
+          <div className="bg-blue-50 rounded-md p-3">
+            <p className="text-sm leading-relaxed whitespace-pre-wrap">{session.nextSessionGoals}</p>
+          </div>
+            ) : (
+          <p className="text-sm text-muted-foreground">No goals set for next session</p>
+            )}
+          </div>
+          
+          
+        </CardContent>
+          </Card>
+        </div>
+        {/* Medications and Tasks Buttons */}
+        <div className="flex gap-4 justify-end mt-8">
+          <Button 
+        style={{ backgroundColor: "#8159A8", color: "#fff", border: "none" }}
+        className="hover:brightness-110 shadow-md font-semibold px-6 py-2 rounded-lg transition-all duration-150"
+        onClick={() => setShowMedications(true)}
+          >
+        View Medications
+          </Button>
+          <Button 
+        style={{ backgroundColor: "#8159A8", color: "#fff", border: "none" }}
+        className="hover:brightness-110 shadow-md font-semibold px-6 py-2 rounded-lg transition-all duration-150"
+        onClick={() => setShowTasks(true)}
+          >
+        View Assigned Tasks
+          </Button>
+        </div>
+      </div>
+
+      {/* Medications Modal */}
+      <Dialog open={showMedications} onOpenChange={setShowMedications}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Medication Updates for This Patient</DialogTitle>
+          </DialogHeader>
+          <div className="flex items-center justify-between mb-2">
+            <Button
+              style={{ backgroundColor: "#8159A8", color: "#fff" }}
+              className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 shadow hover:brightness-110"
+              onClick={() => setShowAddMedication(true)}
+            >
+              <Plus className="w-5 h-5" />
+              Add Medication
+            </Button>
+            <Badge variant="outline" className="text-sm">
+              {hardcodedMedications.filter(t => t.isActive).length} Active
+            </Badge>
+          </div>
+          {hardcodedMedications.length === 0 ? (
+      <Card>
+        <CardContent className="p-8 text-center">
+          <Pill className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+          <p className="text-muted-foreground">No medications on record.</p>
+        </CardContent>
+      </Card>
+    ) : (
+      hardcodedMedications.map((med) => (
+        <Card
+          key={med.id}
+          className="mb-4 shadow-md bg-[#F8F6FB] border-0"
+        >
+          <div className="p-4 flex flex-col gap-3">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Pill className="w-5 h-5 text-[#8159A8]" />
+                <span className="text-base font-semibold text-[#8159A8]">{med.name}</span>
+                {med.isActive ? (
+                  <Badge className="ml-2 bg-green-100 text-green-700 text-xs font-semibold">
+                    Active
+                  </Badge>
+                ) : (
+                  <Badge className="ml-2 bg-gray-100 text-gray-500 text-xs font-semibold">
+                    Inactive
+                  </Badge>
+                )}
+              </div>
               <div className="flex gap-2">
-                <Badge variant="outline" className="text-sm">
-                  {session.patient.tasks.filter(task => task.status === 'PENDING').length} Pending
-                </Badge>
-                <Badge variant="outline" className="text-sm bg-green-50 text-green-700">
-                  {session.patient.tasks.filter(task => task.status === 'COMPLETED').length} Completed
-                </Badge>
+                
+                <Button
+                  variant="outline"
+                  className="flex items-center gap-1 border-blue-400 text-blue-700 hover:bg-blue-50 px-2 py-1 text-xs"
+                  size="sm"
+                  style={{ borderColor: "#3B82F6" }}
+                  onClick={() => {
+                    setEditMedication(med);
+                    setShowEditMedication(true);
+                  }}
+                >
+                  <Edit className="w-4 h-4" />
+                  Edit
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex items-center gap-1 border-red-400 text-red-700 hover:bg-red-50 px-2 py-1 text-xs"
+                  size="sm"
+                  style={{ borderColor: "#EF4444" }}
+                >
+                  <XCircle className="w-4 h-4" />
+                  Discontinue
+                </Button>
               </div>
             </div>
-            
-            {session.patient.tasks.length === 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-2">
+              <div>
+                <p className="text-[10px] font-medium text-muted-foreground uppercase">Dosage</p>
+                <p className="text-sm font-semibold">{med.dosage}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-medium text-muted-foreground uppercase">Frequency</p>
+                <p className="text-sm font-semibold">{med.frequency}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-medium text-muted-foreground uppercase">Meal Timing</p>
+                <p className="text-sm font-semibold">{med.mealTiming}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-medium text-muted-foreground uppercase">Start Date</p>
+                <p className="text-sm font-semibold">
+                  {format(new Date(med.startDate), "MMM dd, yyyy")}
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] font-medium text-muted-foreground uppercase">End Date</p>
+                <p className="text-sm font-semibold">
+                  {format(new Date(med.endDate), "MMM dd, yyyy")}
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] font-medium text-muted-foreground uppercase">Prescribed By</p>
+                <p className="text-sm font-semibold">{med.prescribedBy}</p>
+              </div>
+            </div>
+            <div className="bg-[#EDE9F7] mt-3 p-3 rounded flex flex-col gap-1">
+              <div className="flex items-center gap-1 text-[#8159A8] font-medium text-xs">
+                <AlertCircle className="w-4 h-4" />
+                Instructions
+              </div>
+              <div className="text-[#4B3869] text-xs">{med.instructions}</div>
+            </div>
+          </div>
+        </Card>
+      ))
+    )}
+  </DialogContent>
+      </Dialog>
+
+      {/* Add Medication Modal */}
+      <Dialog open={showAddMedication} onOpenChange={setShowAddMedication}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Add New Medication</DialogTitle>
+          </DialogHeader>
+          <form className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Medication Name *</label>
+                <input className="w-full border rounded px-3 py-2 text-sm" placeholder="e.g., Adderall XR" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Dosage *</label>
+                <input className="w-full border rounded px-3 py-2 text-sm" placeholder="e.g., 10mg" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Frequency *</label>
+                <select className="w-full border rounded px-3 py-2 text-sm">
+                  <option>Select frequency</option>
+                  <option>Once daily</option>
+                  <option>Twice daily</option>
+                  <option>Three times daily</option>
+                  {/* Add more as needed */}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Meal Timing</label>
+                <select className="w-full border rounded px-3 py-2 text-sm">
+                  <option>No specific timing</option>
+                  <option>Before meals</option>
+                  <option>After meals</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Start Date *</label>
+                <input type="date" className="w-full border rounded px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">End Date (Optional)</label>
+                <input type="date" className="w-full border rounded px-3 py-2 text-sm" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Instructions</label>
+              <textarea className="w-full border rounded px-3 py-2 text-sm" rows={3} placeholder="Special instructions for taking this medication..." />
+            </div>
+            <div className="flex justify-between mt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowAddMedication(false)}
+                className="font-semibold px-6 py-2 rounded-lg"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                style={{ backgroundColor: "#8159A8", color: "#fff" }}
+                className="font-semibold px-6 py-2 rounded-lg"
+              >
+                Add Medication
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Medication Modal */}
+      <Dialog open={showEditMedication} onOpenChange={setShowEditMedication}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Medication</DialogTitle>
+          </DialogHeader>
+          {editMedication && (
+      <form className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Medication Name *</label>
+            <input
+              className="w-full border rounded px-3 py-2 text-sm"
+              defaultValue={editMedication.name}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Dosage *</label>
+            <input
+              className="w-full border rounded px-3 py-2 text-sm"
+              defaultValue={editMedication.dosage}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Frequency *</label>
+            <select className="w-full border rounded px-3 py-2 text-sm" defaultValue={editMedication.frequency}>
+              <option>Select frequency</option>
+              <option>Once daily</option>
+              <option>Twice daily</option>
+              <option>Three times daily</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Meal Timing</label>
+            <select className="w-full border rounded px-3 py-2 text-sm" defaultValue={editMedication.mealTiming}>
+              <option>No specific timing</option>
+              <option>Before meals</option>
+              <option>After meals</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Start Date *</label>
+            <input
+              type="date"
+              className="w-full border rounded px-3 py-2 text-sm"
+              defaultValue={editMedication.startDate}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">End Date (Optional)</label>
+            <input
+              type="date"
+              className="w-full border rounded px-3 py-2 text-sm"
+              defaultValue={editMedication.endDate}
+            />
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Instructions</label>
+          <textarea
+            className="w-full border rounded px-3 py-2 text-sm"
+            rows={3}
+            defaultValue={editMedication.instructions}
+          />
+        </div>
+        <div className="flex justify-between mt-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setShowEditMedication(false)}
+            className="font-semibold px-6 py-2 rounded-lg"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            style={{ backgroundColor: "#8159A8", color: "#fff" }}
+            className="font-semibold px-6 py-2 rounded-lg"
+          >
+            Update Medication
+          </Button>
+        </div>
+      </form>
+    )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Tasks Modal */}
+      <Dialog open={showTasks} onOpenChange={setShowTasks}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Task Updates for This Patient</DialogTitle>
+          </DialogHeader>
+          <div className="flex items-center justify-between mb-4">
+            <Button
+              style={{ backgroundColor: "#8159A8", color: "#fff" }}
+              className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 shadow hover:brightness-110"
+              onClick={() => setShowAssignTask(true)}
+            >
+              <Plus className="w-5 h-5" />
+              Assign a new Task
+            </Button>
+            <div className="flex gap-2">
+              <Badge variant="outline" className="text-sm">
+                {hardcodedTasks.filter(t => t.status === "Pending").length} Pending
+              </Badge>
+              <Badge variant="outline" className="text-sm bg-green-50 text-green-700">
+                {hardcodedTasks.filter(t => t.status === "Completed").length} Completed
+              </Badge>
+            </div>
+          </div>
+          <div className="space-y-6">
+            {hardcodedTasks.length === 0 ? (
               <Card>
                 <CardContent className="p-8 text-center">
                   <CheckSquare className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
@@ -718,97 +897,115 @@ export default function SessionDetailsPage() {
                 </CardContent>
               </Card>
             ) : (
-              session.patient.tasks.map((task) => (
-                <Card key={task.id} className={`${
-                  task.status === 'COMPLETED' ? 'border-l-4 border-l-green-500 bg-green-50/30' :
-                  task.status === 'OVERDUE' ? 'border-l-4 border-l-red-500 bg-red-50/30' :
-                  'border-l-4 border-l-blue-500'
-                }`}>
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <CardTitle className="flex items-center gap-2">
-                        {getTaskStatusIcon(task.status)}
-                        {task.title}
-                      </CardTitle>
-                      <div className="flex gap-2">
-                        <Badge className={getPriorityColor(task.priority)}>
-                          Priority {task.priority}
-                        </Badge>
-                        <Badge variant={task.status === 'COMPLETED' ? 'default' : 'secondary'}>
-                          {task.status.replace('_', ' ')}
-                        </Badge>
-                        {new Date(task.createdAt) >= new Date(session.scheduledAt) && (
-                          <Badge className="bg-primary/10 text-primary">
-                            Assigned in Session
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {task.description && (
-                      <p className="text-sm text-muted-foreground">{task.description}</p>
-                    )}
-                    
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-                      {task.dueDate && (
-                        <div>
-                          <p className="font-medium text-muted-foreground">Due Date</p>
-                          <p className={`font-medium ${
-                            new Date(task.dueDate) < new Date() ? 'text-red-600' : 'text-foreground'
-                          }`}>
-                            {format(new Date(task.dueDate), "MMM dd, yyyy")}
-                          </p>
-                        </div>
+              hardcodedTasks.map((task, idx) => (
+                <div
+                  key={task.id}
+                  className="flex flex-col md:flex-row items-start md:items-center justify-between bg-[#fcfafd] rounded-xl shadow-sm px-6 py-4"
+                  style={{ borderBottom: idx !== hardcodedTasks.length - 1 ? "1px solid #f0eef5" : undefined }}
+                >
+                  <div>
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <span className="text-base md:text-xl font-semibold text-[#8159A8]">{task.title}</span>
+                      {task.status === "Completed" && (
+                        <span className="bg-green-100 text-green-700 text-xs font-semibold px-2 py-0.5 rounded-full">
+                          Completed
+                        </span>
                       )}
-                      <div>
-                        <p className="font-medium text-muted-foreground">Assigned</p>
-                        <p className={`font-medium ${
-                          new Date(task.createdAt) >= new Date(session.scheduledAt) ? 'text-green-600' : 'text-muted-foreground'
-                        }`}>
-                          {format(new Date(task.createdAt), "MMM dd, yyyy")}
-                        </p>
-                      </div>
-                      {task.completedAt && (
-                        <div>
-                          <p className="font-medium text-muted-foreground">Completed</p>
-                          <p className="font-medium text-green-600">
-                            {format(new Date(task.completedAt), "MMM dd, yyyy")}
-                          </p>
-                        </div>
+                      {task.status === "Pending" && (
+                        <span className="bg-yellow-100 text-yellow-700 text-xs font-semibold px-2 py-0.5 rounded-full">
+                          Pending
+                        </span>
+                      )}
+                      {"score" in task && (
+                        <span className="bg-blue-100 text-blue-700 text-xs font-semibold px-2 py-0.5 rounded-full">
+                          Score: {task.score}
+                        </span>
                       )}
                     </div>
-
-                    {task.instructions && (
-                      <div className="bg-primary/5 p-3 rounded">
-                        <p className="text-sm font-medium text-primary">Instructions</p>
-                        <p className="text-sm text-muted-foreground">{task.instructions}</p>
-                      </div>
-                    )}
-
-                    {task.completionNotes && (
-                      <div className="bg-green-50 p-3 rounded">
-                        <p className="text-sm font-medium text-green-900">Completion Notes</p>
-                        <p className="text-sm text-green-800">{task.completionNotes}</p>
-                      </div>
-                    )}
-
-                    {task.isRecurring && (
-                      <div className="flex items-center gap-2 text-sm text-purple-600 bg-purple-50 p-2 rounded">
-                        <Clock3 className="w-4 h-4" />
-                        <span>Recurring task - {task.recurringPattern}</span>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                    <div className="text-xs text-black font-medium">
+                      Assigned: {format(new Date(task.assignedDate), "MMM dd, yyyy")}
+                      {task.completedDate && (
+                        <span className="ml-3">
+                          Completed: {format(new Date(task.completedDate), "MMM dd, yyyy")}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex gap-2 mt-3 md:mt-0">
+                    <Button
+                      variant="outline"
+                      className="border-red-400 text-red-700 hover:bg-red-50 px-3 py-1 text-xs font-semibold"
+                      style={{ borderColor: "#EF4444" }}
+                    >
+                      Unassign
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="border-primary text-primary hover:bg-primary/10 px-3 py-1 text-xs font-semibold"
+                    >
+                      View Assessment
+                    </Button>
+                  </div>
+                </div>
               ))
             )}
           </div>
-        </TabsContent>
+        </DialogContent>
+      </Dialog>
 
-      </Tabs>
-      </div>
-      
+      {/* Assign Task Modal */}
+      <Dialog open={showAssignTask} onOpenChange={setShowAssignTask}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Assign a Task</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {availableTasks.map((task) => (
+        <div key={task.id} className="bg-[#fcfafd] rounded-2xl shadow p-6 flex flex-col h-full border border-[#f0eef5]">
+          <div className="flex items-center gap-2 mb-2">
+            <span className={`text-xs font-semibold px-3 py-1 rounded-full ${task.typeColor}`}>
+              {task.type}
+            </span>
+          </div>
+          <div className="font-bold text-lg text-[#3b2562] mb-2">{task.title}</div>
+          <div className="text-sm text-gray-600 mb-4 flex-1">{task.description}</div>
+          <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
+            <User className="w-4 h-4" />
+            {task.assignedCount} patients assigned
+            {task.latestScore && (
+              <>
+                <span className="mx-2">|</span>
+                <FileText className="w-4 h-4" />
+                Latest Score: {task.latestScore}
+              </>
+            )}
+          </div>
+          <div className="flex gap-2 mt-auto">
+            <Button
+              variant="outline"
+              className="border-green-400 text-green-700 hover:bg-green-50 px-3 py-1 text-s font-semibold"
+              style={{ borderColor: "#1ac600ff" }}
+              // onClick={() => handleAssignTask(task.id)}
+            >
+              Assign
+            </Button>
+            
+          </div>
+        </div>
+      ))}
+    </div>
+    <div className="flex justify-end mt-6">
+      <Button
+        style={{ backgroundColor: "#8159A8", color: "#fff" }}
+        className="font-semibold px-6 py-2 rounded-lg"
+        onClick={() => setShowAssignTask(false)}
+      >
+        Done
+      </Button>
+    </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Session Update Modal */}
       <SessionUpdateModal
         session={session}
