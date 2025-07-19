@@ -751,87 +751,94 @@ export default function MedicationManagement({
       {activeMedications.length > 0 ? (
         <div className="space-y-4">
           <h4 className="text-lg font-semibold text-[#8159A8]">Active Medications</h4>
-          {activeMedications.map((medication) => (
-            <Card key={medication.id} className="shadow-md">
-              <CardContent className="p-4 md:p-6">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
-                  <div className="w-full">
-                    <h5 className="text-xl font-bold text-[#8159A8] mb-2">{medication.name}</h5>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-4">
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-xs uppercase text-gray-500 font-medium mb-1">Dosage</p>
-                        <p className="font-semibold text-gray-900">{medication.dosage}</p>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-xs uppercase text-gray-500 font-medium mb-1">Frequency</p>
-                        <p className="font-semibold text-gray-900">{getFrequencyDisplay(medication)}</p>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-xs uppercase text-gray-500 font-medium mb-1">Meal Timing</p>
-                        <p className="font-semibold text-gray-900">{MEAL_TIMING_LABELS[medication.mealTiming]}</p>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-xs uppercase text-gray-500 font-medium mb-1">Start Date</p>
-                        <p className="font-semibold text-gray-900">{format(new Date(medication.startDate), 'MMM dd, yyyy')}</p>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-xs uppercase text-gray-500 font-medium mb-1">End Date</p>
-                        <p className="font-semibold text-gray-900">
-                          {medication.endDate ? format(new Date(medication.endDate), 'MMM dd, yyyy') : 'Ongoing'}
-                        </p>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-xs uppercase text-gray-500 font-medium mb-1">Prescribed By</p>
-                        <p className="font-semibold text-gray-900">
-                          {medication.therapist?.user?.name || 'Unknown'}
-                        </p>
-                      </div>
-                    </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
+            {activeMedications.map((medication) => (
+              <div
+                key={medication.id}
+                className="bg-[#FAF8FB] rounded-2xl shadow-md p-6 flex flex-col h-full"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                  <span className="text-[#8159A8] font-bold text-xl flex items-center gap-1">
+                    {medication.name}
+                  </span>
                   </div>
-                  <div className="flex gap-2 w-full md:w-auto">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleViewHistory(medication)}
-                      className="text-gray-600 border-gray-600 hover:bg-gray-50"
-                    >
-                      <History className="w-4 h-4 mr-1" />
-                      History
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEdit(medication)}
-                      className="text-blue-600 border-blue-600 hover:bg-blue-50"
-                    >
-                      <Edit className="w-4 h-4 mr-1" />
-                      Edit
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDiscontinueClick(medication)}
-                      className="text-red-600 border-red-600 hover:bg-red-50"
-                      disabled={isLoading}
-                    >
-                      <Trash2 className="w-4 h-4 mr-1" />
-                      Discontinue
-                    </Button>
+                  <div className="flex gap-2">
+                  <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleViewHistory(medication)}
+                  className="text-gray-600 border-gray-600 hover:bg-gray-50"
+                  >
+                  <History className="w-4 h-4 mr-1" />
+                  History
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-blue-500 text-blue-600 hover:bg-blue-50"
+                    onClick={() => handleEdit(medication)}
+                  >
+                    <Edit className="w-4 h-4 mr-1" />
+                    Edit
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-red-500 text-red-600 hover:bg-red-50"
+                    onClick={() => handleDiscontinueClick(medication)}
+                    disabled={isLoading}
+                  >
+                    <Trash2 className="w-4 h-4 mr-1" />
+                    Discontinue
+                  </Button>
+                  
                   </div>
                 </div>
-
-                {medication.instructions && (
-                  <div className="bg-blue-50 rounded-lg p-4 mb-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <AlertCircle className="w-5 h-5 text-blue-600" />
-                      <h6 className="font-semibold text-blue-900">Instructions</h6>
+                <div className="mb-2" />
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-y-2 gap-x-6 mt-2 mb-4">
+                  <div>
+                    <div className="text-xs font-semibold text-gray-500 uppercase">Dosage</div>
+                    <div className="font-bold text-gray-900">{medication.dosage}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold text-gray-500 uppercase">Frequency</div>
+                    <div className="font-bold text-gray-900">{getFrequencyDisplay(medication)}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold text-gray-500 uppercase">Meal Timing</div>
+                    <div className="font-bold text-gray-900">{MEAL_TIMING_LABELS[medication.mealTiming]}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold text-gray-500 uppercase">Start Date</div>
+                    <div className="font-bold text-gray-900">{format(new Date(medication.startDate), 'MMM dd, yyyy')}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold text-gray-500 uppercase">End Date</div>
+                    <div className="font-bold text-gray-900">
+                      {medication.endDate ? format(new Date(medication.endDate), 'MMM dd, yyyy') : 'Ongoing'}
                     </div>
-                    <p className="text-blue-700 text-sm leading-relaxed">{medication.instructions}</p>
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold text-gray-500 uppercase">Prescribed By</div>
+                    <div className="font-bold text-gray-900">{medication.therapist?.user?.name || 'Unknown'}</div>
+                  </div>
+                </div>
+                {medication.instructions && (
+                  <div className="bg-[#ede6fa] rounded-lg p-4 mt-2">
+                    <div className="flex items-center gap-2 mb-1">
+                      <AlertCircle className="w-4 h-4 text-[#8159A8]" />
+                      <span className="font-semibold text-[#8159A8]">Instructions</span>
+                    </div>
+                    <div className="text-[#8159A8] text-sm">{medication.instructions}</div>
                   </div>
                 )}
-              </CardContent>
-            </Card>
-          ))}
+                
+                  
+                
+              </div>
+            ))}
+          </div>
         </div>
       ) : (
         <div className="text-center py-12">
@@ -846,60 +853,21 @@ export default function MedicationManagement({
       {/* Discontinued Medications */}
       {discontinuedMedications.length > 0 && (
         <div className="space-y-4">
-          <h4 className="text-lg font-semibold text-gray-600">Discontinued Medications</h4>
-          {discontinuedMedications.map((medication) => (
-            <Card key={medication.id} className="shadow-md opacity-75">
-              <CardContent className="p-4 md:p-6">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
-                  <div className="w-full">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h5 className="text-xl font-bold text-gray-600">{medication.name}</h5>
-                      <Badge variant="secondary">Discontinued</Badge>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-4">
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-xs uppercase text-gray-500 font-medium mb-1">Dosage</p>
-                        <p className="font-semibold text-gray-900">{medication.dosage}</p>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-xs uppercase text-gray-500 font-medium mb-1">Frequency</p>
-                        <p className="font-semibold text-gray-900">{getFrequencyDisplay(medication)}</p>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-xs uppercase text-gray-500 font-medium mb-1">Meal Timing</p>
-                        <p className="font-semibold text-gray-900">{MEAL_TIMING_LABELS[medication.mealTiming]}</p>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-xs uppercase text-gray-500 font-medium mb-1">Start Date</p>
-                        <p className="font-semibold text-gray-900">{format(new Date(medication.startDate), 'MMM dd, yyyy')}</p>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-xs uppercase text-gray-500 font-medium mb-1">End Date</p>
-                        <p className="font-semibold text-gray-900">
-                          {medication.endDate ? format(new Date(medication.endDate), 'MMM dd, yyyy') : 'Not Set'}
-                        </p>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-xs uppercase text-gray-500 font-medium mb-1">Discontinued</p>
-                        <p className="font-semibold text-gray-900">
-                          {medication.discontinuedAt ? format(new Date(medication.discontinuedAt), 'MMM dd, yyyy') : 'N/A'}
-                        </p>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-xs uppercase text-gray-500 font-medium mb-1">Prescribed By</p>
-                        <p className="font-semibold text-gray-900">
-                          {medication.therapist?.user?.name || 'Unknown'}
-                        </p>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-xs uppercase text-gray-500 font-medium mb-1">Discontinued By</p>
-                        <p className="font-semibold text-gray-900">
-                          {medication.discontinuingTherapist?.user?.name || 'Unknown'}
-                        </p>
-                      </div>
-                    </div>
+          <h4 className="text-lg font-semibold text-[#8159A8]">Discontinued Medications</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
+            {discontinuedMedications.map((medication) => (
+              <div
+                key={medication.id}
+                className="bg-[#FAF8FB] rounded-2xl shadow-md p-6 flex flex-col h-full opacity-75"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[#8159A8] font-bold text-xl flex items-center gap-1">
+                      {medication.name}
+                    </span>
+                    <Badge variant="secondary">Discontinued</Badge>
                   </div>
-                  <div className="flex gap-2 w-full md:w-auto">
+                  <div className="flex gap-2">
                     <Button
                       variant="outline"
                       size="sm"
@@ -911,19 +879,60 @@ export default function MedicationManagement({
                     </Button>
                   </div>
                 </div>
-
-                {medication.instructions && (
-                  <div className="bg-blue-50 rounded-lg p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <AlertCircle className="w-5 h-5 text-blue-600" />
-                      <h6 className="font-semibold text-blue-900">Instructions</h6>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-y-2 gap-x-6 mt-2 mb-4">
+                  <div>
+                    <div className="text-xs font-semibold text-gray-500 uppercase">Dosage</div>
+                    <div className="font-bold text-gray-900">{medication.dosage}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold text-gray-500 uppercase">Frequency</div>
+                    <div className="font-bold text-gray-900">{getFrequencyDisplay(medication)}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold text-gray-500 uppercase">Meal Timing</div>
+                    <div className="font-bold text-gray-900">{MEAL_TIMING_LABELS[medication.mealTiming]}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold text-gray-500 uppercase">Start Date</div>
+                    <div className="font-bold text-gray-900">{format(new Date(medication.startDate), 'MMM dd, yyyy')}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold text-gray-500 uppercase">End Date</div>
+                    <div className="font-bold text-gray-900">
+                      {medication.endDate ? format(new Date(medication.endDate), 'MMM dd, yyyy') : 'Not Set'}
                     </div>
-                    <p className="text-blue-700 text-sm leading-relaxed">{medication.instructions}</p>
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold text-gray-500 uppercase">Discontinued</div>
+                    <div className="font-bold text-gray-900">
+                      {medication.discontinuedAt ? format(new Date(medication.discontinuedAt), 'MMM dd, yyyy') : 'N/A'}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold text-gray-500 uppercase">Prescribed By</div>
+                    <div className="font-bold text-gray-900">
+                      {medication.therapist?.user?.name || 'Unknown'}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold text-gray-500 uppercase">Discontinued By</div>
+                    <div className="font-bold text-gray-900">
+                      {medication.discontinuingTherapist?.user?.name || 'Unknown'}
+                    </div>
+                  </div>
+                </div>
+                {medication.instructions && (
+                  <div className="bg-[#ede6fa] rounded-lg p-4 mt-2">
+                    <div className="flex items-center gap-2 mb-1">
+                      <AlertCircle className="w-4 h-4 text-[#8159A8]" />
+                      <span className="font-semibold text-[#8159A8]">Instructions</span>
+                    </div>
+                    <div className="text-[#8159A8] text-sm">{medication.instructions}</div>
                   </div>
                 )}
-              </CardContent>
-            </Card>
-          ))}
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
