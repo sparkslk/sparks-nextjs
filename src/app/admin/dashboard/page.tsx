@@ -4,14 +4,17 @@ import React from 'react';
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+<<<<<<< HEAD
 //import { Badge } from "@/components/ui/badge";
+=======
+import { DonationModal } from '@/components/admin/donation-modal';
+import { SessionModal } from '@/components/admin/session-modal';
+>>>>>>> origin/Development
 import {
     Users,
-    Settings,
     BarChart3,
     Shield,
     Database,
-    Globe,
     Zap,
     AlertTriangle
 } from "lucide-react";
@@ -231,12 +234,26 @@ export default function AdminDashboard() {
                             ))}
                         </div>
                         <div className="mt-4 flex gap-2">
+<<<<<<< HEAD
                             <Button className="hover:opacity-90 bg-primary text-white">
                             View All Sessions
+=======
+                            <Button 
+                                className="hover:opacity-90" 
+                                style={{ backgroundColor: '#8159A8', color: 'white' }} 
+                                onClick={() => setShowSessionModal(true)}
+                            >
+                                View All Sessions
+>>>>>>> origin/Development
                             </Button>
-                            <Button variant="outline">
+                            <SessionModal
+                                isOpen={showSessionModal}
+                                onClose={() => setShowSessionModal(false)}
+                                sessions={mappedSessionData}
+                            />
+                            {/*<Button variant="outline">
                             Generate Report
-                            </Button>
+                            </Button>*/}
                         </div>
                         </CardContent>
                     </Card>
@@ -261,9 +278,23 @@ export default function AdminDashboard() {
                             ))}
                         </div>
                         <div className="mt-4">
+<<<<<<< HEAD
                             <Button className="hover:opacity-90 bg-primary text-white">
                             View All Donations
+=======
+                            <Button
+                                className="hover:opacity-90"
+                                style={{ backgroundColor: '#8159A8', color: 'white' }} 
+                                onClick={() => setShowDonationModal(true)}
+                            >
+                                View All Donations
+>>>>>>> origin/Development
                             </Button>
+                            <DonationModal
+                                isOpen={showDonationModal}
+                                onClose={() => setShowDonationModal(false)}
+                                donations={mappedDonationData}
+                            />
                         </div>
                         </CardContent>
                     </Card>
@@ -464,6 +495,16 @@ export default function AdminDashboard() {
                         </CardContent>
                     </Card>
                 </div>*/}
+<<<<<<< HEAD
+=======
+
+                {/*<DonationModal 
+                    isOpen={showDonationModal} 
+                    onClose={() => setShowDonationModal(false)} 
+                    donations={mappedDonationData} 
+                />*/}
+                
+>>>>>>> origin/Development
             </main>
         </div>
     );

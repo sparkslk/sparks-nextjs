@@ -1,28 +1,54 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Plus,
+  Search,
+  Eye,
+  Edit,
+  MoreVertical,
+  Calendar,
+  FileText,
+  Target,
+  TrendingUp,
+} from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { PlusIcon } from "lucide-react";
 import { DeleteConfirmationModal } from "@/components/ui/delete-confirmation-modal";
 
+// Update Blog interface to match database schema
 interface Blog {
-  id: string;
+  id: number;
   title: string;
-  description: string;
-  createdAt: string;
-  updatedAt: string;
-  publishedAt: string | null;
+  summary: string;
+  content: string;
+  therapist_id: string;
   status: "published" | "draft" | "archived";
+  category?: string;
+  tags: string[];
+  imageUrl?: string | null; // Base64 image URL
   views: number;
-  image: string;
-  slug: string;
+  created_at: string;
+  updated_at: string;
+  published_at: string | null;
+  authorName: string;
+  User?: {
+    name: string;
+    email: string;
+  };
 }
 
 export default function BlogManagementPage() {
@@ -34,6 +60,8 @@ export default function BlogManagementPage() {
   const [error, setError] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [blogToDelete, setBlogToDelete] = useState<Blog | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterCategory, setFilterCategory] = useState("all");
 
   useEffect(() => {
     if (authStatus === "unauthenticated") {
@@ -41,87 +69,24 @@ export default function BlogManagementPage() {
       return;
     }
 
-    if (authStatus === "authenticated") {
+    if (authStatus === "authenticated" && session) {
       fetchBlogs();
     }
-  }, [authStatus, router]);
+  }, [authStatus, router, session]);
 
   const fetchBlogs = async () => {
-    setLoading(true);
-    setError(null);
-
     try {
-      // In a real implementation, you'd fetch from an API
-      // For now we'll use sample data that matches the image
-      const mockBlogs: Blog[] = [
-        {
-          id: "1",
-          title: "Understanding ADHD in Adults: A Comprehensive Guide",
-          description:
-            "Adult ADHD often goes undiagnosed, leading to challenges in work, relationships, and daily life. This comprehensive guide explores the symptoms, causes, and treatment options for adults with ADHD.",
-          createdAt: "2024-03-15",
-          updatedAt: "2024-06-15",
-          publishedAt: "2024-06-15",
-          status: "published",
-          views: 243,
-          image: "/images/blogs/adhd-guide.jpg",
-          slug: "understanding-adhd-in-adults",
-        },
-        {
-          id: "2",
-          title: "Focus Techniques That Actually Work for ADHD",
-          description:
-            "Discover evidence-based focus techniques specifically designed for ADHD minds. From the Pomodoro Technique to mindfulness practices, learn what actually works for improving concentration with ADHD.",
-          createdAt: "2024-05-10",
-          updatedAt: "2024-06-10",
-          publishedAt: "2024-06-10",
-          status: "published",
-          views: 189,
-          image: "/images/blogs/focus-techniques.jpg",
-          slug: "focus-techniques-for-adhd",
-        },
-        {
-          id: "3",
-          title: "Supporting Your ADHD Child: A Parent's Guide",
-          description:
-            "Practical strategies for parents navigating ADHD with their children. From school accommodations to building executive function skills, this guide helps parents support their ADHD children effectively.",
-          createdAt: "2024-06-06",
-          updatedAt: "2024-06-06",
-          publishedAt: null,
-          status: "draft",
-          views: 0,
-          image: "/images/blogs/parenting-guide.jpg",
-          slug: "supporting-your-adhd-child",
-        },
-        {
-          id: "4",
-          title: "ADHD Medication: What You Need to Know",
-          description:
-            "A balanced overview of ADHD medications, their benefits, side effects, and how to work with your healthcare provider to find the right treatment approach.",
-          createdAt: "2024-05-05",
-          updatedAt: "2024-06-05",
-          publishedAt: "2024-06-05",
-          status: "published",
-          views: 212,
-          image: "/images/blogs/medication-guide.jpg",
-          slug: "adhd-medication-guide",
-        },
-        {
-          id: "5",
-          title: "ADHD in the Workplace: Accommodation Strategies",
-          description:
-            "Navigate workplace challenges with ADHD. Learn about your rights, effective accommodations, and strategies to maximize productivity and career success with ADHD.",
-          createdAt: "2024-04-28",
-          updatedAt: "2024-05-28",
-          publishedAt: "2024-05-28",
-          status: "published",
-          views: 166,
-          image: "/images/blogs/workplace-adhd.jpg",
-          slug: "adhd-workplace-strategies",
-        },
-      ];
+      setLoading(true);
+      setError(null);
 
-      setBlogs(mockBlogs);
+      const response = await fetch("/api/blogs");
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch blogs");
+      }
+
+      const blogData = await response.json();
+      setBlogs(blogData);
     } catch (err) {
       console.error("Error fetching blogs:", err);
       setError("Failed to load blogs. Please try again later.");
@@ -130,18 +95,18 @@ export default function BlogManagementPage() {
     }
   };
 
-  const handleViewBlog = (e: React.MouseEvent, id: string) => {
-    e.stopPropagation(); // Prevent the card click event from triggering
+  const handleViewBlog = (e: React.MouseEvent, id: number) => {
+    e.stopPropagation();
     router.push(`/therapist/blogs/${id}`);
   };
 
-  const handleEditBlog = (e: React.MouseEvent, id: string) => {
-    e.stopPropagation(); // Prevent the card click event from triggering
+  const handleEditBlog = (e: React.MouseEvent, id: number) => {
+    e.stopPropagation();
     router.push(`/therapist/blogs/${id}/edit`);
   };
 
-  const handleArchiveBlog = (e: React.MouseEvent, blog: Blog) => {
-    e.stopPropagation(); // Prevent the card click event from triggering
+  const handleArchiveBlog = async (e: React.MouseEvent, blog: Blog) => {
+    e.stopPropagation();
     setBlogToDelete(blog);
     setShowDeleteModal(true);
   };
@@ -155,30 +120,34 @@ export default function BlogManagementPage() {
     if (!blogToDelete) return;
 
     try {
-      // Archive/delete logic would go here
-      console.log(`Archiving blog ${blogToDelete.id}`);
+      const response = await fetch(`/api/blogs/${blogToDelete.id}`, {
+        method: "DELETE",
+      });
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      if (!response.ok) {
+        throw new Error("Failed to delete blog");
+      }
 
-      // Remove the blog from the list or change its status
+      // Remove blog from the list
       setBlogs(blogs.filter((blog) => blog.id !== blogToDelete.id));
-
-      // Close the dialog
       setShowDeleteModal(false);
       setBlogToDelete(null);
     } catch (error) {
-      console.error("Error archiving blog:", error);
-      alert("Failed to archive blog. Please try again.");
+      console.error("Error deleting blog:", error);
+      setError("Failed to delete blog. Please try again later.");
     }
   };
 
+  // Filter blogs based on search and category
   const filteredBlogs = blogs.filter((blog) => {
-    if (activeTab === "all") return true;
-    if (activeTab === "published") return blog.status === "published";
-    if (activeTab === "drafts") return blog.status === "draft";
-    if (activeTab === "archived") return blog.status === "archived";
-    return true;
+    const matchesSearch =
+      blog.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      blog.summary.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory =
+      filterCategory === "all" || blog.category === filterCategory;
+    const matchesTab = activeTab === "all" || blog.status === activeTab;
+
+    return matchesSearch && matchesCategory && matchesTab;
   });
 
   const publishedCount = blogs.filter(
@@ -189,246 +158,326 @@ export default function BlogManagementPage() {
     .filter((blog) => blog.status === "published")
     .reduce((sum, blog) => sum + blog.views, 0);
   const avgEngagement =
-    blogs.length > 0 ? Math.round(totalViews / publishedCount) : 0;
+    publishedCount > 0 ? Math.round(totalViews / publishedCount) : 0;
 
   const handleNewBlog = () => {
     router.push("/therapist/blogs/new");
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
   };
 
   if (authStatus === "loading" || loading) {
     return <LoadingSpinner message="Loading blog management..." />;
   }
 
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#F5F3FB] via-white to-[#F5F3FB] p-6 flex items-center justify-center">
+        <Card className="w-full max-w-md text-center">
+          <CardContent className="pt-6 pb-6">
+            <h2 className="text-xl font-bold text-red-500 mb-2">Error</h2>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <Button onClick={fetchBlogs}>Try Again</Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#F5F3FB] via-white to-[#F5F3FB] p-6">
-      {/* Delete confirmation modal - updated to Archive */}
+      {/* Delete confirmation modal */}
       <DeleteConfirmationModal
         isOpen={showDeleteModal}
         onClose={handleCancelDelete}
         onDelete={handleConfirmDelete}
-        title="Archive Blog Post?"
-        description="Are you sure you want to archive"
+        title="Delete Blog Post?"
+        description="Are you sure you want to delete"
         itemName={blogToDelete?.title}
-        buttonLabel="Archive Blog" // Updated label
-        buttonVariant="outline" // Use outline variant for less destructive action
       />
 
-      <div className="max-w-7xl mx-auto space-y-8">
+      <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-[#8159A8] mb-2">
+            <h1 className="text-3xl font-bold text-[#8159A8]">
               Blog Management
             </h1>
             <p className="text-gray-600">
-              Create and manage your blog content for patients and community.
+              Create and manage your therapeutic content
             </p>
           </div>
-
           <Button
             onClick={handleNewBlog}
-            className="bg-[#8159A8] hover:bg-[#6D4C93] text-white transition-all duration-300 mt-4 md:mt-0"
+            className="bg-[#8159A8] hover:bg-[#6D4C93] text-white transition-all duration-300"
           >
-            <PlusIcon className="mr-2 h-4 w-4" /> Add New Blog
+            <Plus className="mr-2 h-4 w-4" />
+            Create New Blog
           </Button>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="bg-white p-6 rounded-lg border shadow-sm hover:shadow-md transition-shadow duration-300">
-            <div className="text-3xl font-bold text-[#8159A8]">
-              {publishedCount}
-            </div>
-            <div className="text-gray-500 text-sm">Published Blogs</div>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <Card className="shadow-sm hover:shadow-md transition-shadow duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <FileText className="h-6 w-6 text-blue-600" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">
+                    Total Blogs
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {blogs.length}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
           </Card>
 
-          <Card className="bg-white p-6 rounded-lg border shadow-sm hover:shadow-md transition-shadow duration-300">
-            <div className="text-3xl font-bold text-[#8159A8]">
-              {draftCount}
-            </div>
-            <div className="text-gray-500 text-sm">Draft Blogs</div>
+          <Card className="shadow-sm hover:shadow-md transition-shadow duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <Target className="h-6 w-6 text-green-600" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Published</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {publishedCount}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
           </Card>
 
-          <Card className="bg-white p-6 rounded-lg border shadow-sm hover:shadow-md transition-shadow duration-300">
-            <div className="text-3xl font-bold text-[#8159A8]">
-              {totalViews.toLocaleString()}
-            </div>
-            <div className="text-gray-500 text-sm">Total Views</div>
+          <Card className="shadow-sm hover:shadow-md transition-shadow duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="p-2 bg-yellow-100 rounded-lg">
+                  <Edit className="h-6 w-6 text-yellow-600" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Drafts</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {draftCount}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
           </Card>
 
-          <Card className="bg-white p-6 rounded-lg border shadow-sm hover:shadow-md transition-shadow duration-300">
-            <div className="text-3xl font-bold text-[#8159A8]">
-              {avgEngagement}
-            </div>
-            <div className="text-gray-500 text-sm">Avg. Engagement</div>
+          <Card className="shadow-sm hover:shadow-md transition-shadow duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="p-2 bg-purple-100 rounded-lg">
+                  <TrendingUp className="h-6 w-6 text-purple-600" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">
+                    Total Views
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {totalViews.toLocaleString()}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
           </Card>
         </div>
 
+        {/* Filters and Search */}
+        <Card className="shadow-sm">
+          <CardContent className="p-6">
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Input
+                    placeholder="Search blogs..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+              <Select value={filterCategory} onValueChange={setFilterCategory}>
+                <SelectTrigger className="w-full md:w-48">
+                  <SelectValue placeholder="Filter by category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  <SelectItem value="adhd">ADHD Resources</SelectItem>
+                  <SelectItem value="anxiety">Anxiety & Depression</SelectItem>
+                  <SelectItem value="parenting">Parenting Support</SelectItem>
+                  <SelectItem value="wellness">Mental Wellness</SelectItem>
+                  <SelectItem value="therapy">Therapy Approaches</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Tabs */}
-        <div>
-          <Tabs
-            value={activeTab}
-            onValueChange={setActiveTab}
-            className="w-full"
-          >
-            <TabsList className="bg-white rounded-md p-1 shadow-sm mb-6">
-              <TabsTrigger
-                value="all"
-                className="text-sm data-[state=active]:text-[#8159A8] data-[state=active]:bg-[#F5F3FB] rounded transition-all duration-200"
-              >
-                All Blogs
-              </TabsTrigger>
-              <TabsTrigger
-                value="published"
-                className="text-sm data-[state=active]:text-[#8159A8] data-[state=active]:bg-[#F5F3FB] rounded transition-all duration-200"
-              >
-                Published
-              </TabsTrigger>
-              <TabsTrigger
-                value="drafts"
-                className="text-sm data-[state=active]:text-[#8159A8] data-[state=active]:bg-[#F5F3FB] rounded transition-all duration-200"
-              >
-                Drafts
-              </TabsTrigger>
-              <TabsTrigger
-                value="archived"
-                className="text-sm data-[state=active]:text-[#8159A8] data-[state=active]:bg-[#F5F3FB] rounded transition-all duration-200"
-              >
-                Archived
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+        <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
+          {[
+            { key: "all", label: "All Blogs", count: blogs.length },
+            { key: "published", label: "Published", count: publishedCount },
+            { key: "draft", label: "Drafts", count: draftCount },
+          ].map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-200 ${
+                activeTab === tab.key
+                  ? "bg-white text-[#8159A8] shadow-sm"
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              {tab.label} ({tab.count})
+            </button>
+          ))}
+        </div>
 
-          {/* Blog Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredBlogs.length > 0 ? (
-              filteredBlogs.map((blog) => (
-                <Card
-                  key={blog.id}
-                  className="overflow-hidden border rounded-lg shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer"
-                  onClick={() => router.push(`/therapist/blogs/${blog.id}`)}
-                >
-                  <div
-                    className={`relative w-full ${
-                      blog.status === "draft" ? "bg-amber-100" : "bg-white"
-                    }`}
-                    style={{ height: "180px" }}
-                  >
-                    <Image
-                      src={blog.image}
-                      alt={blog.title}
-                      fill
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                      className="object-cover"
-                      onError={(e) => {
-                        // Fallback image if the real one fails to load
-                        e.currentTarget.src =
-                          "/images/blogs/blog-placeholder.jpg";
-                      }}
-                    />
-                    {blog.status === "draft" && (
-                      <div className="absolute inset-0 bg-amber-500/20 flex items-center justify-center">
-                        <Badge className="bg-amber-100 text-amber-800 text-sm px-3 py-1">
-                          Draft
-                        </Badge>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="p-5 space-y-3">
-                    <div className="flex justify-between items-center">
-                      <Badge
-                        className={`
-                          ${
-                            blog.status === "published"
-                              ? "bg-green-100 text-green-800"
-                              : blog.status === "draft"
-                              ? "bg-amber-100 text-amber-800"
-                              : "bg-gray-100 text-gray-800"
-                          }
-                        `}
-                      >
-                        {blog.status.charAt(0).toUpperCase() +
-                          blog.status.slice(1)}
-                      </Badge>
-
-                      {blog.status === "published" && (
-                        <div className="text-gray-500 text-sm">
-                          {blog.views} views
-                        </div>
-                      )}
-                    </div>
-
-                    <h3 className="font-semibold text-lg line-clamp-2 text-gray-800">
-                      {blog.title}
-                    </h3>
-
-                    <p className="text-gray-600 text-sm line-clamp-3">
-                      {blog.description}
-                    </p>
-
-                    <div className="pt-2 text-sm text-gray-500">
-                      {blog.status === "published"
-                        ? `Published: ${new Date(
-                            blog.publishedAt!
-                          ).toLocaleDateString()}`
-                        : `Last edited: ${new Date(
-                            blog.updatedAt
-                          ).toLocaleDateString()}`}
-                    </div>
-
-                    <div className="flex justify-between pt-4 border-t mt-4">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-gray-600 hover:text-[#8159A8]"
-                        onClick={(e) => handleEditBlog(e, blog.id)}
-                      >
-                        Edit
-                      </Button>
-
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-gray-600 hover:text-[#8159A8]"
-                        onClick={(e) => handleViewBlog(e, blog.id)}
-                      >
-                        View
-                      </Button>
-
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-gray-600 hover:text-[#8159A8]"
-                        onClick={(e) => handleArchiveBlog(e, blog)}
-                      >
-                        Archive
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
-              ))
-            ) : (
-              <div className="col-span-full flex flex-col items-center justify-center p-12 text-center">
-                <div className="text-3xl mb-4">📝</div>
-                <h3 className="text-xl font-semibold text-gray-700 mb-2">
-                  No blogs found
-                </h3>
-                <p className="text-gray-500 mb-6">
-                  {activeTab === "all"
-                    ? "You haven't created any blogs yet."
-                    : `You don't have any ${activeTab} blogs.`}
-                </p>
+        {/* Blog Grid */}
+        {filteredBlogs.length === 0 ? (
+          <Card className="shadow-sm">
+            <CardContent className="p-12 text-center">
+              <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                No blogs found
+              </h3>
+              <p className="text-gray-600 mb-4">
+                {blogs.length === 0
+                  ? "Get started by creating your first blog post."
+                  : "Try adjusting your search or filter criteria."}
+              </p>
+              {blogs.length === 0 && (
                 <Button
                   onClick={handleNewBlog}
                   className="bg-[#8159A8] hover:bg-[#6D4C93] text-white"
                 >
+                  <Plus className="mr-2 h-4 w-4" />
                   Create Your First Blog
                 </Button>
-              </div>
-            )}
+              )}
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredBlogs.map((blog) => (
+              <Card
+                key={blog.id}
+                className="cursor-pointer hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1"
+                onClick={(e) => handleViewBlog(e, blog.id)}
+              >
+                <div className="relative">
+                  {blog.imageUrl ? (
+                    <div className="relative h-48 w-full">
+                      <Image
+                        src={blog.imageUrl}
+                        alt={blog.title}
+                        fill
+                        className="object-cover rounded-t-lg"
+                        onError={(e) => {
+                          e.currentTarget.src =
+                            "/images/blogs/blog-placeholder.jpg";
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="h-48 w-full bg-gradient-to-br from-[#8159A8]/10 to-[#6D4C93]/10 rounded-t-lg flex items-center justify-center">
+                      <FileText className="h-12 w-12 text-[#8159A8]/40" />
+                    </div>
+                  )}
+
+                  <div className="absolute top-3 left-3">
+                    <Badge
+                      className={`${
+                        blog.status === "published"
+                          ? "bg-green-100 text-green-800 border-green-200"
+                          : blog.status === "draft"
+                          ? "bg-yellow-100 text-yellow-800 border-yellow-200"
+                          : "bg-gray-100 text-gray-800 border-gray-200"
+                      }`}
+                    >
+                      {blog.status.charAt(0).toUpperCase() +
+                        blog.status.slice(1)}
+                    </Badge>
+                  </div>
+
+                  {blog.category && (
+                    <div className="absolute top-3 right-3">
+                      <Badge
+                        variant="outline"
+                        className="bg-white/90 backdrop-blur-sm"
+                      >
+                        {blog.category}
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+
+                <CardContent className="p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
+                    {blog.title}
+                  </h3>
+                  <p className="text-gray-600 text-sm mb-4 line-clamp-3">
+                    {blog.summary}
+                  </p>
+
+                  <div className="flex items-center text-xs text-gray-500 mb-4">
+                    <div className="flex items-center mr-4">
+                      <Calendar className="w-3 h-3 mr-1" />
+                      <span>{formatDate(blog.updated_at)}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <Eye className="w-3 h-3 mr-1" />
+                      <span>{blog.views.toLocaleString()} views</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <div className="w-6 h-6 rounded-full bg-[#8159A8] text-white text-xs flex items-center justify-center font-medium">
+                        {blog.authorName?.charAt(0)?.toUpperCase() || "T"}
+                      </div>
+                      <span className="ml-2 text-sm text-gray-600">
+                        {blog.authorName}
+                      </span>
+                    </div>
+
+                    <div className="flex space-x-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => handleEditBlog(e, blog.id)}
+                        className="h-8 w-8 p-0 hover:bg-[#8159A8]/10"
+                      >
+                        <Edit className="h-4 w-4 text-[#8159A8]" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => handleArchiveBlog(e, blog)}
+                        className="h-8 w-8 p-0 hover:bg-red-50"
+                      >
+                        <MoreVertical className="h-4 w-4 text-gray-500" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

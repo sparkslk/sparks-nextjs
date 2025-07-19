@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Filter, X } from "lucide-react";
+import {  X } from "lucide-react";
 
 interface TherapistFiltersProps {
   selectedSpecialty: string;
@@ -26,7 +26,7 @@ export function TherapistFilters({
   selectedCost,
   setSelectedCost,
   showFilters,
-  setShowFilters,
+  // setShowFilters,
   activeFiltersCount,
   onClearAllFilters
 }: TherapistFiltersProps) {
@@ -35,37 +35,22 @@ export function TherapistFilters({
       {/* Filter Controls */}
       <div className="flex flex-wrap gap-4 items-center">
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-2"
-          >
-            <Filter className="w-4 h-4" />
-            Filters
-            {activeFiltersCount > 0 && (
-              <Badge variant="secondary" className="ml-1 px-1.5 py-0.5 text-xs bg-[#8159A8] text-white">
-                {activeFiltersCount}
-              </Badge>
-            )}
-          </Button>
-          
+
           {activeFiltersCount > 0 && (
             <Button
               variant="ghost"
               size="sm"
               onClick={onClearAllFilters}
-              className="text-gray-500 hover:text-gray-700"
+              className="text-muted-foreground hover:text-primary font-medium"
             >
               Clear all
             </Button>
           )}
         </div>
-
         {showFilters && (
-          <div className="w-full flex flex-wrap gap-3">
+          <div className="w-full flex flex-wrap gap-3 mt-3">
             <Select value={selectedSpecialty} onValueChange={setSelectedSpecialty}>
-              <SelectTrigger className="w-48">
+              <SelectTrigger className="w-48 border-primary rounded-lg">
                 <SelectValue placeholder="All Specialties" />
               </SelectTrigger>
               <SelectContent>
@@ -77,9 +62,8 @@ export function TherapistFilters({
                 <SelectItem value="child">Child Psychology</SelectItem>
               </SelectContent>
             </Select>
-
             <Select value={selectedTimeAvailability} onValueChange={setSelectedTimeAvailability}>
-              <SelectTrigger className="w-40">
+              <SelectTrigger className="w-40 border-primary rounded-lg">
                 <SelectValue placeholder="Availability" />
               </SelectTrigger>
               <SelectContent>
@@ -90,9 +74,8 @@ export function TherapistFilters({
                 <SelectItem value="nextWeek">Next Week</SelectItem>
               </SelectContent>
             </Select>
-
             <Select value={selectedCost} onValueChange={setSelectedCost}>
-              <SelectTrigger className="w-32">
+              <SelectTrigger className="w-32 border-primary rounded-lg">
                 <SelectValue placeholder="Cost" />
               </SelectTrigger>
               <SelectContent>
@@ -104,31 +87,33 @@ export function TherapistFilters({
           </div>
         )}
       </div>
-
       {/* Active Filters Display */}
       {activeFiltersCount > 0 && (
-        <div className="flex flex-wrap gap-2">
-          <span className="text-sm text-gray-600">Active filters:</span>
+        <div className="flex flex-wrap gap-2 mt-2">
+          <span className="text-sm text-muted-foreground font-medium">Active filters:</span>
           {selectedSpecialty !== "all" && (
-            <Badge variant="outline" className="flex items-center gap-1">
+            <Badge variant="outline" className="flex items-center gap-1 border-primary text-primary font-medium rounded-lg">
               {selectedSpecialty}
-              <button onClick={() => setSelectedSpecialty("all")}>
+              <button onClick={() => setSelectedSpecialty("all")}
+                className="hover:text-destructive ml-1">
                 <X className="w-3 h-3" />
               </button>
             </Badge>
           )}
           {selectedTimeAvailability !== "all" && (
-            <Badge variant="outline" className="flex items-center gap-1">
+            <Badge variant="outline" className="flex items-center gap-1 border-primary text-primary font-medium rounded-lg">
               {selectedTimeAvailability}
-              <button onClick={() => setSelectedTimeAvailability("all")}>
+              <button onClick={() => setSelectedTimeAvailability("all")}
+                className="hover:text-destructive ml-1">
                 <X className="w-3 h-3" />
               </button>
             </Badge>
           )}
           {selectedCost !== "all" && (
-            <Badge variant="outline" className="flex items-center gap-1">
+            <Badge variant="outline" className="flex items-center gap-1 border-primary text-primary font-medium rounded-lg">
               {selectedCost}
-              <button onClick={() => setSelectedCost("all")}>
+              <button onClick={() => setSelectedCost("all")}
+                className="hover:text-destructive ml-1">
                 <X className="w-3 h-3" />
               </button>
             </Badge>

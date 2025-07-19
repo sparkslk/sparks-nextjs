@@ -1,31 +1,33 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Edit, Trash2, Eye, BarChart3 } from "lucide-react";
+import { ArrowLeft, Edit, Trash2 } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { DeleteConfirmationModal } from "@/components/ui/delete-confirmation-modal";
 
 interface Blog {
-  id: string;
+  id: number;
   title: string;
   summary: string;
   content: string;
-  createdAt: string;
-  updatedAt: string;
-  publishedAt: string | null;
+  created_at: string;
+  updated_at: string;
+  published_at: string | null;
   status: "published" | "draft" | "archived";
   views: number;
-  image: string;
-  slug: string;
-  category: string;
-  tags: string[];
-  authorName: string;
+  imageUrl: string | null;
+  category: string | null;
+  tags: string[] | null;
+  User: {
+    name: string;
+    email: string;
+  };
 }
 
 export default function BlogDetailPage({ params }: { params: { id: string } }) {
@@ -36,6 +38,35 @@ export default function BlogDetailPage({ params }: { params: { id: string } }) {
   const [error, setError] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
+  // Fetch blog data
+  const fetchBlog = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/blogs/${params.id}`);
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error("Blog not found");
+        }
+        throw new Error("Failed to fetch blog");
+      }
+
+      const blogData = await response.json();
+      setBlog(blogData);
+    } catch (err) {
+      console.error("Error fetching blog:", err);
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to load blog. Please try again later."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [params.id]);
+
   useEffect(() => {
     if (authStatus === "unauthenticated") {
       router.push("/login");
@@ -45,151 +76,7 @@ export default function BlogDetailPage({ params }: { params: { id: string } }) {
     if (authStatus === "authenticated") {
       fetchBlog();
     }
-  }, [authStatus, router, params.id]);
-
-  const fetchBlog = async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      // This would be an API call in a real app
-      // For now, we'll simulate fetching with mock data
-
-      // Add a small delay to simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 800));
-
-      if (params.id === "1") {
-        setBlog({
-          id: "1",
-          title: "Understanding ADHD in Adults: A Comprehensive Guide",
-          summary:
-            "Adult ADHD often goes undiagnosed, leading to challenges in work, relationships, and daily life.",
-          content: `
-# Understanding ADHD in Adults: A Comprehensive Guide
-
-Adult ADHD often goes undiagnosed, leading to challenges in work, relationships, and daily life. This comprehensive guide explores the symptoms, causes, and treatment options for adults with ADHD.
-
-## Common Symptoms in Adults
-
-ADHD symptoms in adults can differ from those in children. While hyperactivity may decrease in adulthood, other symptoms can persist and cause significant impairment.
-
-### Attention Difficulties
-- Trouble focusing on tasks
-- Easy distraction by unrelated thoughts or stimuli
-- Difficulty completing projects
-- Poor attention to details, making careless mistakes
-- Problems following conversations
-
-### Executive Function Challenges
-- Difficulty with organization and prioritization
-- Poor time management and frequent tardiness
-- Trouble starting and finishing tasks
-- Forgetting appointments, deadlines, or commitments
-
-### Emotional Regulation
-- Mood swings and emotional reactivity
-- Low frustration tolerance
-- Difficulty managing stress
-- Motivation issues
-
-## Diagnosis Process
-
-Getting diagnosed as an adult can be challenging but is an important step toward treatment. The process typically involves:
-
-1. **Clinical interview** - Discussion of current symptoms, childhood history, and impact on life
-2. **Rating scales** - Standardized questionnaires that measure ADHD symptoms
-3. **Medical history review** - To rule out other conditions with similar symptoms
-4. **Collateral information** - Input from partners, family members, or close friends
-
-## Treatment Approaches
-
-Effective ADHD management usually involves a multimodal approach:
-
-### Medication
-- Stimulants (methylphenidate, amphetamines)
-- Non-stimulants (atomoxetine, guanfacine)
-- Antidepressants (in some cases)
-
-### Therapy Options
-- Cognitive-behavioral therapy
-- ADHD coaching
-- Mindfulness training
-- Group therapy
-
-### Lifestyle Strategies
-- Exercise and physical activity
-- Sleep hygiene practices
-- Nutrition considerations
-- Environmental modifications
-
-## Living Successfully with ADHD
-
-Many adults with ADHD lead successful, fulfilling lives. Strategies include:
-
-- Leveraging ADHD strengths like creativity and problem-solving
-- Using technology tools for organization
-- Creating structured environments
-- Developing consistent routines
-- Building a supportive network
-          `,
-          createdAt: "2024-03-15",
-          updatedAt: "2024-06-15",
-          publishedAt: "2024-06-15",
-          status: "published",
-          views: 243,
-          image: "/images/blogs/adhd-guide.jpg",
-          slug: "understanding-adhd-in-adults",
-          category: "adhd",
-          tags: ["ADHD", "Adults", "Mental Health", "Treatment"],
-          authorName: "Dr. Kanchana Weerasinghe",
-        });
-      } else if (params.id === "2") {
-        setBlog({
-          id: "2",
-          title: "Focus Techniques That Actually Work for ADHD",
-          summary:
-            "Discover evidence-based focus techniques specifically designed for ADHD minds.",
-          content: "This is the full content for the focus techniques blog...",
-          createdAt: "2024-05-10",
-          updatedAt: "2024-06-10",
-          publishedAt: "2024-06-10",
-          status: "published",
-          views: 189,
-          image: "/images/blogs/focus-techniques.jpg",
-          slug: "focus-techniques-for-adhd",
-          category: "adhd",
-          tags: ["ADHD", "Focus", "Productivity", "Techniques"],
-          authorName: "Dr. Sarah Johnson",
-        });
-      } else if (params.id === "3") {
-        setBlog({
-          id: "3",
-          title: "Supporting Your ADHD Child: A Parent's Guide",
-          summary:
-            "Practical strategies for parents navigating ADHD with their children.",
-          content: "This is the full content for the parent's guide blog...",
-          createdAt: "2024-06-06",
-          updatedAt: "2024-06-06",
-          publishedAt: null,
-          status: "draft",
-          views: 0,
-          image: "/images/blogs/parenting-guide.jpg",
-          slug: "supporting-your-adhd-child",
-          category: "parenting",
-          tags: ["ADHD", "Parenting", "Children", "Support"],
-          authorName: "Dr. Sarah Johnson",
-        });
-      } else {
-        // If ID doesn't match any mock data
-        throw new Error("Blog not found");
-      }
-    } catch (err) {
-      console.error("Error fetching blog:", err);
-      setError("Failed to load blog. Please try again later.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [authStatus, router, fetchBlog]);
 
   const handleDeleteClick = () => {
     setShowDeleteModal(true);
@@ -200,10 +87,18 @@ Many adults with ADHD lead successful, fulfilling lives. Strategies include:
   };
 
   const handleConfirmDelete = async () => {
+    if (!blog) return;
+
     setLoading(true);
     try {
-      // This would be an API call in a real app
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const response = await fetch(`/api/blogs/${blog.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete blog");
+      }
+
       setShowDeleteModal(false);
       router.push("/therapist/blogs");
     } catch (err) {
@@ -215,30 +110,30 @@ Many adults with ADHD lead successful, fulfilling lives. Strategies include:
   };
 
   const handlePublish = async () => {
+    if (!blog) return;
+
     setLoading(true);
     try {
-      // This would be an API call in a real app
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      setBlog((blog) =>
-        blog
-          ? {
-              ...blog,
-              status: "published",
-              publishedAt: new Date().toISOString(),
-            }
-          : null
-      );
+      const response = await fetch(`/api/blogs/${blog.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status: "published" }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to publish blog");
+      }
+
+      const updatedBlog = await response.json();
+      setBlog(updatedBlog);
     } catch (err) {
       console.error("Error publishing blog:", err);
       setError("Failed to publish blog. Please try again later.");
     } finally {
       setLoading(false);
     }
-  };
-
-  const handlePreviewOnPublicSite = () => {
-    // Open blog in a new tab on the public-facing site
-    window.open(`/blogs/${blog?.slug}`, "_blank");
   };
 
   if (authStatus === "loading" || loading) {
@@ -270,7 +165,8 @@ Many adults with ADHD lead successful, fulfilling lives. Strategies include:
               Blog Not Found
             </h2>
             <p className="text-gray-600 mb-4">
-              The blog you're looking for doesn't exist or has been removed.
+              The blog you&apos;re looking for doesn&apos;t exist or has been
+              removed.
             </p>
             <Button onClick={() => router.push("/therapist/blogs")}>
               Return to Blog Management
@@ -280,6 +176,52 @@ Many adults with ADHD lead successful, fulfilling lives. Strategies include:
       </div>
     );
   }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
+
+  const formatContent = (content: string) => {
+    return content.split("\n").map((line, i) => {
+      if (line.startsWith("# ")) {
+        return (
+          <h1 key={i} className="text-2xl font-bold mt-6 mb-4">
+            {line.substring(2)}
+          </h1>
+        );
+      } else if (line.startsWith("## ")) {
+        return (
+          <h2 key={i} className="text-xl font-bold mt-5 mb-3">
+            {line.substring(3)}
+          </h2>
+        );
+      } else if (line.startsWith("### ")) {
+        return (
+          <h3 key={i} className="text-lg font-bold mt-4 mb-2">
+            {line.substring(4)}
+          </h3>
+        );
+      } else if (line.startsWith("- ")) {
+        return (
+          <li key={i} className="ml-6 my-1">
+            {line.substring(2)}
+          </li>
+        );
+      } else if (line.trim() === "") {
+        return <br key={i} />;
+      } else {
+        return (
+          <p key={i} className="my-2">
+            {line}
+          </p>
+        );
+      }
+    });
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#F5F3FB] via-white to-[#F5F3FB] p-6">
@@ -323,12 +265,8 @@ Many adults with ADHD lead successful, fulfilling lives. Strategies include:
               </Badge>
               <span className="text-sm text-gray-500">
                 {blog.status === "published"
-                  ? `Published on ${new Date(
-                      blog.publishedAt!
-                    ).toLocaleDateString()}`
-                  : `Last updated on ${new Date(
-                      blog.updatedAt
-                    ).toLocaleDateString()}`}
+                  ? `Published on ${formatDate(blog.published_at!)}`
+                  : `Last updated on ${formatDate(blog.updated_at)}`}
               </span>
             </div>
             <h1 className="text-3xl font-bold text-[#8159A8]">{blog.title}</h1>
@@ -367,68 +305,37 @@ Many adults with ADHD lead successful, fulfilling lives. Strategies include:
           {/* Left Column - Blog Content */}
           <div className="col-span-3 space-y-6">
             <Card className="shadow-sm overflow-hidden">
-              <div
-                className={`relative w-full ${
-                  blog.status === "draft" ? "bg-amber-100" : "bg-white"
-                }`}
-                style={{ height: "300px" }}
-              >
-                <Image
-                  src={blog.image}
-                  alt={blog.title}
-                  fill
-                  sizes="(max-width: 768px) 100vw, 75vw"
-                  className="object-cover"
-                  onError={(e) => {
-                    e.currentTarget.src = "/images/blogs/blog-placeholder.jpg";
-                  }}
-                />
-                {blog.status === "draft" && (
-                  <div className="absolute inset-0 bg-amber-500/20 flex items-center justify-center">
-                    <Badge className="bg-amber-100 text-amber-800 text-sm px-4 py-1.5 text-lg">
-                      Draft
-                    </Badge>
-                  </div>
-                )}
-              </div>
+              {blog.imageUrl && (
+                <div
+                  className={`relative w-full ${
+                    blog.status === "draft" ? "bg-amber-100" : "bg-white"
+                  }`}
+                  style={{ height: "300px" }}
+                >
+                  <Image
+                    src={blog.imageUrl}
+                    alt={blog.title}
+                    fill
+                    sizes="(max-width: 768px) 100vw, 75vw"
+                    className="object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src =
+                        "/images/blogs/blog-placeholder.jpg";
+                    }}
+                  />
+                  {blog.status === "draft" && (
+                    <div className="absolute inset-0 bg-amber-500/20 flex items-center justify-center">
+                      <Badge className="bg-amber-100 text-amber-800 text-sm px-4 py-1.5 text-lg">
+                        Draft
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+              )}
               <CardContent className="p-6">
                 <div className="prose prose-purple max-w-none">
                   <div className="whitespace-pre-line">
-                    {blog.content.split("\n").map((line, i) => {
-                      if (line.startsWith("# ")) {
-                        return (
-                          <h1 key={i} className="text-2xl font-bold mt-6 mb-4">
-                            {line.substring(2)}
-                          </h1>
-                        );
-                      } else if (line.startsWith("## ")) {
-                        return (
-                          <h2 key={i} className="text-xl font-bold mt-5 mb-3">
-                            {line.substring(3)}
-                          </h2>
-                        );
-                      } else if (line.startsWith("### ")) {
-                        return (
-                          <h3 key={i} className="text-lg font-bold mt-4 mb-2">
-                            {line.substring(4)}
-                          </h3>
-                        );
-                      } else if (line.startsWith("- ")) {
-                        return (
-                          <li key={i} className="ml-6 my-1">
-                            {line.substring(2)}
-                          </li>
-                        );
-                      } else if (line.trim() === "") {
-                        return <br key={i} />;
-                      } else {
-                        return (
-                          <p key={i} className="my-2">
-                            {line}
-                          </p>
-                        );
-                      }
-                    })}
+                    {formatContent(blog.content)}
                   </div>
                 </div>
               </CardContent>
@@ -453,7 +360,7 @@ Many adults with ADHD lead successful, fulfilling lives. Strategies include:
                 <div className="flex justify-between">
                   <span className="text-gray-600">Created</span>
                   <span className="font-semibold">
-                    {new Date(blog.createdAt).toLocaleDateString()}
+                    {formatDate(blog.created_at)}
                   </span>
                 </div>
               </CardContent>
@@ -466,27 +373,31 @@ Many adults with ADHD lead successful, fulfilling lives. Strategies include:
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div>
-                  <div className="text-gray-600 mb-2">Category</div>
-                  <Badge className="bg-[#8159A8]/10 text-[#8159A8] hover:bg-[#8159A8]/20 transition-colors duration-300">
-                    {blog.category.charAt(0).toUpperCase() +
-                      blog.category.slice(1)}
-                  </Badge>
-                </div>
-                <div>
-                  <div className="text-gray-600 mb-2">Tags</div>
-                  <div className="flex flex-wrap gap-2">
-                    {blog.tags.map((tag, index) => (
-                      <Badge
-                        key={index}
-                        variant="outline"
-                        className="hover:bg-gray-100 transition-colors duration-300"
-                      >
-                        {tag}
-                      </Badge>
-                    ))}
+                {blog.category && (
+                  <div>
+                    <div className="text-gray-600 mb-2">Category</div>
+                    <Badge className="bg-[#8159A8]/10 text-[#8159A8] hover:bg-[#8159A8]/20 transition-colors duration-300">
+                      {blog.category.charAt(0).toUpperCase() +
+                        blog.category.slice(1)}
+                    </Badge>
                   </div>
-                </div>
+                )}
+                {blog.tags && blog.tags.length > 0 && (
+                  <div>
+                    <div className="text-gray-600 mb-2">Tags</div>
+                    <div className="flex flex-wrap gap-2">
+                      {blog.tags.map((tag, index) => (
+                        <Badge
+                          key={index}
+                          variant="outline"
+                          className="hover:bg-gray-100 transition-colors duration-300"
+                        >
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -497,13 +408,13 @@ Many adults with ADHD lead successful, fulfilling lives. Strategies include:
               <CardContent>
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-[#8159A8] text-white flex items-center justify-center font-bold">
-                    {blog.authorName
+                    {blog.User.name
                       .split(" ")
                       .map((n) => n[0])
                       .join("")}
                   </div>
                   <div>
-                    <div className="font-medium">{blog.authorName}</div>
+                    <div className="font-medium">{blog.User.name}</div>
                     <div className="text-sm text-gray-600">Therapist</div>
                   </div>
                 </div>

@@ -65,7 +65,15 @@ export async function GET(req: NextRequest) {
                             orderBy: { scheduledAt: 'desc' }
                         },
                         primaryTherapist: {
-                            include: {
+                            select: {
+                                id: true,
+                                userId: true,
+                                organizationId: true,
+                                specialization: true,
+                                licenseNumber: true,
+                                experience: true,
+                                bio: true,
+                                availability: true,
                                 user: {
                                     select: {
                                         name: true,
@@ -79,23 +87,89 @@ export async function GET(req: NextRequest) {
             }
         });
 
-        const children = parentGuardianRelations.map(relation => ({
-            id: relation.patient.id,
-            firstName: relation.patient.firstName,
-            lastName: relation.patient.lastName,
-            dateOfBirth: relation.patient.dateOfBirth,
-            gender: relation.patient.gender,
-            phone: relation.patient.phone,
-            email: relation.patient.email,
-            relationship: relation.relationship,
-            isPrimary: relation.isPrimary,
-            upcomingSessions: relation.patient.therapySessions.length,
-            lastSession: relation.patient.therapySessions[0]?.scheduledAt || null,
-            therapist: relation.patient.primaryTherapist ? {
-                name: relation.patient.primaryTherapist.user.name,
-                email: relation.patient.primaryTherapist.user.email
-            } : null
-        }));
+        // Use a single 'now' variable for the whole function
+        const now = new Date();
+
+        const children = await Promise.all(
+            parentGuardianRelations.map(async (relation) => {
+                // Calculate progress percentage as tasks completed for the current month
+                const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+                const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+                const allTasksThisMonth = await prisma.task.findMany({
+                    where: {
+                        patientId: relation.patient.id,
+                        dueDate: {
+                            gte: startOfMonth,
+                            lte: endOfMonth
+                        }
+                    }
+                });
+                const completedTasksThisMonth = allTasksThisMonth.filter(task => task.status === 'COMPLETED');
+                const progressPercentage = allTasksThisMonth.length > 0 ? Math.round((completedTasksThisMonth.length / allTasksThisMonth.length) * 100) : 0;
+
+                // Fetch patient user image if userId exists
+                let patientImage = null;
+                if (relation.patient.userId) {
+                    const patientUser = await prisma.user.findUnique({
+                        where: { id: relation.patient.userId },
+                        select: { image: true }
+                    });
+                    patientImage = patientUser?.image || null;
+                }
+
+                return {
+                    id: relation.patient.id,
+                    firstName: relation.patient.firstName,
+                    lastName: relation.patient.lastName,
+                    dateOfBirth: relation.patient.dateOfBirth,
+                    gender: relation.patient.gender,
+                    email: relation.patient.email,
+                    relationship: relation.relationship,
+                    isPrimary: relation.isPrimary,
+                    upcomingSessions: relation.patient.therapySessions.length,
+                    lastSession: relation.patient.therapySessions[0]?.scheduledAt
+  ? (() => {
+      const d = new Date(relation.patient.therapySessions[0].scheduledAt);
+      const utc = new Date(
+        d.getUTCFullYear(),
+        d.getUTCMonth(),
+        d.getUTCDate(),
+        d.getUTCHours(),
+        d.getUTCMinutes(),
+        d.getUTCSeconds()
+      );
+      return utc.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+        timeZone: 'Asia/Colombo'
+      });
+    })()
+  : null,
+                    nextSessionId: relation.patient.therapySessions[0]?.id || null,
+                    nextSessionType: relation.patient.therapySessions[0]?.type || null,
+                    nextSessionStatus: relation.patient.therapySessions[0]?.status || null,
+                    therapist: relation.patient.primaryTherapist ? {
+                        id: relation.patient.primaryTherapist.id,
+                        userId: relation.patient.primaryTherapist.userId,
+                        name: relation.patient.primaryTherapist.user.name,
+                        email: relation.patient.primaryTherapist.user.email,
+                        specialization: relation.patient.primaryTherapist.specialization,
+                        licenseNumber: relation.patient.primaryTherapist.licenseNumber,
+                        experience: relation.patient.primaryTherapist.experience || 0,
+                        bio: relation.patient.primaryTherapist.bio,
+                        rating: 4.5, // Default rating since not in schema
+                        availability: relation.patient.primaryTherapist.availability,
+                        organizationId: relation.patient.primaryTherapist.organizationId
+                    } : null,
+                    progressPercentage,
+                    image: patientImage
+                };
+            })
+        );
 
         return NextResponse.json({ children });
 
@@ -144,8 +218,7 @@ export async function GET(req: NextRequest) {
  *               gender:
  *                 type: string
  *                 enum: ["MALE", "FEMALE", "OTHER", "PREFER_NOT_TO_SAY"]
- *               phone:
- *                 type: string
+ *
  *               email:
  *                 type: string
  *                 format: email
@@ -169,7 +242,6 @@ export async function POST(request: NextRequest) {
             lastName,
             dateOfBirth,
             gender,
-            phone,
             email,
             address,
             relationship,
@@ -194,6 +266,22 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        // Create a User record for the child if email is provided
+        let childUser = null;
+        if (email) {
+            // Check if user already exists
+            childUser = await prisma.user.findUnique({ where: { email } });
+            if (!childUser) {
+                childUser = await prisma.user.create({
+                    data: {
+                        email,
+                        name: `${firstName} ${lastName}`.trim(),
+                        role: "NORMAL_USER"
+                    }
+                });
+            }
+        }
+
         // Create the patient record
         const patient = await prisma.patient.create({
             data: {
@@ -201,11 +289,12 @@ export async function POST(request: NextRequest) {
                 lastName,
                 dateOfBirth: new Date(dateOfBirth),
                 gender: gender as $Enums.Gender,
-                phone: phone || null,
                 email: email || null,
                 address: address || null,
                 emergencyContact: emergencyContact || undefined,
                 medicalHistory: medicalHistory || null,
+                // Link to user if created
+                ...(childUser ? { userId: childUser.id } : {}),
                 // Note: primaryTherapistId will be set later when a therapist is assigned
             }
         });
