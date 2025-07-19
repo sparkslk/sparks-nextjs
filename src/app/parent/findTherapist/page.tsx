@@ -38,6 +38,7 @@ interface Therapist {
     image?: string | null;
     isCurrentTherapist?: boolean;
     bio?: string;
+    patientsCount?: number;
 }
 
 export default function FindTherapistPage() {
@@ -104,9 +105,10 @@ export default function FindTherapistPage() {
         const fetchTherapists = async () => {
             try {
                 const response = await fetch("/api/therapists");
+          
                 if (response.ok) {
                     const data = await response.json();
-
+                    console.log(data);
                     // Convert API data to Therapist interface format
                     const formattedTherapists: Therapist[] = data.therapists?.map((therapist: {
                         id: string;
@@ -115,14 +117,15 @@ export default function FindTherapistPage() {
                         experience?: number;
                         image?: string | null;
                         bio?: string;
+                        patientsCount?: number;
                     }) => ({
                         id: therapist.id,
                         name: therapist.name,
                         title: "Licensed Therapist",
                         specialties: therapist.specialization || ["General Psychology"],
                         rating: Math.round((4.5 + Math.random() * 0.5) * 10) / 10, // Random rating between 4.5-5.0, rounded to 1 decimal
-                        reviewCount: Math.floor(Math.random() * 200) + 50, // Random review count
-                        experience: therapist.experience ? `${therapist.experience}+ years experience` : "Licensed Professional",
+                        // reviewCount: Math.floor(Math.random() * 200) + 50, // Random review count
+                        experience: therapist.experience ? `${therapist.experience}+ years` : "0 years",
                         sessionTypes: { inPerson: false, online: true },
                         availability: {
                             nextSlot: getRandomAvailability(),
@@ -136,7 +139,8 @@ export default function FindTherapistPage() {
                         languages: ["English"],
                         tags: ["English"],
                         image: therapist.image || null,
-                        bio: therapist.bio || ""
+                        bio: therapist.bio || "",
+                        patientsCount: typeof therapist.patientsCount === 'number' ? therapist.patientsCount : 0
                     })) || [];
 
                     setTherapists(formattedTherapists);
@@ -214,24 +218,6 @@ export default function FindTherapistPage() {
         setFilteredTherapists(filtered);
     }, [searchQuery, selectedSpecialty, selectedTimeAvailability, selectedCost, therapists]);
 
-    // const handleBookSession = async (therapistId: string) => {
-    //     setBookingStatus(prev => ({ ...prev, [therapistId]: 'booking' }));
-
-    //     // Simulate API call
-    //     try {
-    //         await new Promise(resolve => setTimeout(resolve, 1500));
-    //         setBookingStatus(prev => ({ ...prev, [therapistId]: 'success' }));
-    //         setTimeout(() => {
-    //             setBookingStatus(prev => ({ ...prev, [therapistId]: 'idle' }));
-    //         }, 3000);
-    //     } catch {
-    //         setBookingStatus(prev => ({ ...prev, [therapistId]: 'error' }));
-    //         setTimeout(() => {
-    //             setBookingStatus(prev => ({ ...prev, [therapistId]: 'idle' }));
-    //         }, 3000);
-    //     }
-    // };
-
     // Handler for viewing profile
     const handleViewProfile = (therapist: Therapist) => {
         setSelectedTherapist(therapist);
@@ -306,7 +292,11 @@ export default function FindTherapistPage() {
                                                 </div>
                                                 <div className="text-center">
                                                     <div className="font-bold text-xl text-foreground">{selectedTherapist.name}</div>
-                                                    <div className="text-sm text-muted-foreground">{selectedTherapist.title}</div>
+                                                    <div className="text-sm text-muted-foreground">
+                                                        {selectedTherapist.specialties && selectedTherapist.specialties.length > 0
+                                                            ? selectedTherapist.specialties.join(", ")
+                                                            : "General Psychology"}
+                                                    </div>
                                                 </div>
                                                 {/* Info Cards */}
                                                 <div className="flex gap-3 mt-5 mb-2 w-full justify-center">
@@ -315,11 +305,11 @@ export default function FindTherapistPage() {
                                                         <span className="text-xs text-muted-foreground mt-1">Rating</span>
                                                     </div>
                                                     <div className="bg-white rounded-xl border border-[#e0d7ed] px-4 py-2 flex flex-col items-center min-w-[80px]">
-                                                        <span className="text-base font-semibold text-primary">1000+</span>
-                                                        <span className="text-xs text-muted-foreground mt-1">Patients</span>
+                                                        <span className="text-base font-semibold text-primary">{typeof selectedTherapist.patientsCount === 'number' ? selectedTherapist.patientsCount : 'N/A'}</span>
+                                                        <span className="text-xs text-muted-foreground mt-1">{selectedTherapist.patientsCount === 1 ? 'Patient' : 'Patients'}</span>
                                                     </div>
                                                     <div className="bg-white rounded-xl border border-[#e0d7ed] px-4 py-2 flex flex-col items-center min-w-[80px]">
-                                                        <span className="text-base font-semibold text-primary">10+ Years</span>
+                                                        <span className="text-base font-semibold text-primary">{selectedTherapist.experience === '0+ years' || selectedTherapist.experience === '0' ? 'New Therapist' : selectedTherapist.experience}</span>
                                                         <span className="text-xs text-muted-foreground mt-1">Experience</span>
                                                     </div>
                                                 </div>
@@ -332,7 +322,6 @@ export default function FindTherapistPage() {
                                             {/* Action Buttons */}
                                             <div className="flex flex-col gap-2 px-7 pb-7 pt-2">
                                                 <Button variant="default" className="font-semibold w-full h-11 text-base rounded-xl">Choose Therapist</Button>
-                                                <Button variant="outline" className="font-semibold w-full h-11 text-base rounded-xl border-primary text-primary hover:bg-primary/10">View Other Therapists</Button>
                                             </div>
                                         </div>
                                     )}
@@ -346,7 +335,7 @@ export default function FindTherapistPage() {
             <div className="max-w-5xl mx-auto px-4 py-8">
                 {/* Header Section */}
                 <div className="mb-6">
-                    <h1 className="text-2xl font-bold text-foreground mb-3">Choose your therapist</h1>
+                    <h1 className="text-4xl font-extrabold bg-gradient-to-r from-primary to-foreground bg-clip-text text-transparent tracking-tight mb-3">Choose your therapist</h1>
                     <div className="flex items-center gap-2 mb-2">
                         <div className="relative flex-1">
                             <TherapistSearchBar
@@ -440,90 +429,6 @@ export default function FindTherapistPage() {
                             </div>
                         </div>
                     )}
-
-                    {/* Current Therapist Section */}
-                    {/* {currentTherapist && (
-                        <div className="space-y-6">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-gradient-to-r from-primary/20 to-purple-500/20 rounded-full flex items-center justify-center">
-                                    <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.102m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                                    </svg>
-                                </div>
-                                <div>
-                                    <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-[#8159A8] bg-clip-text text-transparent">Your Current Therapist</h2>
-                                    <p className="text-sm text-muted-foreground">Your assigned mental health professional</p>
-                                </div>
-                            </div>
-
-                            <div className="bg-white rounded-2xl border border-[#e0d7ed] shadow-sm p-6 flex items-center gap-5">
-                                <div className="w-14 h-14 bg-gradient-to-r from-primary/20 to-purple-500/20 rounded-full flex items-center justify-center">
-                                    <span className="font-semibold text-lg text-primary">
-                                        {currentTherapist.name.split(' ').map(n => n[0]).join('')}
-                                    </span>
-                                </div>
-                                <div className="flex-1">
-                                    <h3 className="font-semibold text-foreground text-lg">{currentTherapist.name}</h3>
-                                    <p className="text-sm text-muted-foreground">{currentTherapist.title}</p>
-                                    <div className="flex flex-wrap gap-1 mt-2">
-                                        {currentTherapist.specialties.slice(0, 3).map((specialty, index) => (
-                                            <span key={index} className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-primary/10 text-primary">
-                                                {specialty}
-                                            </span>
-                                        ))}
-                                    </div>
-                                    <div className="flex gap-2 mt-2">
-                                        <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-500/10 text-green-600">
-                                            Current Therapist
-                                        </span>
-                                        <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-500/10 text-blue-600">
-                                            Online Sessions
-                                        </span>
-                                    </div>
-                                </div>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="border-primary/20 hover:bg-primary/5 font-semibold"
-                                    onClick={() => alert(`Contact ${currentTherapist.name}`)}
-                                >
-                                    Contact
-                                </Button>
-                            </div>
-
-                            <div className="text-center border-t pt-6">
-                                <h3 className="text-lg font-medium text-foreground mb-2">Looking for Additional Support?</h3>
-                                <p className="text-muted-foreground text-sm">
-                                    Explore more therapists below to find additional specialists or alternative options
-                                </p>
-                            </div>
-                        </div>
-                    )} */}
-
-                    {/* Search and Filters */}
-                    {/* <div className="space-y-3">
-                        <div className="bg-white rounded-xl border border-[#e0d7ed] shadow-sm p-4">
-                            <TherapistSearchBar
-                                searchQuery={searchQuery}
-                                onSearchChange={setSearchQuery}
-                            />
-                        </div>
-
-                        <div className="bg-white rounded-xl border border-[#e0d7ed] shadow-sm p-4">
-                            <TherapistFilters
-                                selectedSpecialty={selectedSpecialty}
-                                setSelectedSpecialty={setSelectedSpecialty}
-                                selectedTimeAvailability={selectedTimeAvailability}
-                                setSelectedTimeAvailability={setSelectedTimeAvailability}
-                                selectedCost={selectedCost}
-                                setSelectedCost={setSelectedCost}
-                                showFilters={showFilters}
-                                setShowFilters={setShowFilters}
-                                activeFiltersCount={getActiveFiltersCount()}
-                                onClearAllFilters={clearAllFilters}
-                            />
-                        </div>
-                    </div> */}
 
                     
                     {/* Therapists Grid */}
