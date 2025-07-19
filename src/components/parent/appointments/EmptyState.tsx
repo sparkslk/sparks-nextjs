@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Calendar } from "lucide-react";
+// import { Calendar } from "lucide-react";
 
 interface EmptyStateProps {
   type: "no-children" | "loading" | "error";
@@ -33,28 +33,28 @@ export default function EmptyState({ type, error, onRetry }: EmptyStateProps) {
     );
   }
 
-  if (type === "no-children") {
-    return (
-      <div className="text-center py-12">
-        <div className="w-12 h-12 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ backgroundColor: '#8159A8' }}>
-          <Calendar className="w-6 h-6 text-white" />
-        </div>
-        <h3 className="text-base font-semibold text-gray-900 mb-2">
-          No Children Found
-        </h3>
-        <p className="text-gray-600 mb-4 text-sm">
-          Add children to your account to manage their appointments.
-        </p>
-        <Button
-          className="text-white hover:opacity-90 transition-all duration-300 shadow-md text-sm"
-          style={{ backgroundColor: '#8159A8' }}
-          onClick={() => window.location.href = '/parent/children'}
-        >
-          Add Child
-        </Button>
-      </div>
-    );
-  }
+  // if (type === "no-children") {
+  //   return (
+  //     <div className="text-center py-12">
+  //       <div className="w-12 h-12 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ backgroundColor: '#8159A8' }}>
+  //         <Calendar className="w-6 h-6 text-white" />
+  //       </div>
+  //       <h3 className="text-base font-semibold text-gray-900 mb-2">
+  //         No Children Found
+  //       </h3>
+  //       <p className="text-gray-600 mb-4 text-sm">
+  //         Add children to your account to manage their appointments.
+  //       </p>
+  //       <Button
+  //         className="text-white hover:opacity-90 transition-all duration-300 shadow-md text-sm"
+  //         style={{ backgroundColor: '#8159A8' }}
+  //         onClick={() => window.location.href = '/parent/children'}
+  //       >
+  //         Add Child
+  //       </Button>
+  //     </div>
+  //   );
+  // }
 
   return null;
 }
