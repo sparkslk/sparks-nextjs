@@ -4,7 +4,7 @@
 import { useRouter, usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
-import { User, Settings, LogOut, Menu, X } from "lucide-react";
+import { User,  LogOut, Menu, X } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState} from "react";
 import NotificationBell from "@/components/NotificationBell";
@@ -116,9 +116,7 @@ export default function ParentNavigation() {
                                 </span>
                             </div>
                             <NotificationBell />
-                            <Button variant="ghost" size="icon" className="hover:bg-accent">
-                                <Settings className="h-5 w-5" />
-                            </Button>
+                           
                             <div className="flex items-center space-x-2">
                                 {parentData?.parentImage ? (
                                     <Image
@@ -170,9 +168,7 @@ export default function ParentNavigation() {
                             </div>
                             <div className="flex justify-center space-x-4">
                                 <NotificationBell />
-                                <Button variant="ghost" size="icon" className="hover:bg-accent">
-                                    <Settings className="h-5 w-5" />
-                                </Button>
+                               
                                 <div className="flex items-center space-x-2">
                                     {parentData?.parentImage ? (
                                         <Image
