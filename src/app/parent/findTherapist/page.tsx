@@ -10,6 +10,7 @@ import {
     TherapistFilters
 } from "@/components/FindTherapist";
 import { Dialog, Transition } from "@headlessui/react";
+import { Listbox } from "@headlessui/react";
 
 interface Therapist {
     id: string;
@@ -38,6 +39,13 @@ interface Therapist {
     image?: string | null;
     isCurrentTherapist?: boolean;
     bio?: string;
+    patientsCount?: number;
+    isChildConnection?: boolean; // Added for modal logic
+    highestEducation?: string;
+    adhdExperience?: string; // Added for ADHD experience
+    email?: string; // Added for email
+    dob?: string; // Added for date of birth
+    gender?: string
 }
 
 export default function FindTherapistPage() {
@@ -50,52 +58,59 @@ export default function FindTherapistPage() {
     const [selectedCost, setSelectedCost] = useState("all");
     const [showFilters, setShowFilters] = useState(false);
     // const [bookingStatus, setBookingStatus] = useState<{ [key: string]: 'idle' | 'booking' | 'success' | 'error' }>({});
-    const [currentTherapist, setCurrentTherapist] = useState<Therapist | null>(null);
+    // const [currentTherapist, setCurrentTherapist] = useState<Therapist | null>(null);
     const [profileModalOpen, setProfileModalOpen] = useState(false);
     const [selectedTherapist, setSelectedTherapist] = useState<Therapist | null>(null);
+    const [childTherapistConnections, setChildTherapistConnections] = useState<{ childName: string; therapist: Therapist }[]>([]);
+    const [chooseModalOpen, setChooseModalOpen] = useState(false);
+    const [selectedPatient, setSelectedPatient] = useState<string | null>(null);
+    const [patients, setPatients] = useState<{ id: string; name: string }[]>([]); // List of patient objects
+    const [patientTherapistMap, setPatientTherapistMap] = useState<{ [patient: string]: Therapist | null }>({});
+    const [pendingTherapist, setPendingTherapist] = useState<Therapist | null>(null);
+    const [notification, setNotification] = useState<string | null>(null);
 
     // Fetch current therapist from patient data
-    useEffect(() => {
-        const fetchCurrentTherapist = async () => {
-            try {
-                const response = await fetch("/api/dashboard");
-                if (response.ok) {
-                    const data = await response.json();
+    // useEffect(() => {
+    //     const fetchCurrentTherapist = async () => {
+    //         try {
+    //             const response = await fetch("/api/dashboard");
+    //             if (response.ok) {
+    //                 const data = await response.json();
 
-                    if (data.therapist) {
-                        // Convert therapist data to Therapist interface format
-                        const therapistData: Therapist = {
-                            id: `current-therapist`,
-                            name: data.therapist.name,
-                            title: "Licensed Therapist", // Default title
-                            specialties: data.therapist.specialization || ["General Psychology"], // Use specialization from API
-                            rating: 4.8, // Default rating
-                            reviewCount: 0,
-                            experience: "Licensed Professional",
-                            sessionTypes: { inPerson: false, online: true },
-                            availability: {
-                                nextSlot: "Contact for availability",
-                                timeSlot: "Schedule via contact",
-                                timeCategory: "thisWeek" as const
-                            },
-                            cost: { isFree: false, priceRange: "Contact for pricing" },
-                            languages: ["English"],
-                            tags: ["English"],
-                            isCurrentTherapist: true
-                        };
+    //                 if (data.therapist) {
+    //                     // Convert therapist data to Therapist interface format
+    //                     const therapistData: Therapist = {
+    //                         id: `current-therapist`,
+    //                         name: data.therapist.name,
+    //                         title: "Licensed Therapist", // Default title
+    //                         specialties: data.therapist.specialization || ["General Psychology"], // Use specialization from API
+    //                         rating: 4.8, // Default rating
+    //                         reviewCount: 0,
+    //                         experience: "Licensed Professional",
+    //                         sessionTypes: { inPerson: false, online: true },
+    //                         availability: {
+    //                             nextSlot: "Contact for availability",
+    //                             timeSlot: "Schedule via contact",
+    //                             timeCategory: "thisWeek" as const
+    //                         },
+    //                         cost: { isFree: false, priceRange: "Contact for pricing" },
+    //                         languages: ["English"],
+    //                         tags: ["English"],
+    //                         isCurrentTherapist: true
+    //                     };
 
-                        console.log("Current Therapist Data:", therapistData);
+    //                     console.log("Current Therapist Data:", therapistData);
 
-                        setCurrentTherapist(therapistData);
-                    }
-                }
-            } catch (error) {
-                console.error("Error fetching current therapist:", error);
-            }
-        };
+    //                     setCurrentTherapist(therapistData);
+    //                 }
+    //             }
+    //         } catch (error) {
+    //             console.error("Error fetching current therapist:", error);
+    //         }
+    //     };
 
-        fetchCurrentTherapist();
-    }, []);
+    //     fetchCurrentTherapist();
+    // }, []);
 
 
 
@@ -104,9 +119,10 @@ export default function FindTherapistPage() {
         const fetchTherapists = async () => {
             try {
                 const response = await fetch("/api/therapists");
+          
                 if (response.ok) {
                     const data = await response.json();
-
+                    console.log(data);
                     // Convert API data to Therapist interface format
                     const formattedTherapists: Therapist[] = data.therapists?.map((therapist: {
                         id: string;
@@ -115,14 +131,16 @@ export default function FindTherapistPage() {
                         experience?: number;
                         image?: string | null;
                         bio?: string;
+                        patientsCount?: number;
+                        rating?: number | string;
                     }) => ({
                         id: therapist.id,
                         name: therapist.name,
                         title: "Licensed Therapist",
                         specialties: therapist.specialization || ["General Psychology"],
-                        rating: Math.round((4.5 + Math.random() * 0.5) * 10) / 10, // Random rating between 4.5-5.0, rounded to 1 decimal
-                        reviewCount: Math.floor(Math.random() * 200) + 50, // Random review count
-                        experience: therapist.experience ? `${therapist.experience}+ years experience` : "Licensed Professional",
+                        rating: typeof therapist.rating === 'number' ? therapist.rating : parseFloat(therapist.rating || '0'), // Parse rating as number
+                        // reviewCount: Math.floor(Math.random() * 200) + 50, // Random review count
+                        experience: therapist.experience ? `${therapist.experience}+ years` : "0 years",
                         sessionTypes: { inPerson: false, online: true },
                         availability: {
                             nextSlot: getRandomAvailability(),
@@ -136,7 +154,8 @@ export default function FindTherapistPage() {
                         languages: ["English"],
                         tags: ["English"],
                         image: therapist.image || null,
-                        bio: therapist.bio || ""
+                        bio: therapist.bio || "",
+                        patientsCount: typeof therapist.patientsCount === 'number' ? therapist.patientsCount : 0
                     })) || [];
 
                     setTherapists(formattedTherapists);
@@ -158,6 +177,62 @@ export default function FindTherapistPage() {
         };
 
         fetchTherapists();
+    }, []);
+
+    // Fetch child-therapist connections
+    useEffect(() => {
+        const fetchChildTherapistConnections = async () => {
+            try {
+                const response = await fetch("/api/parent/child-therapists");
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log(data);
+                    // Use the API data directly, no mock/random fields
+                    interface ChildTherapistConnection {
+                        childName: string;
+                        therapist: {
+                            id: string;
+                            name: string;
+                            specialization?: string[];
+                            experience?: number;
+                            image?: string | null;
+                            bio?: string;
+                            patientsCount?: number;
+                            rating?: number; // Add rating property
+                        };
+                    }
+
+                    const formatted = (data.connections || []).map((conn: ChildTherapistConnection) => ({
+                        childName: conn.childName,
+                        therapist: {
+                            id: conn.therapist.id,
+                            name: conn.therapist.name,
+                            title: "Licensed Therapist",
+                            specialties: conn.therapist.specialization || ["General Psychology"],
+                            rating: typeof conn.therapist.rating === 'number' ? conn.therapist.rating : parseFloat(conn.therapist.rating || '0'), // Parse rating as number
+                            reviewCount: 0,
+                            experience: conn.therapist.experience ? `${conn.therapist.experience}+ years` : "0 years",
+                            sessionTypes: { inPerson: false, online: true },
+                            availability: {
+                                nextSlot: "Contact for availability",
+                                timeSlot: "Schedule via contact",
+                                timeCategory: "thisWeek"
+                            },
+                            cost: { isFree: false, priceRange: "Contact for pricing" },
+                            languages: ["English"],
+                            tags: ["English"],
+                            image: conn.therapist.image || null,
+                            bio: conn.therapist.bio || "",
+                            patientsCount: typeof conn.therapist.patientsCount === 'number' ? conn.therapist.patientsCount : 0
+                        }
+                    }));
+                    setChildTherapistConnections(formatted);
+                }
+            } catch {
+                setChildTherapistConnections([]);
+            }
+        };
+        fetchChildTherapistConnections();
     }, []);
 
     // Helper functions for random data generation
@@ -214,27 +289,73 @@ export default function FindTherapistPage() {
         setFilteredTherapists(filtered);
     }, [searchQuery, selectedSpecialty, selectedTimeAvailability, selectedCost, therapists]);
 
-    // const handleBookSession = async (therapistId: string) => {
-    //     setBookingStatus(prev => ({ ...prev, [therapistId]: 'booking' }));
+    // Fetch patients and their therapists (mocked for now)
+    useEffect(() => {
+        // Replace with real API call
 
-    //     // Simulate API call
-    //     try {
-    //         await new Promise(resolve => setTimeout(resolve, 1500));
-    //         setBookingStatus(prev => ({ ...prev, [therapistId]: 'success' }));
-    //         setTimeout(() => {
-    //             setBookingStatus(prev => ({ ...prev, [therapistId]: 'idle' }));
-    //         }, 3000);
-    //     } catch {
-    //         setBookingStatus(prev => ({ ...prev, [therapistId]: 'error' }));
-    //         setTimeout(() => {
-    //             setBookingStatus(prev => ({ ...prev, [therapistId]: 'idle' }));
-    //         }, 3000);
-    //     }
-    // };
+        const fetchPatients = async () => {
+            // Example: [{ id: '1', name: 'Alice', therapist: { ... } }, ...]
+            const response = await fetch("/api/parent/children");
+            if (response.ok) {
+                const data = await response.json();
+                interface ApiPatient {
+                    id: string;
+                    firstName: string;
+                    lastName?: string;
+                    therapist?: Therapist | null;
+                }
+                setPatients(data.children.map((p: ApiPatient) => ({ id: p.id, name: p.firstName + (p.lastName ? ' ' + p.lastName : '') })));
+                const map: { [patient: string]: Therapist | null } = {};
+                data.children.forEach((p: ApiPatient) => {
+                    const patientName = p.firstName + (p.lastName ? ' ' + p.lastName : '');
+                    map[patientName] = p.therapist || null;
+                });
+                setPatientTherapistMap(map);
+            } else {
+                setPatients([]);
+                setPatientTherapistMap({});
+            }
+        };
+        fetchPatients();
+    }, []);
+
+    // Handler for 'Choose Therapist' button
+    const handleChooseTherapist = (therapist: Therapist) => {
+        setPendingTherapist(therapist);
+        setChooseModalOpen(true);
+    };
+
+    // Handler for confirming therapist selection
+    const confirmChooseTherapist = async () => {
+        if (!selectedPatient || !pendingTherapist) return;
+        const patientObj = patients.find((p) => p.name === selectedPatient);
+        if (!patientObj) return;
+        try {
+            const response = await fetch("/api/parent/assign-therapist", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    patientId: patientObj.id,
+                    therapistId: pendingTherapist.id
+                })
+            });
+            if (!response.ok) {
+                throw new Error("Failed to assign therapist");
+            }
+            setNotification(`Now ${selectedPatient}'s therapist is ${pendingTherapist.name}`);
+            setTimeout(() => setNotification(null), 5000);
+        } catch (error) {
+            console.error(error);
+        }
+        setChooseModalOpen(false);
+        setProfileModalOpen(false);
+        setSelectedPatient(null);
+        setPendingTherapist(null);
+    };
 
     // Handler for viewing profile
-    const handleViewProfile = (therapist: Therapist) => {
-        setSelectedTherapist(therapist);
+    const handleViewProfile = (therapist: Therapist, isChildConnection: boolean = false) => {
+        setSelectedTherapist({ ...therapist, isChildConnection });
         setProfileModalOpen(true);
     };
 
@@ -306,7 +427,11 @@ export default function FindTherapistPage() {
                                                 </div>
                                                 <div className="text-center">
                                                     <div className="font-bold text-xl text-foreground">{selectedTherapist.name}</div>
-                                                    <div className="text-sm text-muted-foreground">{selectedTherapist.title}</div>
+                                                    <div className="text-sm text-muted-foreground">
+                                                        {selectedTherapist.specialties && selectedTherapist.specialties.length > 0
+                                                            ? selectedTherapist.specialties.join(", ")
+                                                            : "General Psychology"}
+                                                    </div>
                                                 </div>
                                                 {/* Info Cards */}
                                                 <div className="flex gap-3 mt-5 mb-2 w-full justify-center">
@@ -315,24 +440,50 @@ export default function FindTherapistPage() {
                                                         <span className="text-xs text-muted-foreground mt-1">Rating</span>
                                                     </div>
                                                     <div className="bg-white rounded-xl border border-[#e0d7ed] px-4 py-2 flex flex-col items-center min-w-[80px]">
-                                                        <span className="text-base font-semibold text-primary">1000+</span>
-                                                        <span className="text-xs text-muted-foreground mt-1">Patients</span>
+                                                        <span className="text-base font-semibold text-primary">{typeof selectedTherapist.patientsCount === 'number' ? selectedTherapist.patientsCount : 'N/A'}</span>
+                                                        <span className="text-xs text-muted-foreground mt-1">{selectedTherapist.patientsCount === 1 ? 'Patient' : 'Patients'}</span>
                                                     </div>
                                                     <div className="bg-white rounded-xl border border-[#e0d7ed] px-4 py-2 flex flex-col items-center min-w-[80px]">
-                                                        <span className="text-base font-semibold text-primary">10+ Years</span>
+                                                        <span className="text-base font-semibold text-primary">{selectedTherapist.experience === '0+ years' || selectedTherapist.experience === '0' ? 'New Therapist' : selectedTherapist.experience}</span>
                                                         <span className="text-xs text-muted-foreground mt-1">Experience</span>
                                                     </div>
                                                 </div>
                                             </div>
-                                            {/* About Section */}
+                                            {/* Details Section */}
                                             <div className="px-7 pt-4 pb-2">
+                                                <div className="font-semibold text-primary mb-3 text-lg">Therapist Details</div>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 bg-[#f8f6fc] rounded-xl p-4 border border-[#e0d7ed]">
+                                                    <div className="flex flex-col"><span className="text-xs text-muted-foreground font-semibold uppercase mb-1">Specialty</span><span className="text-base text-foreground">{selectedTherapist.specialties?.join(', ') || 'General Psychology'}</span></div>
+                                                    <div className="flex flex-col"><span className="text-xs text-muted-foreground font-semibold uppercase mb-1">Email Address</span><span className="text-base text-foreground">{selectedTherapist.email || 'therapist@email.com'}</span></div>
+                                                    <div className="flex flex-col"><span className="text-xs text-muted-foreground font-semibold uppercase mb-1">Highest Education</span><span className="text-base text-foreground">{selectedTherapist.highestEducation || 'PhD in Clinical Psychology'}</span></div>
+                                                    <div className="flex flex-col"><span className="text-xs text-muted-foreground font-semibold uppercase mb-1">Gender</span><span className="text-base text-foreground">{selectedTherapist.gender || 'Female'}</span></div>
+                                                </div>
+                                            </div>
+                                            {/* ADHD Experience Section */}
+                                            <div className="px-7 pt-2 pb-2">
+                                                <div className="font-semibold text-primary mb-1">ADHD-Specific Experience</div>
+                                                <div className="text-base text-muted-foreground mb-2">{selectedTherapist.adhdExperience || '5+ years working with ADHD children'}</div>
+                                            </div>
+                                            {/* About Section */}
+                                            <div className="px-7 pt-2 pb-2">
                                                 <div className="font-semibold text-primary mb-1">About</div>
                                                 <div className="text-sm text-muted-foreground mb-2">{selectedTherapist.bio}</div>
                                             </div>
                                             {/* Action Buttons */}
                                             <div className="flex flex-col gap-2 px-7 pb-7 pt-2">
-                                                <Button variant="default" className="font-semibold w-full h-11 text-base rounded-xl">Choose Therapist</Button>
-                                                <Button variant="outline" className="font-semibold w-full h-11 text-base rounded-xl border-primary text-primary hover:bg-primary/10">View Other Therapists</Button>
+                                                {selectedTherapist.isChildConnection ? (
+                                                    <Button
+                                                        variant="default"
+                                                        className="font-semibold w-full h-11 text-base rounded-xl"
+                                                        onClick={() => window.location.href = '/parent/messages'}
+                                                    >
+                                                        Contact Therapist
+                                                    </Button>
+                                                ) : (
+                                                    <Button variant="default" className="font-semibold w-full h-11 text-base rounded-xl" onClick={() => handleChooseTherapist(selectedTherapist)}>
+                                                        Choose Therapist
+                                                    </Button>
+                                                )}
                                             </div>
                                         </div>
                                     )}
@@ -343,10 +494,90 @@ export default function FindTherapistPage() {
                 </Dialog>
             </Transition.Root>
 
+            {/* Choose Therapist Modal */}
+            <Transition.Root show={chooseModalOpen} as={Fragment}>
+                <Dialog as="div" className="relative z-50" onClose={setChooseModalOpen}>
+                    <Transition.Child
+                        as={Fragment}
+                        enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100"
+                        leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0"
+                    >
+                        <div className="fixed inset-0 bg-black/40 transition-opacity" />
+                    </Transition.Child>
+                    <div className="fixed inset-0 z-50 overflow-y-auto">
+                        <div className="flex min-h-full items-center justify-center p-4 text-center">
+                            <Transition.Child
+                                as={Fragment}
+                                enter="ease-out duration-300" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100"
+                                leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95"
+                            >
+                                <Dialog.Panel className="w-full max-w-lg min-h-[380px] transform overflow-hidden rounded-2xl bg-white border border-[#e0d7ed] p-0 text-left align-middle shadow-2xl transition-all">
+                                    <div className="p-9 flex flex-col gap-6">
+                                        <Dialog.Title as="h3" className="font-bold text-2xl text-primary mb-2">Choose Therapist for Patient</Dialog.Title>
+                                        <div>
+                                            <label className="block text-sm font-medium mb-2">Select Patient</label>
+                                            <Listbox value={selectedPatient} onChange={setSelectedPatient}>
+                                                <div className="relative">
+                                                    <Listbox.Button className="w-full border rounded-lg px-3 py-2 text-left bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-primary/40">
+                                                        <span>{selectedPatient || "Select a patient"}</span>
+                                                        <svg className="w-5 h-5 text-gray-400 ml-2 pointer-events-none" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                                    </Listbox.Button>
+                                                    <Listbox.Options className="absolute z-50 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-72 overflow-auto">
+                                                        {patients.map((patient) => (
+                                                            <Listbox.Option key={patient.id} value={patient.name} className={({ active }) => `cursor-pointer select-none px-4 py-2 ${active ? 'bg-primary/10' : ''}` }>
+                                                                {patient.name}
+                                                            </Listbox.Option>
+                                                        ))}
+                                                    </Listbox.Options>
+                                                </div>
+                                            </Listbox>
+                                        </div>
+                                        {selectedPatient && patientTherapistMap[selectedPatient] && (
+                                            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800">
+                                                <strong>Note:</strong> {selectedPatient} already has a primary therapist. If you confirm, their primary therapist will be changed to <span className="font-semibold">{pendingTherapist?.name}</span>. The previous therapist will be politely notified about this change.
+                                            </div>
+                                        )}
+                                        <div className="flex gap-2 mt-6">
+                                            <Button variant="default" className="flex-1 rounded-lg h-12 text-base font-semibold" disabled={!selectedPatient} onClick={confirmChooseTherapist}>
+                                                Confirm
+                                            </Button>
+                                            <Button variant="outline" className="flex-1 rounded-lg h-12 text-base font-semibold" onClick={() => setChooseModalOpen(false)}>
+                                                Cancel
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </Dialog.Panel>
+                            </Transition.Child>
+                        </div>
+                    </div>
+                </Dialog>
+            </Transition.Root>
+
             <div className="max-w-5xl mx-auto px-4 py-8">
                 {/* Header Section */}
                 <div className="mb-6">
-                    <h1 className="text-2xl font-bold text-foreground mb-3">Choose your therapist</h1>
+                    <h1 className="text-4xl font-extrabold bg-gradient-to-r from-primary to-foreground bg-clip-text text-transparent tracking-tight mb-3">Choose your therapist</h1>
+                    {/* Child-therapist connections section */}
+                    {childTherapistConnections.length > 0 && (
+                        <div className="mb-6">
+                            <h2 className="text-lg font-semibold text-primary mb-2">Your children and their therapists</h2>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                                {childTherapistConnections.map((conn) => (
+                                    <div key={conn.therapist.id + conn.childName} className="relative">
+                                        <TherapistCard
+                                            therapist={conn.therapist}
+                                            bookingStatus={'idle'}
+                                            onViewProfile={() => handleViewProfile(conn.therapist, true)}
+                                            viewDetailsText="View Details"
+                                        />
+                                        <div className="absolute top-2 right-2 bg-primary/90 text-white text-xs px-3 py-1 rounded-full shadow">
+                                            Connected to: <span className="font-semibold">{conn.childName}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                     <div className="flex items-center gap-2 mb-2">
                         <div className="relative flex-1">
                             <TherapistSearchBar
@@ -400,6 +631,12 @@ export default function FindTherapistPage() {
                 </div>
 
                 <div className="space-y-8">
+                    {/* Notification */}
+                    {notification && (
+                        <div className="bg-green-100 border border-green-300 text-green-800 rounded-lg px-4 py-3 text-center font-medium">
+                            {notification}
+                        </div>
+                    )}
                     {/* Available Therapists Info */}
                     <div className="flex items-center justify-between">
                         <p className="text-sm text-muted-foreground">
@@ -407,7 +644,7 @@ export default function FindTherapistPage() {
                         </p>
                     </div>
 
-                    {/* No Current Therapist Message */}
+                    {/* No Current Therapist Message
                     {!currentTherapist && (
                         <div className="bg-white rounded-2xl border border-[#e0d7ed] shadow-sm p-8 flex items-center gap-6">
                             <div className="flex-shrink-0">
@@ -439,107 +676,33 @@ export default function FindTherapistPage() {
                                 </div>
                             </div>
                         </div>
-                    )}
-
-                    {/* Current Therapist Section */}
-                    {/* {currentTherapist && (
-                        <div className="space-y-6">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-gradient-to-r from-primary/20 to-purple-500/20 rounded-full flex items-center justify-center">
-                                    <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.102m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                                    </svg>
-                                </div>
-                                <div>
-                                    <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-[#8159A8] bg-clip-text text-transparent">Your Current Therapist</h2>
-                                    <p className="text-sm text-muted-foreground">Your assigned mental health professional</p>
-                                </div>
-                            </div>
-
-                            <div className="bg-white rounded-2xl border border-[#e0d7ed] shadow-sm p-6 flex items-center gap-5">
-                                <div className="w-14 h-14 bg-gradient-to-r from-primary/20 to-purple-500/20 rounded-full flex items-center justify-center">
-                                    <span className="font-semibold text-lg text-primary">
-                                        {currentTherapist.name.split(' ').map(n => n[0]).join('')}
-                                    </span>
-                                </div>
-                                <div className="flex-1">
-                                    <h3 className="font-semibold text-foreground text-lg">{currentTherapist.name}</h3>
-                                    <p className="text-sm text-muted-foreground">{currentTherapist.title}</p>
-                                    <div className="flex flex-wrap gap-1 mt-2">
-                                        {currentTherapist.specialties.slice(0, 3).map((specialty, index) => (
-                                            <span key={index} className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-primary/10 text-primary">
-                                                {specialty}
-                                            </span>
-                                        ))}
-                                    </div>
-                                    <div className="flex gap-2 mt-2">
-                                        <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-500/10 text-green-600">
-                                            Current Therapist
-                                        </span>
-                                        <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-500/10 text-blue-600">
-                                            Online Sessions
-                                        </span>
-                                    </div>
-                                </div>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="border-primary/20 hover:bg-primary/5 font-semibold"
-                                    onClick={() => alert(`Contact ${currentTherapist.name}`)}
-                                >
-                                    Contact
-                                </Button>
-                            </div>
-
-                            <div className="text-center border-t pt-6">
-                                <h3 className="text-lg font-medium text-foreground mb-2">Looking for Additional Support?</h3>
-                                <p className="text-muted-foreground text-sm">
-                                    Explore more therapists below to find additional specialists or alternative options
-                                </p>
-                            </div>
-                        </div>
                     )} */}
-
-                    {/* Search and Filters */}
-                    {/* <div className="space-y-3">
-                        <div className="bg-white rounded-xl border border-[#e0d7ed] shadow-sm p-4">
-                            <TherapistSearchBar
-                                searchQuery={searchQuery}
-                                onSearchChange={setSearchQuery}
-                            />
-                        </div>
-
-                        <div className="bg-white rounded-xl border border-[#e0d7ed] shadow-sm p-4">
-                            <TherapistFilters
-                                selectedSpecialty={selectedSpecialty}
-                                setSelectedSpecialty={setSelectedSpecialty}
-                                selectedTimeAvailability={selectedTimeAvailability}
-                                setSelectedTimeAvailability={setSelectedTimeAvailability}
-                                selectedCost={selectedCost}
-                                setSelectedCost={setSelectedCost}
-                                showFilters={showFilters}
-                                setShowFilters={setShowFilters}
-                                activeFiltersCount={getActiveFiltersCount()}
-                                onClearAllFilters={clearAllFilters}
-                            />
-                        </div>
-                    </div> */}
 
                     
                     {/* Therapists Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-7">
-                        {filteredTherapists.map((therapist) => (
-                            <TherapistCard
-                                key={therapist.id}
-                                therapist={therapist}
-                                bookingStatus={'idle'}
-                                onViewProfile={() => handleViewProfile(therapist)}
-                                viewDetailsText="View Details"
-                            />
-                        ))}
-                    </div>
+                    {(() => {
+                        // Exclude therapists already connected to a child
+                        const connectedTherapistIds = new Set(childTherapistConnections.map(conn => conn.therapist.id));
+                        const unconnectedTherapists = filteredTherapists.filter(t => !connectedTherapistIds.has(t.id));
+                        return (
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-7">
+                                {unconnectedTherapists.map((therapist) => (
+                                    <TherapistCard
+                                        key={therapist.id}
+                                        therapist={therapist}
+                                        bookingStatus={'idle'}
+                                        onViewProfile={() => handleViewProfile(therapist)}
+                                        viewDetailsText="View Details"
+                                    />
+                                ))}
+                            </div>
+                        );
+                    })()}
 
-                    {filteredTherapists.length === 0 && (
+                    {filteredTherapists.filter(t => {
+                        const connectedTherapistIds = new Set(childTherapistConnections.map(conn => conn.therapist.id));
+                        return !connectedTherapistIds.has(t.id);
+                    }).length === 0 && (
                         <TherapistEmptyState onClearFilters={clearAllFilters} />
                     )}
                 </div>

@@ -52,6 +52,10 @@ export default function MyChildrenPage() {
   const [selectedChild, setSelectedChild] = useState<Child | null>(null);
   const [showAddChild, setShowAddChild] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [removingChildId, setRemovingChildId] = useState<string | null>(null);
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
+  const [removeLoading, setRemoveLoading] = useState(false);
+  const [removeError, setRemoveError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchChildren();
@@ -104,6 +108,33 @@ export default function MyChildrenPage() {
         [childId]: Math.round(currentProgress)
       }));
     }, 20); // 20ms interval for smooth animation
+  };
+
+  const handleRemoveChild = async (patientId: string) => {
+    setRemoveLoading(true);
+    setRemoveError(null);
+    try {
+      const res = await fetch("/api/parent/remove-child", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ patientId }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to remove child");
+      }
+      setShowRemoveConfirm(false);
+      setRemovingChildId(null);
+      fetchChildren();
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setRemoveError(err.message || "Failed to remove child");
+      } else {
+        setRemoveError("Failed to remove child");
+      }
+    } finally {
+      setRemoveLoading(false);
+    }
   };
 
   if (loading) {
@@ -242,12 +273,28 @@ export default function MyChildrenPage() {
                       Therapist: <span className="font-medium text-foreground">{child.therapist ? child.therapist.name : 'Not assigned'}</span>
                     </p>
                   </div>
-                  <Badge
-                    variant="default"
-                    className="bg-green-100 text-green-800 border border-green-200 px-3 py-1 rounded-lg text-xs font-semibold shadow-sm"
-                  >
-                    Active
-                  </Badge>
+                  <div className="flex flex-col items-end gap-2">
+                    <Badge
+                      variant="default"
+                      className="bg-green-100 text-green-800 border border-green-200 rounded-lg text-xs font-semibold shadow-sm h-auto min-h-0 flex items-center justify-center"
+                      style={{ width: 90, padding: '0.5rem 0', height: 25 }}
+                    >
+                      Active
+                    </Badge>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="bg-red-100 text-red-700 border border-red-200 rounded-lg text-xs font-semibold shadow-sm h-auto min-h-0 flex items-center justify-center"
+                      style={{ width: 90, padding: '0.5rem 0', height: 25 }}
+                      onClick={() => {
+                        setRemovingChildId(child.id);
+                        setShowRemoveConfirm(true);
+                        setRemoveError(null);
+                      }}
+                    >
+                      Remove
+                    </Button>
+                  </div>
                 </div>
 
                 {/* Content wrapper that takes remaining space */}
@@ -356,151 +403,44 @@ export default function MyChildrenPage() {
                       Contact Therapist
                     </Button>
                   </div>
-                  {/* No therapist assigned notice moved here */}
-                  {!child.therapist && (
-                    <div className="mt-5 mb-3 bg-purple-50 border border-purple-200 rounded-xl p-4 flex items-center justify-between gap-2">
-                      <span className="text-xs text-purple-800 font-medium">
-                        No therapist assigned. Connect with a therapist to enable appointments and communication.
-                      </span>
-                      <Button
-                        size="sm"
-                        className="bg-purple-100 text-purple-700 border border-purple-200 rounded-lg font-semibold hover:bg-purple-200"
-                        onClick={() => window.location.href = '/parent/findTherapist'}
-                      >
-                        Find a Therapist
-                      </Button>
-                    </div>
-                  )}
-                  {/* Upcoming Session Section */}
-                  {child.therapist && child.upcomingSessions > 0 && (
-                    <div className="mb-2 mt-7 bg-background border border-border rounded-2xl p-5 shadow-sm">
-                      <div className="mb-2 flex items-center justify-between">
-                        <h3 className="text-lg font-bold text-foreground">Next Session</h3>
-                        {child.nextSessionStatus && (
-                          <span
-                            className={`text-xs px-2 py-1 rounded font-semibold ${child.nextSessionStatus.toLowerCase() === 'cancelled' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}
-                          >
-                            {child.nextSessionStatus.toLowerCase()}
-                          </span>
-                        )}
-                      </div>
-                      <div className={`flex items-center justify-between rounded-lg px-3 py-2 mb-4 ${child.nextSessionStatus && child.nextSessionStatus.toLowerCase() === 'cancelled' ? 'bg-red-50' : 'bg-green-50'}`}> 
-                        <div>
-                          <div className="font-semibold text-foreground">Therapist : {child.therapist?.name}</div>
-                          <div className="text-xs text-muted-foreground">{child.nextSessionType}</div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <div className="text-sm text-foreground font-medium">{child.lastSession ? new Date(child.lastSession).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'TBD'}</div>
-                        </div>
-                      </div>
-                      <div className="flex flex-col gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="border-border text-foreground font-medium rounded-lg hover:bg-muted flex items-center justify-center gap-2"
-                          onClick={() => window.location.href = `/parent/sessions/${child.nextSessionId}`}
-                        >
-                          <span>📅</span> View Details
-                        </Button>
-                        <Button
-                          size="sm"
-                          className="bg-primary text-primary-foreground font-semibold rounded-lg hover:opacity-90 flex items-center justify-center gap-2"
-                          onClick={() => window.open('https://zoom.us', '_blank')}
-                        >
-                          <span>🔗</span> Join
-                        </Button>
-                      </div>
-                    </div>
-                  )}
+                  {/* Remove Child button moved above under badge */}
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
 
-        {/* Parent Notes Section - Only show if any child has a therapist */}
-        {/* {children.length > 0 && children.some(child => child.therapist) && (
-          <Card className="mt-10 shadow-sm">
-            <CardHeader className="border-b border-gray-100 pb-4">
-              <CardTitle className="text-lg font-semibold text-gray-900 mb-4">Parent Notes & Observations</CardTitle>
-              <div className="space-x-2">
-                {children.filter(child => child.therapist).map((child, index) => (
-                  <Button
-                    key={child.id}
-                    variant={activeChildIndex === index ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => {
-                      setActiveChildIndex(index);
-                      setNoteText(""); // Clear note when switching children
-                    }}
-                    className={activeChildIndex === index ? "bg-[#8159A8] hover:bg-[#8159A8]/90" : "text-[#8159A8] border-[#8159A8] hover:bg-[#8159A8]/10"}
-                  >
-                    {child.firstName}
-                  </Button>
-                ))}
-              </div>
-            </CardHeader>
-            <CardContent className="pt-6">
-              <textarea
-                className="w-full border border-gray-300 rounded-lg p-3 text-sm text-gray-800 mb-4 focus:ring-2 focus:ring-[#8159A8] focus:border-[#8159A8] outline-none resize-none"
-                rows={4}
-                placeholder="Enter your observations about your child's progress, behavior, or any concerns you'd like to share with the therapist..."
-                value={noteText}
-                onChange={(e) => setNoteText(e.target.value)}
-              />
-              <div className="flex justify-between items-center">
-                <p className="text-xs text-gray-500">
-                  Share your observations to help your child&apos;s therapist provide better care
-                </p>
+        {/* Remove Child Confirmation Dialog */}
+        {showRemoveConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(0,0,0,0.3)]">
+            <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
+              <h2 className="text-xl font-bold mb-4 text-red-700">Remove Child?</h2>
+              <p className="mb-4 text-gray-700">Are you sure you want to remove this child from your account? This action cannot be undone.</p>
+              {removeError && <div className="text-red-600 text-sm mb-2">{removeError}</div>}
+              <div className="flex justify-center gap-4 mt-4">
                 <Button
-                  style={{ backgroundColor: '#8159A8' }}
-                  className="text-white hover:opacity-90 px-6"
-                  disabled={!noteText.trim()}
+                  variant="outline"
+                  className="rounded px-6"
                   onClick={() => {
-                    // TODO: Implement sending note to therapist
-                    alert(`Note for ${children.filter(child => child.therapist)[activeChildIndex]?.firstName} would be sent to their therapist.`);
-                    setNoteText("");
+                    setShowRemoveConfirm(false);
+                    setRemovingChildId(null);
                   }}
+                  disabled={removeLoading}
                 >
-                  Send to Therapist
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  className="rounded px-6 bg-red-600 text-white hover:bg-red-700"
+                  onClick={() => removingChildId && handleRemoveChild(removingChildId)}
+                  disabled={removeLoading}
+                >
+                  {removeLoading ? "Removing..." : "Remove"}
                 </Button>
               </div>
-            </CardContent>
-          </Card>
-        )} */}
-
-        {/* Connect with Therapist Notice - Show if no therapists assigned
-        {children.length > 0 && !children.some(child => child.therapist) && (
-          <Card className="mt-5 shadow-sm border-2 border-dashed border-gray-300">
-            <CardContent className="p-4 text-center">
-              <div className="w-50 h-50 mx-auto flex items-center justify-center">
-                <Image 
-                  src="/images/doctor.png" 
-                  alt="Doctor" 
-                  width={120}
-                  height={120}
-                  className="object-contain"
-                />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                Connect with a Therapist
-              </h3>
-              <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                To start sharing notes and observations about your child&apos;s progress, you&apos;ll need to connect with a qualified therapist first.
-              </p>
-              <Button
-                style={{ backgroundColor: '#8159A8' }}
-                className="text-white hover:opacity-90 px-8 py-2"
-                onClick={() => window.location.href = '/parent/findTherapist'}
-              >
-                Find a Therapist
-              </Button>
-              <p className="text-sm text-gray-500 mt-3">
-                Browse our network of licensed mental health professionals
-              </p>
-            </CardContent>
-          </Card>
-        )} */}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Session Details Modal */}

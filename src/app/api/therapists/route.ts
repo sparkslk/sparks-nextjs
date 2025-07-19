@@ -89,6 +89,20 @@ export async function GET(req: NextRequest) {
             }
         });
 
+        const patients = await prisma.patient.findMany({
+            select: {
+                id: true,
+                primaryTherapistId: true
+            }
+        });
+        const therapistPatientCount: Record<string, number> = {};
+        for (const patient of patients) {
+            if (patient.primaryTherapistId) {
+                therapistPatientCount[patient.primaryTherapistId] = (therapistPatientCount[patient.primaryTherapistId] || 0) + 1;
+            }
+        }
+        console.log("Therapist patient count:", therapistPatientCount);
+
         // If no therapists found in Therapist table, create them from existing THERAPIST users
         if (therapists.length === 0) {
             console.log("No therapists found in Therapist table, checking for THERAPIST users...");
@@ -161,10 +175,14 @@ export async function GET(req: NextRequest) {
                     organization: therapist.organization?.name,
                     availableSlots: [
                         "09:00", "10:00", "11:00", "14:00", "15:00", "16:00"
-                    ]
+                    ],
+                    patientsCount: therapistPatientCount[therapist.id] || 0,
+                    rating: therapist.rating ?? null
                 }))
             });
         }
+
+    
 
         // Format therapists data for the frontend
         const formattedTherapists = therapists.map(therapist => ({
@@ -176,8 +194,6 @@ export async function GET(req: NextRequest) {
             experience: therapist.experience,
             bio: therapist.bio,
             organization: therapist.organization?.name,
-            // For now, we'll provide sample available slots
-            // In a real app, this would be calculated based on their schedule
             availableSlots: [
                 "09:00",
                 "10:00",
@@ -185,7 +201,9 @@ export async function GET(req: NextRequest) {
                 "14:00",
                 "15:00",
                 "16:00"
-            ]
+            ],
+            patientsCount: therapistPatientCount[therapist.id] || 0,
+            rating: therapist.rating ?? null
         }));
 
         return NextResponse.json({
