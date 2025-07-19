@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar, Clock, User, FileText, Edit, Eye, CheckCircle, Plus, Activity, RotateCcw, X, Video, ArrowRight } from "lucide-react";
 import { SessionUpdateModal } from "@/components/therapist/SessionUpdateModal";
 import { RescheduleModal } from "@/components/therapist/RescheduleModal";
+import { Dialog } from "@/components/ui/dialog";
 
 interface Session {
   id: string;
@@ -32,6 +33,53 @@ export default function TherapistSessionsPage() {
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("scheduled");
+  const [showMedications, setShowMedications] = useState(false);
+  const [showTasks, setShowTasks] = useState(false);
+
+  // Hardcoded data for medications and tasks
+  const hardcodedMedications = [
+    {
+      id: "1",
+      name: "Methylphenidate",
+      dosage: "7",
+      frequency: "Twice daily",
+      mealTiming: "Before meals",
+      startDate: "2025-07-07",
+      endDate: "2025-07-12",
+      prescribedBy: "Ravindi Fernando",
+      instructions: "Take with a full glass of water. Do not exceed recommended dose.",
+      isActive: true,
+    },
+    {
+      id: "2",
+      name: "Amoxicillin",
+      dosage: "500mg",
+      frequency: "Three times daily",
+      mealTiming: "After meals",
+      startDate: "2025-07-01",
+      endDate: "2025-07-10",
+      prescribedBy: "Dr. Nimal Perera",
+      instructions: "Complete the full course even if you feel better.",
+      isActive: true,
+    }
+  ];
+
+  const hardcodedTasks = [
+    {
+      id: "1",
+      title: "Auditory Processing - Listening Task",
+      assignedDate: "2024-07-10",
+      completedDate: "2024-07-22",
+      status: "Completed",
+      score: 78,
+    },
+    {
+      id: "2",
+      title: "Visual Perception - Picture Description",
+      assignedDate: "2024-07-08",
+      status: "Pending",
+    }
+  ];
 
   // Helper function to safely parse and format dates (similar to parent tasks page)
   const formatDate = (dateString: string) => {
@@ -426,6 +474,19 @@ export default function TherapistSessionsPage() {
     );
   };
 
+  useEffect(() => {
+    const openMedicationsModal = () => setShowMedications(true);
+    const openTasksModal = () => setShowTasks(true);
+
+    window.addEventListener("openMedicationsModal", openMedicationsModal);
+    window.addEventListener("openTasksModal", openTasksModal);
+
+    return () => {
+      window.removeEventListener("openMedicationsModal", openMedicationsModal);
+      window.removeEventListener("openTasksModal", openTasksModal);
+    };
+  }, []);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -706,6 +767,14 @@ export default function TherapistSessionsPage() {
           }}
           onRescheduleConfirmed={handleRescheduleConfirmed}
         />
+
+        <Dialog open={showMedications} onOpenChange={setShowMedications}>
+          {/* ...same content as in [id]/page.tsx... */}
+        </Dialog>
+
+        <Dialog open={showTasks} onOpenChange={setShowTasks}>
+          {/* ...same content as in [id]/page.tsx... */}
+        </Dialog>
       </div>
     </div>
   );
