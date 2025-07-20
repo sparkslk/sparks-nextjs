@@ -462,8 +462,8 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
           {/* --- New Section: Medications & Tasks --- */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Patient Medications & Tasks</CardTitle>
-              <p className="text-sm text-gray-600">Use these options to update the patient's current medications or assign new tasks directly from this session.</p>
+              <CardTitle className="text-lg">Patient Medications & Assessments</CardTitle>
+              <p className="text-sm text-gray-600">Use these options to update the patient's current medications or assign new assessments directly from this session.</p>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex flex-col sm:flex-row gap-4">
@@ -493,7 +493,7 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
                     }
                   }}
                 >
-                  Assign New Tasks to Patient
+                  Assign New Assessments to Patient
                 </Button>
                 </div>
             </CardContent>
