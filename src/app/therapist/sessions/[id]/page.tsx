@@ -601,6 +601,9 @@ export default function SessionDetailsPage() {
             <DialogTitle>Medication Updates for This Patient</DialogTitle>
           </DialogHeader>
           <div className="flex items-center justify-between mb-2">
+            <Badge variant="outline" className="text-sm">
+              {hardcodedMedications.filter(t => t.isActive).length} Active
+            </Badge>
             <Button
               style={{ backgroundColor: "#8159A8", color: "#fff" }}
               className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 shadow hover:brightness-110"
@@ -609,9 +612,6 @@ export default function SessionDetailsPage() {
               <Plus className="w-5 h-5" />
               Add Medication
             </Button>
-            <Badge variant="outline" className="text-sm">
-              {hardcodedMedications.filter(t => t.isActive).length} Active
-            </Badge>
           </div>
           {hardcodedMedications.length === 0 ? (
       <Card>
@@ -873,14 +873,7 @@ export default function SessionDetailsPage() {
             <DialogTitle>Assessment Updates for This Patient</DialogTitle>
           </DialogHeader>
           <div className="flex items-center justify-between mb-4">
-            <Button
-              style={{ backgroundColor: "#8159A8", color: "#fff" }}
-              className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 shadow hover:brightness-110"
-              onClick={() => setShowAssignTask(true)}
-            >
-              <Plus className="w-5 h-5" />
-              Assign a new Assessment
-            </Button>
+            
             <div className="flex gap-2">
               <Badge variant="outline" className="text-sm">
                 {hardcodedTasks.filter(t => t.status === "Pending").length} Pending
@@ -889,6 +882,14 @@ export default function SessionDetailsPage() {
                 {hardcodedTasks.filter(t => t.status === "Completed").length} Completed
               </Badge>
             </div>
+            <Button
+              style={{ backgroundColor: "#8159A8", color: "#fff" }}
+              className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 shadow hover:brightness-110"
+              onClick={() => setShowAssignTask(true)}
+            >
+              <Plus className="w-5 h-5" />
+              Assign a new Assessment
+            </Button>
           </div>
           <div className="space-y-6">
             {hardcodedTasks.length === 0 ? (
