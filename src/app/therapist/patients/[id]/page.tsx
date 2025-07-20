@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Calendar, Clock, User, FileText, Activity, Eye, ArrowLeft } from "lucide-react";
+import { Calendar, Clock, User, FileText,  Eye, ArrowLeft, Plus } from "lucide-react";
 import MedicationManagement from "@/components/therapist/MedicationManagement";
 import { Medication } from "@/types/medications";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface TherapySession {
   id: string;
@@ -61,6 +62,7 @@ export default function PatientDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState("info");
+  const [showAssignTask, setShowAssignTask] = useState(false);
 
   // Filter states
   const [statusFilter, setStatusFilter] = useState("");
@@ -372,6 +374,28 @@ export default function PatientDetailsPage() {
    
   ];
 
+  const availableTasks = [
+    {
+      id: "1",
+      type: "LISTENING_TASK",
+      typeColor: "bg-blue-100 text-blue-700",
+      title: "Auditory Processing - Listening Task",
+      description: "Assess auditory processing skills with a focused listening task.",
+      assignedCount: 12,
+      latestScore: 85,
+    },
+    {
+      id: "2",
+      type: "PICTURE_DESCRIPTION",
+      typeColor: "bg-purple-100 text-purple-700",
+      title: "Visual Perception - Picture Description",
+      description: "Evaluate visual perception by describing a complex picture.",
+      assignedCount: 8,
+      latestScore: 90,
+    },
+    // Add more tasks as needed
+  ];
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto p-6">
@@ -444,7 +468,7 @@ export default function PatientDetailsPage() {
                 <TabsTrigger value="info" className="text-xs sm:text-sm">Information</TabsTrigger>
                 <TabsTrigger value="sessions" className="text-xs sm:text-sm">Sessions</TabsTrigger>
                 <TabsTrigger value="medications" className="text-xs sm:text-sm">Medication</TabsTrigger>
-                <TabsTrigger value="tasks" className="text-xs sm:text-sm">Tasks</TabsTrigger>
+                <TabsTrigger value="assessments" className="text-xs sm:text-sm">Assessments</TabsTrigger>
                 <TabsTrigger value="docs" className="text-xs sm:text-sm">Documents</TabsTrigger>
               </TabsList>
 
@@ -1061,7 +1085,7 @@ export default function PatientDetailsPage() {
 
       
 
-        <TabsContent value="tasks" className="pt-6">
+        <TabsContent value="assessments" className="pt-6">
           {assignedAssessments && assignedAssessments.length > 0 ? (
             <div className="space-y-6">
               {/* Assigned Assessments Header */}
@@ -1071,6 +1095,7 @@ export default function PatientDetailsPage() {
                     <h3 className="text-2xl font-bold mb-2 text-[#8159A8]">Assigned Assessments</h3>
                     <p className="text-gray-600">Assessments assigned by the therapist</p>
                   </div>
+                  
                   <div className="text-right">
                     <div className="grid grid-cols-3 gap-4 text-center">
                       <div className="bg-gray-50 rounded-lg p-3 border">
@@ -1098,6 +1123,16 @@ export default function PatientDetailsPage() {
                       </div>
                     </div>
                   </div>
+                </div>
+                <div className="flex gap-2 justify-end py-4">
+                  <Button
+                  style={{ backgroundColor: "#8159A8", color: "#fff" }}
+                  className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 shadow hover:brightness-110"
+                  onClick={() => setShowAssignTask(true)}
+                  >
+                  <Plus className="w-5 h-5" />
+                  Assign a new Assessment
+                  </Button>
                 </div>
               </div>
 
@@ -1249,6 +1284,58 @@ export default function PatientDetailsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Assign Task Dialog - Place this outside of the main content, just before the closing </div> */}
+      <Dialog open={showAssignTask} onOpenChange={setShowAssignTask}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Assign an Assessment</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {availableTasks.map((task) => (
+              <div key={task.id} className="bg-[#fcfafd] rounded-2xl shadow p-6 flex flex-col h-full border border-[#f0eef5]">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className={`text-xs font-semibold px-3 py-1 rounded-full ${task.typeColor}`}>
+                    {task.type}
+                  </span>
+                </div>
+                <div className="font-bold text-lg text-[#3b2562] mb-2">{task.title}</div>
+                <div className="text-sm text-gray-600 mb-4 flex-1">{task.description}</div>
+                <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
+                  <User className="w-4 h-4" />
+                  {task.assignedCount} patients assigned
+                  {task.latestScore && (
+                    <>
+                      <span className="mx-2">|</span>
+                      <FileText className="w-4 h-4" />
+                      Latest Score: {task.latestScore}
+                    </>
+                  )}
+                </div>
+                <div className="flex gap-2 mt-auto">
+                  <Button
+                    variant="outline"
+                    className="border-green-400 text-green-700 hover:bg-green-50 px-3 py-1 text-s font-semibold"
+                    style={{ borderColor: "#1ac600ff" }}
+                    // onClick={() => handleAssignTask(task.id)}
+                  >
+                    Assign
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-end mt-6">
+            <Button
+              style={{ backgroundColor: "#8159A8", color: "#fff" }}
+              className="font-semibold px-6 py-2 rounded-lg"
+              onClick={() => setShowAssignTask(false)}
+            >
+              Done
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

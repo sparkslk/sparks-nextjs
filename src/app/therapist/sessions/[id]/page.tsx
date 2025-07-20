@@ -132,6 +132,7 @@ const hardcodedTasks = [
     title: "Auditory Processing - Listening Task",
     assignedDate: "2024-07-10",
     completedDate: "2024-07-22",
+    deadline: "2024-08-22",
     status: "Completed",
     score: 78,
   },
@@ -139,6 +140,7 @@ const hardcodedTasks = [
     id: "2",
     title: "Visual Perception - Picture Description",
     assignedDate: "2024-07-08",
+    deadline: "2024-06-15",
     status: "Pending",
   }
 ];
@@ -587,7 +589,7 @@ export default function SessionDetailsPage() {
         className="hover:brightness-110 shadow-md font-semibold px-6 py-2 rounded-lg transition-all duration-150"
         onClick={() => setShowTasks(true)}
           >
-        View Assigned Tasks
+        View Assigned Assessments
           </Button>
         </div>
       </div>
@@ -599,6 +601,9 @@ export default function SessionDetailsPage() {
             <DialogTitle>Medication Updates for This Patient</DialogTitle>
           </DialogHeader>
           <div className="flex items-center justify-between mb-2">
+            <Badge variant="outline" className="text-sm">
+              {hardcodedMedications.filter(t => t.isActive).length} Active
+            </Badge>
             <Button
               style={{ backgroundColor: "#8159A8", color: "#fff" }}
               className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 shadow hover:brightness-110"
@@ -607,9 +612,6 @@ export default function SessionDetailsPage() {
               <Plus className="w-5 h-5" />
               Add Medication
             </Button>
-            <Badge variant="outline" className="text-sm">
-              {hardcodedMedications.filter(t => t.isActive).length} Active
-            </Badge>
           </div>
           {hardcodedMedications.length === 0 ? (
       <Card>
@@ -868,17 +870,10 @@ export default function SessionDetailsPage() {
       <Dialog open={showTasks} onOpenChange={setShowTasks}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Task Updates for This Patient</DialogTitle>
+            <DialogTitle>Assessment Updates for This Patient</DialogTitle>
           </DialogHeader>
           <div className="flex items-center justify-between mb-4">
-            <Button
-              style={{ backgroundColor: "#8159A8", color: "#fff" }}
-              className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 shadow hover:brightness-110"
-              onClick={() => setShowAssignTask(true)}
-            >
-              <Plus className="w-5 h-5" />
-              Assign a new Task
-            </Button>
+            
             <div className="flex gap-2">
               <Badge variant="outline" className="text-sm">
                 {hardcodedTasks.filter(t => t.status === "Pending").length} Pending
@@ -887,6 +882,14 @@ export default function SessionDetailsPage() {
                 {hardcodedTasks.filter(t => t.status === "Completed").length} Completed
               </Badge>
             </div>
+            <Button
+              style={{ backgroundColor: "#8159A8", color: "#fff" }}
+              className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 shadow hover:brightness-110"
+              onClick={() => setShowAssignTask(true)}
+            >
+              <Plus className="w-5 h-5" />
+              Assign a new Assessment
+            </Button>
           </div>
           <div className="space-y-6">
             {hardcodedTasks.length === 0 ? (
@@ -925,10 +928,13 @@ export default function SessionDetailsPage() {
                     <div className="text-xs text-black font-medium">
                       Assigned: {format(new Date(task.assignedDate), "MMM dd, yyyy")}
                       {task.completedDate && (
-                        <span className="ml-3">
-                          Completed: {format(new Date(task.completedDate), "MMM dd, yyyy")}
-                        </span>
+                      <span className="ml-3">
+                        Completed: {format(new Date(task.completedDate), "MMM dd, yyyy")}
+                      </span>
                       )}
+                      <span className="ml-3">
+                      Deadline: {format(new Date(task.deadline), "MMM dd, yyyy")}
+                      </span>
                     </div>
                   </div>
                   <div className="flex gap-2 mt-3 md:mt-0">
@@ -939,12 +945,6 @@ export default function SessionDetailsPage() {
                     >
                       Unassign
                     </Button>
-                    <Button
-                      variant="outline"
-                      className="border-primary text-primary hover:bg-primary/10 px-3 py-1 text-xs font-semibold"
-                    >
-                      View Assessment
-                    </Button>
                   </div>
                 </div>
               ))
@@ -953,11 +953,11 @@ export default function SessionDetailsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Assign Task Modal */}
+     {/* Assign Task Modal */}
       <Dialog open={showAssignTask} onOpenChange={setShowAssignTask}>
         <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle>Assign a Task</DialogTitle>
+            <DialogTitle>Assign an Assessment</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       {availableTasks.map((task) => (
@@ -1004,7 +1004,7 @@ export default function SessionDetailsPage() {
       </Button>
     </div>
         </DialogContent>
-      </Dialog>
+      </Dialog> 
 
       {/* Session Update Modal */}
       <SessionUpdateModal
