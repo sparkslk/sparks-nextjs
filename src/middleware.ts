@@ -19,6 +19,8 @@ const PUBLIC_PATHS = [
   "/api/auth/providers",
   "/api/auth/csrf",
   "/api/auth/error",
+  "/therapist/verification/success",
+  "/therapist/verification/approved",
 ];
 
 function isPublicPath(path: string) {
@@ -66,7 +68,7 @@ export async function middleware(req: NextRequest) {
   // Define role-based route access
   const roleRoutes: Record<string, RegExp> = {
     NORMAL_USER: /^\/(dashboard|sessions(\/|$)|profile\/create)/,
-    THERAPIST: /^\/therapist\/(dashboard|verification)/,
+    THERAPIST: /^\/therapist\/(dashboard|verification|profile)/,
     PARENT_GUARDIAN: /^\/parent\//,
     ADMIN: /^\/admin\//,
   };

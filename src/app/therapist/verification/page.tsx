@@ -501,7 +501,7 @@ export default function TherapistVerificationPage() {
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
       // Redirect to dashboard or success page
-      router.push("/therapist/dashboard");
+      router.push("/therapist/verification/success");
     } catch (error) {
       setError("Failed to submit verification. Please try again.");
     } finally {
@@ -1354,7 +1354,7 @@ export default function TherapistVerificationPage() {
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-8">
             <Image
-              src="/images/logo.png"
+              src="/images/sparkslogo.png"
               alt="SPARKS"
               width={120}
               height={40}
