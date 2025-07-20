@@ -367,7 +367,7 @@ export default function AssessmentsPage() {
                 <Card
                   key={assessment.id}
                   className="overflow-hidden border rounded-lg shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer"
-                  onClick={() => router.push(`/therapist/assessments/${assessment.id}`)}
+                  onClick={() => router.push(`/manager/assessments/${assessment.id}`)}
                 >
                   <div className="p-5 space-y-4">
                     {/* Header with Type */}
@@ -408,7 +408,7 @@ export default function AssessmentsPage() {
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
-                          router.push(`/therapist/assessments/${assessment.id}`);
+                          router.push(`/manager/assessments/${assessment.id}`);
                         }}
                         className="bg-[#FAF8FB] hover:bg-[#FAF8FB] text-[#8159A8]"
                       >

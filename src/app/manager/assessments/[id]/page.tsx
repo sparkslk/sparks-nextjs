@@ -183,7 +183,7 @@ export default function AssessmentDetailsPage() {
           </div>
           <Card className="p-8 text-center">
             <p className="text-red-600 mb-4">{error}</p>
-            <Button onClick={() => router.push("/therapist/assessments")}>
+            <Button onClick={() => router.push("/manager/assessments")}>
               Back to Assessments
             </Button>
           </Card>
@@ -208,7 +208,7 @@ export default function AssessmentDetailsPage() {
           </div>
           <Card className="p-8 text-center">
             <p className="text-gray-600 mb-4">Assessment not found</p>
-            <Button onClick={() => router.push("/therapist/assessments")}>
+            <Button onClick={() => router.push("/manager/assessments")}>
               Back to Assessments
             </Button>
           </Card>
