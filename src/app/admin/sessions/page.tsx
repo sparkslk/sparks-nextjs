@@ -3,7 +3,6 @@
 import { useState, useMemo, useEffect } from "react";
 import {
   RefreshCw,
-  Loader,
   CalendarDays,
   CalendarClock,
   CheckCircle2,
@@ -11,6 +10,7 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import SessionsTable from "@/components/admin/sessions/sessions-table";
 
 interface TherapySession {
   id: number;
@@ -223,86 +223,30 @@ export default function SessionsPage() {
       .length,
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
-
-  const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
-  const formatDuration = (minutes: number) => {
-    if (minutes >= 60) {
-      const hours = Math.floor(minutes / 60);
-      const remainingMinutes = minutes % 60;
-      return remainingMinutes > 0
-        ? `${hours}h ${remainingMinutes}m`
-        : `${hours}h`;
-    }
-    return `${minutes}m`;
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "scheduled":
-        return "bg-blue-100 text-blue-800";
-      case "completed":
-        return "bg-green-100 text-green-800";
-      case "cancelled":
-        return "bg-red-100 text-red-800";
-      case "rescheduled":
-        return "bg-yellow-100 text-yellow-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
-
-  const getAttendanceColor = (status: string) => {
-    switch (status) {
-      case "present":
-        return "bg-green-100 text-green-800";
-      case "absent":
-        return "bg-red-100 text-red-800";
-      case "partial":
-        return "bg-yellow-100 text-yellow-800";
-      case "pending":
-        return "bg-gray-100 text-gray-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
-
   if (loading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                    <p className="mt-2 text-muted-foreground">Loading...</p>
-                </div>
-            </div>
-        );
-    }
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-2 text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
-    if (error) {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="text-center">
-                    <h3 className="text-lg font-semibold mb-2">Unable to load dashboard</h3>
-                    <p className="text-muted-foreground mb-4">{error}</p>
-                    <Button onClick={() => window.location.reload()}>
-                        Try Again
-                    </Button>
-                </div>
-            </div>
-        );
-    }
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h3 className="text-lg font-semibold mb-2">Unable to load dashboard</h3>
+          <p className="text-muted-foreground mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()}>
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto p-6">
@@ -384,95 +328,11 @@ export default function SessionsPage() {
         sessions={sessions}
       />
 
-      {/* Table */}
-      <div className="bg-white rounded-xl shadow-lg border overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[1200px] text-sm text-gray-700">
-            <thead className="bg-gradient-to-r from-[#f5f3fb] to-[#e9e4f5] border-b-2 border-[#8159A8]">
-              <tr>
-                <th className="text-left py-4 px-6 font-bold text-[#8159A8] tracking-wide uppercase">
-                  Patient
-                </th>
-                <th className="text-left py-4 px-6 font-bold text-[#8159A8] tracking-wide uppercase">
-                  Therapist
-                </th>
-                <th className="text-left py-4 px-6 font-bold text-[#8159A8] tracking-wide uppercase">
-                  Type
-                </th>
-                <th className="text-left py-4 px-6 font-bold text-[#8159A8] tracking-wide uppercase">
-                  Date
-                </th>
-                <th className="text-left py-4 px-6 font-bold text-[#8159A8] tracking-wide uppercase">
-                  Time
-                </th>
-                <th className="text-left py-4 px-6 font-bold text-[#8159A8] tracking-wide uppercase">
-                  Duration
-                </th>
-                <th className="text-left py-4 px-6 font-bold text-[#8159A8] tracking-wide uppercase">
-                  Status
-                </th>
-                <th className="text-left py-4 px-6 font-bold text-[#8159A8] tracking-wide uppercase">
-                  Attendance
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredSessions.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={8}
-                    className="py-8 px-6 text-center text-gray-500"
-                  >
-                    No sessions found matching your criteria
-                  </td>
-                </tr>
-              ) : (
-                filteredSessions.map((session, idx) => (
-                  <tr
-                    key={session.id}
-                    className={`border-b transition-colors duration-200 ${
-                      idx % 2 === 0 ? "bg-[#f9f7fc]" : "bg-white"
-                    } hover:bg-[#f3eaff]`}
-                  >
-                    <td className="py-4 px-6 font-medium">
-                      {session.patient.name}
-                    </td>
-                    <td className="py-4 px-6">{session.therapist.name}</td>
-                    <td className="py-4 px-6">{session.type}</td>
-                    <td className="py-4 px-6">
-                      {formatDate(session.scheduledAt)}
-                    </td>
-                    <td className="py-4 px-6">
-                      {formatTime(session.scheduledAt)}
-                    </td>
-                    <td className="py-4 px-6">
-                      {formatDuration(session.duration)}
-                    </td>
-                    <td className="py-4 px-6">
-                      <span
-                        className={`inline-flex px-2 py-1 text-xs font-medium rounded-full capitalize ${getStatusColor(
-                          session.status
-                        )}`}
-                      >
-                        {session.status}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6">
-                      <span
-                        className={`inline-flex px-2 py-1 text-xs font-medium rounded-full capitalize ${getAttendanceColor(
-                          session.attendanceStatus
-                        )}`}
-                      >
-                        {session.attendanceStatus || "N/A"}
-                      </span>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      {/* Paginated Table */}
+      <SessionsTable
+        sessions={filteredSessions}
+        recordsPerPage={10}
+      />
     </div>
   );
 }

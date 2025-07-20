@@ -1,7 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 
 interface UserTableProps {
   selectedRole: string;
@@ -12,6 +13,7 @@ interface UserTableProps {
   setDeleteModalOpen: (open: boolean) => void;
   setEmergencyContactDetails: (details: string | null) => void;
   setEmergencyContactOpen: (open: boolean) => void;
+  recordsPerPage?: number;
 }
 
 function getRoleColor(role: string) {
@@ -38,7 +40,56 @@ const UserTable: React.FC<UserTableProps> = ({
   setDeleteModalOpen,
   setEmergencyContactDetails,
   setEmergencyContactOpen,
+  recordsPerPage = 10,
 }) => {
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Calculate pagination
+  const totalRecords = filteredUsers.length;
+  const totalPages = Math.ceil(totalRecords / recordsPerPage);
+  const startIndex = (currentPage - 1) * recordsPerPage;
+  const endIndex = startIndex + recordsPerPage;
+
+  // Get current page data
+  const currentPageData = useMemo(() => {
+    return filteredUsers.slice(startIndex, endIndex);
+  }, [filteredUsers, startIndex, endIndex]);
+
+  // Reset to first page when filteredUsers changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [filteredUsers]);
+
+  // Pagination handlers
+  const goToFirstPage = () => setCurrentPage(1);
+  const goToLastPage = () => setCurrentPage(totalPages);
+  const goToPrevPage = () => setCurrentPage(prev => Math.max(prev - 1, 1));
+  const goToNextPage = () => setCurrentPage(prev => Math.min(prev + 1, totalPages));
+
+  // Generate page numbers for pagination
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+    
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      let start = Math.max(1, currentPage - 2);
+      let end = Math.min(totalPages, start + maxVisiblePages - 1);
+      
+      if (end - start < maxVisiblePages - 1) {
+        start = Math.max(1, end - maxVisiblePages + 1);
+      }
+      
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+    }
+    return pages;
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-lg border overflow-hidden">
       <div className="overflow-x-auto">
@@ -119,7 +170,7 @@ const UserTable: React.FC<UserTableProps> = ({
             </tr>
           </thead>
           <tbody>
-            {filteredUsers.map((user, idx) => (
+            {currentPageData.map((user, idx) => (
               <tr
                 key={user.id}
                 className={`border-b transition-colors duration-200 ${
@@ -256,6 +307,80 @@ const UserTable: React.FC<UserTableProps> = ({
           </tbody>
         </table>
       </div>
+
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="px-6 py-4 bg-gray-50 border-t flex items-center justify-between">
+          <div className="flex items-center text-sm text-gray-700">
+            <span>
+              Showing {startIndex + 1} to {Math.min(endIndex, totalRecords)} of {totalRecords} entries
+            </span>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            {/* First Page Button */}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={goToFirstPage}
+              disabled={currentPage === 1}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronsLeft className="h-4 w-4" />
+            </Button>
+            
+            {/* Previous Page Button */}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={goToPrevPage}
+              disabled={currentPage === 1}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+
+            {/* Page Numbers */}
+            {getPageNumbers().map((pageNum) => (
+              <Button
+                key={pageNum}
+                size="sm"
+                variant={pageNum === currentPage ? "default" : "outline"}
+                onClick={() => setCurrentPage(pageNum)}
+                className={`h-8 w-8 p-0 ${
+                  pageNum === currentPage 
+                    ? "bg-[#8159A8] text-white hover:bg-[#6b4890]" 
+                    : "text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                {pageNum}
+              </Button>
+            ))}
+
+            {/* Next Page Button */}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={goToNextPage}
+              disabled={currentPage === totalPages}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            
+            {/* Last Page Button */}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={goToLastPage}
+              disabled={currentPage === totalPages}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronsRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
