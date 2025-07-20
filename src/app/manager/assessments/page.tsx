@@ -7,13 +7,25 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { ClipboardList, Users, CheckCircle, UserPlus, UserMinus } from "lucide-react";
+import {
+  ClipboardList,
+  Users,
+  CheckCircle,
+  UserPlus,
+  UserMinus,
+} from "lucide-react";
 
 interface Assessment {
   id: string;
   title: string;
   description: string;
-  type: "QUESTIONNAIRE" | "LISTENING_TASK" | "PICTURE_DESCRIPTION" | "FIND_DIFFERENCES" | "COGNITIVE_ASSESSMENT" | "BEHAVIORAL_ASSESSMENT";
+  type:
+    | "QUESTIONNAIRE"
+    | "LISTENING_TASK"
+    | "PICTURE_DESCRIPTION"
+    | "FIND_DIFFERENCES"
+    | "COGNITIVE_ASSESSMENT"
+    | "BEHAVIORAL_ASSESSMENT";
   createdAt: string;
   updatedAt: string;
   score?: number;
@@ -30,23 +42,25 @@ export default function AssessmentsPage() {
   const { status: authStatus } = useSession();
   const router = useRouter();
   const params = useParams();
-  const assessmentId = params.id as string;
+  const assessmentId = params?.id as string | undefined;
 
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [assessmentToDelete, setAssessmentToDelete] = useState<Assessment | null>(null);
-  const [selectedAssessment, setSelectedAssessment] = useState<Assessment | null>(null);
+  const [assessmentToDelete, setAssessmentToDelete] =
+    useState<Assessment | null>(null);
+  const [selectedAssessment, setSelectedAssessment] =
+    useState<Assessment | null>(null);
   const [showPatientsModal, setShowPatientsModal] = useState(false);
   const [showAddPatientList, setShowAddPatientList] = useState(false);
 
   // Hardcoded possible patients to add
   const possiblePatients = [
-    { id: 'p10', name: 'Nimal Perera', email: 'nimal@email.com' },
-    { id: 'p11', name: 'Kamal Silva', email: 'kamal@email.com' },
-    { id: 'p12', name: 'Sunethra Jayasuriya', email: 'sunethra@email.com' },
-    { id: 'p13', name: 'Ruwanthi Fernando', email: 'ruwanthi@email.com' },
+    { id: "p10", name: "Nimal Perera", email: "nimal@email.com" },
+    { id: "p11", name: "Kamal Silva", email: "kamal@email.com" },
+    { id: "p12", name: "Sunethra Jayasuriya", email: "sunethra@email.com" },
+    { id: "p13", name: "Ruwanthi Fernando", email: "ruwanthi@email.com" },
   ];
-  
+
   const [availablePatients, setAvailablePatients] = useState(possiblePatients);
 
   useEffect(() => {
@@ -70,19 +84,26 @@ export default function AssessmentsPage() {
         {
           id: "1",
           title: "Auditory Processing - Listening Task",
-          description: "Audio-based assessment to evaluate listening comprehension, auditory memory, and processing speed through various listening exercises.",
+          description:
+            "Audio-based assessment to evaluate listening comprehension, auditory memory, and processing speed through various listening exercises.",
           type: "LISTENING_TASK",
           createdAt: "2024-07-10",
           updatedAt: "2024-07-22",
           assignedPatients: [
-            { id: "p2", name: "Pasandi Piyathma", completedAt: "2024-07-22", score: 78 },
+            {
+              id: "p2",
+              name: "Pasandi Piyathma",
+              completedAt: "2024-07-22",
+              score: 78,
+            },
             { id: "p4", name: "Anuki Tiyara" }, // Not completed yet
           ],
         },
         {
           id: "2",
           title: "Visual Perception - Picture Description",
-          description: "Assessment involving detailed description of complex images to evaluate visual processing, attention to detail, and verbal expression skills.",
+          description:
+            "Assessment involving detailed description of complex images to evaluate visual processing, attention to detail, and verbal expression skills.",
           type: "PICTURE_DESCRIPTION",
           createdAt: "2024-07-08",
           updatedAt: "2024-07-08",
@@ -95,14 +116,25 @@ export default function AssessmentsPage() {
         {
           id: "3",
           title: "Attention & Focus - Find the Differences",
-          description: "Visual attention task requiring patients to identify differences between similar images to assess concentration and visual attention skills.",
+          description:
+            "Visual attention task requiring patients to identify differences between similar images to assess concentration and visual attention skills.",
           type: "FIND_DIFFERENCES",
           createdAt: "2024-07-05",
           updatedAt: "2024-07-20",
           score: 91,
           assignedPatients: [
-            { id: "p4", name: "Sanduni Perera", completedAt: "2024-08-05", score: 91 },
-            { id: "p7", name: "Mithara Gethmi", completedAt: "2024-08-03", score: 83 },
+            {
+              id: "p4",
+              name: "Sanduni Perera",
+              completedAt: "2024-08-05",
+              score: 91,
+            },
+            {
+              id: "p7",
+              name: "Mithara Gethmi",
+              completedAt: "2024-08-03",
+              score: 83,
+            },
           ],
         },
       ];
@@ -120,12 +152,18 @@ export default function AssessmentsPage() {
     setSelectedAssessment(assessment);
     setShowPatientsModal(true);
     // Remove already assigned patients from availablePatients
-    const assignedIds = new Set(assessment.assignedPatients.map(p => p.id));
-    setAvailablePatients(possiblePatients.filter(p => !assignedIds.has(p.id)));
+    const assignedIds = new Set(assessment.assignedPatients.map((p) => p.id));
+    setAvailablePatients(
+      possiblePatients.filter((p) => !assignedIds.has(p.id))
+    );
     setShowAddPatientList(false);
   };
 
-  const handleAddPatient = (patient: { id: string; name: string; email: string }) => {
+  const handleAddPatient = (patient: {
+    id: string;
+    name: string;
+    email: string;
+  }) => {
     if (!selectedAssessment) return;
     // Add patient to assignedPatients
     setAssessments((prev) =>
@@ -136,24 +174,42 @@ export default function AssessmentsPage() {
       )
     );
     setSelectedAssessment((prev) =>
-      prev ? { ...prev, assignedPatients: [...prev.assignedPatients, patient] } : prev
+      prev
+        ? { ...prev, assignedPatients: [...prev.assignedPatients, patient] }
+        : prev
     );
     setAvailablePatients((prev) => prev.filter((p) => p.id !== patient.id));
     setShowAddPatientList(false);
   };
 
-  const handleUnassignPatient = (patient: { id: string; name: string; email?: string }) => {
+  const handleUnassignPatient = (patient: {
+    id: string;
+    name: string;
+    email?: string;
+  }) => {
     if (!selectedAssessment) return;
     // Remove patient from assignedPatients
     setAssessments((prev) =>
       prev.map((a) =>
         a.id === selectedAssessment.id
-          ? { ...a, assignedPatients: a.assignedPatients.filter((p) => p.id !== patient.id) }
+          ? {
+              ...a,
+              assignedPatients: a.assignedPatients.filter(
+                (p) => p.id !== patient.id
+              ),
+            }
           : a
       )
     );
     setSelectedAssessment((prev) =>
-      prev ? { ...prev, assignedPatients: prev.assignedPatients.filter((p) => p.id !== patient.id) } : prev
+      prev
+        ? {
+            ...prev,
+            assignedPatients: prev.assignedPatients.filter(
+              (p) => p.id !== patient.id
+            ),
+          }
+        : prev
     );
     // Add back to availablePatients if in possiblePatients
     const found = possiblePatients.find((p) => p.id === patient.id);
@@ -166,7 +222,10 @@ export default function AssessmentsPage() {
   const filteredAssessments = assessments;
 
   const totalAssessments = assessments.length;
-  const totalPatients = assessments.reduce((sum, a) => sum + a.assignedPatients.length, 0);
+  const totalPatients = assessments.reduce(
+    (sum, a) => sum + a.assignedPatients.length,
+    0
+  );
 
   const handleNewAssessment = () => {
     router.push("/manager/assessments/new");
@@ -224,26 +283,47 @@ export default function AssessmentsPage() {
               </Button>
               {showAddPatientList && (
                 <div className="mt-3">
-                  <h4 className="font-semibold text-gray-700 mb-2">Select a patient to add</h4>
+                  <h4 className="font-semibold text-gray-700 mb-2">
+                    Select a patient to add
+                  </h4>
                   {availablePatients.length > 0 ? (
                     <ul className="space-y-2">
                       {availablePatients.map((patient) => (
-                        <li key={patient.id} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                        <li
+                          key={patient.id}
+                          className="flex items-center justify-between bg-gray-50 p-2 rounded"
+                        >
                           <div>
-                            <span className="font-medium text-gray-800">{patient.name}</span>
-                            <span className="ml-2 text-xs text-gray-500">{patient.email}</span>
+                            <span className="font-medium text-gray-800">
+                              {patient.name}
+                            </span>
+                            <span className="ml-2 text-xs text-gray-500">
+                              {patient.email}
+                            </span>
                           </div>
-                          <Button size="icon" variant="outline" className="text-green-700 border-green-300" onClick={() => handleAddPatient(patient)} title="Add Patient">
+                          <Button
+                            size="icon"
+                            variant="outline"
+                            className="text-green-700 border-green-300"
+                            onClick={() => handleAddPatient(patient)}
+                            title="Add Patient"
+                          >
                             <UserPlus className="w-4 h-4" />
                           </Button>
                         </li>
                       ))}
                     </ul>
                   ) : (
-                    <p className="text-sm text-gray-500">No more patients to add.</p>
+                    <p className="text-sm text-gray-500">
+                      No more patients to add.
+                    </p>
                   )}
                   <div className="flex justify-end mt-2">
-                    <Button size="sm" variant="ghost" onClick={() => setShowAddPatientList(false)}>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setShowAddPatientList(false)}
+                    >
                       Cancel
                     </Button>
                   </div>
@@ -261,13 +341,16 @@ export default function AssessmentsPage() {
                       {patient.name.charAt(0)}
                     </div>
                     <div>
-                      <p className="font-medium text-gray-800">{patient.name}</p>
+                      <p className="font-medium text-gray-800">
+                        {patient.name}
+                      </p>
                       {patient.email && (
                         <p className="text-xs text-gray-500">{patient.email}</p>
                       )}
                       {patient.completedAt && (
                         <p className="text-sm text-gray-500">
-                          Completed: {new Date(patient.completedAt).toLocaleDateString()}
+                          Completed:{" "}
+                          {new Date(patient.completedAt).toLocaleDateString()}
                         </p>
                       )}
                     </div>
@@ -287,7 +370,13 @@ export default function AssessmentsPage() {
                     >
                       {patient.completedAt ? "Completed" : "Pending"}
                     </Badge>
-                    <Button size="icon" variant="outline" className="text-red-700 border-red-300" onClick={() => handleUnassignPatient(patient)} title="Unassign Patient">
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      className="text-red-700 border-red-300"
+                      onClick={() => handleUnassignPatient(patient)}
+                      title="Unassign Patient"
+                    >
                       <UserMinus className="w-4 h-4" />
                     </Button>
                   </div>
@@ -349,9 +438,15 @@ export default function AssessmentsPage() {
           <Card className="bg-white p-6 rounded-lg border shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center justify-between">
             <div className="text-left">
               <div className="text-3xl font-bold text-[#8159A8]">
-                {assessments.filter(a => a.assignedPatients.some(p => p.completedAt)).length}
+                {
+                  assessments.filter((a) =>
+                    a.assignedPatients.some((p) => p.completedAt)
+                  ).length
+                }
               </div>
-              <div className="text-gray-500 text-sm">Assessments with Completions</div>
+              <div className="text-gray-500 text-sm">
+                Assessments with Completions
+              </div>
             </div>
             <div className="flex-shrink-0 ml-4">
               <CheckCircle className="w-10 h-10 text-[#8159A8]" />
@@ -367,13 +462,18 @@ export default function AssessmentsPage() {
                 <Card
                   key={assessment.id}
                   className="overflow-hidden border rounded-lg shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer"
-                  onClick={() => router.push(`/manager/assessments/${assessment.id}`)}
+                  onClick={() =>
+                    router.push(`/manager/assessments/${assessment.id}`)
+                  }
                 >
                   <div className="p-5 space-y-4">
                     {/* Header with Type */}
                     <div className="flex justify-start items-start">
                       <Badge className={getTypeBadgeColor(assessment.type)}>
-                        {assessment.type.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
+                        {assessment.type
+                          .replace(/_/g, " ")
+                          .toLowerCase()
+                          .replace(/\b\w/g, (l) => l.toUpperCase())}
                       </Badge>
                     </div>
 
@@ -415,7 +515,7 @@ export default function AssessmentsPage() {
                         View Assessment
                       </Button>
 
-                        <Button
+                      <Button
                         variant="outline"
                         size="sm"
                         className="bg-[#FAF8FB] hover:bg-[#FAF8FB] text-red-600 border-red-300"
@@ -424,9 +524,9 @@ export default function AssessmentsPage() {
                           setAssessmentToDelete(assessment);
                           // You may want to show a confirmation modal here before actually deleting
                         }}
-                        >
+                      >
                         Remove
-                        </Button>
+                      </Button>
                     </div>
                   </div>
                 </Card>
