@@ -1,23 +1,38 @@
 "use client";
 
-import React from 'react';
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-<<<<<<< HEAD
-//import { Badge } from "@/components/ui/badge";
-=======
 import { DonationModal } from '@/components/admin/donation-modal';
 import { SessionModal } from '@/components/admin/session-modal';
->>>>>>> origin/Development
 import {
     Users,
     BarChart3,
     Shield,
     Database,
     Zap,
-    AlertTriangle
+    AlertTriangle,
+    Globe,
+    Settings
 } from "lucide-react";
+
+// --- Interface Definitions ---
+// Corrected: Removed duplicate interface definitions and ensured consistency
+
+interface Session {
+    id: string;
+    name: string; // Corresponds to doctorName in mock data
+    sessionDetails: string;
+    amount: string;
+    commission: string;
+}
+
+interface Donation {
+    id: string;
+    name: string; // Corresponds to donorName in mock data
+    timeAgo: string;
+    amount: number;
+}
 
 interface AdminData {
     systemStatus: "online" | "offline" | "maintenance";
@@ -48,62 +63,84 @@ interface AdminData {
     }>;
 }
 
-const mockSessionData = [
-  {
-    id: 1,
-    doctorName: "Dr. Nimal Perera",
-    sessionDetails: "Session with Saman W. • 60 mins • Completed",
-    amount: "Rs. 800",
-    commission: "10% commission"
-  },
-  {
-    id: 2,
-    doctorName: "Dr. Kamala Silva",
-    sessionDetails: "Session with Priya R. • 45 mins • In Progress",
-    amount: "Rs. 600",
-    commission: "10% commission"
-  },
-  {
-    id: 3,
-    doctorName: "Dr. Ruwan Fernando",
-    sessionDetails: "Session with Nuwan K. • 90 mins • Completed",
-    amount: "Rs. 1,200",
-    commission: "10% commission"
-  }
-];
-
-const mockDonationData = [
-  {
-    id: 1,
-    donorName: "Malini Wickramasinghe",
-    timeAgo: "2 hours ago",
-    amount: "Rs. 15,000"
-  },
-  {
-    id: 2,
-    donorName: "Chandana Rajapaksa",
-    timeAgo: "5 hours ago",
-    amount: "Rs. 7,500"
-  },
-  {
-    id: 3,
-    donorName: "Sanduni Perera",
-    timeAgo: "1 day ago",
-    amount: "Rs. 30,000"
-  },
-  {
-    id: 4,
-    donorName: "Anonymous",
-    timeAgo: "2 days ago",
-    amount: "Rs. 22,500"
-  }
-];
-
 export default function AdminDashboard() {
+    // --- Mock Data ---
+    // The structure of mock data remains the same. Mapping happens before passing to modals.
+    const mockSessionData = [
+        {
+            id: 1,
+            doctorName: "Dr. Nimal Perera",
+            sessionDetails: "Session with Saman W. • 60 mins • Completed",
+            amount: "Rs. 800",
+            commission: "10% commission"
+        },
+        {
+            id: 2,
+            doctorName: "Dr. Kamala Silva",
+            sessionDetails: "Session with Priya R. • 45 mins • In Progress",
+            amount: "Rs. 600",
+            commission: "10% commission"
+        },
+        {
+            id: 3,
+            doctorName: "Dr. Ruwan Fernando",
+            sessionDetails: "Session with Nuwan K. • 90 mins • Completed",
+            amount: "Rs. 1,200",
+            commission: "10% commission"
+        }
+    ];
+
+    const mockDonationData = [
+        {
+            id: 1,
+            donorName: "Malini Wickramasinghe",
+            timeAgo: "2 hours ago",
+            amount: 15000
+        },
+        {
+            id: 2,
+            donorName: "Chandana Rajapaksa",
+            timeAgo: "5 hours ago",
+            amount: 7500
+        },
+        {
+            id: 3,
+            donorName: "Sanduni Perera",
+            timeAgo: "1 day ago",
+            amount: 30000
+        },
+        {
+            id: 4,
+            donorName: "Anonymous",
+            timeAgo: "2 days ago",
+            amount: 22500
+        }
+    ];
+
+    // --- State Management ---
     const [adminData, setAdminData] = useState<AdminData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [showSessionModal, setShowSessionModal] = useState(false);
+    const [showDonationModal, setShowDonationModal] = useState(false);
 
+    // Map mock data to the shape expected by the modal components
+    const mappedSessionData: Session[] = mockSessionData.map((session) => ({
+        id: session.id.toString(),
+        name: session.doctorName, // Corrected: Mapped doctorName to name
+        sessionDetails: session.sessionDetails,
+        amount: session.amount,
+        commission: session.commission
+    }));
+
+    const mappedDonationData: Donation[] = mockDonationData.map((donation) => ({
+        id: donation.id.toString(),
+        name: donation.donorName, // Corrected: Mapped donorName to name
+        timeAgo: donation.timeAgo,
+        amount: donation.amount
+    }));
+
+    // --- Data Fetching Effect ---
     useEffect(() => {
         fetchAdminData();
     }, []);
@@ -116,20 +153,21 @@ export default function AdminDashboard() {
             }
             const data = await response.json();
             setAdminData(data);
-        } catch (error) {
-            console.error("Error fetching admin data:", error);
+        } catch (err) {
+            console.error("Error fetching admin data:", err);
             setError("Failed to load dashboard data");
         } finally {
             setLoading(false);
         }
     };
 
+    // --- Loading and Error States ---
     if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center">
+            <div className="min-h-screen flex items-center justify-center bg-[#F5F3FB]">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                    <p className="mt-2 text-muted-foreground">Loading...</p>
+                    <p className="mt-2 text-muted-foreground">Loading dashboard data...</p>
                 </div>
             </div>
         );
@@ -137,7 +175,7 @@ export default function AdminDashboard() {
 
     if (error) {
         return (
-            <div className="min-h-screen flex items-center justify-center">
+            <div className="min-h-screen flex items-center justify-center bg-[#F5F3FB]">
                 <div className="text-center">
                     <h3 className="text-lg font-semibold mb-2">Unable to load dashboard</h3>
                     <p className="text-muted-foreground mb-4">{error}</p>
@@ -149,9 +187,9 @@ export default function AdminDashboard() {
         );
     }
 
+    // --- Main Dashboard Render ---
     return (
         <div className="min-h-screen" style={{ backgroundColor: '#F5F3FB' }}>
-            {/* Main Content */}
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {/* Welcome Section */}
                 <div className="mb-8">
@@ -212,111 +250,83 @@ export default function AdminDashboard() {
                     </Card>
                 </div>
 
-                <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6 ">
+                <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Recent Session Oversight */}
                     <Card>
                         <CardHeader>
-                        <CardTitle>Recent Session Oversight</CardTitle>
+                            <CardTitle>Recent Session Oversight</CardTitle>
                         </CardHeader>
                         <CardContent>
-                        <div className="space-y-4">
-                            {mockSessionData.map((session) => (
-                            <div key={session.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                <div className="flex-1">
-                                <h4 className="font-semibold text-sm">{session.doctorName}</h4>
-                                <p className="text-xs text-muted-foreground">{session.sessionDetails}</p>
-                                </div>
-                                <div className="text-right">
-                                <p className="font-semibold text-green-600">{session.amount}</p>
-                                <p className="text-xs text-muted-foreground">{session.commission}</p>
-                                </div>
+                            <div className="space-y-4">
+                                {mockSessionData.map((session) => (
+                                    <div key={session.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                        <div className="flex-1">
+                                            <h4 className="font-semibold text-sm">{session.doctorName}</h4>
+                                            <p className="text-xs text-muted-foreground">{session.sessionDetails}</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="font-semibold text-green-600">{session.amount}</p>
+                                            <p className="text-xs text-muted-foreground">{session.commission}</p>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
-                            ))}
-                        </div>
-                        <div className="mt-4 flex gap-2">
-<<<<<<< HEAD
-                            <Button className="hover:opacity-90 bg-primary text-white">
-                            View All Sessions
-=======
-                            <Button 
-                                className="hover:opacity-90" 
-                                style={{ backgroundColor: '#8159A8', color: 'white' }} 
-                                onClick={() => setShowSessionModal(true)}
-                            >
-                                View All Sessions
->>>>>>> origin/Development
-                            </Button>
-                            <SessionModal
-                                isOpen={showSessionModal}
-                                onClose={() => setShowSessionModal(false)}
-                                sessions={mappedSessionData}
-                            />
-                            {/*<Button variant="outline">
-                            Generate Report
-                            </Button>*/}
-                        </div>
+                            <div className="mt-4 flex gap-2">
+                                <Button
+                                    className="hover:opacity-90"
+                                    style={{ backgroundColor: '#8159A8', color: 'white' }}
+                                    onClick={() => setShowSessionModal(true)}
+                                >
+                                    View All Sessions
+                                </Button>
+                                <SessionModal
+                                    isOpen={showSessionModal}
+                                    onClose={() => setShowSessionModal(false)}
+                                    sessions={mappedSessionData}
+                                />
+                            </div>
                         </CardContent>
                     </Card>
 
                     {/* Recent Donations */}
                     <Card>
                         <CardHeader>
-                        <CardTitle>Recent Donations</CardTitle>
+                            <CardTitle>Recent Donations</CardTitle>
                         </CardHeader>
                         <CardContent>
-                        <div className="space-y-4">
-                            {mockDonationData.map((donation) => (
-                            <div key={donation.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                <div className="flex-1">
-                                <h4 className="font-semibold text-sm">{donation.donorName}</h4>
-                                <p className="text-xs text-muted-foreground">{donation.timeAgo}</p>
-                                </div>
-                                <div className="text-right">
-                                <p className="font-semibold text-purple-600">{donation.amount}</p>
-                                </div>
+                            <div className="space-y-4">
+                                {mockDonationData.map((donation) => (
+                                    <div key={donation.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                        <div className="flex-1">
+                                            <h4 className="font-semibold text-sm">{donation.donorName}</h4>
+                                            <p className="text-xs text-muted-foreground">{donation.timeAgo}</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="font-semibold text-purple-600">Rs. {donation.amount.toLocaleString()}</p>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
-                            ))}
-                        </div>
-                        <div className="mt-4">
-<<<<<<< HEAD
-                            <Button className="hover:opacity-90 bg-primary text-white">
-                            View All Donations
-=======
-                            <Button
-                                className="hover:opacity-90"
-                                style={{ backgroundColor: '#8159A8', color: 'white' }} 
-                                onClick={() => setShowDonationModal(true)}
-                            >
-                                View All Donations
->>>>>>> origin/Development
-                            </Button>
-                            <DonationModal
-                                isOpen={showDonationModal}
-                                onClose={() => setShowDonationModal(false)}
-                                donations={mappedDonationData}
-                            />
-                        </div>
+                            <div className="mt-4">
+                                <Button
+                                    className="hover:opacity-90"
+                                    style={{ backgroundColor: '#8159A8', color: 'white' }}
+                                    onClick={() => setShowDonationModal(true)}
+                                >
+                                    View All Donations
+                                </Button>
+                                <DonationModal
+                                    isOpen={showDonationModal}
+                                    onClose={() => setShowDonationModal(false)}
+                                    donations={mappedDonationData}
+                                />
+                            </div>
                         </CardContent>
                     </Card>
                 </div>
 
                 {/* Admin Action Cards */}
                 <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {/*<Card className="hover:shadow-lg transition-shadow cursor-pointer">
-                        <CardHeader>
-                            <CardTitle className="flex items-center">
-                                <Users className="mr-2 h-5 w-5" />
-                                User Management
-                            </CardTitle>
-                            <CardDescription>
-                                Manage all user accounts, roles, and permissions across the system
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <Button className="w-full">Manage Users</Button>
-                        </CardContent>
-                    </Card>*/}
-
                     <Card className="hover:shadow-lg transition-shadow cursor-pointer">
                         <CardHeader>
                             <CardTitle className="flex items-center">
@@ -461,50 +471,6 @@ export default function AdminDashboard() {
                         </CardContent>
                     </Card>
                 </div>
-
-                {/* User Statistics 
-                <div className="mt-8">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>User Role Distribution</CardTitle>
-                            <CardDescription>Current distribution of users across different roles</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                                <div className="text-center">
-                                    <div className="text-2xl font-bold text-blue-600">{adminData?.userRoleDistribution?.normalUsers || 0}</div>
-                                    <p className="text-xs text-muted-foreground">Patients</p>
-                                </div>
-                                <div className="text-center">
-                                    <div className="text-2xl font-bold text-green-600">{adminData?.userRoleDistribution?.parents || 0}</div>
-                                    <p className="text-xs text-muted-foreground">Parents</p>
-                                </div>
-                                <div className="text-center">
-                                    <div className="text-2xl font-bold text-purple-600">{adminData?.userRoleDistribution?.therapists || 0}</div>
-                                    <p className="text-xs text-muted-foreground">Therapists</p>
-                                </div>
-                                <div className="text-center">
-                                    <div className="text-2xl font-bold text-orange-600">{adminData?.userRoleDistribution?.managers || 0}</div>
-                                    <p className="text-xs text-muted-foreground">Managers</p>
-                                </div>
-                                <div className="text-center">
-                                    <div className="text-2xl font-bold text-red-600">{adminData?.userRoleDistribution?.admins || 0}</div>
-                                    <p className="text-xs text-muted-foreground">Admins</p>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>*/}
-<<<<<<< HEAD
-=======
-
-                {/*<DonationModal 
-                    isOpen={showDonationModal} 
-                    onClose={() => setShowDonationModal(false)} 
-                    donations={mappedDonationData} 
-                />*/}
-                
->>>>>>> origin/Development
             </main>
         </div>
     );
