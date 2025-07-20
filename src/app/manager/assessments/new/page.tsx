@@ -151,7 +151,7 @@ export default function NewAssessmentPage() {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 2000));
       alert("Assessment created successfully!");
-      router.push("/therapist/assessments");
+      router.push("/manager/assessments");
     } catch (error) {
       console.error("Error saving assessment:", error);
       alert("Failed to save assessment. Please try again.");
