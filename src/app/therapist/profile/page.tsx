@@ -1,420 +1,745 @@
-
 "use client";
-import { Edit3, X, Save, Award, Mail, FileText, Building, Clock, Star } from "lucide-react";
 
-import * as React from "react";
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useRef } from "react";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "sonner";
-import { ProfileStatsCard, SpecializationDisplay } from "@/components/therapist/ProfileComponents";
-import { ProfileLoadingSkeleton } from "@/components/therapist/ProfileLoadingSkeleton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import {
+  Edit,
+  Save,
+  X,
+  User,
+  Phone,
+  Mail,
+  MapPin,
+  Calendar,
+  GraduationCap,
+  Award,
+  DollarSign,
+  CreditCard,
+  CheckCircle,
+  Clock,
+  Upload,
+  Star,
+  Shield,
+  AlertCircle,
+} from "lucide-react";
 
+// Fixed TherapistProfile interface with all required properties
 interface TherapistProfile {
-  id: string;
-  licenseNumber: string;
-  specialization: string[];
-  experience: number;
+  name: string;
+  email: string;
+  phone: string;
+  dateOfBirth: string;
+  gender: string;
+  address: {
+    houseNumber: string;
+    streetName: string;
+    city: string;
+  };
+  profilePicture: string;
   bio: string;
-  availability: unknown;
-  rating?: number;
-  user: {
-    id: string;
-    name: string;
-    email: string;
-    image?: string;
+  licenseNumber: string;
+  primarySpecialty: string;
+  yearsOfExperience: string;
+  highestEducation: string;
+  institution: string;
+  adhdExperience: string;
+  hourlyRate: string;
+  bankDetails: {
+    accountHolderName: string;
+    accountNumber: string;
+    bankName: string;
+    branchName: string;
   };
-  organization: {
-    name: string;
-    code: string;
-  };
-  createdAt: string;
-  updatedAt: string;
+  verificationStatus: string;
+  verificationDate: string;
+  joinedDate: string;
+  lastUpdated: string;
+  profileCompletion: number;
 }
 
-interface TherapistStats {
-  totalPatients: number;
-  todayAppointments: number;
-  completedSessions: number;
-  pendingTasks: number;
-}
-
-// Helper function to get initials from name
-function getInitials(name: string): string {
-  return name
-    .split(" ")
-    .map((word) => word[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-}
+const mockProfile: TherapistProfile = {
+  name: "Dr. Sarah Johnson",
+  email: "sarah.johnson@email.com",
+  phone: "0771234567",
+  dateOfBirth: "1985-03-15",
+  gender: "female",
+  address: {
+    houseNumber: "123",
+    streetName: "Colombo Road",
+    city: "Kandy",
+  },
+  profilePicture: "/images/profile-placeholder.jpg",
+  bio: "Experienced ADHD specialist with over 8 years of practice. I focus on cognitive behavioral therapy and holistic approaches.",
+  licenseNumber: "LIC123456",
+  primarySpecialty: "adhd-specialist",
+  yearsOfExperience: "5-10-years",
+  highestEducation: "doctorate",
+  institution: "University of Colombo",
+  adhdExperience:
+    "Extensive experience working with ADHD patients including children and adults.",
+  hourlyRate: "2500",
+  bankDetails: {
+    accountHolderName: "Sarah Johnson",
+    accountNumber: "1234567890123",
+    bankName: "Commercial Bank",
+    branchName: "Kandy",
+  },
+  verificationStatus: "approved",
+  verificationDate: "2025-01-10T10:30:00Z",
+  joinedDate: "2025-01-05T14:20:00Z",
+  lastUpdated: "2025-01-15T09:15:00Z",
+  profileCompletion: 85,
+};
 
 export default function TherapistProfilePage() {
-  const [profile, setProfile] = useState<TherapistProfile | null>(null);
-  const [stats, setStats] = useState<TherapistStats | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isEditing, setIsEditing] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [editedProfile, setEditedProfile] = useState<Partial<TherapistProfile>>({});
+  const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [profile, setProfile] = useState<TherapistProfile>(mockProfile);
+  const [activeSection, setActiveSection] = useState<string | null>(null);
+  const [editData, setEditData] = useState<TherapistProfile | any>({});
+  const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    fetchProfile();
-    fetchStats();
-  }, []);
+  const getStatusInfo = (status: string) => {
+    switch (status) {
+      case "pending":
+        return {
+          color: "bg-yellow-100 text-yellow-800 border-yellow-200",
+          icon: <Clock className="w-4 h-4" />,
+          text: "Verification Pending",
+          message: "Your profile is under review by our team",
+        };
+      case "approved":
+        return {
+          color: "bg-green-100 text-green-800 border-green-200",
+          icon: <CheckCircle className="w-4 h-4" />,
+          text: "Verified Therapist",
+          message: "Your profile has been verified and approved",
+        };
+      case "rejected":
+        return {
+          color: "bg-red-100 text-red-800 border-red-200",
+          icon: <AlertCircle className="w-4 h-4" />,
+          text: "Action Required",
+          message: "Please review and update your information",
+        };
+      default:
+        return {
+          color: "bg-gray-100 text-gray-800 border-gray-200",
+          icon: <AlertCircle className="w-4 h-4" />,
+          text: "Unknown Status",
+          message: "",
+        };
+    }
+  };
 
-  const fetchProfile = async () => {
+  const getCompletionStatus = () => {
+    const completion = profile.profileCompletion;
+    if (completion === 100)
+      return { color: "bg-green-500", status: "Complete" };
+    if (completion >= 80)
+      return { color: "bg-blue-500", status: "Almost Complete" };
+    if (completion >= 60)
+      return { color: "bg-yellow-500", status: "In Progress" };
+    return { color: "bg-red-500", status: "Needs Attention" };
+  };
+
+  const startEdit = (section: string) => {
+    setActiveSection(section);
+    setEditData({ ...profile });
+  };
+
+  const cancelEdit = () => {
+    setActiveSection(null);
+    setEditData({});
+  };
+
+  const saveEdit = async () => {
+    setIsLoading(true);
     try {
-      const response = await fetch("/api/therapist/profile");
-      if (response.ok) {
-        const data = await response.json();
-        if (data && data.user) {
-          setProfile(data);
-          setEditedProfile(data);
-        } else {
-          console.error("Invalid profile data received:", data);
-          toast.error("Invalid profile data received");
-        }
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        console.error("Failed to load profile:", errorData);
-        toast.error(errorData.error || "Failed to load profile");
-      }
+      // TODO: API call
+      setProfile(editData);
+      setActiveSection(null);
+      setEditData({});
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     } catch (error) {
-      console.error("Error fetching profile:", error);
-      toast.error("Failed to load profile");
+      console.error("Failed to update:", error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const fetchStats = async () => {
-    try {
-      const response = await fetch("/api/therapist/dashboard");
-      if (response.ok) {
-        const data = await response.json();
-        setStats(data.stats);
-      } else {
-        console.error("Failed to fetch stats");
-      }
-    } catch (error) {
-      console.error("Error fetching stats:", error);
-    }
-  };
+  const ProfileHeader = () => {
+    const statusInfo = getStatusInfo(profile.verificationStatus);
+    const completionStatus = getCompletionStatus();
 
-  const handleEdit = () => {
-    setIsEditing(true);
-    toast.info("Edit mode enabled. Make your changes and save when ready.");
-  };
-
-  const handleCancel = () => {
-    setIsEditing(false);
-    setEditedProfile(profile || {});
-  };
-
-  const handleSave = async () => {
-    setIsSaving(true);
-    try {
-      const response = await fetch("/api/therapist/profile", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          bio: editedProfile.bio,
-          specialization: editedProfile.specialization,
-          experience: editedProfile.experience,
-        }),
-      });
-
-      if (response.ok) {
-        const updatedProfile = await response.json();
-        setProfile(updatedProfile);
-        setIsEditing(false);
-        toast.success("Profile updated successfully");
-      } else {
-        toast.error("Failed to update profile");
-      }
-    } catch (error) {
-      console.error("Error updating profile:", error);
-      toast.error("Failed to update profile");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleInputChange = (field: string, value: unknown) => {
-    setEditedProfile(prev => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-
-  const handleSpecializationChange = (value: string) => {
-    const specializations = value.split(",").map(s => s.trim()).filter(s => s);
-    handleInputChange("specialization", specializations);
-  };
-
-  if (isLoading) {
-    return <ProfileLoadingSkeleton />;
-  }
-
-  if (!profile || !profile.user) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold mb-2">Profile not found</h2>
-          <p className="text-muted-foreground">
-            Unable to load your profile information. Please try refreshing the page.
-          </p>
-          <Button 
-            onClick={() => window.location.reload()} 
-            className="mt-4"
-            variant="outline"
-          >
-            Refresh Page
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="container mx-auto p-6 max-w-6xl animate-in fade-in-50 duration-500">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            My Profile
-          </h1>
-          <p className="text-muted-foreground">
-            Manage your professional profile and information
-          </p>
-        </div>
-        {!isEditing ? (
-          <Button onClick={handleEdit} className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-            <Edit3 className="h-4 w-4" />
-            Edit Profile
-          </Button>
-        ) : (
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={handleCancel}
-              disabled={isSaving}
-              className="flex items-center gap-2"
-            >
-              <X className="h-4 w-4" />
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSave}
-              disabled={isSaving}
-              className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
-            >
-              <Save className="h-4 w-4" />
-              {isSaving ? "Saving..." : "Save Changes"}
-            </Button>
-          </div>
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Profile Overview Card */}
-        <div className="lg:col-span-1">
-          <Card className="hover:shadow-lg transition-shadow duration-300">
-            <CardHeader className="text-center">
-              <div className="relative">
-                <Avatar className="h-24 w-24 mx-auto mb-4 ring-4 ring-blue-100">
-                  <AvatarImage src={profile.user?.image || undefined} alt={profile.user?.name || "Therapist"} />
-                  <AvatarFallback className="text-lg bg-gradient-to-br from-blue-500 to-purple-600 text-white">
-                    {getInitials(profile.user?.name || profile.user?.email || "T")}
+      <div className="space-y-6 mb-8">
+        {/* Main Profile Card */}
+        <Card className="border-0 shadow-lg">
+          <CardContent className="p-8">
+            <div className="flex flex-col lg:flex-row gap-8">
+              {/* Profile Picture Section */}
+              <div className="flex flex-col items-center lg:items-start">
+                <Avatar className="w-32 h-32 border-4 border-white shadow-lg">
+                  <AvatarImage src={profile.profilePicture} />
+                  <AvatarFallback className="text-3xl bg-primary text-white">
+                    {profile.name
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")}
                   </AvatarFallback>
                 </Avatar>
-                {/* Online indicator */}
-                <div className="absolute bottom-4 right-4 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-4"
+                  onClick={() => startEdit("photo")}
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  Update Photo
+                </Button>
               </div>
-              <CardTitle className="text-xl">{profile.user?.name || "Unknown Therapist"}</CardTitle>
-              <CardDescription className="flex items-center justify-center gap-1">
-                <Award className="h-4 w-4" />
-                Licensed Therapist
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">{profile.user?.email || "No email provided"}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <FileText className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">License: {profile.licenseNumber || "Not provided"}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Building className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">{profile.organization?.name || "No organization"}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">{profile.experience || 0} years experience</span>
-              </div>
-              {profile.rating && (
-                <div className="flex items-center gap-2">
-                  <Star className="h-4 w-4 text-yellow-500 fill-current" />
-                  <span className="text-sm">{profile.rating} rating</span>
+
+              {/* Profile Info */}
+              <div className="flex-1 space-y-4">
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                    {profile.name}
+                  </h1>
+                  <div className="flex flex-wrap gap-4 text-gray-600 mb-4">
+                    <span className="flex items-center gap-2">
+                      <Mail className="w-4 h-4" />
+                      {profile.email}
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <Phone className="w-4 h-4" />
+                      {profile.phone}
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <Shield className="w-4 h-4" />
+                      {profile.licenseNumber}
+                    </span>
+                  </div>
+                  <p className="text-gray-600 leading-relaxed">{profile.bio}</p>
                 </div>
-              )}
+
+                {/* Status and Progress */}
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div
+                    className={`flex items-center gap-2 px-4 py-2 rounded-full border ${statusInfo.color}`}
+                  >
+                    {statusInfo.icon}
+                    <span className="font-medium">{statusInfo.text}</span>
+                  </div>
+
+                  <div className="flex items-center gap-3 text-sm">
+                    <span className="text-gray-600">Profile Completion</span>
+                    <div className="flex items-center gap-2">
+                      <Progress
+                        value={profile.profileCompletion}
+                        className="w-24"
+                      />
+                      <span className="font-medium">
+                        {profile.profileCompletion}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Status Message */}
+        {statusInfo.message && (
+          <Card
+            className={`border ${statusInfo.color.split(" ")[2]} ${
+              statusInfo.color.split(" ")[0]
+            }/20`}
+          >
+            <CardContent className="p-4">
+              <p className="text-sm">{statusInfo.message}</p>
             </CardContent>
           </Card>
+        )}
+      </div>
+    );
+  };
 
-          {/* Quick Stats */}
-          {stats && (
-            <div className="mt-6">
-              <ProfileStatsCard stats={stats} />
+  const EditableSection = ({
+    title,
+    description,
+    icon,
+    sectionKey,
+    children,
+    editChildren,
+    required = false,
+  }: {
+    title: string;
+    description: string;
+    icon: React.ReactNode;
+    sectionKey: string;
+    children: React.ReactNode;
+    editChildren: React.ReactNode;
+    required?: boolean;
+  }) => (
+    <Card className="group hover:shadow-md transition-shadow">
+      <CardHeader className="pb-4">
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10 text-primary">
+              {icon}
             </div>
+            <div>
+              <CardTitle className="text-lg flex items-center gap-2">
+                {title}
+                {required && <span className="text-red-500">*</span>}
+              </CardTitle>
+              <CardDescription className="text-sm">
+                {description}
+              </CardDescription>
+            </div>
+          </div>
+
+          {activeSection === sectionKey ? (
+            <div className="flex gap-2">
+              <Button size="sm" onClick={saveEdit} disabled={isLoading}>
+                <Save className="w-4 h-4 mr-1" />
+                {isLoading ? "Saving..." : "Save"}
+              </Button>
+              <Button size="sm" variant="outline" onClick={cancelEdit}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          ) : (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => startEdit(sectionKey)}
+              className="opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <Edit className="w-4 h-4 mr-1" />
+              Edit
+            </Button>
           )}
         </div>
+      </CardHeader>
 
-        {/* Detailed Information */}
-        <div className="lg:col-span-2">
-          <Tabs defaultValue="professional" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="professional">Professional Info</TabsTrigger>
-              <TabsTrigger value="specializations">Specializations</TabsTrigger>
-              <TabsTrigger value="availability">Availability</TabsTrigger>
-            </TabsList>
+      <CardContent className="pt-0">
+        {activeSection === sectionKey ? editChildren : children}
+      </CardContent>
+    </Card>
+  );
 
-            <TabsContent value="professional" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Professional Information</CardTitle>
-                  <CardDescription>
-                    Your professional details and biography
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
+  const InfoItem = ({
+    label,
+    value,
+    icon,
+  }: {
+    label: string;
+    value: React.ReactNode;
+    icon?: React.ReactNode;
+  }) => (
+    <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-50">
+      {icon && <div className="text-gray-400 mt-0.5">{icon}</div>}
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium text-gray-600 mb-1">{label}</p>
+        <p className="text-gray-900">{value}</p>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto">
+          <ProfileHeader />
+
+          <div className="space-y-8">
+            {/* Personal Information */}
+            <EditableSection
+              title="Personal Information"
+              description="Your basic contact and personal details"
+              icon={<User className="w-5 h-5" />}
+              sectionKey="personal"
+              required
+              children={
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <InfoItem
+                    label="Phone Number"
+                    value={profile.phone}
+                    icon={<Phone className="w-4 h-4" />}
+                  />
+                  <InfoItem
+                    label="Date of Birth"
+                    value={new Date(profile.dateOfBirth).toLocaleDateString()}
+                    icon={<Calendar className="w-4 h-4" />}
+                  />
+                  <InfoItem
+                    label="Gender"
+                    value={
+                      profile.gender.charAt(0).toUpperCase() +
+                      profile.gender.slice(1).replace("-", " ")
+                    }
+                  />
+                  <InfoItem
+                    label="Location"
+                    value={`${profile.address.city}, Sri Lanka`}
+                    icon={<MapPin className="w-4 h-4" />}
+                  />
+                </div>
+              }
+              editChildren={
+                <div className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="license">License Number</Label>
+                      <Label htmlFor="phone">Phone Number *</Label>
                       <Input
-                        id="license"
-                        value={profile.licenseNumber}
-                        disabled
-                        className="mt-1"
+                        id="phone"
+                        value={editData.phone || ""}
+                        onChange={(e) =>
+                          setEditData({ ...editData, phone: e.target.value })
+                        }
+                        placeholder="Your phone number"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="experience">Years of Experience</Label>
-                      {isEditing ? (
-                        <Input
-                          id="experience"
-                          type="number"
-                          value={editedProfile.experience || 0}
-                          onChange={(e) =>
-                            handleInputChange("experience", parseInt(e.target.value) || 0)
-                          }
-                          className="mt-1"
-                        />
-                      ) : (
-                        <Input
-                          id="experience"
-                          value={profile.experience || 0}
-                          disabled
-                          className="mt-1"
-                        />
-                      )}
+                      <Label htmlFor="dateOfBirth">Date of Birth *</Label>
+                      <Input
+                        id="dateOfBirth"
+                        type="date"
+                        value={editData.dateOfBirth || ""}
+                        onChange={(e) =>
+                          setEditData({
+                            ...editData,
+                            dateOfBirth: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="gender">Gender *</Label>
+                      <Select
+                        value={editData.gender || ""}
+                        onValueChange={(value) =>
+                          setEditData({ ...editData, gender: value })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select gender" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="male">Male</SelectItem>
+                          <SelectItem value="female">Female</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                          <SelectItem value="prefer-not-to-say">
+                            Prefer not to say
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="city">City *</Label>
+                      <Input
+                        id="city"
+                        value={editData.address?.city || ""}
+                        onChange={(e) =>
+                          setEditData({
+                            ...editData,
+                            address: {
+                              ...editData.address,
+                              city: e.target.value,
+                            },
+                          })
+                        }
+                        placeholder="Your city"
+                      />
                     </div>
                   </div>
                   <div>
-                    <Label htmlFor="bio">Professional Biography</Label>
-                    {isEditing ? (
-                      <Textarea
-                        id="bio"
-                        value={editedProfile.bio || ""}
-                        onChange={(e) => handleInputChange("bio", e.target.value)}
-                        placeholder="Tell us about your professional background, approach to therapy, and what makes you unique as a therapist..."
-                        className="mt-1 min-h-[120px]"
-                      />
-                    ) : (
-                      <Textarea
-                        id="bio"
-                        value={profile.bio || "No biography provided"}
-                        disabled
-                        className="mt-1 min-h-[120px]"
-                      />
-                    )}
+                    <Label htmlFor="bio">Professional Bio *</Label>
+                    <Textarea
+                      id="bio"
+                      value={editData.bio || ""}
+                      onChange={(e) =>
+                        setEditData({ ...editData, bio: e.target.value })
+                      }
+                      placeholder="Tell patients about your approach and experience..."
+                      className="min-h-[100px]"
+                      maxLength={500}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      {(editData.bio || "").length}/500 characters
+                    </p>
                   </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
+                </div>
+              }
+            />
 
-            <TabsContent value="specializations" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Areas of Specialization</CardTitle>
-                  <CardDescription>
-                    The therapeutic areas and approaches you specialize in
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {isEditing ? (
+            {/* Professional Qualifications */}
+            <EditableSection
+              title="Professional Qualifications"
+              description="Your credentials and specializations"
+              icon={<GraduationCap className="w-5 h-5" />}
+              sectionKey="professional"
+              required
+              children={
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <InfoItem
+                      label="License Number"
+                      value={profile.licenseNumber}
+                      icon={<Award className="w-4 h-4" />}
+                    />
+                    <InfoItem
+                      label="Primary Specialty"
+                      value={profile.primarySpecialty
+                        .split("-")
+                        .map(
+                          (word) => word.charAt(0).toUpperCase() + word.slice(1)
+                        )
+                        .join(" ")}
+                    />
+                    <InfoItem
+                      label="Experience Level"
+                      value={profile.yearsOfExperience
+                        .split("-")
+                        .join(" ")
+                        .toUpperCase()}
+                      icon={<Star className="w-4 h-4" />}
+                    />
+                    <InfoItem
+                      label="Education"
+                      value={
+                        profile.highestEducation.charAt(0).toUpperCase() +
+                        profile.highestEducation.slice(1)
+                      }
+                    />
+                  </div>
+                  <InfoItem label="Institution" value={profile.institution} />
+                </div>
+              }
+              editChildren={
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="specializations">
-                        Specializations (comma-separated)
+                      <Label htmlFor="licenseNumber">License Number *</Label>
+                      <Input
+                        id="licenseNumber"
+                        value={editData.licenseNumber || ""}
+                        onChange={(e) =>
+                          setEditData({
+                            ...editData,
+                            licenseNumber: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="institution">Institution *</Label>
+                      <Input
+                        id="institution"
+                        value={editData.institution || ""}
+                        onChange={(e) =>
+                          setEditData({
+                            ...editData,
+                            institution: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="adhdExperience">
+                      ADHD-Specific Experience
+                    </Label>
+                    <Textarea
+                      id="adhdExperience"
+                      value={editData.adhdExperience || ""}
+                      onChange={(e) =>
+                        setEditData({
+                          ...editData,
+                          adhdExperience: e.target.value,
+                        })
+                      }
+                      placeholder="Describe your specific experience with ADHD patients..."
+                      className="min-h-[100px]"
+                    />
+                  </div>
+                </div>
+              }
+            />
+
+            {/* Business Settings */}
+            <EditableSection
+              title="Business Settings"
+              description="Your consultation rates and payment information"
+              icon={<DollarSign className="w-5 h-5" />}
+              sectionKey="business"
+              children={
+                <div className="space-y-6">
+                  <div className="p-4 rounded-lg bg-green-50 border border-green-200">
+                    <div className="flex items-center gap-3 mb-2">
+                      <DollarSign className="w-5 h-5 text-green-600" />
+                      <span className="font-medium text-green-800">
+                        Consultation Rate
+                      </span>
+                    </div>
+                    <p className="text-2xl font-bold text-green-900">
+                      {profile.hourlyRate === "0"
+                        ? "Free Consultations"
+                        : `Rs. ${profile.hourlyRate}/hour`}
+                    </p>
+                  </div>
+
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+                      <CreditCard className="w-4 h-4" />
+                      Bank Details
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <InfoItem
+                        label="Account Holder"
+                        value={profile.bankDetails.accountHolderName}
+                      />
+                      <InfoItem
+                        label="Bank"
+                        value={profile.bankDetails.bankName}
+                      />
+                      <InfoItem
+                        label="Account Number"
+                        value={`****${profile.bankDetails.accountNumber.slice(
+                          -4
+                        )}`}
+                      />
+                      <InfoItem
+                        label="Branch"
+                        value={profile.bankDetails.branchName}
+                      />
+                    </div>
+                  </div>
+                </div>
+              }
+              editChildren={
+                <div className="space-y-6">
+                  <div>
+                    <Label htmlFor="hourlyRate">Hourly Rate (LKR) *</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                        Rs.
+                      </span>
+                      <Input
+                        id="hourlyRate"
+                        className="pl-12"
+                        value={editData.hourlyRate || ""}
+                        onChange={(e) =>
+                          setEditData({
+                            ...editData,
+                            hourlyRate: e.target.value.replace(/[^0-9.]/g, ""),
+                          })
+                        }
+                        placeholder="0 for free consultations"
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Enter 0 for free consultations, maximum Rs. 10,000
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="accountHolder">
+                        Account Holder Name *
                       </Label>
                       <Input
-                        id="specializations"
-                        value={editedProfile.specialization?.join(", ") || ""}
-                        onChange={(e) => handleSpecializationChange(e.target.value)}
-                        placeholder="e.g., ADHD, Anxiety, Depression, Family Therapy"
-                        className="mt-1"
+                        id="accountHolder"
+                        value={editData.bankDetails?.accountHolderName || ""}
+                        onChange={(e) =>
+                          setEditData({
+                            ...editData,
+                            bankDetails: {
+                              ...editData.bankDetails,
+                              accountHolderName: e.target.value,
+                            },
+                          })
+                        }
                       />
-                      <div className="mt-3">
-                        <SpecializationDisplay
-                          specializations={editedProfile.specialization || []}
-                          isEditing={false}
-                        />
-                      </div>
                     </div>
-                  ) : (
-                    <SpecializationDisplay
-                      specializations={profile.specialization}
-                      isEditing={false}
-                    />
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="availability" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Availability Settings</CardTitle>
-                  <CardDescription>
-                    Manage your working hours and availability for sessions
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-8">
-                    <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">
-                      Availability Management
-                    </h3>
-                    <p className="text-muted-foreground mb-4">
-                      Set your availability through the dedicated availability page
-                    </p>
-                    <Button asChild>
-                      <a href="/therapist/setAvailability">
-                        Manage Availability
-                      </a>
-                    </Button>
+                    <div>
+                      <Label htmlFor="bankName">Bank Name *</Label>
+                      <Input
+                        id="bankName"
+                        value={editData.bankDetails?.bankName || ""}
+                        onChange={(e) =>
+                          setEditData({
+                            ...editData,
+                            bankDetails: {
+                              ...editData.bankDetails,
+                              bankName: e.target.value,
+                            },
+                          })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="accountNumber">Account Number *</Label>
+                      <Input
+                        id="accountNumber"
+                        value={editData.bankDetails?.accountNumber || ""}
+                        onChange={(e) =>
+                          setEditData({
+                            ...editData,
+                            bankDetails: {
+                              ...editData.bankDetails,
+                              accountNumber: e.target.value,
+                            },
+                          })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="branchName">Branch Name *</Label>
+                      <Input
+                        id="branchName"
+                        value={editData.bankDetails?.branchName || ""}
+                        onChange={(e) =>
+                          setEditData({
+                            ...editData,
+                            bankDetails: {
+                              ...editData.bankDetails,
+                              branchName: e.target.value,
+                            },
+                          })
+                        }
+                      />
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+                </div>
+              }
+            />
+          </div>
         </div>
       </div>
     </div>
