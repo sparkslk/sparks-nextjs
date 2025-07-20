@@ -1,16 +1,8 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Calendar, FileText, Download, TrendingUp, DollarSign, Users, RefreshCw } from 'lucide-react';
+import { Calendar, FileText} from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-
-// TypeScript interfaces
-interface MetricCardProps {
-  title: string;
-  value: string;
-  subtitle: string;
-  color: 'green' | 'purple' | 'blue';
-}
 
 interface ReportItemProps {
   title: string;
@@ -28,41 +20,11 @@ interface RecentReportProps {
 }
 
 const FinancialDashboard: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('Financial Reports');
+  //const [activeTab, setActiveTab] = useState('Financial Reports');
   const [fromDate, setFromDate] = useState('01/04/2025');
   const [toDate, setToDate] = useState('30/04/2025');
   const [reportFormat, setReportFormat] = useState('PDF Document');
   const [detailLevel, setDetailLevel] = useState('Summary');
-
-  const tabs = [
-    'Overview',
-    'User Management', 
-    'Session Oversight',
-    'Game Management',
-    'Financial Reports'
-  ];
-
-  const MetricCard: React.FC<MetricCardProps> = ({ title, value, subtitle, color }) => {
-    const colorClasses = {
-      green: 'border-green-200 bg-green-50',
-      purple: 'border-purple-200 bg-purple-50', 
-      blue: 'border-blue-200 bg-blue-50'
-    };
-
-    const textColorClasses = {
-      green: 'text-green-600',
-      purple: 'text-purple-600',
-      blue: 'text-blue-600'
-    };
-
-    return (
-      <div className={`p-6 rounded-lg border-2 ${colorClasses[color]}`}>
-        <h3 className="text-sm font-medium text-gray-600 mb-2">{title}</h3>
-        <p className={`text-2xl font-bold ${textColorClasses[color]} mb-1`}>{value}</p>
-        <p className="text-xs text-gray-500">{subtitle}</p>
-      </div>
-    );
-  };
 
   const ReportItem: React.FC<ReportItemProps> = ({ title, description, isPinned, isRecent, date, size }) => {
     return (
@@ -251,7 +213,7 @@ const FinancialDashboard: React.FC = () => {
                   </div>
                 </div>
                 
-                <button className="w-full bg-purple-600 text-white py-3 rounded-md hover:bg-purple-700 transition-colors font-medium">
+                <button className="w-full bg-[#8159A8] text-white py-3 rounded-md hover:bg-purple-700 transition-colors font-medium">
                   Generate & Download Report
                 </button>
               </div>

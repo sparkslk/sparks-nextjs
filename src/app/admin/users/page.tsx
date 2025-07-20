@@ -1,142 +1,244 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React from "react";
+import { useEffect, useState} from "react";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Plus } from "lucide-react";
 import UserFilters from "@/components/admin/admin-user-filters";
+import UserDetailEdit from "@/components/admin/users/user-detail-edit";
+import AddUser from "@/components/admin/users/add-user";
+import UserStatsCards from "@/components/admin/users/users-stats-cards";
+import EmergencyContactDialog from "@/components/admin/users/EmergencyContactDialog";
+import UserTable from "@/components/admin/users/userTable";
+import UserDelete from "@/components/admin/users/user-delete";
 
 export default function UsersPage() {
+  // State for emergency contact modal
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(new Date());
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedRole, setSelectedRole] = useState("All Roles");
+  const [selectedRole, setSelectedRole] = useState("Patient"); // Default to Patient
   const [selectedStatus, setSelectedStatus] = useState("All Status");
   const [selectedTime, setSelectedTime] = useState("All Time");
   const [selectedVerification, setSelectedVerification] = useState("All");
+  const [emergencyContactOpen, setEmergencyContactOpen] = React.useState(false);
+  const [emergencyContactDetails, setEmergencyContactDetails] =
+    React.useState<any>(null);
+  const [editModalOpen, setEditModalOpen] = React.useState(false);
+  const [editUser, setEditUser] = React.useState<any>(null);
+  const [deleteModalOpen, setDeleteModalOpen] = React.useState(false);
+  const [deleteUser, setDeleteUser] = React.useState<any>(null);
 
-  const [users] = useState([
-    {
-      id: 1,
-      name: "Dr. Nimal Perera",
-      email: "nimal.perera@email.com",
-      role: "Therapist",
-      status: "Active",
-      joinedDate: "2024-04-15",
-      lastActive: "2 hours ago",
-      sessions: 127,
-      avatar: "NP",
-      avatarColor: "bg-[#8159A8]",
-      verified: true
-    },
-    {
-      id: 2,
-      name: "Amara Gunawardena",
-      email: "amara.g@email.com",
-      role: "Guardian",
-      status: "Pending",
-      joinedDate: "2024-06-10",
-      lastActive: "1 day ago",
-      sessions: "N/A",
-      avatar: "AG",
-      avatarColor: "bg-[#8159A8]",
-      verified: false
-    },
-    {
-      id: 3,
-      name: "Sahan Perera",
-      email: "sahan.p@email.com",
-      role: "Patient",
-      status: "Active",
-      joinedDate: "2024-03-22",
-      lastActive: "5 hours ago",
-      sessions: 45,
-      avatar: "SP",
-      avatarColor: "bg-[#8159A8]",
-      verified: false
-    },
-    {
-      id: 4,
-      name: "Dr. Kamala Silva",
-      email: "kamala.silva@email.com",
-      role: "Therapist",
-      status: "Active",
-      joinedDate: "2024-02-10",
-      lastActive: "30 mins ago",
-      sessions: 89,
-      avatar: "KS",
-      avatarColor: "bg-[#8159A8]",
-      verified: true
-    },
-    {
-      id: 5,
-      name: "Thilaka Bandara",
-      email: "thilaka.b@email.com",
-      role: "Guardian",
-      status: "Active",
-      joinedDate: "2024-01-18",
-      lastActive: "3 hours ago",
-      sessions: "N/A",
-      avatar: "TB",
-      avatarColor: "bg-[#8159A8]",
-      verified: true
-    },
-    {
-      id: 6,
-      name: "Ruwan Wijesinghe",
-      email: "ruwan.w@email.com",
-      role: "Manager",
-      status: "Active",
-      joinedDate: "2023-12-05",
-      lastActive: "1 hour ago",
-      sessions: "N/A",
-      avatar: "RW",
-      avatarColor: "bg-[#8159A8]",
-      verified: true
-    },
-    {
-      id: 7,
-      name: "Dr. Sunil Jayasinghe",
-      email: "sunil.j@email.com",
-      role: "Therapist",
-      status: "Suspended",
-      joinedDate: "2024-05-20",
-      lastActive: "1 week ago",
-      sessions: 12,
-      avatar: "SJ",
-      avatarColor: "bg-[#8159A8]",
-      verified: false
+  // State to hold users fetched from the API
+  const [users, setUsers] = useState<any[]>([]);
+
+  // State for add user modal
+  const [addUserOpen, setAddUserOpen] = useState(false);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      setLoading(true);
+      try {
+        const response = await fetch("/api/admin/users");
+        if (!response.ok) {
+          throw new Error("Failed to fetch users");
+        }
+        const data = await response.json();
+        if (data && data.data) {
+          setUsers(data.data);
+        } else {
+          setUsers([]);
+        }
+        // Only set lastUpdated on the client to avoid hydration mismatch
+        setTimeout(() => setLastUpdated(new Date()), 0);
+      } catch (err) {
+        setError("Failed to load users");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUsers();
+  }, []);
+
+  // Map API data to table display format, handling different user types
+  // Ensure that any object fields are stringified for safe rendering
+  const safeString = (val: any) => {
+    if (val == null || val === "" || val === undefined) return "N/A";
+    if (typeof val === "object") {
+      // If it's an array, join; if object, JSON.stringify but remove braces for readability
+      if (Array.isArray(val)) return val.length > 0 ? val.join(", ") : "N/A";
+      try {
+        // Try to flatten simple objects for display
+        const values = Object.values(val);
+        if (values.length === 0) return "N/A";
+        if (values.every((v) => v != null && typeof v !== "object")) {
+          return values
+            .map((v) => (v == null || v === "" ? "N/A" : v))
+            .join(", ");
+        }
+        return JSON.stringify(val);
+      } catch {
+        return JSON.stringify(val);
+      }
     }
-  ]);
+    return String(val) === "" ? "N/A" : String(val);
+  };
 
-  const filteredUsers = users.filter((user) => {
+  const mappedUsers = users.map((user) => {
+    if (user.role === "Patient") {
+      // Format dateOfBirth to only show date part if possible
+      let dob = user.dateOfBirth;
+      if (dob) {
+        try {
+          const d = new Date(dob);
+          if (!isNaN(d.getTime())) {
+            dob = d.toISOString().split("T")[0];
+          } else {
+            dob = safeString(dob);
+          }
+        } catch {
+          dob = safeString(dob);
+        }
+      } else {
+        dob = "N/A";
+      }
+      return {
+        id: user.id,
+        role: user.role,
+        name: user.fullName,
+        email: user.email,
+        gender: safeString(user.gender),
+        phone: safeString(user.phone),
+        dateOfBirth: dob,
+        address: safeString(user.address),
+        emergencyContact: safeString(user.emergencyContact),
+        medicalHistory: safeString(user.medicalHistory),
+        joinedDate: user.createdAt
+          ? new Date(user.createdAt).toISOString().split("T")[0]
+          : "",
+        avatar: user.fullName
+          ? user.fullName
+              .split(" ")
+              .map((n: string) => n[0])
+              .join("")
+              .toUpperCase()
+          : "",
+        avatarColor: "bg-[#8159A8]",
+        status: safeString(user.status || ""),
+      };
+    } else if (user.role === "Therapist") {
+      return {
+        id: user.id,
+        role: user.role,
+        name: user.fullname,
+        licenseNumber: safeString(user.licenseNumber),
+        specialization: safeString(user.specialization),
+        experience: safeString(user.experience),
+        availability: safeString(user.availability),
+        rating: safeString(user.rating),
+        joinedDate: user.createdAt
+          ? new Date(user.createdAt).toISOString().split("T")[0]
+          : "",
+        avatar: user.fullname
+          ? user.fullname
+              .split(" ")
+              .map((n: string) => n[0])
+              .join("")
+              .toUpperCase()
+          : "",
+        avatarColor: "bg-[#8159A8]",
+        status: safeString(user.status || ""),
+      };
+    } else if (user.role === "Guardian") {
+      return {
+        id: user.id,
+        role: user.role,
+        name: user.fullName,
+        email: user.email,
+        patient: safeString(user.patient),
+        relationship: safeString(user.relationship),
+        joinedDate: user.createdAt
+          ? new Date(user.createdAt).toISOString().split("T")[0]
+          : "",
+        avatar: user.fullName
+          ? user.fullName
+              .split(" ")
+              .map((n: string) => n[0])
+              .join("")
+              .toUpperCase()
+          : "",
+        avatarColor: "bg-[#8159A8]",
+        status: safeString(user.status || ""),
+      };
+    } else if (user.role === "Manager") {
+      return {
+        id: user.id,
+        role: user.role,
+        name: user.fullName || user.name,
+        email: user.email,
+        joinedDate: user.createdAt
+          ? new Date(user.createdAt).toISOString().split("T")[0]
+          : "",
+        avatar:
+          user.fullName || user.name
+            ? (user.fullName || user.name)
+                .split(" ")
+                .map((n: string) => n[0])
+                .join("")
+                .toUpperCase()
+            : "",
+        avatarColor: "bg-[#8159A8]",
+        status: safeString(user.status || ""),
+      };
+    }
+    // fallback
+    return {
+      id: user.id,
+      role: user.role,
+      name: user.fullName || user.name,
+      email: user.email,
+      joinedDate: user.createdAt
+        ? new Date(user.createdAt).toISOString().split("T")[0]
+        : "",
+      avatar:
+        user.fullName || user.name
+          ? (user.fullName || user.name)
+              .split(" ")
+              .map((n: string) => n[0])
+              .join("")
+              .toUpperCase()
+          : "",
+      avatarColor: "bg-[#8159A8]",
+      status: safeString(user.status || ""),
+    };
+  });
+
+  // Filtering logic for role and search
+  const filteredUsers = mappedUsers.filter((user) => {
     const matchesSearch =
       searchTerm === "" ||
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (user.name &&
+        user.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (user.email &&
+        user.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
       user.id.toString().includes(searchTerm);
 
-    const matchesRole = selectedRole === "All Roles" || user.role === selectedRole;
-    const matchesStatus = selectedStatus === "All Status" || user.status === selectedStatus;
-    const matchesDate = selectedTime === "All Time" || true; // Placeholder
-    const matchesVerification =
-      selectedVerification === "All" ||
-      (selectedVerification === "Verified" && user.verified) ||
-      (selectedVerification === "Unverified" && !user.verified);
-
-    return matchesSearch && matchesRole && matchesStatus && matchesDate && matchesVerification;
+    const matchesRole = user.role === selectedRole;
+    // You can add more filter logic for status, time, verification if needed
+    return matchesSearch && matchesRole;
   });
 
   const stats = {
-    totalUsers: users.length,
-    patients: users.filter((u) => u.role === "Patient").length,
-    therapists: users.filter((u) => u.role === "Therapist").length,
-    guardians: users.filter((u) => u.role === "Guardian").length,
-    managers: users.filter((u) => u.role === "Manager").length,
-    pending: users.filter((u) => u.status === "Pending").length
+    totalUsers: mappedUsers.length,
+    patients: mappedUsers.filter((u) => u.role === "Patient").length,
+    therapists: mappedUsers.filter((u) => u.role === "Therapist").length,
+    guardians: mappedUsers.filter((u) => u.role === "Guardian").length,
+    managers: mappedUsers.filter((u) => u.role === "Manager").length,
+    pending: mappedUsers.filter((u) => u.status === "Pending").length,
   };
 
-  const getRoleColor = (role: string) => {
+  /*const getRoleColor = (role: string) => {
     switch (role) {
       case "Therapist":
         return "bg-blue-100 text-blue-800";
@@ -149,20 +251,7 @@ export default function UsersPage() {
       default:
         return "bg-gray-100 text-gray-800";
     }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Active":
-        return "bg-green-100 text-green-800";
-      case "Pending":
-        return "bg-yellow-100 text-yellow-800";
-      case "Suspended":
-        return "bg-red-100 text-red-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
+  };*/
 
   if (loading) {
     return (
@@ -179,7 +268,9 @@ export default function UsersPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h3 className="text-lg font-semibold mb-2">Unable to load dashboard</h3>
+          <h3 className="text-lg font-semibold mb-2">
+            Unable to load dashboard
+          </h3>
           <p className="text-muted-foreground mb-4">{error}</p>
           <Button onClick={() => window.location.reload()}>Try Again</Button>
         </div>
@@ -187,13 +278,16 @@ export default function UsersPage() {
     );
   }
 
+  // Dynamic table headers and rows based on user type
   return (
     <div className="max-w-7xl mx-auto">
       {/* Header */}
       <div className="mb-8">
         <div className="flex justify-between items-start mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">User Management</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              User Management
+            </h1>
             {lastUpdated && (
               <p className="text-sm text-gray-500 flex items-center gap-1">
                 <RefreshCw className="h-4 w-4" />
@@ -201,11 +295,41 @@ export default function UsersPage() {
               </p>
             )}
           </div>
-          <Button className="flex items-center gap-2" style={{ backgroundColor: "#8159A8" }}>
+          <Button
+            className="flex items-center gap-2"
+            style={{ backgroundColor: "#8159A8" }}
+            onClick={() => setAddUserOpen(true)}
+          >
             <Plus className="h-4 w-4" />
             Add New User
           </Button>
+          {/* Add User Modal */}
+          <AddUser
+            open={addUserOpen}
+            onOpenChange={setAddUserOpen}
+            onAdd={(newUser) => {
+              // Add new user to state (optimistic add)
+              setUsers((prev) => [
+                {
+                  ...newUser,
+                  id: Date.now(),
+                  joinedDate: new Date().toISOString().split("T")[0],
+                  avatar: (newUser.fullName || newUser.fullname || "")
+                    .split(" ")
+                    .map((n: string) => n[0])
+                    .join("")
+                    .toUpperCase(),
+                  avatarColor: "bg-[#8159A8]",
+                  status: newUser.status || "Active",
+                },
+                ...prev,
+              ]);
+            }}
+          />
         </div>
+
+        {/* Stats Cards */}
+        <UserStatsCards stats={stats} />
 
         {/* Filters */}
         <UserFilters
@@ -220,100 +344,52 @@ export default function UsersPage() {
           onTimeChange={setSelectedTime}
           onVerificationChange={setSelectedVerification}
         />
-
-        {/* Statistics */}
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-8">
-          <div className="bg-white rounded-lg p-4 shadow-sm border">
-            <div className="text-2xl font-bold" style={{ color: "#8159A8" }}>
-              {stats.totalUsers}
-            </div>
-            <div className="text-sm text-gray-600">Total Users</div>
-          </div>
-          <div className="bg-white rounded-lg p-4 shadow-sm border">
-            <div className="text-2xl font-bold text-[#8159A8]">{stats.patients}</div>
-            <div className="text-sm text-gray-600">Patients</div>
-          </div>
-          <div className="bg-white rounded-lg p-4 shadow-sm border">
-            <div className="text-2xl font-bold text-[#8159A8]">{stats.therapists}</div>
-            <div className="text-sm text-gray-600">Therapists</div>
-          </div>
-          <div className="bg-white rounded-lg p-4 shadow-sm border">
-            <div className="text-2xl font-bold text-[#8159A8]">{stats.guardians}</div>
-            <div className="text-sm text-gray-600">Guardians</div>
-          </div>
-          <div className="bg-white rounded-lg p-4 shadow-sm border">
-            <div className="text-2xl font-bold" style={{ color: "#8159A8" }}>
-              {stats.managers}
-            </div>
-            <div className="text-sm text-gray-600">Managers</div>
-          </div>
-          <div className="bg-white rounded-lg p-4 shadow-sm border">
-            <div className="text-2xl font-bold text-[#8159A8]">{stats.pending}</div>
-            <div className="text-sm text-gray-600">Pending</div>
-          </div>
-        </div>
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+      <div className="bg-white rounded-xl shadow-lg border overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b">
-              <tr>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">User</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Role</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Status</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Joined Date</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Last Active</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Sessions</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredUsers.map((user) => (
-                <tr key={user.id} className="border-b hover:bg-gray-50">
-                  <td className="py-4 px-4">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-full ${user.avatarColor} flex items-center justify-center text-white font-semibold text-sm`}>
-                        {user.avatar}
-                      </div>
-                      <div>
-                        <div className="font-medium text-gray-900">{user.name}</div>
-                        <div className="text-sm text-gray-500">{user.email}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-4 px-4">
-                    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getRoleColor(user.role)}`}>{user.role}</span>
-                  </td>
-                  <td className="py-4 px-4">
-                    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(user.status)}`}>{user.status}</span>
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-600">{user.joinedDate}</td>
-                  <td className="py-4 px-4 text-sm text-gray-600">{user.lastActive}</td>
-                  <td className="py-4 px-4 text-sm text-gray-900 font-medium">{user.sessions}</td>
-                  <td className="py-4 px-4">
-                    <div className="flex items-center gap-2">
-                      <Button size="sm" variant="outline" className="text-xs">Edit</Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className={`text-xs ${
-                          user.status === "Suspended"
-                            ? "text-green-600 hover:text-green-700"
-                            : user.status === "Pending"
-                            ? "text-blue-600 hover:text-blue-700"
-                            : "text-red-600 hover:text-red-700"
-                        }`}
-                      >
-                        {user.status === "Suspended" ? "Reactivate" : user.status === "Pending" ? "Verify" : "Suspend"}
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <UserTable
+            selectedRole={selectedRole}
+            filteredUsers={filteredUsers}
+            setEditUser={setEditUser}
+            setEditModalOpen={setEditModalOpen}
+            setDeleteUser={setDeleteUser}
+            setDeleteModalOpen={setDeleteModalOpen}
+            setEmergencyContactDetails={setEmergencyContactDetails}
+            setEmergencyContactOpen={setEmergencyContactOpen}
+          />
+
+          <EmergencyContactDialog
+            open={emergencyContactOpen}
+            onOpenChange={setEmergencyContactOpen}
+            emergencyContactDetails={emergencyContactDetails}
+          />
+
+          <UserDetailEdit
+            user={editUser}
+            open={editModalOpen}
+            onOpenChange={setEditModalOpen}
+            onSave={(updatedRawUser) => {
+              // Update the raw users array with the updated user data
+              setUsers((prevUsers) =>
+                prevUsers.map((u) =>
+                  u.id === updatedRawUser.id ? updatedRawUser : u
+                )
+              );
+              setEditModalOpen(false);
+            }}
+          />
+          {/* Delete User Modal */}
+          <UserDelete
+            user={deleteUser}
+            open={deleteModalOpen}
+            onOpenChange={setDeleteModalOpen}
+            onDelete={(userId) => {
+              // Remove user from state after successful deletion
+              setUsers((prevUsers) => prevUsers.filter((u) => u.id !== userId));
+            }}
+          />
         </div>
       </div>
     </div>

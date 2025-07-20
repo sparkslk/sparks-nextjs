@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Button } from "@/components/ui/button";
-import { RefreshCw, Plus } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { RefreshCw} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 import SessionFilters from "@/components/admin/admin-session-filters";
 
@@ -96,7 +95,7 @@ export default function SessionsPage() {
       <div className="mb-8">
         <div className="flex justify-between items-start mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Therapy Sessions</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Session Oversight</h1>
             <p className="text-sm text-gray-500 flex items-center gap-1">
               <RefreshCw className="h-4 w-4" />
               Last updated: {new Date().toLocaleTimeString()}
@@ -164,29 +163,33 @@ export default function SessionsPage() {
         />
 
       {/* Table */}
-      <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+      <div className="bg-white rounded-xl shadow-lg border overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b">
+          <table className="w-full min-w-[900px] text-sm text-gray-700">
+            <thead className="bg-gradient-to-r from-[#f5f3fb] to-[#e9e4f5] border-b-2 border-[#8159A8]">
               <tr>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Patient</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Therapist</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Type</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Date</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Time</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Status</th>
-                {/* Actions column removed */}
+                <th className="text-left py-4 px-6 font-bold text-[#8159A8] tracking-wide uppercase">Patient</th>
+                <th className="text-left py-4 px-6 font-bold text-[#8159A8] tracking-wide uppercase">Therapist</th>
+                <th className="text-left py-4 px-6 font-bold text-[#8159A8] tracking-wide uppercase">Type</th>
+                <th className="text-left py-4 px-6 font-bold text-[#8159A8] tracking-wide uppercase">Date</th>
+                <th className="text-left py-4 px-6 font-bold text-[#8159A8] tracking-wide uppercase">Time</th>
+                <th className="text-left py-4 px-6 font-bold text-[#8159A8] tracking-wide uppercase">Status</th>
               </tr>
             </thead>
             <tbody>
-              {filteredSessions.map((session) => (
-                <tr key={session.id} className="border-b hover:bg-gray-50">
-                  <td className="py-4 px-4">{session.patient}</td>
-                  <td className="py-4 px-4">{session.therapist}</td>
-                  <td className="py-4 px-4">{session.type}</td>
-                  <td className="py-4 px-4">{session.date}</td>
-                  <td className="py-4 px-4">{session.time}</td>
-                  <td className="py-4 px-4">
+              {filteredSessions.map((session, idx) => (
+                <tr
+                  key={session.id}
+                  className={`border-b transition-colors duration-200 ${
+                    idx % 2 === 0 ? "bg-[#f9f7fc]" : "bg-white"
+                  } hover:bg-[#f3eaff]`}
+                >
+                  <td className="py-4 px-6">{session.patient}</td>
+                  <td className="py-4 px-6">{session.therapist}</td>
+                  <td className="py-4 px-6">{session.type}</td>
+                  <td className="py-4 px-6">{session.date}</td>
+                  <td className="py-4 px-6">{session.time}</td>
+                  <td className="py-4 px-6">
                     <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
                       session.status === "Upcoming"
                         ? "bg-blue-100 text-blue-800"

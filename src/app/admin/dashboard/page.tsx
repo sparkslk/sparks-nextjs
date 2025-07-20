@@ -4,29 +4,45 @@ import React from 'react';
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-<<<<<<< HEAD
-//import { Badge } from "@/components/ui/badge";
-=======
 import { DonationModal } from '@/components/admin/donation-modal';
 import { SessionModal } from '@/components/admin/session-modal';
->>>>>>> origin/Development
 import {
     Users,
-    BarChart3,
-    Shield,
     Database,
     Zap,
-    AlertTriangle
+    CalendarCheck,
+    RefreshCw
 } from "lucide-react";
+
+interface SessionOversight {
+    id: string;
+    therapist: {
+        id: string;
+        name: string;
+        email: string;
+    };
+    patient: {
+        id: string;
+        name: string;
+        email: string;
+    };
+    sessionDetails: {
+        duration: number;
+        status: string;
+        scheduledAt: string;
+        createdAt: string;
+    };
+}
 
 interface AdminData {
     systemStatus: "online" | "offline" | "maintenance";
     totalUsers: number;
     newUsersThisMonth: number;
     databaseSize: string;
-    databaseCapacity: number;
-    securityAlerts: number;
-    resolvedAlertsToday: number;
+    databaseUsage: number | string;
+    totalSessions: number,
+    newSessionsThisMonth: number,
+    sessionOversightData: SessionOversight[];
     systemHealth: {
         cpuUsage: number;
         memoryUsage: number;
@@ -47,30 +63,6 @@ interface AdminData {
         type: "success" | "warning" | "info";
     }>;
 }
-
-const mockSessionData = [
-  {
-    id: 1,
-    doctorName: "Dr. Nimal Perera",
-    sessionDetails: "Session with Saman W. • 60 mins • Completed",
-    amount: "Rs. 800",
-    commission: "10% commission"
-  },
-  {
-    id: 2,
-    doctorName: "Dr. Kamala Silva",
-    sessionDetails: "Session with Priya R. • 45 mins • In Progress",
-    amount: "Rs. 600",
-    commission: "10% commission"
-  },
-  {
-    id: 3,
-    doctorName: "Dr. Ruwan Fernando",
-    sessionDetails: "Session with Nuwan K. • 90 mins • Completed",
-    amount: "Rs. 1,200",
-    commission: "10% commission"
-  }
-];
 
 const mockDonationData = [
   {
@@ -103,6 +95,9 @@ export default function AdminDashboard() {
     const [adminData, setAdminData] = useState<AdminData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+    const [showDonationModal, setShowDonationModal] = useState(false);
+    const [showSessionModal, setShowSessionModal] = useState(false);
 
     useEffect(() => {
         fetchAdminData();
@@ -116,6 +111,7 @@ export default function AdminDashboard() {
             }
             const data = await response.json();
             setAdminData(data);
+            setLastUpdated(new Date());
         } catch (error) {
             console.error("Error fetching admin data:", error);
             setError("Failed to load dashboard data");
@@ -123,6 +119,14 @@ export default function AdminDashboard() {
             setLoading(false);
         }
     };
+
+    // Map mockDonationData to match DonationModal's expected fields
+    const mappedDonationData = mockDonationData.map((donation) => ({
+        id: donation.id.toString(),
+        name: donation.donorName,
+        amount: Number(donation.amount.replace(/[^\d]/g, "")),
+        timeAgo: donation.timeAgo,
+    }));
 
     if (loading) {
         return (
@@ -152,23 +156,29 @@ export default function AdminDashboard() {
     return (
         <div className="min-h-screen" style={{ backgroundColor: '#F5F3FB' }}>
             {/* Main Content */}
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-4 py-4">
                 {/* Welcome Section */}
-                <div className="mb-8">
+                <div className="mb-8 mt-0">
                     <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">
                         Admin Dashboard
                     </h1>
                     <p className="text-muted-foreground mt-1">
                         Manage the entire SPARKS platform and all system operations.
                     </p>
+                    {lastUpdated && (
+                        <p className="text-xs text-gray-400 mt-2 flex items-center gap-1">
+                            <RefreshCw className="h-3 w-3" />
+                                Last updated: {lastUpdated.toLocaleTimeString()}
+                        </p>
+                    )}
                 </div>
 
                 {/* System Status Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    <Card>
+                    <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">System Status</CardTitle>
-                            <Zap className={`h-4 w-4 ${adminData?.systemStatus === 'online' ? 'text-green-500' : 'text-red-500'}`} />
+                            <Zap className="h-12 w-12" style={{ color: '#8159A8' }} />
                         </CardHeader>
                         <CardContent>
                             <div className={`text-2xl font-bold ${adminData?.systemStatus === 'online' ? 'text-green-600' : 'text-red-600'}`}>
@@ -178,10 +188,10 @@ export default function AdminDashboard() {
                         </CardContent>
                     </Card>
 
-                    <Card>
+                    <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow">    
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-                            <Users className="h-4 w-4 text-muted-foreground" />
+                            <Users className="h-12 w-12" style={{ color: '#8159A8' }} />
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{adminData?.totalUsers?.toLocaleString() || 0}</div>
@@ -189,27 +199,28 @@ export default function AdminDashboard() {
                         </CardContent>
                     </Card>
 
-                    <Card>
+                    <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Database Size</CardTitle>
-                            <Database className="h-4 w-4 text-muted-foreground" />
+                            <CardTitle className="text-sm font-medium">Total Sessions</CardTitle>
+                            <CalendarCheck className="h-12 w-12" style={{ color: '#8159A8' }} />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">{adminData?.databaseSize || 'N/A'}</div>
-                            <p className="text-xs text-muted-foreground">{adminData?.databaseCapacity || 0}% capacity</p>
+                            <div className="text-2xl font-bold">{adminData?.totalSessions || 0}</div>
+                            <p className="text-xs text-muted-foreground">+{adminData?.newSessionsThisMonth || 0} this month</p>
                         </CardContent>
                     </Card>
 
-                    <Card>
+                    <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Security Alerts</CardTitle>
-                            <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                            <CardTitle className="text-sm font-medium">Database Size</CardTitle>
+                            <Database className="h-12 w-12" style={{ color: '#8159A8' }} />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">{adminData?.securityAlerts || 0}</div>
-                            <p className="text-xs text-muted-foreground">{adminData?.resolvedAlertsToday || 0} resolved today</p>
+                            <div className="text-2xl font-bold">{adminData?.databaseSize || 'N/A'}</div>
+                            <p className="text-xs text-muted-foreground">{adminData?.databaseUsage || 0}% of capacity</p>
                         </CardContent>
                     </Card>
+                    
                 </div>
 
                 <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6 ">
@@ -220,40 +231,50 @@ export default function AdminDashboard() {
                         </CardHeader>
                         <CardContent>
                         <div className="space-y-4">
-                            {mockSessionData.map((session) => (
-                            <div key={session.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                <div className="flex-1">
-                                <h4 className="font-semibold text-sm">{session.doctorName}</h4>
-                                <p className="text-xs text-muted-foreground">{session.sessionDetails}</p>
-                                </div>
-                                <div className="text-right">
-                                <p className="font-semibold text-green-600">{session.amount}</p>
-                                <p className="text-xs text-muted-foreground">{session.commission}</p>
-                                </div>
-                            </div>
-                            ))}
+                            {adminData?.sessionOversightData && adminData.sessionOversightData.length > 0 ? (
+                                adminData.sessionOversightData.map((session) => (
+                                    <div key={session.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                        <div className="flex-1">
+                                            <h4 className="font-semibold text-sm">{session.therapist.name}</h4>
+                                            <p className="text-xs text-muted-foreground">
+                                                Session with {session.patient.name} • {session.sessionDetails.duration} mins • {session.sessionDetails.status}
+                                            </p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-xs text-muted-foreground">
+                                                {new Date(session.sessionDetails.scheduledAt).toLocaleString()}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <p className="text-sm text-muted-foreground">No recent sessions</p>
+                            )}
                         </div>
                         <div className="mt-4 flex gap-2">
-<<<<<<< HEAD
-                            <Button className="hover:opacity-90 bg-primary text-white">
-                            View All Sessions
-=======
                             <Button 
                                 className="hover:opacity-90" 
                                 style={{ backgroundColor: '#8159A8', color: 'white' }} 
                                 onClick={() => setShowSessionModal(true)}
                             >
                                 View All Sessions
->>>>>>> origin/Development
                             </Button>
+                            {/* You may want to update SessionModal to accept real session data if needed */}
                             <SessionModal
                                 isOpen={showSessionModal}
                                 onClose={() => setShowSessionModal(false)}
-                                sessions={mappedSessionData}
+                                sessions={
+                                    adminData?.sessionOversightData
+                                        ? adminData.sessionOversightData.map((session) => ({
+                                            id: session.id,
+                                            name: session.therapist.name,
+                                            amount: session.sessionDetails?.duration?.toString() || "0",
+                                            commission: "N/A",
+                                            sessionDetails: `Session with ${session.patient.name} • ${session.sessionDetails.duration} mins • ${session.sessionDetails.status}`,
+                                        }))
+                                        : []
+                                }
                             />
-                            {/*<Button variant="outline">
-                            Generate Report
-                            </Button>*/}
                         </div>
                         </CardContent>
                     </Card>
@@ -272,23 +293,18 @@ export default function AdminDashboard() {
                                 <p className="text-xs text-muted-foreground">{donation.timeAgo}</p>
                                 </div>
                                 <div className="text-right">
-                                <p className="font-semibold text-purple-600">{donation.amount}</p>
+                                <p className="font-semibold text-green-600">{donation.amount}</p>
                                 </div>
                             </div>
                             ))}
                         </div>
                         <div className="mt-4">
-<<<<<<< HEAD
-                            <Button className="hover:opacity-90 bg-primary text-white">
-                            View All Donations
-=======
                             <Button
                                 className="hover:opacity-90"
                                 style={{ backgroundColor: '#8159A8', color: 'white' }} 
                                 onClick={() => setShowDonationModal(true)}
                             >
                                 View All Donations
->>>>>>> origin/Development
                             </Button>
                             <DonationModal
                                 isOpen={showDonationModal}
@@ -317,7 +333,7 @@ export default function AdminDashboard() {
                         </CardContent>
                     </Card>*/}
 
-                    <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                    {/*<Card className="hover:shadow-lg transition-shadow cursor-pointer">
                         <CardHeader>
                             <CardTitle className="flex items-center">
                                 <Shield className="mr-2 h-5 w-5" />
@@ -328,7 +344,9 @@ export default function AdminDashboard() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <Button className="w-full">Security Settings</Button>
+                            <Button className="w-full hover:opacity-90" style={{ backgroundColor: '#8159A8', color: 'white' }}>
+                                Security Settings
+                            </Button>
                         </CardContent>
                     </Card>
 
@@ -343,7 +361,9 @@ export default function AdminDashboard() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <Button className="w-full">Database Admin</Button>
+                            <Button className="w-full hover:opacity-90" style={{ backgroundColor: '#8159A8', color: 'white' }}>
+                                Database Admin
+                            </Button>
                         </CardContent>
                     </Card>
 
@@ -358,11 +378,13 @@ export default function AdminDashboard() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <Button className="w-full">View Analytics</Button>
+                            <Button className="w-full hover:opacity-90" style={{ backgroundColor: '#8159A8', color: 'white' }}>
+                                View Analytics
+                            </Button>
                         </CardContent>
-                    </Card>
+                    </Card>*/}
 
-                    <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                    {/*<Card className="hover:shadow-lg transition-shadow cursor-pointer">
                         <CardHeader>
                             <CardTitle className="flex items-center">
                                 <Globe className="mr-2 h-5 w-5" />
@@ -375,37 +397,8 @@ export default function AdminDashboard() {
                         <CardContent>
                             <Button className="w-full">API Console</Button>
                         </CardContent>
-                    </Card>
+                    </Card>*/}
 
-                    <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => window.open('/api-docs', '_blank')}>
-                        <CardHeader>
-                            <CardTitle className="flex items-center">
-                                <Globe className="mr-2 h-5 w-5" />
-                                API Documentation
-                            </CardTitle>
-                            <CardDescription>
-                                Interactive Swagger documentation for all API endpoints
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <Button className="w-full">View API Docs</Button>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-                        <CardHeader>
-                            <CardTitle className="flex items-center">
-                                <Settings className="mr-2 h-5 w-5" />
-                                System Configuration
-                            </CardTitle>
-                            <CardDescription>
-                                Configure global system settings and application parameters
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <Button className="w-full">System Config</Button>
-                        </CardContent>
-                    </Card>
                 </div>
 
                 {/* System Overview */}
@@ -461,50 +454,7 @@ export default function AdminDashboard() {
                         </CardContent>
                     </Card>
                 </div>
-
-                {/* User Statistics 
-                <div className="mt-8">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>User Role Distribution</CardTitle>
-                            <CardDescription>Current distribution of users across different roles</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                                <div className="text-center">
-                                    <div className="text-2xl font-bold text-blue-600">{adminData?.userRoleDistribution?.normalUsers || 0}</div>
-                                    <p className="text-xs text-muted-foreground">Patients</p>
-                                </div>
-                                <div className="text-center">
-                                    <div className="text-2xl font-bold text-green-600">{adminData?.userRoleDistribution?.parents || 0}</div>
-                                    <p className="text-xs text-muted-foreground">Parents</p>
-                                </div>
-                                <div className="text-center">
-                                    <div className="text-2xl font-bold text-purple-600">{adminData?.userRoleDistribution?.therapists || 0}</div>
-                                    <p className="text-xs text-muted-foreground">Therapists</p>
-                                </div>
-                                <div className="text-center">
-                                    <div className="text-2xl font-bold text-orange-600">{adminData?.userRoleDistribution?.managers || 0}</div>
-                                    <p className="text-xs text-muted-foreground">Managers</p>
-                                </div>
-                                <div className="text-center">
-                                    <div className="text-2xl font-bold text-red-600">{adminData?.userRoleDistribution?.admins || 0}</div>
-                                    <p className="text-xs text-muted-foreground">Admins</p>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>*/}
-<<<<<<< HEAD
-=======
-
-                {/*<DonationModal 
-                    isOpen={showDonationModal} 
-                    onClose={() => setShowDonationModal(false)} 
-                    donations={mappedDonationData} 
-                />*/}
                 
->>>>>>> origin/Development
             </main>
         </div>
     );
