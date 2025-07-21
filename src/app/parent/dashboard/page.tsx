@@ -8,9 +8,9 @@ import Image from "next/image";
 import {
     Dialog,
     DialogContent,
-    DialogDescription,
     DialogHeader,
     DialogTitle,
+    DialogDescription,
     DialogTrigger,
 } from "@/components/ui/dialog";
 
@@ -18,6 +18,7 @@ import { Users, Plus, UserPlus, RefreshCw, AlertCircle, HelpCircle } from "lucid
 import { AddChildForm } from "@/components/parent/AddChildForm";
 import { ConnectChildForm } from "@/components/parent/ConnectChildForm";
 import { StatsCard } from "@/components/ui/stats-card";
+import { SessionBookingModal } from "@/components/parent/SessionBookingModal";
 
 interface ParentData {
     children: Array<{
@@ -57,6 +58,9 @@ export default function ParentDashboard() {
     const [showConnectChild, setShowConnectChild] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+    const [showBookSession, setShowBookSession] = useState<string | null>(null);
+    // const [popupState, setPopupState] = useState<{[childId: string]: {selectedDate: Date, selectedSlot: string | null, showCalendar: boolean}}>({});
+    // const [bookingConfirmed, setBookingConfirmed] = useState<{[childId: string]: boolean}>({});
 
     useEffect(() => {
         fetchParentData();
@@ -125,6 +129,56 @@ export default function ParentDashboard() {
         fetchChildren();
     };
 
+    // const openBookSession = (childId: string) => {
+    //     setShowBookSession(childId);
+    //     setPopupState(prev => ({
+    //         ...prev,
+    //         [childId]: {
+    //             selectedDate: new Date(),
+    //             selectedSlot: null,
+    //             showCalendar: false
+    //         }
+    //     }));
+    // };
+    // const closeBookSession = () => setShowBookSession(null);
+
+    // const handleDateClick = (childId: string, day: number) => {
+    //     setPopupState(prev => ({
+    //         ...prev,
+    //         [childId]: {
+    //             ...prev[childId],
+    //             selectedDate: new Date(new Date().getFullYear(), new Date().getMonth(), day),
+    //             selectedSlot: null
+    //         }
+    //     }));
+    // };
+    // const handleSlotClick = (childId: string, slot: string) => {
+    //     setPopupState(prev => ({
+    //         ...prev,
+    //         [childId]: {
+    //             ...prev[childId],
+    //             selectedSlot: slot
+    //         }
+    //     }));
+    // };
+    // const toggleCalendar = (childId: string) => {
+    //     setPopupState(prev => ({
+    //         ...prev,
+    //         [childId]: {
+    //             ...prev[childId],
+    //             showCalendar: !prev[childId]?.showCalendar
+    //         }
+    //     }));
+    // };
+
+    // const handleConfirmBooking = (childId: string) => {
+    //     setBookingConfirmed(prev => ({ ...prev, [childId]: true }));
+    //     setTimeout(() => {
+    //         setBookingConfirmed(prev => ({ ...prev, [childId]: false }));
+    //         closeBookSession();
+    //     }, 2000);
+    // };
+
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
@@ -160,6 +214,16 @@ export default function ParentDashboard() {
             </div>
         );
     }
+
+    // const weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    // const timeSlots = [
+    //     "9:00 AM - 10:00 AM",
+    //     "10:00 AM - 11:00 AM",
+    //     "11:00 AM - 12:00 AM",
+    //     "12:00 AM - 1:00 PM",
+    //     "1:00 PM - 2:00 PM",
+    //     "2:00 PM - 3:00 PM"
+    // ];
 
     return (
         <>
@@ -399,14 +463,17 @@ export default function ParentDashboard() {
                                             <div className="flex flex-col md:flex-row md:items-center gap-3">
                                                 <span className="font-semibold text-foreground">{child.firstName} {child.lastName}</span>
                                                 {child.therapist && (
-                                                    <span className="text-sm text-muted-foreground">Therapist: <span className="font-medium text-primary">Dr. {child.therapist.name}</span></span>
+                                                    <span className="text-sm text-muted-foreground">Therapist: <span className="font-medium text-primary">Dr. {child.therapist.name || ""}</span></span>
                                                 )}
                                             </div>
                                             <div className="flex gap-2 items-center">
                                                 
                                                 {child.therapist ? (
-                                                    <Button className="bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-2 min-w-[150px]">
-                                                        Schedule 
+                                                    <Button
+                                                        className="bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-2 min-w-[150px]"
+                                                        onClick={() => setShowBookSession(child.id)}
+                                                    >
+                                                        Book a Session
                                                     </Button>
                                                 ) : (
                                                     <a href="/parent/findTherapist" className="w-full">
@@ -416,6 +483,13 @@ export default function ParentDashboard() {
                                                     </a>
                                                 )}
                                             </div>
+                                            {/* SessionBookingModal for this child */}
+                                            <SessionBookingModal
+                                                open={showBookSession === child.id}
+                                                onOpenChange={open => setShowBookSession(open ? child.id : null)}
+                                                child={child}
+                                                onConfirmBooking={() => {}}
+                                            />
                                         </div>
                                     ))}
                                 </div>

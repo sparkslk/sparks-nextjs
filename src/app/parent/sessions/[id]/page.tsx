@@ -12,9 +12,7 @@ import {
   Clock,
   Calendar,
   ClipboardList,
-  ArrowLeft,
-  CheckCircle,
-  AlertTriangle
+  ArrowLeft
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -290,15 +288,15 @@ export default function SessionDetailsPage() {
         </div>
 
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full mb-10">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="clinical">
               Clinical Documentation
             </TabsTrigger>
-            <TabsTrigger value="medications">
+            {/* <TabsTrigger value="medications">
               Medications
-            </TabsTrigger>
+            </TabsTrigger> */}
             <TabsTrigger value="tasks">
-              Tasks
+              Assessments
             </TabsTrigger>
           </TabsList>
           <TabsContent value="clinical">
@@ -355,9 +353,9 @@ export default function SessionDetailsPage() {
               </Card>
             </div>
           </TabsContent>
-          <TabsContent value="medications">
+          {/* <TabsContent value="medications">
             <MedicationSessionHistory session={session} />
-          </TabsContent>
+          </TabsContent> */}
           <TabsContent value="tasks">
             {/* Tasks for this session */}
             <Card className="bg-white rounded-xl shadow">
@@ -443,14 +441,12 @@ export default function SessionDetailsPage() {
                             </div>
                           </div>
                           <div className="flex flex-col items-end space-y-2 min-w-[110px]">
-                            <Badge className={getStatusColor(task.status) + ' capitalize px-3 py-1 rounded-lg text-xs font-semibold'}>
+                            <Badge className={getStatusColor(task.status) + ' capitalize px-3 py-1 rounded-lg text-xs font-semibold min-w-[90px] h-8 flex items-center justify-center'}>
                               {task.status.toLowerCase()}
                             </Badge>
                             {task.status === 'COMPLETED' && (
                               <Button
-                                size="sm"
-                                variant="outline"
-                                className="mt-2 text-xs border-red-300 text-red-600 hover:bg-red-50"
+                                variant="badgeRed"
                                 onClick={() => unmarkTaskComplete(task.id)}
                               >
                                 Unmark
@@ -488,196 +484,196 @@ export default function SessionDetailsPage() {
 
 import React from "react";
 
-type MedicationHistory = {
-  id?: string;
-  medicationId?: string;
-  action: string;
-  changedAt: string;
-  medicationName?: string;
-  medicationDetails?: {
-    id?: string;
-    name?: string;
-    dosage?: string;
-    frequency?: string;
-    customFrequency?: string;
-    instructions?: string;
-    mealTiming?: string;
-    isActive?: boolean;
-    isDiscontinued?: boolean;
-    startDate?: string;
-    endDate?: string;
-  };
-  notes?: string;
-  description?: string;
-  previousValues?: Record<string, unknown>;
-  newValues?: Record<string, unknown>;
-  changedByUser?: { name?: string | null; email?: string | null } | null;
-};
+// type MedicationHistory = {
+//   id?: string;
+//   medicationId?: string;
+//   action: string;
+//   changedAt: string;
+//   medicationName?: string;
+//   medicationDetails?: {
+//     id?: string;
+//     name?: string;
+//     dosage?: string;
+//     frequency?: string;
+//     customFrequency?: string;
+//     instructions?: string;
+//     mealTiming?: string;
+//     isActive?: boolean;
+//     isDiscontinued?: boolean;
+//     startDate?: string;
+//     endDate?: string;
+//   };
+//   notes?: string;
+//   description?: string;
+//   previousValues?: Record<string, unknown>;
+//   newValues?: Record<string, unknown>;
+//   changedByUser?: { name?: string | null; email?: string | null } | null;
+// };
 
-function MedicationSessionHistory({ session }: { session: Session & { childId?: string } }) {
-  const [medHistory, setMedHistory] = useState<MedicationHistory[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+// function MedicationSessionHistory({ session }: { session: Session & { childId?: string } }) {
+//   const [medHistory, setMedHistory] = useState<MedicationHistory[]>([]);
+//   const [loading, setLoading] = useState(true);
+//   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!session?.date) return;
-    const childId = session.childId;
-    if (!childId) {
-      setError('No childId found for this session.');
-      setLoading(false);
-      return;
-    }
-    fetch(`/api/parent/children/${childId}/medication-history`)
-      .then(async (res) => {
-        if (!res.ok) throw new Error("Failed to fetch medication history");
-        return res.json();
-      })
-      .then((data) => {
-        setMedHistory(data.history || []);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message || "Unknown error");
-        setLoading(false);
-      });
-  }, [session?.date, session?.childId]);
+//   useEffect(() => {
+//     if (!session?.date) return;
+//     const childId = session.childId;
+//     if (!childId) {
+//       setError('No childId found for this session.');
+//       setLoading(false);
+//       return;
+//     }
+//     fetch(`/api/parent/children/${childId}/medication-history`)
+//       .then(async (res) => {
+//         if (!res.ok) throw new Error("Failed to fetch medication history");
+//         return res.json();
+//       })
+//       .then((data) => {
+//         setMedHistory(data.history || []);
+//         setLoading(false);
+//       })
+//       .catch((err) => {
+//         setError(err.message || "Unknown error");
+//         setLoading(false);
+//       });
+//   }, [session?.date, session?.childId]);
 
-  if (loading) return <div className="bg-white rounded-xl shadow p-6 text-gray-400 italic text-center">Loading medication history...</div>;
-  if (error) return <div className="bg-white rounded-xl shadow p-6 text-red-400 italic text-center">{error}</div>;
-  if (!medHistory.length) return <div className="bg-white rounded-xl shadow p-6 text-gray-400 italic text-center">No medication changes documented for this session.</div>;
+//   if (loading) return <div className="bg-white rounded-xl shadow p-6 text-gray-400 italic text-center">Loading medication history...</div>;
+//   if (error) return <div className="bg-white rounded-xl shadow p-6 text-red-400 italic text-center">{error}</div>;
+//   if (!medHistory.length) return <div className="bg-white rounded-xl shadow p-6 text-gray-400 italic text-center">No medication changes documented for this session.</div>;
 
-  // Filter medication history by session date (same day) using changedAt
-  let sessionDate = '';
-  if (session.date) {
-    sessionDate = new Date(session.date).toISOString().slice(0, 10);
-  }
-  const sessionMeds = medHistory.filter((h) => h.changedAt && h.changedAt.slice(0, 10) === sessionDate);
+//   // Filter medication history by session date (same day) using changedAt
+//   let sessionDate = '';
+//   if (session.date) {
+//     sessionDate = new Date(session.date).toISOString().slice(0, 10);
+//   }
+//   const sessionMeds = medHistory.filter((h) => h.changedAt && h.changedAt.slice(0, 10) === sessionDate);
 
-  if (!sessionMeds.length) return <div className="bg-white rounded-xl shadow p-6 text-gray-400 italic text-center">No medication changes documented for this session.</div>;
+//   if (!sessionMeds.length) return <div className="bg-white rounded-xl shadow p-6 text-gray-400 italic text-center">No medication changes documented for this session.</div>;
 
-  // Helper to pretty print before/after changes
-  function renderChange(before: Record<string, unknown> | undefined, after: Record<string, unknown> | undefined) {
-    if (!before && !after) return null;
-    const keys = Array.from(new Set([...(before ? Object.keys(before) : []), ...(after ? Object.keys(after) : [])]));
-    const renderValue = (val: unknown) => {
-      if (val === null || val === undefined) return <span className="italic text-gray-300">-</span>;
-      if (typeof val === 'object') return <span className="italic text-gray-400">[object]</span>;
-      return String(val);
-    };
-    return (
-      <table className="w-full text-xs mt-2 border rounded-xl overflow-hidden bg-gray-50">
-        <thead>
-          <tr className="bg-muted">
-            <th className="p-2 text-left font-semibold text-gray-700"></th>
-            <th className="p-2 text-left font-semibold text-gray-700">Before</th>
-            <th className="p-2 text-left font-semibold text-gray-700">After</th>
-          </tr>
-        </thead>
-        <tbody>
-          {keys.map((key) => (
-            <tr key={key} className="border-t border-border">
-              <td className="p-2 font-medium text-gray-700">{key}</td>
-              <td className="p-2 text-gray-500">{renderValue(before?.[key])}</td>
-              <td className="p-2 text-gray-900">{renderValue(after?.[key])}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    );
-  }
+//   // Helper to pretty print before/after changes
+//   function renderChange(before: Record<string, unknown> | undefined, after: Record<string, unknown> | undefined) {
+//     if (!before && !after) return null;
+//     const keys = Array.from(new Set([...(before ? Object.keys(before) : []), ...(after ? Object.keys(after) : [])]));
+//     const renderValue = (val: unknown) => {
+//       if (val === null || val === undefined) return <span className="italic text-gray-300">-</span>;
+//       if (typeof val === 'object') return <span className="italic text-gray-400">[object]</span>;
+//       return String(val);
+//     };
+//     return (
+//       <table className="w-full text-xs mt-2 border rounded-xl overflow-hidden bg-gray-50">
+//         <thead>
+//           <tr className="bg-muted">
+//             <th className="p-2 text-left font-semibold text-gray-700"></th>
+//             <th className="p-2 text-left font-semibold text-gray-700">Before</th>
+//             <th className="p-2 text-left font-semibold text-gray-700">After</th>
+//           </tr>
+//         </thead>
+//         <tbody>
+//           {keys.map((key) => (
+//             <tr key={key} className="border-t border-border">
+//               <td className="p-2 font-medium text-gray-700">{key}</td>
+//               <td className="p-2 text-gray-500">{renderValue(before?.[key])}</td>
+//               <td className="p-2 text-gray-900">{renderValue(after?.[key])}</td>
+//             </tr>
+//           ))}
+//         </tbody>
+//       </table>
+//     );
+//   }
 
-  // Helper for action badge
-  function actionBadge(action: string) {
-    let color = "bg-gray-100 text-gray-700 border border-gray-200";
-    let icon = null;
-    if (action === 'CREATED') {
-      color = "bg-green-100 text-green-700 border border-green-200";
-      icon = <CheckCircle className="w-4 h-4 mr-1 text-green-500" />;
-    } else if (action === 'UPDATED' || action.endsWith('_CHANGED')) {
-      color = "bg-blue-100 text-blue-700 border border-blue-200";
-      icon = <FileText className="w-4 h-4 mr-1 text-blue-500" />;
-    } else if (action === 'DISCONTINUED') {
-      color = "bg-red-100 text-red-700 border border-red-200";
-      icon = <AlertTriangle className="w-4 h-4 mr-1 text-red-500" />;
-    } else if (action === 'REACTIVATED') {
-      color = "bg-yellow-100 text-yellow-700 border border-yellow-200";
-      icon = <Clock className="w-4 h-4 mr-1 text-yellow-500" />;
-    }
-    return (
-      <span className={`inline-flex items-center px-2 py-1 rounded-lg text-xs font-bold uppercase tracking-wide ${color}`}>
-        {icon}
-        {action.replace(/_/g, ' ')}
-      </span>
-    );
-  }
+//   // Helper for action badge
+//   function actionBadge(action: string) {
+//     let color = "bg-gray-100 text-gray-700 border border-gray-200";
+//     let icon = null;
+//     if (action === 'CREATED') {
+//       color = "bg-green-100 text-green-700 border border-green-200";
+//       icon = <CheckCircle className="w-4 h-4 mr-1 text-green-500" />;
+//     } else if (action === 'UPDATED' || action.endsWith('_CHANGED')) {
+//       color = "bg-blue-100 text-blue-700 border border-blue-200";
+//       icon = <FileText className="w-4 h-4 mr-1 text-blue-500" />;
+//     } else if (action === 'DISCONTINUED') {
+//       color = "bg-red-100 text-red-700 border border-red-200";
+//       icon = <AlertTriangle className="w-4 h-4 mr-1 text-red-500" />;
+//     } else if (action === 'REACTIVATED') {
+//       color = "bg-yellow-100 text-yellow-700 border border-yellow-200";
+//       icon = <Clock className="w-4 h-4 mr-1 text-yellow-500" />;
+//     }
+//     return (
+//       <span className={`inline-flex items-center px-2 py-1 rounded-lg text-xs font-bold uppercase tracking-wide ${color}`}>
+//         {icon}
+//         {action.replace(/_/g, ' ')}
+//       </span>
+//     );
+//   }
 
-  return (
-    <div className="bg-white rounded-xl shadow p-6">
-      <div className="flex items-center justify-between border-b border-border pb-2 mb-6">
-        <h3 className="text-xl font-bold text-[#8159A8] flex items-center gap-2">
-          <FileText className="w-6 h-6 text-[#8159A8]" /> Medication Changes in this Session
-        </h3>
-      </div>
-      <ul className="space-y-5 mt-2">
-        {sessionMeds.map((h, idx) => (
-          <li
-            key={h.id || idx}
-            className="bg-[#f7f5fb] border border-[#e5e3ee] rounded-xl shadow-sm p-5 flex flex-col gap-2"
-          >
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-2">
-              <div className="flex items-center gap-2 flex-1 flex-wrap">
-                {actionBadge(h.action)}
-                <span className="text-base font-semibold text-gray-800">
-                  {h.medicationName || h.medicationDetails?.name || ''}
-                </span>
-                <span className="text-xs text-gray-400">
-                  {new Date(h.changedAt).toLocaleString()}
-                </span>
-                {h.changedByUser && (
-                  <span className="ml-2 text-xs text-gray-500 font-medium">
-                    by {h.changedByUser.name || h.changedByUser.email}
-                  </span>
-                )}
-              </div>
-            </div>
-            <div className="text-sm text-gray-700 space-y-2">
-              {h.notes && (
-                <div className="mb-1">
-                  <span className="font-medium text-gray-600">Notes:</span> {h.notes}
-                </div>
-              )}
-              {h.description && (
-                <div className="mb-1">
-                  <span className="font-medium text-gray-600">Description:</span> {h.description}
-                </div>
-              )}
-              {/* Show before/after table for updates */}
-              {(h.action === 'UPDATED' || h.action.endsWith('_CHANGED') || h.action === 'DISCONTINUED' || h.action === 'REACTIVATED') && (
-                <div className="mt-2">
-                  <span className="block text-xs font-semibold text-gray-500 mb-1">Change Details</span>
-                  {renderChange(h.previousValues, h.newValues)}
-                </div>
-              )}
-              {/* For CREATED, show medication details */}
-              {h.action === 'CREATED' && h.medicationDetails && (
-                <div className="mt-2">
-                  <span className="block text-xs font-semibold text-gray-500 mb-1">Medication Details</span>
-                  <table className="w-full text-xs border rounded-xl overflow-hidden bg-gray-50">
-                    <tbody>
-                      <tr><td className="p-2 font-medium text-gray-700">Dosage</td><td className="p-2">{h.medicationDetails.dosage}</td></tr>
-                      <tr><td className="p-2 font-medium text-gray-700">Frequency</td><td className="p-2">{h.medicationDetails.frequency}{h.medicationDetails.customFrequency ? ` (${h.medicationDetails.customFrequency})` : ''}</td></tr>
-                      <tr><td className="p-2 font-medium text-gray-700">Instructions</td><td className="p-2">{h.medicationDetails.instructions || <span className="italic text-gray-300">-</span>}</td></tr>
-                      <tr><td className="p-2 font-medium text-gray-700">Meal Timing</td><td className="p-2">{h.medicationDetails.mealTiming}</td></tr>
-                      <tr><td className="p-2 font-medium text-gray-700">Start Date</td><td className="p-2">{h.medicationDetails.startDate ? new Date(h.medicationDetails.startDate).toLocaleDateString() : '-'}</td></tr>
-                      <tr><td className="p-2 font-medium text-gray-700">End Date</td><td className="p-2">{h.medicationDetails.endDate ? new Date(h.medicationDetails.endDate).toLocaleDateString() : '-'}</td></tr>
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
+//   return (
+//     <div className="bg-white rounded-xl shadow p-6">
+//       <div className="flex items-center justify-between border-b border-border pb-2 mb-6">
+//         <h3 className="text-xl font-bold text-[#8159A8] flex items-center gap-2">
+//           <FileText className="w-6 h-6 text-[#8159A8]" /> Medication Changes in this Session
+//         </h3>
+//       </div>
+//       <ul className="space-y-5 mt-2">
+//         {sessionMeds.map((h, idx) => (
+//           <li
+//             key={h.id || idx}
+//             className="bg-[#f7f5fb] border border-[#e5e3ee] rounded-xl shadow-sm p-5 flex flex-col gap-2"
+//           >
+//             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-2">
+//               <div className="flex items-center gap-2 flex-1 flex-wrap">
+//                 {actionBadge(h.action)}
+//                 <span className="text-base font-semibold text-gray-800">
+//                   {h.medicationName || h.medicationDetails?.name || ''}
+//                 </span>
+//                 <span className="text-xs text-gray-400">
+//                   {new Date(h.changedAt).toLocaleString()}
+//                 </span>
+//                 {h.changedByUser && (
+//                   <span className="ml-2 text-xs text-gray-500 font-medium">
+//                     by {h.changedByUser.name || h.changedByUser.email}
+//                   </span>
+//                 )}
+//               </div>
+//             </div>
+//             <div className="text-sm text-gray-700 space-y-2">
+//               {h.notes && (
+//                 <div className="mb-1">
+//                   <span className="font-medium text-gray-600">Notes:</span> {h.notes}
+//                 </div>
+//               )}
+//               {h.description && (
+//                 <div className="mb-1">
+//                   <span className="font-medium text-gray-600">Description:</span> {h.description}
+//                 </div>
+//               )}
+//               {/* Show before/after table for updates */}
+//               {(h.action === 'UPDATED' || h.action.endsWith('_CHANGED') || h.action === 'DISCONTINUED' || h.action === 'REACTIVATED') && (
+//                 <div className="mt-2">
+//                   <span className="block text-xs font-semibold text-gray-500 mb-1">Change Details</span>
+//                   {renderChange(h.previousValues, h.newValues)}
+//                 </div>
+//               )}
+//               {/* For CREATED, show medication details */}
+//               {h.action === 'CREATED' && h.medicationDetails && (
+//                 <div className="mt-2">
+//                   <span className="block text-xs font-semibold text-gray-500 mb-1">Medication Details</span>
+//                   <table className="w-full text-xs border rounded-xl overflow-hidden bg-gray-50">
+//                     <tbody>
+//                       <tr><td className="p-2 font-medium text-gray-700">Dosage</td><td className="p-2">{h.medicationDetails.dosage}</td></tr>
+//                       <tr><td className="p-2 font-medium text-gray-700">Frequency</td><td className="p-2">{h.medicationDetails.frequency}{h.medicationDetails.customFrequency ? ` (${h.medicationDetails.customFrequency})` : ''}</td></tr>
+//                       <tr><td className="p-2 font-medium text-gray-700">Instructions</td><td className="p-2">{h.medicationDetails.instructions || <span className="italic text-gray-300">-</span>}</td></tr>
+//                       <tr><td className="p-2 font-medium text-gray-700">Meal Timing</td><td className="p-2">{h.medicationDetails.mealTiming}</td></tr>
+//                       <tr><td className="p-2 font-medium text-gray-700">Start Date</td><td className="p-2">{h.medicationDetails.startDate ? new Date(h.medicationDetails.startDate).toLocaleDateString() : '-'}</td></tr>
+//                       <tr><td className="p-2 font-medium text-gray-700">End Date</td><td className="p-2">{h.medicationDetails.endDate ? new Date(h.medicationDetails.endDate).toLocaleDateString() : '-'}</td></tr>
+//                     </tbody>
+//                   </table>
+//                 </div>
+//               )}
+//             </div>
+//           </li>
+//         ))}
+//       </ul>
+//     </div>
+//   );
+// }
