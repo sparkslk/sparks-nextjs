@@ -1,101 +1,153 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { RefreshCw} from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
+import {
+  RefreshCw,
+  CalendarDays,
+  CalendarClock,
+  CheckCircle2,
+  XCircle,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
-import SessionFilters from "@/components/admin/admin-session-filters";
+import { Button } from "@/components/ui/button";
+import SessionsTable from "@/components/admin/sessions/sessions-table";
+import SessionFilters from "@/components/admin/sessions/session-filters";
 
 interface TherapySession {
   id: number;
-  patient: string;
-  therapist: string;
-  date: string;
-  time: string;
-  status: "Upcoming" | "Completed" | "Cancelled";
+  patient: {
+    id: number;
+    name: string;
+  };
+  therapist: {
+    id: number;
+    name: string;
+  };
+  scheduledAt: string;
+  duration: number; // in minutes
+  status: "SCHEDULED" | "COMPLETED" | "CANCELLED";
   type: string;
+  attendanceStatus: "present" | "absent" | "partial" | "pending";
 }
 
-const MOCK_SESSIONS: TherapySession[] = [
-  {
-    id: 1,
-    patient: "Sahan Perera",
-    therapist: "Dr. Nimal Perera",
-    date: "2025-07-10",
-    time: "10:00 AM",
-    status: "Upcoming",
-    type: "Speech Therapy"
-  },
-  {
-    id: 2,
-    patient: "Amara Gunawardena",
-    therapist: "Dr. Kamala Silva",
-    date: "2025-07-05",
-    time: "2:00 PM",
-    status: "Completed",
-    type: "Occupational Therapy"
-  },
-  {
-    id: 3,
-    patient: "Sahan Perera",
-    therapist: "Dr. Sunil Jayasinghe",
-    date: "2025-07-12",
-    time: "9:00 AM",
-    status: "Upcoming",
-    type: "Behavioral Therapy"
-  },
-  {
-    id: 4,
-    patient: "Thilaka Bandara",
-    therapist: "Dr. Nimal Perera",
-    date: "2025-06-30",
-    time: "11:00 AM",
-    status: "Completed",
-    type: "Speech Therapy"
-  },
-  {
-    id: 5,
-    patient: "Ruwan Wijesinghe",
-    therapist: "Dr. Kamala Silva",
-    date: "2025-07-15",
-    time: "3:00 PM",
-    status: "Upcoming",
-    type: "Occupational Therapy"
-  }
-];
-
 export default function SessionsPage() {
-  const [sessions] = useState<TherapySession[]>(MOCK_SESSIONS);
+  const [sessions, setSessions] = useState<TherapySession[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("All Status");
   const [selectedType, setSelectedType] = useState("All Types");
 
+  // Fetch sessions from API
+  useEffect(() => {
+    const fetchSessions = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        console.log("Frontend: Attempting to fetch sessions...");
+        const response = await fetch("/api/admin/sessions");
+
+        console.log("Frontend: Response status:", response.status);
+        console.log("Frontend: Response ok:", response.ok);
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error("Frontend: API Error:", errorData);
+          throw new Error(
+            `Failed to fetch sessions: ${response.status} - ${
+              errorData.error || "Unknown error"
+            }`
+          );
+        }
+
+        const data = await response.json();
+        console.log("Frontend: Fetched sessions:", data);
+        setSessions(data);
+      } catch (err) {
+        console.error("Frontend: Fetch error:", err);
+        setError(
+          err instanceof Error
+            ? err.message
+            : "An error occurred while fetching sessions"
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSessions();
+  }, []);
+
+  // Filter logic
   const filteredSessions = useMemo(() => {
     return sessions.filter((session) => {
+      // Search filter
       const matchesSearch =
-        session.patient.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        session.therapist.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        searchTerm === "" ||
+        session.patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        session.therapist.name
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
         session.type.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = selectedStatus === "All Status" || session.status === selectedStatus;
-      const matchesType = selectedType === "All Types" || session.type === selectedType;
+
+      // Status filter
+      const matchesStatus =
+        selectedStatus === "All Status" || session.status === selectedStatus;
+
+      // Type filter
+      const matchesType =
+        selectedType === "All Types" || session.type === selectedType;
+
       return matchesSearch && matchesStatus && matchesType;
     });
   }, [sessions, searchTerm, selectedStatus, selectedType]);
 
   const stats = {
     total: filteredSessions.length,
-    upcoming: filteredSessions.filter(s => s.status === "Upcoming").length,
-    completed: filteredSessions.filter(s => s.status === "Completed").length,
-    cancelled: filteredSessions.filter(s => s.status === "Cancelled").length
+    scheduled: filteredSessions.filter((s) => s.status === "SCHEDULED").length,
+    completed: filteredSessions.filter((s) => s.status === "COMPLETED").length,
+    cancelled: filteredSessions.filter((s) => s.status === "CANCELLED").length,
+    present: filteredSessions.filter((s) => s.attendanceStatus === "present")
+      .length,
+    absent: filteredSessions.filter((s) => s.attendanceStatus === "absent")
+      .length,
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-2 text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h3 className="text-lg font-semibold mb-2">
+            Unable to load dashboard
+          </h3>
+          <p className="text-muted-foreground mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()}>Try Again</Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="max-w-7xl mx-auto p-6">
       {/* Header */}
       <div className="mb-8">
         <div className="flex justify-between items-start mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Session Oversight</h1>
+            <h1 className="text-4xl font-extrabold bg-gradient-to-r from-primary to-foreground bg-clip-text text-transparent tracking-tight mb-2">
+              Session Oversight
+            </h1>
             <p className="text-sm text-gray-500 flex items-center gap-1">
               <RefreshCw className="h-4 w-4" />
               Last updated: {new Date().toLocaleTimeString()}
@@ -104,108 +156,71 @@ export default function SessionsPage() {
         </div>
 
         {/* Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <Card className="shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Sessions</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Total Sessions
+              </CardTitle>
+              <CalendarDays className="h-8 w-8" style={{ color: "#8159A8" }} />
             </CardHeader>
             <CardContent>
-              <div className={`text-2xl font-bold text-[#8159A8]`}>
+              <div className="text-2xl font-bold text-[#8159A8]">
                 {stats.total}
               </div>
-              <p className="text-xs text-muted-foreground">10% up this month</p>
             </CardContent>
           </Card>
-          <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow">
+          <Card className="shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Completed Sessions</CardTitle>
+              <CardTitle className="text-sm font-medium">Scheduled</CardTitle>
+              <CalendarClock
+                className="h-8 w-8"
+                style={{ color: "#3321d2ff" }}
+              />
             </CardHeader>
             <CardContent>
-              <div className={`text-2xl font-bold text-[#8159A8]`}>
+              <div className="text-2xl font-bold text-blue-600">
+                {stats.scheduled}
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Completed</CardTitle>
+              <CheckCircle2 className="h-8 w-8" style={{ color: "#28a745" }} />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">
                 {stats.completed}
               </div>
-              <p className="text-xs text-muted-foreground">8% up this month</p>
             </CardContent>
           </Card>
-          <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow">
+          <Card className="shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Upcoming Sessions</CardTitle>
+              <CardTitle className="text-sm font-medium">Cancelled</CardTitle>
+              <XCircle className="h-8 w-8" style={{ color: "#dc3545" }} />
             </CardHeader>
             <CardContent>
-              <div className={`text-2xl font-bold text-[#8159A8]`}>
-                {stats.upcoming}
-              </div>
-              <p className="text-xs text-muted-foreground">5% up this month</p>
-            </CardContent>
-          </Card>
-          <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Cancelled Sessions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className={`text-2xl font-bold text-[#8159A8]`}>
+              <div className="text-2xl font-bold text-red-600">
                 {stats.cancelled}
               </div>
-              <p className="text-xs text-muted-foreground">3% down this month</p>
             </CardContent>
           </Card>
         </div>
       </div>
 
       {/* Filters */}
-        <SessionFilters
-          searchTerm={searchTerm}
-          selectedStatus={selectedStatus}
-          selectedType={selectedType}
-          onSearchChange={setSearchTerm}
-          onStatusChange={setSelectedStatus}
-          onTypeChange={setSelectedType}
-        />
+      <SessionFilters
+        searchTerm={searchTerm}
+        selectedStatus={selectedStatus}
+        selectedType={selectedType}
+        onSearchChange={setSearchTerm}
+        onStatusChange={setSelectedStatus}
+        onTypeChange={setSelectedType}
+      />
 
-      {/* Table */}
-      <div className="bg-white rounded-xl shadow-lg border overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px] text-sm text-gray-700">
-            <thead className="bg-gradient-to-r from-[#f5f3fb] to-[#e9e4f5] border-b-2 border-[#8159A8]">
-              <tr>
-                <th className="text-left py-4 px-6 font-bold text-[#8159A8] tracking-wide uppercase">Patient</th>
-                <th className="text-left py-4 px-6 font-bold text-[#8159A8] tracking-wide uppercase">Therapist</th>
-                <th className="text-left py-4 px-6 font-bold text-[#8159A8] tracking-wide uppercase">Type</th>
-                <th className="text-left py-4 px-6 font-bold text-[#8159A8] tracking-wide uppercase">Date</th>
-                <th className="text-left py-4 px-6 font-bold text-[#8159A8] tracking-wide uppercase">Time</th>
-                <th className="text-left py-4 px-6 font-bold text-[#8159A8] tracking-wide uppercase">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredSessions.map((session, idx) => (
-                <tr
-                  key={session.id}
-                  className={`border-b transition-colors duration-200 ${
-                    idx % 2 === 0 ? "bg-[#f9f7fc]" : "bg-white"
-                  } hover:bg-[#f3eaff]`}
-                >
-                  <td className="py-4 px-6">{session.patient}</td>
-                  <td className="py-4 px-6">{session.therapist}</td>
-                  <td className="py-4 px-6">{session.type}</td>
-                  <td className="py-4 px-6">{session.date}</td>
-                  <td className="py-4 px-6">{session.time}</td>
-                  <td className="py-4 px-6">
-                    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                      session.status === "Upcoming"
-                        ? "bg-blue-100 text-blue-800"
-                        : session.status === "Completed"
-                        ? "bg-green-100 text-green-800"
-                        : "bg-red-100 text-red-800"
-                    }`}>
-                      {session.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      {/* Paginated Table */}
+      <SessionsTable sessions={filteredSessions} recordsPerPage={10} />
     </div>
   );
 }

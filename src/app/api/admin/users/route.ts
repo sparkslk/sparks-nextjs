@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireApiAuth } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
+import bcrypt from "bcryptjs";
 //import { create } from "domain";
 
 console.log("API route file loaded");
@@ -83,6 +84,7 @@ export async function GET(req: NextRequest) {
                     select: {
                         id: true,
                         name: true,
+                        email: true,
                     }
                 }
             },  
@@ -135,6 +137,7 @@ export async function GET(req: NextRequest) {
             id: therapist.id,
             role: 'Therapist',
             fullname: therapist.user.name || "Unknown Therapist",
+            email: therapist.user.email || "Unknown Email",
             licenseNumber: therapist.licenseNumber,
             specialization: therapist.specialization,
             experience: therapist.experience,
@@ -201,7 +204,17 @@ export async function POST(req: NextRequest) {
 
         const body = await req.json();
         console.log('Received POST data:', body); // Debug log
-        const { role, ...userData } = body;
+        const { role, temporaryPassword, ...userData } = body;
+
+        // Validate that password is provided
+        if (!temporaryPassword) {
+            return NextResponse.json({
+                error: "Temporary password is required"
+            }, { status: 400 });
+        }
+
+        // Hash password
+        const hashedPassword = await bcrypt.hash(temporaryPassword, 12);
 
         let createdUser: any;
 
@@ -219,7 +232,18 @@ export async function POST(req: NextRequest) {
                     const [firstName, ...lastNameParts] = userData.fullName.split(' ');
                     const lastName = lastNameParts.join(' ') || '';
 
+                    // First create a user record for the patient
+                    const patientUser = await prisma.user.create({
+                        data: {
+                            name: userData.fullName,
+                            email: userData.email,
+                            role: 'NORMAL_USER',
+                            password: hashedPassword,
+                        }
+                    });
+
                     const patientData: any = {
+                        userId: patientUser.id,
                         firstName: firstName,
                         lastName: lastName,
                         email: userData.email,
@@ -236,7 +260,16 @@ export async function POST(req: NextRequest) {
                     console.log('Creating patient with data:', patientData); // Debug log
 
                     createdUser = await prisma.patient.create({
-                        data: patientData
+                        data: patientData,
+                        include: {
+                            user: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    email: true,
+                                }
+                            }
+                        }
                     });
 
                     // Return formatted patient data
@@ -272,13 +305,16 @@ export async function POST(req: NextRequest) {
 
                     console.log('Creating therapist user:', userData.fullname); // Debug log
 
+                    // Generate email if not provided
+                    const therapistEmail = userData.email || `${userData.fullname.toLowerCase().replace(/\s+/g, '.')}@therapist.temp`;
+
                     // First create a user record
                     const therapistUser = await prisma.user.create({
                         data: {
                             name: userData.fullname,
-                            email: userData.email || `${userData.fullname.toLowerCase().replace(/\s+/g, '.')}@therapist.temp`,
+                            email: therapistEmail,
                             role: 'THERAPIST',
-                            // You might want to generate a temporary password or handle this differently
+                            password: hashedPassword,
                         }
                     });
 
@@ -304,6 +340,7 @@ export async function POST(req: NextRequest) {
                                 select: {
                                     id: true,
                                     name: true,
+                                    email: true,
                                 }
                             }
                         }
@@ -314,6 +351,7 @@ export async function POST(req: NextRequest) {
                         id: createdUser.id,
                         role: 'Therapist',
                         fullname: createdUser.user.name,
+                        email: createdUser.user.email,
                         licenseNumber: createdUser.licenseNumber,
                         specialization: createdUser.specialization,
                         experience: createdUser.experience,
@@ -328,115 +366,125 @@ export async function POST(req: NextRequest) {
                 break;
 
             case 'Guardian':
-                // Validate required fields for Guardian
-                if (!userData.fullName || !userData.email) {
-                    return NextResponse.json({
-                        error: "Full name and email are required for guardians"
-                    }, { status: 400 });
-                }
-
-                // First create a user record
-                const guardianUser = await prisma.user.create({
-                    data: {
-                        name: userData.fullName,
-                        email: userData.email,
-                        role: 'PARENT_GUARDIAN',
-                        // You might want to generate a temporary password or handle this differently
+                try {
+                    // Validate required fields for Guardian
+                    if (!userData.fullName || !userData.email) {
+                        return NextResponse.json({
+                            error: "Full name and email are required for guardians"
+                        }, { status: 400 });
                     }
-                });
 
-                // Find patient by name if provided
-                let patientId = null;
-                if (userData.patient) {
-                    const patient = await prisma.patient.findFirst({
-                        where: {
-                            OR: [
-                                {
-                                    firstName: {
-                                        contains: userData.patient.split(' ')[0],
-                                        mode: 'insensitive'
-                                    }
-                                },
-                                {
-                                    lastName: {
-                                        contains: userData.patient.split(' ').slice(1).join(' '),
-                                        mode: 'insensitive'
-                                    }
-                                }
-                            ]
+                    // First create a user record
+                    const guardianUser = await prisma.user.create({
+                        data: {
+                            name: userData.fullName,
+                            email: userData.email,
+                            role: 'PARENT_GUARDIAN',
+                            password: hashedPassword,
                         }
                     });
-                    patientId = patient?.id || null;
-                }
 
-                const guardianData: any = {
-                    userId: guardianUser.id,
-                };
-
-                // Only add optional fields if they have values
-                if (patientId) guardianData.patientId = patientId;
-                if (userData.relationship) guardianData.relationship = userData.relationship;
-
-                // Then create the guardian record
-                createdUser = await prisma.parentGuardian.create({
-                    data: guardianData,
-                    include: {
-                        user: {
-                            select: {
-                                id: true,
-                                name: true,
-                                email: true,
+                    // Find patient by name if provided
+                    let patientId = null;
+                    if (userData.patient) {
+                        const patient = await prisma.patient.findFirst({
+                            where: {
+                                OR: [
+                                    {
+                                        firstName: {
+                                            contains: userData.patient.split(' ')[0],
+                                            mode: 'insensitive'
+                                        }
+                                    },
+                                    {
+                                        lastName: {
+                                            contains: userData.patient.split(' ').slice(1).join(' '),
+                                            mode: 'insensitive'
+                                        }
+                                    }
+                                ]
                             }
-                        },
-                        patient: {
-                            select: {
-                                id: true,
-                                firstName: true,
-                                lastName: true,
+                        });
+                        patientId = patient?.id || null;
+                    }
+
+                    const guardianData: any = {
+                        userId: guardianUser.id,
+                    };
+
+                    // Only add optional fields if they have values
+                    if (patientId) guardianData.patientId = patientId;
+                    if (userData.relationship) guardianData.relationship = userData.relationship;
+
+                    // Then create the guardian record
+                    createdUser = await prisma.parentGuardian.create({
+                        data: guardianData,
+                        include: {
+                            user: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    email: true,
+                                }
+                            },
+                            patient: {
+                                select: {
+                                    id: true,
+                                    firstName: true,
+                                    lastName: true,
+                                }
                             }
                         }
-                    }
-                });
+                    });
 
-                // Return formatted guardian data
-                createdUser = {
-                    id: createdUser.id,
-                    role: 'Guardian',
-                    fullName: createdUser.user.name,
-                    email: createdUser.user.email,
-                    patient: createdUser.patient 
-                        ? `${createdUser.patient.firstName} ${createdUser.patient.lastName}`
-                        : userData.patient || "Unknown Patient",
-                    relationship: createdUser.relationship,
-                    createdAt: createdUser.createdAt,
-                };
+                    // Return formatted guardian data
+                    createdUser = {
+                        id: createdUser.id,
+                        role: 'Guardian',
+                        fullName: createdUser.user.name,
+                        email: createdUser.user.email,
+                        patient: createdUser.patient 
+                            ? `${createdUser.patient.firstName} ${createdUser.patient.lastName}`
+                            : userData.patient || "Unknown Patient",
+                        relationship: createdUser.relationship,
+                        createdAt: createdUser.createdAt,
+                    };
+                } catch (guardianError) {
+                    console.error('Guardian creation error:', guardianError);
+                    throw guardianError;
+                }
                 break;
 
             case 'Manager':
-                // Validate required fields for Manager
-                if (!userData.fullName || !userData.email) {
-                    return NextResponse.json({
-                        error: "Full name and email are required for managers"
-                    }, { status: 400 });
-                }
-
-                createdUser = await prisma.user.create({
-                    data: {
-                        name: userData.fullName,
-                        email: userData.email,
-                        role: 'MANAGER',
-                        // You might want to generate a temporary password or handle this differently
+                try {
+                    // Validate required fields for Manager
+                    if (!userData.fullName || !userData.email) {
+                        return NextResponse.json({
+                            error: "Full name and email are required for managers"
+                        }, { status: 400 });
                     }
-                });
 
-                // Return formatted manager data
-                createdUser = {
-                    id: createdUser.id,
-                    role: 'Manager',
-                    fullName: createdUser.name,
-                    email: createdUser.email,
-                    createdAt: createdUser.createdAt,
-                };
+                    createdUser = await prisma.user.create({
+                        data: {
+                            name: userData.fullName,
+                            email: userData.email,
+                            role: 'MANAGER',
+                            password: hashedPassword,
+                        }
+                    });
+
+                    // Return formatted manager data
+                    createdUser = {
+                        id: createdUser.id,
+                        role: 'Manager',
+                        fullName: createdUser.name,
+                        email: createdUser.email,
+                        createdAt: createdUser.createdAt,
+                    };
+                } catch (managerError) {
+                    console.error('Manager creation error:', managerError);
+                    throw managerError;
+                }
                 break;
 
             default:

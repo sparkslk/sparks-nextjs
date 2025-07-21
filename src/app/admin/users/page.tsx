@@ -4,10 +4,10 @@ import React from "react";
 import { useEffect, useState} from "react";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Plus } from "lucide-react";
-import UserFilters from "@/components/admin/admin-user-filters";
+import UserFilter from "@/components/admin/users/admin-user-filters";
 import UserDetailEdit from "@/components/admin/users/user-detail-edit";
 import AddUser from "@/components/admin/users/add-user";
-import UserStatsCards from "@/components/admin/users/users-stats-cards";
+//import UserStatsCards from "@/components/admin/users/users-stats-cards";
 import EmergencyContactDialog from "@/components/admin/users/EmergencyContactDialog";
 import UserTable from "@/components/admin/users/userTable";
 import UserDelete from "@/components/admin/users/user-delete";
@@ -19,9 +19,6 @@ export default function UsersPage() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRole, setSelectedRole] = useState("Patient"); // Default to Patient
-  const [selectedStatus, setSelectedStatus] = useState("All Status");
-  const [selectedTime, setSelectedTime] = useState("All Time");
-  const [selectedVerification, setSelectedVerification] = useState("All");
   const [emergencyContactOpen, setEmergencyContactOpen] = React.useState(false);
   const [emergencyContactDetails, setEmergencyContactDetails] =
     React.useState<any>(null);
@@ -132,6 +129,7 @@ export default function UsersPage() {
         id: user.id,
         role: user.role,
         name: user.fullname,
+        email: user.email,
         licenseNumber: safeString(user.licenseNumber),
         specialization: safeString(user.specialization),
         experience: safeString(user.experience),
@@ -235,7 +233,6 @@ export default function UsersPage() {
     therapists: mappedUsers.filter((u) => u.role === "Therapist").length,
     guardians: mappedUsers.filter((u) => u.role === "Guardian").length,
     managers: mappedUsers.filter((u) => u.role === "Manager").length,
-    pending: mappedUsers.filter((u) => u.status === "Pending").length,
   };
 
   /*const getRoleColor = (role: string) => {
@@ -285,7 +282,7 @@ export default function UsersPage() {
       <div className="mb-8">
         <div className="flex justify-between items-start mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            <h1 className="text-4xl font-extrabold bg-gradient-to-r from-primary to-foreground bg-clip-text text-transparent tracking-tight mb-2">
               User Management
             </h1>
             {lastUpdated && (
@@ -328,21 +325,17 @@ export default function UsersPage() {
           />
         </div>
 
-        {/* Stats Cards */}
-        <UserStatsCards stats={stats} />
+        {/* Stats Cards 
+        <UserStatsCards stats={stats} />*/}
 
         {/* Filters */}
-        <UserFilters
+        <UserFilter
           searchTerm={searchTerm}
           selectedRole={selectedRole}
-          selectedStatus={selectedStatus}
-          selectedTime={selectedTime}
-          selectedVerification={selectedVerification}
           onSearchChange={setSearchTerm}
           onRoleChange={setSelectedRole}
-          onStatusChange={setSelectedStatus}
-          onTimeChange={setSelectedTime}
-          onVerificationChange={setSelectedVerification}
+          stats={stats}
+          className="mb-6"
         />
       </div>
 
