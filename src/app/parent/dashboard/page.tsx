@@ -406,7 +406,7 @@ export default function ParentDashboard() {
                                                 
                                                 {child.therapist ? (
                                                     <Button className="bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-2 min-w-[150px]">
-                                                        Schedule 
+                                                        Book a Session 
                                                     </Button>
                                                 ) : (
                                                     <a href="/parent/findTherapist" className="w-full">
