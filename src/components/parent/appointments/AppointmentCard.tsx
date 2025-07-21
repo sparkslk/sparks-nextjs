@@ -96,26 +96,24 @@ export default function AppointmentCard({
           {filteredUpcoming.map((appointment: Appointment & { childFirstName?: string; childLastName?: string }) => (
             <div
               key={appointment.id}
-              className="session-card upcoming relative flex flex-col p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl border border-green-200 shadow transition-all duration-300 transform text-lg"
-              style={{ minHeight: '90px' }}
+              className="session-card upcoming relative flex flex-col p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl border border-green-200 shadow transition-all duration-300 transform text-lg min-h-[160px]"
             >
-              {/* Action buttons at top right */}
-              <div className="absolute top-4 right-4 flex gap-2 z-20">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  style={{ color: '#059669', borderColor: '#059669' }}
-                  className="hover:bg-green-50 text-base px-4 py-2 min-w-[110px]"
+              {/* Action buttons at bottom right */}
+              <div className="absolute bottom-4 right-4 flex gap-2 z-20">
+                <button
+                  className="flex items-center justify-center gap-2 w-36 h-11 px-4 py-2 rounded-lg border bg-green-100 border-green-300 shadow-sm text-base font-semibold text-green-700 hover:bg-green-200 transition-all duration-150 text-center"
+                  style={{ fontWeight: 600 }}
+                  onClick={() => {/* reschedule logic here */}}
                 >
                   Reschedule
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-red-600 border-red-600 hover:bg-red-50 text-base px-4 py-2 min-w-[110px]"
+                </button>
+                <button
+                  className="flex items-center justify-center gap-2 w-36 h-11 px-4 py-2 rounded-lg border bg-red-100 border-red-300 shadow-sm text-base font-semibold text-red-700 hover:bg-red-200 transition-all duration-150 text-center"
+                  style={{ fontWeight: 600 }}
+                  onClick={() => {/* cancel logic here */}}
                 >
                   Cancel
-                </Button>
+                </button>
               </div>
               {/* Patient name with improved styling */}
               {appointment.childFirstName && appointment.childLastName && (
@@ -187,18 +185,6 @@ export default function AppointmentCard({
               className="session-card past relative flex flex-col p-4 bg-gradient-to-r from-[var(--color-card)] to-[var(--color-secondary)] rounded-2xl border border-[var(--color-border)] shadow transition-all duration-300 transform text-lg"
               style={{ minHeight: '90px' }}
             >
-              {/* Action button at top right */}
-              <div className="absolute top-4 right-4 flex gap-2 z-20">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  style={{ color: 'var(--color-primary)', borderColor: 'var(--color-primary)' }}
-                  className="hover:bg-[var(--color-primary-foreground)] text-base px-4 py-2 min-w-[110px]"
-                  onClick={() => window.location.href = `/parent/sessions/${appointment.id}`}
-                >
-                  View Details
-                </Button>
-              </div>
               {/* Patient name with improved styling */}
               {appointment.childFirstName && appointment.childLastName && (
                 <div className="absolute left-4 top-4 right-4 flex items-center justify-between z-10">
@@ -238,6 +224,20 @@ export default function AppointmentCard({
                     <span className="font-semibold text-gray-900 text-sm ml-1">{appointment.duration} min</span>
                   </div>
                 </div>
+              </div>
+              {/* View Details button at bottom right */}
+              <div className="absolute bottom-4 right-4 flex justify-end">
+                <button
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 bg-white shadow-sm text-base font-semibold text-gray-900 hover:bg-gray-50 transition-all duration-150"
+                  style={{ fontWeight: 600 }}
+                  onClick={() => window.location.href = `/parent/sessions/${appointment.id}`}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-gray-700">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12c0 4.556 4.694 7.5 9.75 7.5s9.75-2.944 9.75-7.5c0-4.556-4.694-7.5-9.75-7.5S2.25 7.444 2.25 12z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  View Details
+                </button>
               </div>
             </div>
           ))}

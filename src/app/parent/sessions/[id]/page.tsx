@@ -298,7 +298,7 @@ export default function SessionDetailsPage() {
               Medications
             </TabsTrigger>
             <TabsTrigger value="tasks">
-              Tasks
+              Assessments
             </TabsTrigger>
           </TabsList>
           <TabsContent value="clinical">

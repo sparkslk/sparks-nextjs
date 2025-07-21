@@ -14,7 +14,7 @@ const tabs = [
     { name: 'My Children', path: '/parent/children' },
     { name: 'Find Therapists', path: '/parent/findTherapist' },
     { name: 'Messages', path: '/parent/messages' },
-    { name: 'Appointments', path: '/parent/appointments' },
+    { name: 'Sessions', path: '/parent/appointments' },
     { name: 'Resources', path: '/parent/resources' }
 ];
 

@@ -9,6 +9,7 @@ import { Child, Appointment } from "@/types/appointments";
 // import { Select } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
+import { SessionBookingModal } from "@/components/parent/SessionBookingModal";
 
 export default function AppointmentsPage() {
   const [children, setChildren] = useState<Child[]>([]);
@@ -19,6 +20,7 @@ export default function AppointmentsPage() {
   const [showTherapistModal, setShowTherapistModal] = useState(false);
   // const [highlightedChildId, setHighlightedChildId] = useState<string | null>(null);
   const [selectedChildId, setSelectedChildId] = useState<string | "all">("all");
+  const [showBookSessionChildId, setShowBookSessionChildId] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -145,8 +147,6 @@ export default function AppointmentsPage() {
 
   return (
     <div className="min-h-screen relative">
-      
-
       <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 py-4 md:py-6">
         {/* Enhanced Header */}
         <AppointmentsHeader 
@@ -161,15 +161,15 @@ export default function AppointmentsPage() {
             <div key={child.id} className="flex items-center justify-between bg-[#F3EAFB] rounded-lg px-4 py-3 shadow-sm">
               <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                 <span className="font-semibold text-gray-800">{child.firstName} {child.lastName}</span>
-                <span className="text-gray-500 text-sm">{child.therapist ? `Therapist: ${child.therapist.name || child.therapist}` : 'No therapist assigned'}</span>
+                <span className="text-gray-500 text-sm">{child.therapist ? `Therapist: ${child.therapist.name || ""}` : 'No therapist assigned'}</span>
               </div>
               {child.therapist ? (
                 <button
                   className="w-40 px-4 py-2 rounded-lg font-semibold transition text-white text-center"
                   style={{ backgroundColor: '#8159A8' }}
-                  onClick={() => {/* Implement schedule logic here */}}
+                  onClick={() => setShowBookSessionChildId(child.id)}
                 >
-                  Schedule Session
+                  Book a Session
                 </button>
               ) : (
                 <button
@@ -180,6 +180,23 @@ export default function AppointmentsPage() {
                   Find Therapist
                 </button>
               )}
+              {/* SessionBookingModal for this child */}
+              <SessionBookingModal
+                open={showBookSessionChildId === child.id}
+                onOpenChange={open => setShowBookSessionChildId(open ? child.id : null)}
+                child={{
+                  ...child,
+                  therapist: child.therapist
+                    ? {
+                        ...child.therapist,
+                        name: child.therapist.name ?? "",
+                        email: child.therapist.email ?? "",
+                        // add other required fields with default values if needed
+                      }
+                    : null,
+                }}
+                onConfirmBooking={() => {}}
+              />
             </div>
           ))}
         </div>
