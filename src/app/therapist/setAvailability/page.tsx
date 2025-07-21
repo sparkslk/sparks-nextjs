@@ -595,7 +595,13 @@ function SetAvailabilityPage(): React.JSX.Element {
       <AddAvailabilityModal
         isOpen={showAddModal || editingSlot !== null}
         onClose={handleCloseModal}
-        onSave={editingSlot ? handleEditTimeSlot : handleAddTimeSlot}
+        onSave={(slot) => {
+          if ("id" in slot) {
+            handleEditTimeSlot(slot);
+          } else {
+            handleAddTimeSlot(slot);
+          }
+        }}
         editingSlot={editingSlot}
         prefilledData={prefilledData}
       />

@@ -139,6 +139,7 @@ model ParentGuardian {
   canMakeDecisions Boolean  @default(true)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+  contact_no       String?  @db.VarChar(15)
   patient          Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
   user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
