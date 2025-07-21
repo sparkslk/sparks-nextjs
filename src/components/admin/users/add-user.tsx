@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { UserPlus, Loader2, AlertTriangle } from "lucide-react";
+import { UserPlus, Loader2, AlertTriangle, Eye, EyeOff } from "lucide-react";
 
 interface AddUserProps {
   open: boolean;
@@ -31,6 +31,7 @@ const AddUser: React.FC<AddUserProps> = ({ open, onOpenChange, onAdd }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState("Patient");
+  const [showPassword, setShowPassword] = useState(false);
 
   // Common fields
   const [formData, setFormData] = useState({
@@ -56,7 +57,7 @@ const AddUser: React.FC<AddUserProps> = ({ open, onOpenChange, onAdd }) => {
     relationship: "",
     
     // Common
-    status: "Active",
+    temporaryPassword: "",
   });
 
   const resetForm = () => {
@@ -76,10 +77,11 @@ const AddUser: React.FC<AddUserProps> = ({ open, onOpenChange, onAdd }) => {
       availability: "",
       patient: "",
       relationship: "",
-      status: "Active",
+      temporaryPassword: "",
     });
     setSelectedRole("Patient");
     setError(null);
+    setShowPassword(false);
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -95,7 +97,7 @@ const AddUser: React.FC<AddUserProps> = ({ open, onOpenChange, onAdd }) => {
       // Prepare data based on role
       let userData: any = {
         role: selectedRole,
-        status: formData.status,
+        temporaryPassword: formData.temporaryPassword,
       };
 
       if (selectedRole === "Patient") {
@@ -230,37 +232,20 @@ const AddUser: React.FC<AddUserProps> = ({ open, onOpenChange, onAdd }) => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="gender" className="text-sm font-medium text-gray-700">
-                  Gender
-                </Label>
-                <Select value={formData.gender} onValueChange={(value) => handleInputChange("gender", value)}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Select gender" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Male">Male</SelectItem>
-                    <SelectItem value="Female">Female</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="status" className="text-sm font-medium text-gray-700">
-                  Status
-                </Label>
-                <Select value={formData.status} onValueChange={(value) => handleInputChange("status", value)}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Active">Active</SelectItem>
-                    <SelectItem value="Pending">Pending</SelectItem>
-                    <SelectItem value="Inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div>
+              <Label htmlFor="gender" className="text-sm font-medium text-gray-700">
+                Gender
+              </Label>
+              <Select value={formData.gender} onValueChange={(value) => handleInputChange("gender", value)}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Select gender" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Male">Male</SelectItem>
+                  <SelectItem value="Female">Female</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
@@ -517,6 +502,37 @@ const AddUser: React.FC<AddUserProps> = ({ open, onOpenChange, onAdd }) => {
 
           {/* Role-specific fields */}
           {renderRoleSpecificFields()}
+
+          {/* Temporary Password Field */}
+          <div>
+            <Label htmlFor="temporaryPassword" className="text-sm font-medium text-gray-700">
+              Temporary Password *
+            </Label>
+            <div className="relative mt-1">
+              <Input
+                id="temporaryPassword"
+                type={showPassword ? "text" : "password"}
+                value={formData.temporaryPassword}
+                onChange={(e) => handleInputChange("temporaryPassword", e.target.value)}
+                className="pr-10"
+                placeholder="Set a temporary password"
+                required
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="absolute inset-y-0 right-0 px-3 py-0 h-full"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4 text-gray-400" />
+                ) : (
+                  <Eye className="h-4 w-4 text-gray-400" />
+                )}
+              </Button>
+            </div>
+          </div>
 
           {/* Error display */}
           {error && (
