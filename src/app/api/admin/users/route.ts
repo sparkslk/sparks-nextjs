@@ -84,6 +84,7 @@ export async function GET(req: NextRequest) {
                     select: {
                         id: true,
                         name: true,
+                        email: true,
                     }
                 }
             },  
@@ -136,6 +137,7 @@ export async function GET(req: NextRequest) {
             id: therapist.id,
             role: 'Therapist',
             fullname: therapist.user.name || "Unknown Therapist",
+            email: therapist.user.email || "Unknown Email",
             licenseNumber: therapist.licenseNumber,
             specialization: therapist.specialization,
             experience: therapist.experience,

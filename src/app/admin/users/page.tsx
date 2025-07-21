@@ -129,6 +129,7 @@ export default function UsersPage() {
         id: user.id,
         role: user.role,
         name: user.fullname,
+        email: user.email,
         licenseNumber: safeString(user.licenseNumber),
         specialization: safeString(user.specialization),
         experience: safeString(user.experience),
