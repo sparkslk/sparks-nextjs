@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
     Gamepad2,
-    Users,
+    //Users,
     Trophy,
     Clock,
     RefreshCw,
@@ -14,7 +14,7 @@ import {
     Pause,
     Settings,
     BarChart3,
-    Star,
+    //Star,
     Brain,
     Target,
     Zap
@@ -110,7 +110,6 @@ const mockGameStats: GameStats = {
 export default function GameManagementDashboard() {
     const [gameData, setGameData] = useState<GameData[]>(mockGameData);
     const [gameStats, setGameStats] = useState<GameStats>(mockGameStats);
-    const [loading, setLoading] = useState(false);
     const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
     const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
@@ -155,7 +154,7 @@ export default function GameManagementDashboard() {
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-4 py-4">
                 {/* Header Section */}
                 <div className="mb-8 mt-0">
-                    <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">
+                    <h1 className="text-4xl font-extrabold bg-gradient-to-r from-primary to-foreground bg-clip-text text-transparent tracking-tight mb-2">
                         ADHD Game Management
                     </h1>
                     <p className="text-muted-foreground mt-1">
