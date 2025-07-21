@@ -3,7 +3,7 @@
 import { useRouter, usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+//import { Badge } from "@/components/ui/badge";
 import { Bell } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
@@ -13,7 +13,6 @@ const tabs = [
   { name: "User Management", path: "/manager/users" },
   { name: "Session Oversight", path: "/manager/sessions" },
   { name: "Therapist requests", path: "/manager/applications" },
-  { name: "Financial Reports", path: "/manager/reports" },
   { name: "Game Management", path: "/manager/games" },
   { name: "Assessments", path: "/manager/assessments" },
   { name: "Blogs", path: "/manager/blogs" },
