@@ -67,7 +67,27 @@ import jwt from "jsonwebtoken";
  */
 export async function POST(request: NextRequest) {
     try {
-        const { email, password } = await request.json();
+        let email: string | undefined;
+        let password: string | undefined;
+
+        // Try to parse as JSON first
+        try {
+            const body = await request.json();
+            email = body?.email;
+            password = body?.password;
+        } catch (jsonErr: any) {
+            // If JSON parsing fails, try to parse as form-urlencoded
+            try {
+                const text = await request.text();
+                if (text?.includes('=')) {
+                    const params = new URLSearchParams(text);
+                    email = params.get('email') || undefined;
+                    password = params.get('password') || undefined;
+                }
+            } catch (e) {
+                // ignore
+            }
+        }
 
         if (!email || !password) {
             return NextResponse.json(
@@ -122,7 +142,7 @@ export async function POST(request: NextRequest) {
             where: { id: user.id },
             data: {
                 metadata: {
-                    ...user.metadata,
+                    ...((typeof user.metadata === 'object' && user.metadata !== null) ? user.metadata : {}),
                     mobileRefreshToken: refreshToken,
                 },
             },
@@ -147,4 +167,4 @@ export async function POST(request: NextRequest) {
             { status: 500 }
         );
     }
-} 
+}

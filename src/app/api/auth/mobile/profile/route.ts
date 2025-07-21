@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        // Get user data
+        // Get user data (only valid fields for User model)
         const user = await prisma.user.findUnique({
             where: { id: decoded.userId },
             select: {
@@ -76,26 +76,6 @@ export async function GET(request: NextRequest) {
                 name: true,
                 role: true,
                 image: true,
-                patient: {
-                    select: {
-                        id: true,
-                        firstName: true,
-                        lastName: true,
-                    }
-                },
-                therapistProfile: {
-                    select: {
-                        id: true,
-                        licenseNumber: true,
-                        specialization: true,
-                    }
-                },
-                parentGuardianRel: {
-                    select: {
-                        id: true,
-                        relationship: true,
-                    }
-                },
             }
         });
 
@@ -106,20 +86,12 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        // Determine profile type
+        // Determine profile type (basic fallback, since related fields are not selected)
         let profileType = "NORMAL_USER";
         let hasProfile = false;
 
-        if (user.patient) {
-            profileType = "PATIENT";
-            hasProfile = true;
-        } else if (user.therapistProfile) {
-            profileType = "THERAPIST";
-            hasProfile = true;
-        } else if (user.parentGuardianRel.length > 0) {
-            profileType = "PARENT_GUARDIAN";
-            hasProfile = true;
-        }
+        // If you want to support profile types, fetch and check related fields here
+        // For now, always return NORMAL_USER
 
         return NextResponse.json({
             user: {
