@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { ClipboardList, Users, CheckCircle, UserPlus, UserMinus } from "lucide-react";
+import { ClipboardList, Users, CheckCircle, UserPlus, UserMinus, Calendar } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 interface Assessment {
   id: string;
@@ -23,6 +24,7 @@ interface Assessment {
     email?: string;
     completedAt?: string;
     score?: number;
+    deadline?: string;
   }[];
 }
 
@@ -48,6 +50,9 @@ export default function AssessmentsPage() {
   ];
   
   const [availablePatients, setAvailablePatients] = useState(possiblePatients);
+
+  // Add deadline state for each patient to be assigned
+  const [patientDeadlines, setPatientDeadlines] = useState<{ [id: string]: string }>({});
 
   useEffect(() => {
     if (authStatus === "unauthenticated") {
@@ -125,21 +130,28 @@ export default function AssessmentsPage() {
     setShowAddPatientList(false);
   };
 
+  // Update handleAddPatient to include deadline
   const handleAddPatient = (patient: { id: string; name: string; email: string }) => {
     if (!selectedAssessment) return;
-    // Add patient to assignedPatients
+    const deadline = patientDeadlines[patient.id] || "";
+    // Add patient with deadline to assignedPatients
     setAssessments((prev) =>
       prev.map((a) =>
         a.id === selectedAssessment.id
-          ? { ...a, assignedPatients: [...a.assignedPatients, patient] }
+          ? { ...a, assignedPatients: [...a.assignedPatients, { ...patient, deadline }] }
           : a
       )
     );
     setSelectedAssessment((prev) =>
-      prev ? { ...prev, assignedPatients: [...prev.assignedPatients, patient] } : prev
+      prev ? { ...prev, assignedPatients: [...prev.assignedPatients, { ...patient, deadline }] } : prev
     );
     setAvailablePatients((prev) => prev.filter((p) => p.id !== patient.id));
     setShowAddPatientList(false);
+    setPatientDeadlines(prev => {
+      const copy = { ...prev };
+      delete copy[patient.id];
+      return copy;
+    });
   };
 
   const handleUnassignPatient = (patient: { id: string; name: string; email?: string }) => {
@@ -232,8 +244,32 @@ export default function AssessmentsPage() {
                           <div>
                             <span className="font-medium text-gray-800">{patient.name}</span>
                             <span className="ml-2 text-xs text-gray-500">{patient.email}</span>
+                            {/* Deadline input on next line */}
+                            <div className="mt-2 flex items-center space-x-2">
+                              <Calendar className="w-4 h-4 text-orange-600" />
+                              <span className="text-xs text-gray-600 font-medium">Deadline</span>
+                              <Input
+                                type="date"
+                                value={patientDeadlines[patient.id] || ""}
+                                onChange={e =>
+                                  setPatientDeadlines(prev => ({
+                                    ...prev,
+                                    [patient.id]: e.target.value,
+                                  }))
+                                }
+                                className="w-38" // Increased width from w-32 to w-48
+                                title="Select deadline"
+                              />
+                            </div>
                           </div>
-                          <Button size="icon" variant="outline" className="text-green-700 border-green-300" onClick={() => handleAddPatient(patient)} title="Add Patient">
+                          <Button
+                            size="icon"
+                            variant="outline"
+                            className="text-green-700 border-green-300"
+                            onClick={() => handleAddPatient(patient)}
+                            title="Add Patient"
+                            disabled={!patientDeadlines[patient.id]} // Disable if no deadline
+                          >
                             <UserPlus className="w-4 h-4" />
                           </Button>
                         </li>
@@ -264,6 +300,12 @@ export default function AssessmentsPage() {
                       <p className="font-medium text-gray-800">{patient.name}</p>
                       {patient.email && (
                         <p className="text-xs text-gray-500">{patient.email}</p>
+                      )}
+                      {patient.deadline && (
+                        <p className="text-xs text-orange-700 font-medium">
+                          <Calendar className="inline w-4 h-4 mr-1 mb-1" />
+                          Deadline: {new Date(patient.deadline).toLocaleDateString()}
+                        </p>
                       )}
                       {patient.completedAt && (
                         <p className="text-sm text-gray-500">
