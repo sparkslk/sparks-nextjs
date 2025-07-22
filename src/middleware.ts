@@ -21,6 +21,10 @@ const PUBLIC_PATHS = [
   "/api/auth/error",
   "/therapist/verification/success",
   "/therapist/verification/approved",
+  "/features",
+  "/about",
+  "/resources",
+  "/contact",
 ];
 
 function isPublicPath(path: string) {
