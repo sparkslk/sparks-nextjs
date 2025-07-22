@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     const user = await prisma.user.findUnique({
       where: { id: payload.userId },
       include: {
-        patient: {
+        patientProfile: {
           include: {
             primaryTherapist: {
               include: {
@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const patient = user.patient;
+    const patient = user.patientProfile;
     const now = new Date();
     // const oneWeekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
     const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -83,27 +83,27 @@ export async function GET(request: NextRequest) {
 
     // Get session statistics
     const [upcomingSessions, completedSessions, totalSessions, nextSession] = await Promise.all([
-      prisma.session.count({
+      prisma.therapySession.count({
         where: {
           patientId: patient.id,
           scheduledAt: { gte: now },
-          status: { in: ["SCHEDULED", "PENDING"] }
+          status: { in: ["SCHEDULED", "REQUESTED", "APPROVED"] }
         }
       }),
-      prisma.session.count({
+      prisma.therapySession.count({
         where: {
           patientId: patient.id,
           status: "COMPLETED"
         }
       }),
-      prisma.session.count({
+      prisma.therapySession.count({
         where: { patientId: patient.id }
       }),
-      prisma.session.findFirst({
+      prisma.therapySession.findFirst({
         where: {
           patientId: patient.id,
           scheduledAt: { gte: now },
-          status: { in: ["SCHEDULED", "PENDING"] }
+          status: { in: ["SCHEDULED", "REQUESTED", "APPROVED"] }
         },
         orderBy: { scheduledAt: 'asc' },
         include: {
@@ -123,12 +123,17 @@ export async function GET(request: NextRequest) {
     ]);
 
     // Get recent sessions
-    const recentSessions = await prisma.session.findMany({
+    const recentSessions = await prisma.therapySession.findMany({
       where: {
         patientId: patient.id,
         OR: [
           { scheduledAt: { gte: oneMonthAgo } },
-          { completedAt: { gte: oneMonthAgo } }
+          { 
+            AND: [
+              { status: "COMPLETED" },
+              { updatedAt: { gte: oneMonthAgo } }
+            ]
+          }
         ]
       },
       include: {
@@ -176,7 +181,7 @@ export async function GET(request: NextRequest) {
         date: notif.createdAt,
         isRead: notif.isRead,
         isUrgent: notif.isUrgent,
-        icon: notif.type === 'SESSION_REQUEST' ? 'calendar' : 'bell'
+        icon: notif.type === 'APPOINTMENT' ? 'calendar' : 'bell'
       }))
     ].sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, 10);
 
@@ -257,7 +262,7 @@ export async function GET(request: NextRequest) {
         name: patient.primaryTherapist.user.name || "Your Therapist",
         email: patient.primaryTherapist.user.email,
         image: patient.primaryTherapist.user.image,
-        specializations: patient.primaryTherapist.specializations
+        specializations: patient.primaryTherapist.specialization
       } : null,
       stats: {
         upcomingSessions,

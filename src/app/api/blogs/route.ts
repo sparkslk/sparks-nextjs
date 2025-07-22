@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 import { authOptions } from "@/lib/auth";
 
 const prisma = new PrismaClient();
@@ -83,11 +83,11 @@ export async function POST(request: Request) {
     }
 
     // Prepare the blog data
-    const blogData: Record<string, unknown> = {
+    const blogData: Prisma.blogsCreateInput = {
       title: data.title.trim(),
       summary: data.summary.trim(),
       content: data.content.trim(),
-      therapist_id: session.user.id,
+      User: { connect: { id: session.user.id } },
       status: data.status || "draft",
       category: data.category || null,
       tags: Array.isArray(data.tags) ? data.tags : [],

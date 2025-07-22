@@ -70,7 +70,6 @@ export async function GET(request: NextRequest) {
       isRead: notif.isRead,
       isUrgent: notif.isUrgent,
       createdAt: notif.createdAt,
-      relatedId: notif.relatedId,
       sender: notif.sender ? {
         id: notif.sender.id,
         name: notif.sender.name || "System",

@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
             where: { id: user.id },
             data: {
                 metadata: {
-                    ...user.metadata,
+                    ...(typeof user.metadata === 'object' && user.metadata !== null && !Array.isArray(user.metadata) ? user.metadata : {}),
                     mobileRefreshToken: refreshToken,
                 },
             },

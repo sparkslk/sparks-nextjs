@@ -61,20 +61,10 @@ export async function GET(request: NextRequest) {
         gender: patient.gender,
         phone: patient.phone,
         address: patient.address,
-        city: patient.city,
-        state: patient.state,
-        zipCode: patient.zipCode,
-        emergencyContactName: patient.emergencyContactName,
-        emergencyContactPhone: patient.emergencyContactPhone,
-        emergencyContactRelation: patient.emergencyContactRelation,
+        emergencyContact: patient.emergencyContact,
         medicalHistory: patient.medicalHistory,
-        currentMedications: patient.currentMedications,
-        allergies: patient.allergies,
-        previousTherapy: patient.previousTherapy,
-        reasonForTherapy: patient.reasonForTherapy,
-        goals: patient.goals,
-        email: patient.user.email,
-        image: patient.user.image,
+        email: patient.user?.email,
+        image: patient.user?.image,
         therapist: patient.primaryTherapist ? {
           id: patient.primaryTherapist.id,
           name: patient.primaryTherapist.user.name || "Your Therapist",
@@ -143,18 +133,12 @@ export async function POST(request: NextRequest) {
         gender: data.gender,
         phone: data.phone,
         address: data.address || '',
-        city: data.city || '',
-        state: data.state || '',
-        zipCode: data.zipCode || '',
-        emergencyContactName: data.emergencyContactName || '',
-        emergencyContactPhone: data.emergencyContactPhone || '',
-        emergencyContactRelation: data.emergencyContactRelation || '',
-        medicalHistory: data.medicalHistory || '',
-        currentMedications: data.currentMedications || '',
-        allergies: data.allergies || '',
-        previousTherapy: data.previousTherapy || false,
-        reasonForTherapy: data.reasonForTherapy || '',
-        goals: data.goals || ''
+        emergencyContact: data.emergencyContactName || data.emergencyContactPhone ? {
+          name: data.emergencyContactName || '',
+          phone: data.emergencyContactPhone || '',
+          relation: data.emergencyContactRelation || ''
+        } : undefined,
+        medicalHistory: data.medicalHistory || ''
       }
     });
 

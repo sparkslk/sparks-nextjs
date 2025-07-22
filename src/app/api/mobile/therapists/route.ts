@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
         _count: {
           select: {
             patients: true,
-            sessions: true
+            therapySessions: true
           }
         }
       },
@@ -113,13 +113,11 @@ export async function GET(request: NextRequest) {
       email: therapist.user.email,
       image: therapist.user.image,
       bio: therapist.bio,
-      qualifications: therapist.qualifications,
-      specializations: therapist.specializations,
-      experienceYears: therapist.experienceYears,
-      sessionRate: therapist.sessionRate,
-      rating: therapist.rating || 0,
+      specialization: therapist.specialization,
+      experience: therapist.experience,
+      rating: therapist.rating?.toNumber() || 0,
       patientCount: therapist._count.patients,
-      sessionCount: therapist._count.sessions,
+      sessionCount: therapist._count.therapySessions,
       isMyTherapist: patient?.primaryTherapistId === therapist.id
     }));
 

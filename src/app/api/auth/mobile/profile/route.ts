@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
                 name: true,
                 role: true,
                 image: true,
-                patient: {
+                patientProfile: {
                     select: {
                         id: true,
                         firstName: true,
@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
         let profileType = "NORMAL_USER";
         let hasProfile = false;
 
-        if (user.patient) {
+        if (user.patientProfile) {
             profileType = "PATIENT";
             hasProfile = true;
         } else if (user.therapistProfile) {

@@ -21,7 +21,7 @@ export async function GET(
     }
 
     const { sessionId } = await params;
-    const session = await prisma.session.findUnique({
+    const session = await prisma.therapySession.findUnique({
       where: { id: sessionId },
       include: {
         patient: {
@@ -71,23 +71,23 @@ export async function GET(
         status: session.status,
         scheduledAt: session.scheduledAt,
         duration: session.duration,
-        location: session.location,
-        notes: session.notes,
-        isUrgent: session.isUrgent,
-        cancelReason: session.cancelReason,
-        completedAt: session.completedAt,
-        therapistNotes: session.status === "COMPLETED" ? session.therapistNotes : null,
+        sessionNotes: session.sessionNotes,
+        nextSessionGoals: session.nextSessionGoals,
+        primaryFocusAreas: session.primaryFocusAreas,
+        attendanceStatus: session.attendanceStatus,
+        overallProgress: session.overallProgress,
+        patientEngagement: session.patientEngagement,
+        riskAssessment: session.riskAssessment,
         therapist: {
           id: session.therapist.id,
           name: session.therapist.user.name || "Therapist",
           email: session.therapist.user.email,
           image: session.therapist.user.image,
-          specializations: session.therapist.specializations,
-          sessionRate: session.therapist.sessionRate
+          specializations: session.therapist.specialization
         },
         isPast: session.scheduledAt < now,
         canCancel,
-        canReschedule: session.status === "SCHEDULED" && !session.isPast
+        canReschedule: session.status === "SCHEDULED" && session.scheduledAt > now
       }
     });
 
@@ -121,7 +121,7 @@ export async function DELETE(
     const { sessionId } = await params;
     const { reason } = await request.json();
 
-    const session = await prisma.session.findUnique({
+    const session = await prisma.therapySession.findUnique({
       where: { id: sessionId },
       include: {
         patient: true,
@@ -149,9 +149,9 @@ export async function DELETE(
     }
 
     // Check if session can be cancelled
-    if (session.status !== "SCHEDULED" && session.status !== "PENDING") {
+    if (session.status !== "SCHEDULED" && session.status !== "REQUESTED" && session.status !== "APPROVED") {
       return NextResponse.json(
-        { error: "Only scheduled or pending sessions can be cancelled" },
+        { error: "Only scheduled, requested, or approved sessions can be cancelled" },
         { status: 400 }
       );
     }
@@ -167,11 +167,11 @@ export async function DELETE(
     }
 
     // Update session status
-    await prisma.session.update({
+    await prisma.therapySession.update({
       where: { id: sessionId },
       data: {
         status: "CANCELLED",
-        cancelReason: reason || "Cancelled by patient"
+        sessionNotes: reason ? `Cancelled by patient. Reason: ${reason}` : "Cancelled by patient"
       }
     });
 
@@ -180,11 +180,10 @@ export async function DELETE(
       data: {
         senderId: payload.userId,
         receiverId: session.therapist.userId,
-        type: "SESSION_UPDATE",
+        type: "APPOINTMENT",
         title: "Session Cancelled",
         message: `${session.patient.firstName} ${session.patient.lastName} has cancelled their ${session.type.toLowerCase().replace('_', ' ')} session scheduled for ${session.scheduledAt.toLocaleDateString()} at ${session.scheduledAt.toLocaleTimeString()}.${reason ? ` Reason: ${reason}` : ''}`,
-        isUrgent: hoursUntilSession < 48,
-        relatedId: session.id
+        isUrgent: hoursUntilSession < 48
       }
     });
 
@@ -230,7 +229,7 @@ export async function PATCH(
       );
     }
 
-    const session = await prisma.session.findUnique({
+    const session = await prisma.therapySession.findUnique({
       where: { id: sessionId },
       include: {
         patient: true,
@@ -268,7 +267,7 @@ export async function PATCH(
     const newScheduledAt = new Date(`${newDate}T${newTime}`);
     
     // Check if the new time slot is available
-    const existingSession = await prisma.session.findFirst({
+    const existingSession = await prisma.therapySession.findFirst({
       where: {
         id: { not: sessionId },
         therapistId: session.therapistId,
@@ -277,7 +276,7 @@ export async function PATCH(
           lt: new Date(newScheduledAt.getTime() + session.duration * 60000)
         },
         status: {
-          in: ["SCHEDULED", "IN_PROGRESS"]
+          in: ["SCHEDULED", "APPROVED"]
         }
       }
     });
@@ -290,11 +289,11 @@ export async function PATCH(
     }
 
     // Update session
-    const updatedSession = await prisma.session.update({
+    const updatedSession = await prisma.therapySession.update({
       where: { id: sessionId },
       data: {
         scheduledAt: newScheduledAt,
-        status: "PENDING" // Change to pending for therapist approval
+        status: "REQUESTED" // Change to requested for therapist approval
       }
     });
 
@@ -303,11 +302,10 @@ export async function PATCH(
       data: {
         senderId: payload.userId,
         receiverId: session.therapist.userId,
-        type: "SESSION_UPDATE",
+        type: "APPOINTMENT",
         title: "Session Reschedule Request",
         message: `${session.patient.firstName} ${session.patient.lastName} has requested to reschedule their session from ${session.scheduledAt.toLocaleDateString()} at ${session.scheduledAt.toLocaleTimeString()} to ${newScheduledAt.toLocaleDateString()} at ${newScheduledAt.toLocaleTimeString()}.${reason ? ` Reason: ${reason}` : ''}`,
-        isUrgent: true,
-        relatedId: session.id
+        isUrgent: true
       }
     });
 
