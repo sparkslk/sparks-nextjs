@@ -32,7 +32,10 @@ interface NextAvailableSlotProps {
     className?: string;
 }
 
-export function NextAvailableSlot({ therapistId, className = "" }: NextAvailableSlotProps) {
+export function NextAvailableSlot({ therapistId: _therapistId, className = "" }: NextAvailableSlotProps) {
+    // Mark unused parameter to avoid ESLint warning
+    void _therapistId;
+    
     // This would be implemented to fetch and display the next available slot
     // For now, showing a placeholder
     return (

@@ -49,13 +49,13 @@ export default function VerificationSuccessPage() {
 
             <CardContent className="text-center space-y-6">
               <p className="text-muted-foreground text-lg leading-relaxed">
-                Thank you for your application. We've received your registration
+                Thank you for your application. We&apos;ve received your registration
                 and supporting documents. Our verification team will review your
                 credentials within 3-5 business days.
               </p>
 
               <p className="text-muted-foreground">
-                You'll receive an email confirmation shortly, followed by
+                You&apos;ll receive an email confirmation shortly, followed by
                 updates on your application status.
               </p>
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireApiAuth } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { Prisma, $Enums, Patient, Therapist, ParentGuardian } from "@prisma/client";
 //import { create } from "domain";
 
 console.log("API route file loaded");
@@ -20,7 +21,7 @@ export async function GET(req: NextRequest) {
         const skip = (page - 1) * limit;
 
         // Build where clause for search
-        const whereClause: any = {};
+        const whereClause: Record<string, unknown> = {};
         if (search) {
             whereClause.OR = [
                 {
@@ -87,7 +88,7 @@ export async function GET(req: NextRequest) {
                         email: true,
                     }
                 }
-            },  
+            },
             orderBy: { createdAt: 'desc' },
             skip,
             take: limit
@@ -109,7 +110,7 @@ export async function GET(req: NextRequest) {
                         lastName: true,
                     }
                 }
-            },  
+            },
             orderBy: { createdAt: 'desc' },
             skip,
             take: limit
@@ -147,16 +148,16 @@ export async function GET(req: NextRequest) {
         }));
 
         const formattedGuardians = guardians.map(guardian => ({
-          id: guardian.id,
-          role: 'Guardian',
-          fullName: guardian.user.name || "Unknown Guardian",
-          email: guardian.user.email || "Unknown Email",
-          patient: guardian.patient
-            ? `${guardian.patient.firstName} ${guardian.patient.lastName}`
-            : "Unknown Patient",
-          relationship: guardian.relationship, // if exists
-          createdAt: guardian.createdAt,
-          // Add more guardian-specific fields here
+            id: guardian.id,
+            role: 'Guardian',
+            fullName: guardian.user.name || "Unknown Guardian",
+            email: guardian.user.email || "Unknown Email",
+            patient: guardian.patient
+                ? `${guardian.patient.firstName} ${guardian.patient.lastName}`
+                : "Unknown Patient",
+            relationship: guardian.relationship, // if exists
+            createdAt: guardian.createdAt,
+            // Add more guardian-specific fields here
         }));
 
         const formattedManagers = users.filter(u => u.role === 'MANAGER').map(manager => ({
@@ -216,7 +217,33 @@ export async function POST(req: NextRequest) {
         // Hash password
         const hashedPassword = await bcrypt.hash(temporaryPassword, 12);
 
-        let createdUser: any;
+        type FormattedUser = {
+            id: string;
+            role: string;
+            fullName?: string;
+            fullname?: string;
+            firstName?: string;
+            lastName?: string;
+            email: string | null;
+            phone?: string | null;
+            dateOfBirth?: Date | null;
+            gender?: string | null;
+            address?: string | null;
+            medicalHistory?: string | null;
+            emergencyContact?: string | null;
+            licenseNumber?: string | null;
+            specialization?: string | string[] | null;
+            experience?: number | null;
+            availability?: string | null;
+            rating?: number;
+            relationship?: string | null;
+            patientId?: string;
+            patient?: string;
+            name?: string | null;
+            createdAt: Date;
+        };
+        
+        let createdUser: FormattedUser | Patient | Therapist | ParentGuardian;
 
         switch (role) {
             case 'Patient':
@@ -242,24 +269,23 @@ export async function POST(req: NextRequest) {
                         }
                     });
 
-                    const patientData: any = {
-                        userId: patientUser.id,
+                    // Build patientData with correct type
+                    const patientData: Prisma.PatientCreateInput = {
+                        user: { connect: { id: patientUser.id } },
                         firstName: firstName,
                         lastName: lastName,
+                        dateOfBirth: userData.dateOfBirth ? new Date(userData.dateOfBirth) : new Date(), // fallback to now if missing
+                        gender: (userData.gender ? userData.gender.toUpperCase() : 'OTHER') as $Enums.Gender, // cast to enum
                         email: userData.email,
+                        phone: userData.phone || null,
+                        address: userData.address || null,
+                        medicalHistory: userData.medicalHistory || null,
+                        emergencyContact: userData.emergencyContact || undefined,
                     };
-
-                    // Only add optional fields if they have values
-                    if (userData.phone) patientData.phone = userData.phone;
-                    if (userData.dateOfBirth) patientData.dateOfBirth = new Date(userData.dateOfBirth);
-                    if (userData.gender) patientData.gender = userData.gender.toUpperCase();
-                    if (userData.address) patientData.address = userData.address;
-                    if (userData.medicalHistory) patientData.medicalHistory = userData.medicalHistory;
-                    if (userData.emergencyContact) patientData.emergencyContact = userData.emergencyContact;
 
                     console.log('Creating patient with data:', patientData); // Debug log
 
-                    createdUser = await prisma.patient.create({
+                    const patientResult = await prisma.patient.create({
                         data: patientData,
                         include: {
                             user: {
@@ -274,19 +300,19 @@ export async function POST(req: NextRequest) {
 
                     // Return formatted patient data
                     createdUser = {
-                        id: createdUser.id,
+                        id: patientResult.id,
                         role: 'Patient',
-                        fullName: `${createdUser.firstName} ${createdUser.lastName}`,
-                        firstName: createdUser.firstName,
-                        lastName: createdUser.lastName,
-                        email: createdUser.email,
-                        phone: createdUser.phone,
-                        dateOfBirth: createdUser.dateOfBirth,
-                        gender: createdUser.gender,
-                        address: createdUser.address,
-                        medicalHistory: createdUser.medicalHistory,
-                        emergencyContact: createdUser.emergencyContact,
-                        createdAt: createdUser.createdAt,
+                        fullName: `${patientResult.firstName} ${patientResult.lastName}`,
+                        firstName: patientResult.firstName,
+                        lastName: patientResult.lastName,
+                        email: patientResult.email,
+                        phone: patientResult.phone,
+                        dateOfBirth: patientResult.dateOfBirth,
+                        gender: patientResult.gender,
+                        address: patientResult.address,
+                        medicalHistory: patientResult.medicalHistory,
+                        emergencyContact: JSON.stringify(patientResult.emergencyContact),
+                        createdAt: patientResult.createdAt,
                     };
                 } catch (patientError) {
                     console.error('Patient creation error:', patientError);
@@ -320,8 +346,8 @@ export async function POST(req: NextRequest) {
 
                     console.log('Created therapist user:', therapistUser.id); // Debug log
 
-                    const therapistData: any = {
-                        userId: therapistUser.id,
+                    const therapistData: Prisma.TherapistCreateInput = {
+                        user: { connect: { id: therapistUser.id } },
                         licenseNumber: userData.licenseNumber,
                     };
 
@@ -333,7 +359,7 @@ export async function POST(req: NextRequest) {
                     console.log('Creating therapist with data:', therapistData); // Debug log
 
                     // Then create the therapist record
-                    createdUser = await prisma.therapist.create({
+                    const therapistResult = await prisma.therapist.create({
                         data: therapistData,
                         include: {
                             user: {
@@ -348,16 +374,16 @@ export async function POST(req: NextRequest) {
 
                     // Return formatted therapist data
                     createdUser = {
-                        id: createdUser.id,
+                        id: therapistResult.id,
                         role: 'Therapist',
-                        fullname: createdUser.user.name,
-                        email: createdUser.user.email,
-                        licenseNumber: createdUser.licenseNumber,
-                        specialization: createdUser.specialization,
-                        experience: createdUser.experience,
-                        availability: createdUser.availability,
-                        createdAt: createdUser.createdAt,
-                        rating: createdUser.rating || 0,
+                        fullname: therapistResult.user.name || '',
+                        email: therapistResult.user.email,
+                        licenseNumber: therapistResult.licenseNumber,
+                        specialization: therapistResult.specialization,
+                        experience: therapistResult.experience,
+                        availability: JSON.stringify(therapistResult.availability),
+                        createdAt: therapistResult.createdAt,
+                        rating: therapistResult.rating?.toNumber() || 0,
                     };
                 } catch (therapistError) {
                     console.error('Therapist creation error:', therapistError);
@@ -408,16 +434,14 @@ export async function POST(req: NextRequest) {
                         patientId = patient?.id || null;
                     }
 
-                    const guardianData: any = {
-                        userId: guardianUser.id,
-                    };
-
-                    // Only add optional fields if they have values
-                    if (patientId) guardianData.patientId = patientId;
-                    if (userData.relationship) guardianData.relationship = userData.relationship;
+                    const guardianData: Prisma.ParentGuardianCreateInput = {
+                        user: { connect: { id: guardianUser.id } },
+                        relationship: userData.relationship || 'Other',
+                        patient: patientId ? { connect: { id: patientId } } : undefined
+                    } as Prisma.ParentGuardianCreateInput;
 
                     // Then create the guardian record
-                    createdUser = await prisma.parentGuardian.create({
+                    const guardianResult = await prisma.parentGuardian.create({
                         data: guardianData,
                         include: {
                             user: {
@@ -439,15 +463,15 @@ export async function POST(req: NextRequest) {
 
                     // Return formatted guardian data
                     createdUser = {
-                        id: createdUser.id,
+                        id: guardianResult.id,
                         role: 'Guardian',
-                        fullName: createdUser.user.name,
-                        email: createdUser.user.email,
-                        patient: createdUser.patient 
-                            ? `${createdUser.patient.firstName} ${createdUser.patient.lastName}`
+                        fullName: guardianResult.user?.name || '',
+                        email: guardianResult.user?.email || '',
+                        patient: guardianResult.patient
+                            ? `${guardianResult.patient.firstName} ${guardianResult.patient.lastName}`
                             : userData.patient || "Unknown Patient",
-                        relationship: createdUser.relationship,
-                        createdAt: createdUser.createdAt,
+                        relationship: guardianResult.relationship,
+                        createdAt: guardianResult.createdAt,
                     };
                 } catch (guardianError) {
                     console.error('Guardian creation error:', guardianError);
@@ -464,7 +488,7 @@ export async function POST(req: NextRequest) {
                         }, { status: 400 });
                     }
 
-                    createdUser = await prisma.user.create({
+                    const managerResult = await prisma.user.create({
                         data: {
                             name: userData.fullName,
                             email: userData.email,
@@ -475,11 +499,11 @@ export async function POST(req: NextRequest) {
 
                     // Return formatted manager data
                     createdUser = {
-                        id: createdUser.id,
+                        id: managerResult.id,
                         role: 'Manager',
-                        fullName: createdUser.name,
-                        email: createdUser.email,
-                        createdAt: createdUser.createdAt,
+                        fullName: managerResult.name || '',
+                        email: managerResult.email || '',
+                        createdAt: managerResult.createdAt,
                     };
                 } catch (managerError) {
                     console.error('Manager creation error:', managerError);
@@ -503,9 +527,9 @@ export async function POST(req: NextRequest) {
         if (error instanceof NextResponse) {
             return error;
         }
-        
+
         console.error("Detailed error creating user:", error);
-        
+
         // Handle specific Prisma errors
         if (error && typeof error === 'object' && 'code' in error) {
             console.error("Prisma error code:", error.code);

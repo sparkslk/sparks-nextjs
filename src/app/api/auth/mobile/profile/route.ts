@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
         }
 
         // Verify JWT token
-        const decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET!) as any;
+        const decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET!) as {userId?: string};
 
         if (!decoded.userId) {
             return NextResponse.json(
@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
                 name: true,
                 role: true,
                 image: true,
-                patient: {
+                patientProfile: {
                     select: {
                         id: true,
                         firstName: true,
@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
         let profileType = "NORMAL_USER";
         let hasProfile = false;
 
-        if (user.patient) {
+        if (user.patientProfile) {
             profileType = "PATIENT";
             hasProfile = true;
         } else if (user.therapistProfile) {

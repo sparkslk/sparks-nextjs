@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { ArrowLeft, Calendar, ClipboardList, Users, BarChart3, UserPlus, UserMinus } from "lucide-react";
+import { ArrowLeft, Calendar, ClipboardList, Users, BarChart3 } from "lucide-react";
 
 interface Assessment {
   id: string;
@@ -40,12 +40,6 @@ interface Assessment {
 }
 
 
-const possiblePatients = [
-  { id: 'p10', name: 'Nimal Perera', email: 'nimal@email.com' },
-  { id: 'p11', name: 'Kamal Silva', email: 'kamal@email.com' },
-  { id: 'p12', name: 'Sunethra Jayasuriya', email: 'sunethra@email.com' },
-  { id: 'p13', name: 'Ruwanthi Fernando', email: 'ruwanthi@email.com' },
-];
 
 export default function AssessmentDetailsPage() {
   const { status: authStatus } = useSession();
@@ -54,8 +48,8 @@ export default function AssessmentDetailsPage() {
   const assessmentId = params.id as string;
 
   const [assessment, setAssessment] = useState<Assessment | null>(null);
-  const [availablePatients, setAvailablePatients] = useState(possiblePatients);
-  const [showAddPatientList, setShowAddPatientList] = useState(false);
+  // const [availablePatients, setAvailablePatients] = useState(possiblePatients);
+  // const [showAddPatientList, setShowAddPatientList] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -100,40 +94,38 @@ export default function AssessmentDetailsPage() {
         completionRate: 50, // 1 out of 2 completed
       };
       setAssessment(mockAssessment);
-      // Remove already assigned patients from availablePatients
-      const assignedIds = new Set(mockAssessment.assignedPatients.map(p => p.id));
-      setAvailablePatients(possiblePatients.filter(p => !assignedIds.has(p.id)));
+      // setAvailablePatients(possiblePatients.filter(p => !assignedIds.has(p.id)));
   // Add patient to assignedPatients
-  const handleAddPatient = (patient: { id: string; name: string; email: string }) => {
-    if (!assessment) return;
-    const updated = {
-      ...assessment,
-      assignedPatients: [...assessment.assignedPatients, patient],
-    };
-    setAssessment(updated);
-    setAvailablePatients(prev => prev.filter(p => p.id !== patient.id));
-    setShowAddPatientList(false);
-  };
+  // const handleAddPatient = (patient: { id: string; name: string; email: string }) => {
+  //   if (!assessment) return;
+  //   const updated = {
+  //     ...assessment,
+  //     assignedPatients: [...assessment.assignedPatients, patient],
+  //   };
+  //   setAssessment(updated);
+  //   setAvailablePatients(prev => prev.filter(p => p.id !== patient.id));
+  //   setShowAddPatientList(false);
+  // };
 
   // Remove patient from assignedPatients
-  const handleUnassignPatient = (patient: { id: string; name: string; email: string }) => {
-    if (!assessment) return;
-    const updated = {
-      ...assessment,
-      assignedPatients: assessment.assignedPatients.filter(p => p.id !== patient.id),
-    };
-    setAssessment(updated);
-    // Add back to availablePatients if in possiblePatients
-    const found = possiblePatients.find(p => p.id === patient.id);
-    if (found) setAvailablePatients(prev => [...prev, found]);
-  };
+  // const handleUnassignPatient = (patient: { id: string; name: string; email: string }) => {
+  //   if (!assessment) return;
+  //   const updated = {
+  //     ...assessment,
+  //     assignedPatients: assessment.assignedPatients.filter(p => p.id !== patient.id),
+  //   };
+  //   setAssessment(updated);
+  //   // Add back to availablePatients if in possiblePatients
+  //   const found = possiblePatients.find(p => p.id === patient.id);
+  //   if (found) setAvailablePatients(prev => [...prev, found]);
+  // };
     } catch (err) {
       console.error("Error fetching assessment:", err);
       setError("Failed to load assessment. Please try again later.");
     } finally {
       setLoading(false);
     }
-  }, [assessmentId]);
+  }, []);
 
   useEffect(() => {
     if (authStatus === "unauthenticated") {
@@ -218,29 +210,29 @@ export default function AssessmentDetailsPage() {
   }
 
   // Add patient to assignedPatients
-  const handleAddPatient = (patient: { id: string; name: string; email: string }) => {
-    if (!assessment) return;
-    const updated = {
-      ...assessment,
-      assignedPatients: [...assessment.assignedPatients, patient],
-    };
-    setAssessment(updated);
-    setAvailablePatients(prev => prev.filter(p => p.id !== patient.id));
-    setShowAddPatientList(false);
-  };
+  // const handleAddPatient = (patient: { id: string; name: string; email: string }) => {
+  //   if (!assessment) return;
+  //   const updated = {
+  //     ...assessment,
+  //     assignedPatients: [...assessment.assignedPatients, patient],
+  //   };
+  //   setAssessment(updated);
+  //   setAvailablePatients(prev => prev.filter(p => p.id !== patient.id));
+  //   setShowAddPatientList(false);
+  // };
 
   // Remove patient from assignedPatients
-  const handleUnassignPatient = (patient: { id: string; name: string; email: string }) => {
-    if (!assessment) return;
-    const updated = {
-      ...assessment,
-      assignedPatients: assessment.assignedPatients.filter(p => p.id !== patient.id),
-    };
-    setAssessment(updated);
-    // Add back to availablePatients if in possiblePatients
-    const found = possiblePatients.find(p => p.id === patient.id);
-    if (found) setAvailablePatients(prev => [...prev, found]);
-  };
+  // const handleUnassignPatient = (patient: { id: string; name: string; email: string }) => {
+  //   if (!assessment) return;
+  //   const updated = {
+  //     ...assessment,
+  //     assignedPatients: assessment.assignedPatients.filter(p => p.id !== patient.id),
+  //   };
+  //   setAssessment(updated);
+  //   // Add back to availablePatients if in possiblePatients
+  //   const found = possiblePatients.find(p => p.id === patient.id);
+  //   if (found) setAvailablePatients(prev => [...prev, found]);
+  // };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#F5F3FB] via-white to-[#F5F3FB] p-6">

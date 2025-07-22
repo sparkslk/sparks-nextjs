@@ -66,9 +66,9 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    if (!therapist || !therapist.user.isActive) {
+    if (!therapist) {
       return NextResponse.json(
-        { error: "Therapist not found or inactive" },
+        { error: "Therapist not found" },
         { status: 404 }
       );
     }
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
         receiverId: therapist.userId,
         type: "SYSTEM",
         title: "Therapist Assignment Request",
-        message: `${patient.user.name || patient.firstName + ' ' + patient.lastName} has requested you as their therapist. Patient ID: ${patient.id}${message ? `. Message: ${message}` : ''}`,
+        message: `${patient.user?.name || patient.firstName + ' ' + patient.lastName} has requested you as their therapist. Patient ID: ${patient.id}${message ? `. Message: ${message}` : ''}`,
         isUrgent: false
       }
     });
@@ -180,7 +180,7 @@ export async function GET(request: NextRequest) {
       include: {
         receiver: {
           include: {
-            therapist: true
+            therapistProfile: true
           }
         }
       },
@@ -191,7 +191,7 @@ export async function GET(request: NextRequest) {
 
     const formattedRequests = pendingRequests.map(req => ({
       id: req.id,
-      therapistId: req.receiver.therapist?.id,
+      therapistId: req.receiver.therapistProfile?.id,
       therapistName: req.receiver.name || req.receiver.email,
       requestedAt: req.createdAt,
       status: "pending"
@@ -205,7 +205,7 @@ export async function GET(request: NextRequest) {
         name: patient.primaryTherapist.user.name || "Your Therapist",
         email: patient.primaryTherapist.user.email,
         image: patient.primaryTherapist.user.image,
-        specializations: patient.primaryTherapist.specializations,
+        specializations: patient.primaryTherapist.specialization,
         assignedAt: patient.updatedAt
       } : null,
       pendingRequests: formattedRequests

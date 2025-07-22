@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Image from "next/image";
+// import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -23,12 +23,12 @@ import {
   Clock,
   Download,
   User,
-  Calendar,
+  // Calendar,
   FileText,
   Phone,
   Mail,
-  Building,
-  GraduationCap,
+  // Building,
+  // GraduationCap,
 } from "lucide-react";
 
 interface TherapistApplication {
@@ -706,7 +706,7 @@ export default function ManagerApplicationsPage() {
         <div className="bg-white rounded-lg max-w-md w-full p-6">
           <h3 className="text-lg font-bold mb-4">Reject Application</h3>
           <p className="text-muted-foreground mb-4">
-            Please provide a reason for rejecting {selectedApplication.name}'s
+            Please provide a reason for rejecting {selectedApplication.name}&apos;s
             application:
           </p>
           <textarea

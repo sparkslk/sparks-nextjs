@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Calendar, Clock, User, FileText, CheckSquare, Save, AlertTriangle, Target } from "lucide-react";
+import { Calendar, Clock, User, FileText, CheckSquare, Save, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 
 interface Session {
@@ -463,7 +463,7 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Patient Medications & Assessments</CardTitle>
-              <p className="text-sm text-gray-600">Use these options to update the patient's current medications or assign new assessments directly from this session.</p>
+              <p className="text-sm text-gray-600">Use these options to update the patient&apos;s current medications or assign new assessments directly from this session.</p>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex flex-col sm:flex-row gap-4">
@@ -479,7 +479,7 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
                     }
                   }}
                 >
-                  Update Patient's Medication
+                  Update Patient&apos;s Medication
                 </Button>
                 <Button
                   style={{ backgroundColor: "#FAF8FB", color: "#8159A8" }}

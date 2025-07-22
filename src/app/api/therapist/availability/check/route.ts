@@ -63,7 +63,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function POST(req: NextRequest) {
     try {
-        const session = await requireApiAuth(req);
+        await requireApiAuth(req);
         const { therapistId, dateTime, duration = 60 } = await req.json();
 
         if (!therapistId || !dateTime) {
@@ -100,7 +100,15 @@ export async function POST(req: NextRequest) {
         }
 
         // Check if the requested time falls within any availability slot
-        const isAvailable = therapist.availability.some((slot: any) => {
+        const availabilitySlots = therapist.availability as Array<{
+            recurrencePattern?: {days?: number[]};
+            dayOfWeek?: number;
+            startTime: string;
+            endTime: string;
+            isActive?: boolean;
+        }>;
+        
+        const isAvailable = availabilitySlots.some((slot) => {
             // Check if the day matches
             if (slot.recurrencePattern?.days) {
                 if (!slot.recurrencePattern.days.includes(dayOfWeek)) {
@@ -120,7 +128,9 @@ export async function POST(req: NextRequest) {
             const sessionEndTimeString = sessionEndTime.toTimeString().slice(0, 5);
 
             // Check if the requested time and session duration fit within the slot
-            return timeString >= slotStart && sessionEndTimeString <= slotEnd && slot.isActive;
+            // If isActive is not defined, assume the slot is active
+            const isSlotActive = slot.isActive !== false;
+            return timeString >= slotStart && sessionEndTimeString <= slotEnd && isSlotActive;
         });
 
         // Check for existing sessions that might conflict
@@ -132,7 +142,7 @@ export async function POST(req: NextRequest) {
                     lte: new Date(requestedDateTime.getTime() + duration * 60 * 1000 + 30 * 60 * 1000) // 30 minutes after session ends
                 },
                 status: {
-                    in: ['SCHEDULED', 'APPROVED', 'IN_PROGRESS']
+                    in: ['SCHEDULED', 'APPROVED']
                 }
             }
         });
@@ -143,7 +153,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({
                 available: false,
                 message: "Therapist is not available at this time",
-                suggestedSlots: getSuggestedSlots(therapist.availability, dayOfWeek, duration)
+                suggestedSlots: getSuggestedSlots(availabilitySlots, dayOfWeek)
             });
         }
 
@@ -151,7 +161,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({
                 available: false,
                 message: "Therapist has a conflicting appointment at this time",
-                suggestedSlots: getSuggestedSlots(therapist.availability, dayOfWeek, duration)
+                suggestedSlots: getSuggestedSlots(availabilitySlots, dayOfWeek)
             });
         }
 
@@ -174,10 +184,10 @@ export async function POST(req: NextRequest) {
 }
 
 // Helper function to get suggested time slots
-function getSuggestedSlots(availability: any[], dayOfWeek: number, duration: number): string[] {
+function getSuggestedSlots(availability: Array<{isActive?: boolean; recurrencePattern?: {days?: number[]}; dayOfWeek?: number; startTime: string; endTime: string; sessionDuration?: number; breakBetweenSessions?: number}>, dayOfWeek: number): string[] {
     const suggestions: string[] = [];
 
-    availability.forEach((slot: any) => {
+    availability.forEach((slot) => {
         if (!slot.isActive) return;
 
         // Check if this slot applies to the requested day
@@ -191,7 +201,7 @@ function getSuggestedSlots(availability: any[], dayOfWeek: number, duration: num
         const startTime = new Date(`1970-01-01T${slot.startTime}:00`);
         const endTime = new Date(`1970-01-01T${slot.endTime}:00`);
 
-        let currentTime = new Date(startTime);
+        const currentTime = new Date(startTime);
         const sessionDuration = slot.sessionDuration || 60;
         const breakDuration = slot.breakBetweenSessions || 15;
         const totalSlotDuration = sessionDuration + breakDuration;

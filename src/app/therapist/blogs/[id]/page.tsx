@@ -30,11 +30,17 @@ interface Blog {
   };
 }
 
-export default function BlogDetailPage({ params }: { params: { id: string } }) {
-  const { data: session, status: authStatus } = useSession();
+export default function BlogDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { status: authStatus } = useSession();
   const router = useRouter();
+  const [id, setId] = useState<string>("");
   const [blog, setBlog] = useState<Blog | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Extract id from params
+  useEffect(() => {
+    params.then((p) => setId(p.id));
+  }, [params]);
   const [error, setError] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
@@ -44,7 +50,7 @@ export default function BlogDetailPage({ params }: { params: { id: string } }) {
     setError(null);
 
     try {
-      const response = await fetch(`/api/blogs/${params.id}`);
+      const response = await fetch(`/api/blogs/${id}`);
 
       if (!response.ok) {
         if (response.status === 404) {
@@ -65,7 +71,7 @@ export default function BlogDetailPage({ params }: { params: { id: string } }) {
     } finally {
       setLoading(false);
     }
-  }, [params.id]);
+  }, [id]);
 
   useEffect(() => {
     if (authStatus === "unauthenticated") {
@@ -73,10 +79,10 @@ export default function BlogDetailPage({ params }: { params: { id: string } }) {
       return;
     }
 
-    if (authStatus === "authenticated") {
+    if (authStatus === "authenticated" && id) {
       fetchBlog();
     }
-  }, [authStatus, router, fetchBlog]);
+  }, [authStatus, router, fetchBlog, id]);
 
   const handleDeleteClick = () => {
     setShowDeleteModal(true);

@@ -76,7 +76,7 @@ const getFieldDisplayName = (key: string): string => {
 };
 
 // Helper function to format field values for better readability
-const formatFieldValue = (key: string, value: any): string => {
+const formatFieldValue = (key: string, value: unknown): string => {
   if (value === null || value === undefined) {
     return 'Not set';
   }
@@ -85,11 +85,11 @@ const formatFieldValue = (key: string, value: any): string => {
   switch (key) {
     case 'frequency':
     case 'currentFrequency':
-      return FREQUENCY_LABELS[value as MedicationFrequency] || value;
+      return FREQUENCY_LABELS[value as MedicationFrequency] || String(value);
     
     case 'mealTiming':
     case 'currentMealTiming':
-      return MEAL_TIMING_LABELS[value as MealTiming] || value;
+      return MEAL_TIMING_LABELS[value as MealTiming] || String(value);
     
     case 'startDate':
     case 'endDate':
@@ -98,10 +98,10 @@ const formatFieldValue = (key: string, value: any): string => {
         try {
           return format(new Date(value), 'MMM dd, yyyy');
         } catch {
-          return value;
+          return String(value);
         }
       }
-      return value;
+      return String(value);
     
     case 'isActive':
       return value ? 'Active' : 'Inactive';
@@ -426,7 +426,7 @@ export default function MedicationManagement({
       let response;
       if (editingMedication) {
         // Helper function to normalize empty values for comparison
-        const normalizeEmpty = (value: any): string | null => {
+        const normalizeEmpty = (value: unknown): string | null => {
           if (value === null || value === undefined || value === '') {
             return null;
           }
@@ -552,17 +552,17 @@ export default function MedicationManagement({
   const activeMedications = medications.filter(med => med.isActive && !med.isDiscontinued);
   const discontinuedMedications = medications.filter(med => med.isDiscontinued);
   
-  // Calculate recent activity
-  const recentlyUpdated = medications.filter(med => {
-    const daysSinceUpdate = (new Date().getTime() - new Date(med.updatedAt).getTime()) / (1000 * 60 * 60 * 24);
-    return daysSinceUpdate <= 7; // Updated in last 7 days
-  });
+  // Calculate recent activity (currently unused but may be needed for future features)
+  // const recentlyUpdated = medications.filter(med => {
+  //   const daysSinceUpdate = (new Date().getTime() - new Date(med.updatedAt).getTime()) / (1000 * 60 * 60 * 24);
+  //   return daysSinceUpdate <= 7; // Updated in last 7 days
+  // });
 
-  const recentlyDiscontinued = discontinuedMedications.filter(med => {
-    if (!med.discontinuedAt) return false;
-    const daysSinceDiscontinued = (new Date().getTime() - new Date(med.discontinuedAt).getTime()) / (1000 * 60 * 60 * 24);
-    return daysSinceDiscontinued <= 7; // Discontinued in last 7 days
-  });
+  // const recentlyDiscontinued = discontinuedMedications.filter(med => {
+  //   if (!med.discontinuedAt) return false;
+  //   const daysSinceDiscontinued = (new Date().getTime() - new Date(med.discontinuedAt).getTime()) / (1000 * 60 * 60 * 24);
+  //   return daysSinceDiscontinued <= 7; // Discontinued in last 7 days
+  // });
 
   return (
     <div className="space-y-6">

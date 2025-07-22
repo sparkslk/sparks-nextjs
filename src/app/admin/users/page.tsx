@@ -21,14 +21,32 @@ export default function UsersPage() {
   const [selectedRole, setSelectedRole] = useState("Patient"); // Default to Patient
   const [emergencyContactOpen, setEmergencyContactOpen] = React.useState(false);
   const [emergencyContactDetails, setEmergencyContactDetails] =
-    React.useState<any>(null);
+    React.useState<string | null>(null);
   const [editModalOpen, setEditModalOpen] = React.useState(false);
-  const [editUser, setEditUser] = React.useState<any>(null);
+  const [editUser, setEditUser] = React.useState<User | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = React.useState(false);
-  const [deleteUser, setDeleteUser] = React.useState<any>(null);
+  const [deleteUser, setDeleteUser] = React.useState<User | null>(null);
+
+  // Define User type compatible with UserTable component
+  interface User {
+    id?: string;
+    name?: string;
+    fullName?: string;
+    email?: string;
+    phone?: string;
+    role?: string;
+    dateOfBirth?: string;
+    gender?: string;
+    address?: string;
+    createdAt?: string;
+    therapistProfile?: unknown;
+    patientProfile?: unknown;
+    managerProfile?: unknown;
+    [key: string]: unknown;
+  }
 
   // State to hold users fetched from the API
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
 
   // State for add user modal
   const [addUserOpen, setAddUserOpen] = useState(false);
@@ -49,7 +67,7 @@ export default function UsersPage() {
         }
         // Only set lastUpdated on the client to avoid hydration mismatch
         setTimeout(() => setLastUpdated(new Date()), 0);
-      } catch (err) {
+      } catch {
         setError("Failed to load users");
       } finally {
         setLoading(false);
@@ -60,7 +78,7 @@ export default function UsersPage() {
 
   // Map API data to table display format, handling different user types
   // Ensure that any object fields are stringified for safe rendering
-  const safeString = (val: any) => {
+  const safeString = (val: unknown) => {
     if (val == null || val === "" || val === undefined) return "N/A";
     if (typeof val === "object") {
       // If it's an array, join; if object, JSON.stringify but remove braces for readability
@@ -83,9 +101,26 @@ export default function UsersPage() {
   };
 
   const mappedUsers = users.map((user) => {
+    const userWithExtendedProps = user as typeof user & {
+      fullName?: string;
+      fullname?: string;
+      dateOfBirth?: string;
+      gender?: string;
+      address?: string;
+      emergencyContact?: string;
+      medicalHistory?: string;
+      status?: string;
+      licenseNumber?: string;
+      specialization?: string;
+      experience?: string;
+      availability?: string;
+      rating?: string;
+      relationship?: string;
+      patient?: string;
+    };
     if (user.role === "Patient") {
       // Format dateOfBirth to only show date part if possible
-      let dob = user.dateOfBirth;
+      let dob = userWithExtendedProps.dateOfBirth;
       if (dob) {
         try {
           const d = new Date(dob);
@@ -103,112 +138,112 @@ export default function UsersPage() {
       return {
         id: user.id,
         role: user.role,
-        name: user.fullName,
+        name: userWithExtendedProps.fullName || user.name,
         email: user.email,
-        gender: safeString(user.gender),
+        gender: safeString(userWithExtendedProps.gender),
         phone: safeString(user.phone),
         dateOfBirth: dob,
-        address: safeString(user.address),
-        emergencyContact: safeString(user.emergencyContact),
-        medicalHistory: safeString(user.medicalHistory),
+        address: safeString(userWithExtendedProps.address),
+        emergencyContact: safeString(userWithExtendedProps.emergencyContact),
+        medicalHistory: safeString(userWithExtendedProps.medicalHistory),
         joinedDate: user.createdAt
           ? new Date(user.createdAt).toISOString().split("T")[0]
           : "",
-        avatar: user.fullName
-          ? user.fullName
+        avatar: userWithExtendedProps.fullName
+          ? userWithExtendedProps.fullName
               .split(" ")
               .map((n: string) => n[0])
               .join("")
               .toUpperCase()
           : "",
         avatarColor: "bg-[#8159A8]",
-        status: safeString(user.status || ""),
+        status: safeString(userWithExtendedProps.status || ""),
       };
     } else if (user.role === "Therapist") {
       return {
         id: user.id,
         role: user.role,
-        name: user.fullname,
+        name: userWithExtendedProps.fullname,
         email: user.email,
-        licenseNumber: safeString(user.licenseNumber),
-        specialization: safeString(user.specialization),
-        experience: safeString(user.experience),
-        availability: safeString(user.availability),
-        rating: safeString(user.rating),
+        licenseNumber: safeString(userWithExtendedProps.licenseNumber),
+        specialization: safeString(userWithExtendedProps.specialization),
+        experience: safeString(userWithExtendedProps.experience),
+        availability: safeString(userWithExtendedProps.availability),
+        rating: safeString(userWithExtendedProps.rating),
         joinedDate: user.createdAt
           ? new Date(user.createdAt).toISOString().split("T")[0]
           : "",
-        avatar: user.fullname
-          ? user.fullname
+        avatar: userWithExtendedProps.fullname
+          ? userWithExtendedProps.fullname
               .split(" ")
               .map((n: string) => n[0])
               .join("")
               .toUpperCase()
           : "",
         avatarColor: "bg-[#8159A8]",
-        status: safeString(user.status || ""),
+        status: safeString(userWithExtendedProps.status || ""),
       };
     } else if (user.role === "Guardian") {
       return {
         id: user.id,
         role: user.role,
-        name: user.fullName,
+        name: userWithExtendedProps.fullName || user.name,
         email: user.email,
-        patient: safeString(user.patient),
-        relationship: safeString(user.relationship),
+        patient: safeString(userWithExtendedProps.patient),
+        relationship: safeString(userWithExtendedProps.relationship),
         joinedDate: user.createdAt
           ? new Date(user.createdAt).toISOString().split("T")[0]
           : "",
-        avatar: user.fullName
-          ? user.fullName
+        avatar: userWithExtendedProps.fullName
+          ? userWithExtendedProps.fullName
               .split(" ")
               .map((n: string) => n[0])
               .join("")
               .toUpperCase()
           : "",
         avatarColor: "bg-[#8159A8]",
-        status: safeString(user.status || ""),
+        status: safeString(userWithExtendedProps.status || ""),
       };
     } else if (user.role === "Manager") {
       return {
         id: user.id,
         role: user.role,
-        name: user.fullName || user.name,
+        name: userWithExtendedProps.fullName || user.name,
         email: user.email,
         joinedDate: user.createdAt
           ? new Date(user.createdAt).toISOString().split("T")[0]
           : "",
         avatar:
-          user.fullName || user.name
-            ? (user.fullName || user.name)
+          userWithExtendedProps.fullName || user.name
+            ? (userWithExtendedProps.fullName || user.name || "")
                 .split(" ")
                 .map((n: string) => n[0])
                 .join("")
                 .toUpperCase()
             : "",
         avatarColor: "bg-[#8159A8]",
-        status: safeString(user.status || ""),
+        status: safeString(userWithExtendedProps.status || ""),
       };
     }
     // fallback
     return {
       id: user.id,
       role: user.role,
-      name: user.fullName || user.name,
+      name: userWithExtendedProps.fullName || user.name,
       email: user.email,
       joinedDate: user.createdAt
         ? new Date(user.createdAt).toISOString().split("T")[0]
         : "",
       avatar:
-        user.fullName || user.name
-          ? (user.fullName || user.name)
+        userWithExtendedProps.fullName || user.name
+          ? (userWithExtendedProps.fullName || user.name || "")
               .split(" ")
               .map((n: string) => n[0])
               .join("")
               .toUpperCase()
           : "",
       avatarColor: "bg-[#8159A8]",
-      status: safeString(user.status || ""),
+      status: safeString(userWithExtendedProps.status || ""),
     };
   });
 
@@ -220,7 +255,7 @@ export default function UsersPage() {
         user.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (user.email &&
         user.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      user.id.toString().includes(searchTerm);
+      (user.id && user.id.toString().includes(searchTerm));
 
     const matchesRole = user.role === selectedRole;
     // You can add more filter logic for status, time, verification if needed
@@ -306,19 +341,19 @@ export default function UsersPage() {
             onOpenChange={setAddUserOpen}
             onAdd={(newUser) => {
               // Add new user to state (optimistic add)
+              const newUserRecord: User = {
+                id: String(Date.now()),
+                name: String(newUser.fullName || newUser.fullname || newUser.name || ""),
+                email: String(newUser.email || ""),
+                phone: newUser.phone as string | undefined,
+                role: String(newUser.role || ""),
+                createdAt: new Date().toISOString().split("T")[0],
+                therapistProfile: newUser.therapistProfile,
+                patientProfile: newUser.patientProfile,
+                managerProfile: newUser.managerProfile,
+              };
               setUsers((prev) => [
-                {
-                  ...newUser,
-                  id: Date.now(),
-                  joinedDate: new Date().toISOString().split("T")[0],
-                  avatar: (newUser.fullName || newUser.fullname || "")
-                    .split(" ")
-                    .map((n: string) => n[0])
-                    .join("")
-                    .toUpperCase(),
-                  avatarColor: "bg-[#8159A8]",
-                  status: newUser.status || "Active",
-                },
+                newUserRecord,
                 ...prev,
               ]);
             }}
@@ -345,9 +380,9 @@ export default function UsersPage() {
           <UserTable
             selectedRole={selectedRole}
             filteredUsers={filteredUsers}
-            setEditUser={setEditUser}
+            setEditUser={(user) => setEditUser(user)}
             setEditModalOpen={setEditModalOpen}
-            setDeleteUser={setDeleteUser}
+            setDeleteUser={(user) => setDeleteUser(user)}
             setDeleteModalOpen={setDeleteModalOpen}
             setEmergencyContactDetails={setEmergencyContactDetails}
             setEmergencyContactOpen={setEmergencyContactOpen}
@@ -359,30 +394,34 @@ export default function UsersPage() {
             emergencyContactDetails={emergencyContactDetails}
           />
 
-          <UserDetailEdit
-            user={editUser}
-            open={editModalOpen}
-            onOpenChange={setEditModalOpen}
-            onSave={(updatedRawUser) => {
-              // Update the raw users array with the updated user data
-              setUsers((prevUsers) =>
-                prevUsers.map((u) =>
-                  u.id === updatedRawUser.id ? updatedRawUser : u
-                )
-              );
-              setEditModalOpen(false);
-            }}
-          />
+          {editUser && (
+            <UserDetailEdit
+              user={editUser}
+              open={editModalOpen}
+              onOpenChange={setEditModalOpen}
+              onSave={(updatedRawUser) => {
+                // Update the raw users array with the updated user data
+                setUsers((prevUsers) =>
+                  prevUsers.map((u) =>
+                    u.id === updatedRawUser.id ? updatedRawUser : u
+                  )
+                );
+                setEditModalOpen(false);
+              }}
+            />
+          )}
           {/* Delete User Modal */}
-          <UserDelete
-            user={deleteUser}
-            open={deleteModalOpen}
-            onOpenChange={setDeleteModalOpen}
-            onDelete={(userId) => {
-              // Remove user from state after successful deletion
-              setUsers((prevUsers) => prevUsers.filter((u) => u.id !== userId));
-            }}
-          />
+          {deleteUser && (
+            <UserDelete
+              user={deleteUser}
+              open={deleteModalOpen}
+              onOpenChange={setDeleteModalOpen}
+              onDelete={(userId) => {
+                // Remove user from state after successful deletion
+                setUsers((prevUsers) => prevUsers.filter((u) => u.id !== userId));
+              }}
+            />
+          )}
         </div>
       </div>
     </div>

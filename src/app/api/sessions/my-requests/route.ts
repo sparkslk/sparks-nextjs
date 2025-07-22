@@ -121,7 +121,7 @@ export async function GET(req: NextRequest) {
                 duration: request.duration,
                 type: request.type,
                 status: request.status,
-                notes: request.notes,
+                sessionNotes: request.sessionNotes,
                 createdAt: request.createdAt
             }))
         });

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-export async function GET(req: NextRequest, context: { params: { childId: string } }) {
+export async function GET(req: NextRequest, context: { params: Promise<{ childId: string }> }) {
   const { childId } = await context.params; // Await params before destructuring
 
   // Get all medications for this child (using patientId)

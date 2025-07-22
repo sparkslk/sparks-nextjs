@@ -85,8 +85,8 @@ export default function AssignmentRequestsPage() {
       setSelectedRequest(null);
       setAction(null);
       setResponseMessage('');
-    } catch (err: any) {
-      setError(err.message || 'Failed to process request');
+    } catch (err: unknown) {
+      setError((err as Error).message || 'Failed to process request');
     } finally {
       setSubmitting(false);
     }
@@ -139,7 +139,7 @@ export default function AssignmentRequestsPage() {
               <UserPlus className="h-12 w-12 text-muted-foreground mb-4" />
               <p className="text-lg font-medium text-muted-foreground">No pending requests</p>
               <p className="text-sm text-muted-foreground mt-1">
-                You don't have any assignment requests at the moment
+                You don&apos;t have any assignment requests at the moment
               </p>
             </CardContent>
           </Card>

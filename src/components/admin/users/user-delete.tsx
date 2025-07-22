@@ -13,8 +13,20 @@ import { Button } from "@/components/ui/button";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
+// Basic User type to replace 'any'
+interface User {
+  id?: string;
+  fullName?: string;
+  email?: string;
+  role?: string;
+  name?: string;
+  avatar?: string;
+  avatarColor?: string;
+  [key: string]: unknown;
+}
+
 interface UserDeleteProps {
-  user: any;
+  user: User;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onDelete: (userId: string | number) => void;
@@ -50,7 +62,9 @@ const UserDelete: React.FC<UserDeleteProps> = ({
       }
 
       // Call the onDelete callback to update the parent component's state
-      onDelete(user.id);
+      if (user.id) {
+        onDelete(user.id);
+      }
       
       // Close the modal
       onOpenChange(false);
@@ -95,11 +109,11 @@ const UserDelete: React.FC<UserDeleteProps> = ({
               <div
                 className={`w-12 h-12 rounded-full ${user.avatarColor} flex items-center justify-center text-white font-semibold text-lg shadow-md border-2 border-white`}
               >
-                {user.avatar}
+                {user.avatar || ''}
               </div>
               <div>
                 <div className="font-semibold text-gray-900 text-base">
-                  {user.name}
+                  {user.name || user.fullName || 'Unknown User'}
                 </div>
                 {user.email && (
                   <div className="text-sm text-gray-500">{user.email}</div>

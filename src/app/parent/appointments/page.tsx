@@ -65,13 +65,13 @@ export default function AppointmentsPage() {
               childId: string;
               duration: number;
               status: string;
-              notes?: string;
+              sessionNotes?: string;
               therapist: string;
               therapistEmail: string;
               therapistPBune: string;
               specializations: string[];
               mode: string;
-              objectives: string[];
+              primaryFocusAreas: string[];
             }) => ({
               id: session.id,
               date: session.date,
@@ -81,14 +81,14 @@ export default function AppointmentsPage() {
               childId: session.childId,
               duration: session.duration,
               sessionStatus: session.status,
-              notes: session.notes,
+              sessionNotes: session.sessionNotes,
               therapist: session.therapist,
               therapistEmail: session.therapistEmail,
               // therapistPhone: session.therapistPhone,
               specializations: session.specializations,
               mode: session.mode,
               sessionType: session.sessionType,
-              objectives: session.objectives
+              primaryFocusAreas: session.primaryFocusAreas
             })) || [];
 
             console.log(`Fetched ${childAppointments.length} sessions for child ${child.id}`);
