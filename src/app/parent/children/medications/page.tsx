@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Pill, Info } from "lucide-react";
 
@@ -169,7 +169,7 @@ const mockHistory: MedicationHistory[] = [
   }
 ];
 
-export default function MedicationsPage() {
+function MedicationsPageInner() {
   const searchParams = useSearchParams();
   const childId = searchParams.get("childId") || "";
   const childName = searchParams.get("childName") || "";
@@ -426,3 +426,13 @@ export default function MedicationsPage() {
     </div>
   );
 }
+
+function MedicationsPageWrapper() {
+  return (
+    <Suspense>
+      <MedicationsPageInner />
+    </Suspense>
+  );
+}
+
+export default MedicationsPageWrapper;
