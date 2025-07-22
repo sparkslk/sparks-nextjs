@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { $Enums } from "@prisma/client";
+import { validatePassword } from "@/lib/password-validation";
 
 const UserRole = $Enums.UserRole;
 
@@ -96,6 +97,15 @@ export async function POST(request: NextRequest) {
         if (!name || !email || !password) {
             return NextResponse.json(
                 { error: "Missing required fields" },
+                { status: 400 }
+            );
+        }
+
+        // Validate password
+        const passwordValidation = validatePassword(password);
+        if (!passwordValidation.isValid) {
+            return NextResponse.json(
+                { error: passwordValidation.errors.join(". ") },
                 { status: 400 }
             );
         }

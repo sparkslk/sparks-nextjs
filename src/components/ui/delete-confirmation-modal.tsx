@@ -60,7 +60,7 @@ export function DeleteConfirmationModal({
             {itemName && (
               <>
                 <br />
-                <span className="font-semibold">"{itemName}"</span>
+                <span className="font-semibold">&ldquo;{itemName}&rdquo;</span>
               </>
             )}
             ? This action cannot be undone.

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { validatePassword } from "@/lib/password-validation";
 
 /**
  * @swagger
@@ -78,9 +79,11 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        if (password.length < 6) {
+        // Validate password
+        const passwordValidation = validatePassword(password);
+        if (!passwordValidation.isValid) {
             return NextResponse.json(
-                { error: "Password must be at least 6 characters long" },
+                { error: passwordValidation.errors.join(". ") },
                 { status: 400 }
             );
         }

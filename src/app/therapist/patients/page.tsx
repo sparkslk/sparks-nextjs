@@ -1,4 +1,6 @@
+
 "use client";
+import Image from "next/image";
 
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -30,10 +32,60 @@ interface Patient {
     gender: string;
     phone?: string;
     email?: string;
+    image?: string | null;
     lastSession?: string;
     nextSession?: string;
     status: "active" | "inactive" | "completed";
     age: number;
+}
+
+interface PatientAvatarProps {
+    patient: Patient;
+    size?: "sm" | "md";
+}
+
+function PatientAvatar({ patient, size = "sm" }: PatientAvatarProps) {
+    const [imageError, setImageError] = useState(false);
+    const [imageLoaded, setImageLoaded] = useState(false);
+    
+    const sizeClasses = size === "sm" 
+        ? "w-10 h-10" 
+        : "w-10 h-10 lg:w-12 lg:h-12";
+    const iconSizeClasses = size === "sm" 
+        ? "h-5 w-5" 
+        : "h-5 w-5 lg:h-6 lg:w-6";
+
+    const handleImageError = () => {
+        setImageError(true);
+        setImageLoaded(false);
+    };
+
+    const handleImageLoad = () => {
+        setImageLoaded(true);
+        setImageError(false);
+    };
+
+    const showUserIcon = !patient.image || imageError || !imageLoaded;
+
+    return (
+        <div className={`${sizeClasses} bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden relative`}>
+            {patient.image && !imageError && (
+                <Image
+                    src={patient.image}
+                    alt={`${patient.firstName} ${patient.lastName}`}
+                    className="w-full h-full object-cover"
+                    onError={handleImageError}
+                    onLoad={handleImageLoad}
+                    style={{ display: imageLoaded && !imageError ? 'block' : 'none' }}
+                    fill
+                    sizes="100vw"
+                />
+            )}
+            {showUserIcon && (
+                <User className={`${iconSizeClasses} text-gray-600`} />
+            )}
+        </div>
+    );
 }
 
 export default function PatientsPage() {
@@ -48,35 +100,6 @@ export default function PatientsPage() {
     const [error, setError] = useState<string | null>(null);
 
     const fetchPatients = useCallback(async () => {
-        const fallbackPatients: Patient[] = [
-            {
-                id: "PT-2024-001",
-                firstName: "Vihanga",
-                lastName: "Dharmasena",
-                dateOfBirth: "2001-03-15",
-                gender: "Male",
-                phone: "+94 77 123 4567",
-                email: "vihanga.d@email.com",
-                lastSession: "2025-06-18",
-                nextSession: "2025-06-25",
-                status: "active",
-                age: 24,
-            },
-            {
-                id: "PT-2024-002",
-                firstName: "Aryan",
-                lastName: "Senarathne",
-                dateOfBirth: "2012-08-12",
-                gender: "Male",
-                phone: "+94 77 123 7890",
-                email: "aryan@email.com",
-                lastSession: "2025-06-18",
-                nextSession: "2025-06-25",
-                status: "active",
-                age: 12,
-            },
-        ];
-
         try {
             setLoading(true);
             setError(null);
@@ -98,16 +121,11 @@ export default function PatientsPage() {
             const data = await response.json();
             console.log("Fetched patients:", data);
 
-            // Use fallback if fetched data is empty or invalid
-            if (!data.patients || data.patients.length === 0) {
-                console.warn("No patients found from API. Using fallback data.");
-                setPatients(fallbackPatients);
-            } else {
-                setPatients(data.patients);
-            }
+            setPatients(data.patients || []);
         } catch (error) {
             console.error("Error fetching patients:", error);
             setError(error instanceof Error ? error.message : "Failed to fetch patients");
+            setPatients([]);
         } finally {
             setLoading(false);
         }
@@ -206,7 +224,7 @@ export default function PatientsPage() {
                 {/* Header */}
                 <div className="flex items-center justify-between mb-8">
                     <div>
-                        <h1 className="text-3xl font-bold text-[#8159A8]">Patient Management</h1>
+                        <h1 className="text-3xl font-bold text-primary">Patient Management</h1>
                         <p className="text-muted-foreground mt-1">
                             View and manage your patients
                         </p>
@@ -253,7 +271,6 @@ export default function PatientsPage() {
                             <SelectItem value="all">All statuses</SelectItem>
                             <SelectItem value="active">Active</SelectItem>
                             <SelectItem value="inactive">Inactive</SelectItem>
-                            <SelectItem value="completed">Completed</SelectItem>
                         </SelectContent>
                     </Select>
 
@@ -310,24 +327,95 @@ export default function PatientsPage() {
                         ) : (
                             filteredPatients.map((patient) => (
                                 <Card key={patient.id} className="hover:shadow-md transition-shadow">
-                                    <CardContent className="p-4">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center space-x-4">
-                                                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
-                                                    <User className="h-6 w-6 text-gray-600" />
+                                    <CardContent className="p-4 sm:p-6 lg:p-8">
+                                        {/* Mobile Layout */}
+                                        <div className="flex flex-col space-y-4 sm:hidden">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center space-x-3">
+                                                    <PatientAvatar patient={patient} size="sm" />
+                                                    <div>
+                                                        <h3 className="font-semibold text-sm">
+                                                            {patient.firstName} {patient.lastName}
+                                                        </h3>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            Age: {patient.age}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                {getStatusBadge(patient.status)}
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-3 text-xs">
+                                                <div>
+                                                    <p className="font-medium">Last Session:</p>
+                                                    <p className="text-muted-foreground">
+                                                        {patient.lastSession
+                                                            ? new Date(patient.lastSession).toLocaleDateString()
+                                                            : "No sessions yet"
+                                                        }
+                                                    </p>
                                                 </div>
                                                 <div>
-                                                    <h3 className="font-semibold">
+                                                    <p className="font-medium">Next Session:</p>
+                                                    <p className="text-muted-foreground">
+                                                        {patient.nextSession
+                                                            ? new Date(patient.nextSession).toLocaleDateString()
+                                                            : "Not scheduled"
+                                                        }
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex justify-end space-x-2">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => router.push(`/therapist/patients/${patient.id}`)}
+                                                    className="px-3 py-2 hover:bg-primary/10"
+                                                    title="View patient details"
+                                                >
+                                                    <Eye className="h-4 w-4 mr-1" />
+                                                    View
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => router.push(`/therapist/chat/${patient.id}`)}
+                                                    className="px-3 py-2 hover:bg-blue-50"
+                                                    title="Message patient"
+                                                >
+                                                    <MessageCircle className="h-4 w-4 mr-1" />
+                                                    Message
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => router.push(`/therapist/patients/${patient.id}/sessions`)}
+                                                    className="px-3 py-2 hover:bg-green-50"
+                                                    title="Edit session notes"
+                                                >
+                                                    <Edit3 className="h-4 w-4 mr-1" />
+                                                    Edit
+                                                </Button>
+                                            </div>
+                                        </div>
+
+                                        {/* Desktop Layout */}
+                                        <div className="hidden sm:flex items-center justify-between">
+                                            <div className="flex items-center space-x-4 lg:space-x-6">
+                                                <PatientAvatar patient={patient} size="md" />
+                                                <div>
+                                                    <h3 className="font-semibold text-sm lg:text-base">
                                                         {patient.firstName} {patient.lastName}
                                                     </h3>
-                                                    <p className="text-sm text-muted-foreground">
+                                                    <p className="text-xs lg:text-sm text-muted-foreground">
                                                         Age: {patient.age}
                                                     </p>
                                                 </div>
                                             </div>
 
-                                            <div className="flex items-center space-x-8">
-                                                <div className="text-sm">
+                                            <div className="flex items-center space-x-4 lg:space-x-8 xl:space-x-20">
+                                                <div className="text-xs lg:text-sm hidden md:block">
                                                     <p className="font-medium">Last Session:</p>
                                                     <p className="text-muted-foreground">
                                                         {patient.lastSession
@@ -337,7 +425,7 @@ export default function PatientsPage() {
                                                     </p>
                                                 </div>
 
-                                                <div className="text-sm">
+                                                <div className="text-xs lg:text-sm hidden md:block">
                                                     <p className="font-medium">Next Session:</p>
                                                     <p className="text-muted-foreground">
                                                         {patient.nextSession
@@ -349,28 +437,31 @@ export default function PatientsPage() {
 
                                                 {getStatusBadge(patient.status)}
 
-                                                <div className="flex items-center space-x-2">
+                                                <div className="flex items-center space-x-1 lg:space-x-2">
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
                                                         onClick={() => router.push(`/therapist/patients/${patient.id}`)}
+                                                        className="h-8 w-8 lg:h-10 lg:w-10"
                                                     >
-                                                        <Eye className="h-4 w-4" />
+                                                        <Eye className="h-3 w-3 lg:h-4 lg:w-4" />
                                                     </Button>
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
-                                                        onClick={() => router.push(`/therapist/patients/${patient.id}/notes`)}
+                                                        onClick={() => router.push(`/therapist/messages`)}
+                                                        className="h-8 w-8 lg:h-10 lg:w-10"
                                                     >
-                                                        <MessageCircle className="h-4 w-4" />
+                                                        <MessageCircle className="h-3 w-3 lg:h-4 lg:w-4" />
                                                     </Button>
-                                                    <Button
+                                                    {/* <Button
                                                         variant="ghost"
                                                         size="icon"
                                                         onClick={() => router.push(`/therapist/appointments/new?patientId=${patient.id}`)}
+                                                        className="h-8 w-8 lg:h-10 lg:w-10"
                                                     >
-                                                        <Edit3 className="h-4 w-4" />
-                                                    </Button>
+                                                        <Edit3 className="h-3 w-3 lg:h-4 lg:w-4" />
+                                                    </Button> */}
                                                 </div>
                                             </div>
                                         </div>
