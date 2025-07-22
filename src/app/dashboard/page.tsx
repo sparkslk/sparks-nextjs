@@ -10,6 +10,7 @@ import {
     RecentActivity
 } from "@/components/dashboard/DashboardComponents";
 import { PatientIdCard } from "@/components/dashboard/PatientIdCard";
+import { AssignedTherapistCard } from "@/components/patient/assigned-therapist-card";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -255,13 +256,14 @@ export default function DashboardPage() {
                 </CardContent>
             </Card>
 
-            {/* Patient ID Card */}
-            <div className="mb-8">
+            {/* Patient ID Card and Therapist Card */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                 <PatientIdCard
                     patientId={userData.id}
                     firstName={userData.firstName}
                     lastName={userData.lastName}
                 />
+                <AssignedTherapistCard />
             </div>
 
             {/* Statistics Cards */}

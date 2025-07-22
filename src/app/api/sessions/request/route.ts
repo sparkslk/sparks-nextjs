@@ -102,13 +102,41 @@ export async function POST(request: NextRequest) {
 
         // Get the patient profile for the logged-in user
         const patient = await prisma.patient.findUnique({
-            where: { userId: session.user.id }
+            where: { userId: session.user.id },
+            include: {
+                primaryTherapist: {
+                    include: {
+                        user: {
+                            select: {
+                                name: true,
+                                email: true
+                            }
+                        }
+                    }
+                }
+            }
         });
 
         if (!patient) {
             return NextResponse.json(
                 { error: "Patient profile not found. Please create your profile first." },
                 { status: 404 }
+            );
+        }
+
+        // Check if patient has an assigned therapist
+        if (!patient.primaryTherapistId) {
+            return NextResponse.json(
+                { error: "You don't have an assigned therapist. Please contact administration to get a therapist assigned." },
+                { status: 400 }
+            );
+        }
+
+        // Verify the requested therapist is the assigned therapist
+        if (therapistId !== patient.primaryTherapistId) {
+            return NextResponse.json(
+                { error: `You can only book sessions with your assigned therapist: ${patient.primaryTherapist?.user.name || patient.primaryTherapist?.user.email}` },
+                { status: 400 }
             );
         }
 
@@ -132,6 +160,34 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        // Check therapist availability
+        const availabilityCheck = await fetch(`${req.nextUrl.origin}/api/therapist/availability/check`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Cookie': req.headers.get('cookie') || ''
+            },
+            body: JSON.stringify({
+                therapistId,
+                dateTime: preferredDateTime,
+                duration: 60 // Default session duration
+            })
+        });
+
+        if (availabilityCheck.ok) {
+            const availabilityData = await availabilityCheck.json();
+            
+            if (!availabilityData.available) {
+                return NextResponse.json(
+                    { 
+                        error: availabilityData.message,
+                        suggestedSlots: availabilityData.suggestedSlots 
+                    },
+                    { status: 400 }
+                );
+            }
+        }
+
         // Create the therapy session as a pending request
         const therapySession = await prisma.therapySession.create({
             data: {
@@ -141,8 +197,7 @@ export async function POST(request: NextRequest) {
                 duration: 60, // Default 60 minutes
                 type: sessionType,
                 status: SessionStatus.REQUESTED, // Use proper enum value
-                notes: notes || null,
-                objectives: [] // Default empty objectives
+                sessionNotes: notes || null // Use sessionNotes field from schema
             }
         });
 

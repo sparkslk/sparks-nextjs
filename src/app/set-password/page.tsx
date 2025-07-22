@@ -6,6 +6,9 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordInput } from "@/components/ui/password-input";
+import { PasswordStrengthIndicator } from "@/components/ui/password-strength-indicator";
+import { validatePassword } from "@/lib/password-validation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function SetPasswordPage() {
@@ -45,8 +48,9 @@ export default function SetPasswordPage() {
             return;
         }
 
-        if (password.length < 6) {
-            setError("Password must be at least 6 characters long.");
+        const passwordValidation = validatePassword(password);
+        if (!passwordValidation.isValid) {
+            setError(passwordValidation.errors.join(". "));
             setIsLoading(false);
             return;
         }
@@ -70,7 +74,7 @@ export default function SetPasswordPage() {
 
             setSuccess(true);
             setTimeout(() => {
-                router.push("/dashboard");
+                router.push("/dashboard-redirect");
             }, 2000);
         } catch (error: unknown) {
             setError(error instanceof Error ? error.message : "An error occurred. Please try again.");
@@ -128,24 +132,25 @@ export default function SetPasswordPage() {
                             <Label htmlFor="password" className="text-sm font-medium">
                                 New Password
                             </Label>
-                            <Input
+                            <PasswordInput
                                 id="password"
-                                type="password"
                                 placeholder="Enter your new password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
                                 className="h-11"
                             />
+                            {password && (
+                                <PasswordStrengthIndicator password={password} />
+                            )}
                         </div>
 
                         <div className="space-y-2">
                             <Label htmlFor="confirmPassword" className="text-sm font-medium">
                                 Confirm Password
                             </Label>
-                            <Input
+                            <PasswordInput
                                 id="confirmPassword"
-                                type="password"
                                 placeholder="Confirm your new password"
                                 value={confirmPassword}
                                 onChange={(e) => setConfirmPassword(e.target.value)}
@@ -172,7 +177,7 @@ export default function SetPasswordPage() {
                     <div className="text-center">
                         <Button
                             variant="ghost"
-                            onClick={() => router.push("/dashboard")}
+                            onClick={() => router.push("/dashboard-redirect")}
                             className="text-sm"
                         >
                             Skip for now

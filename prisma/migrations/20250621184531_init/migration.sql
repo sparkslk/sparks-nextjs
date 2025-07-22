@@ -1,0 +1,1 @@
+-- Baseline migration from production database

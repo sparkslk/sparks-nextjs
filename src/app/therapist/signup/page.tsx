@@ -8,13 +8,10 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { PasswordInput } from "@/components/ui/password-input";
+import { PasswordStrengthIndicator } from "@/components/ui/password-strength-indicator";
+import { validatePassword } from "@/lib/password-validation";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserRole } from "@/lib/auth";
 
 export default function TherapistSignupPage() {
@@ -49,8 +46,9 @@ export default function TherapistSignupPage() {
       return;
     }
 
-    if (formData.password.length < 6) {
-      setError("Password must be at least 6 characters long.");
+    const passwordValidation = validatePassword(formData.password);
+    if (!passwordValidation.isValid) {
+      setError(passwordValidation.errors.join(". "));
       setIsLoading(false);
       return;
     }
@@ -199,26 +197,27 @@ export default function TherapistSignupPage() {
               <Label htmlFor="password" className="text-sm font-medium">
                 Password
               </Label>
-              <Input
+              <PasswordInput
                 id="password"
                 name="password"
-                type="password"
                 placeholder="Create a password"
                 value={formData.password}
                 onChange={handleChange}
                 required
                 className="h-11"
               />
+              {formData.password && (
+                <PasswordStrengthIndicator password={formData.password} />
+              )}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="confirmPassword" className="text-sm font-medium">
                 Confirm Password
               </Label>
-              <Input
+              <PasswordInput
                 id="confirmPassword"
                 name="confirmPassword"
-                type="password"
                 placeholder="Confirm your password"
                 value={formData.confirmPassword}
                 onChange={handleChange}

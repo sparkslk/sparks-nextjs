@@ -89,39 +89,13 @@ function SetAvailabilityPage(): React.JSX.Element {
   const fetchAvailability = async () => {
     setLoading(true);
     try {
-      // Mock data - replace with actual API call
-      const mockAvailability: TimeSlot[] = [
-        {
-          id: "1",
-          startTime: "09:00",
-          endTime: "17:00",
-          dayOfWeek: 1, // Monday
-          isRecurring: true,
-          recurrencePattern: {
-            type: "weekly",
-            days: [1, 2, 3, 4, 5], // Monday to Friday
-          },
-          sessionDuration: 60,
-          breakBetweenSessions: 15,
-          isActive: true,
-        },
-        {
-          id: "2",
-          startTime: "10:00",
-          endTime: "14:00",
-          dayOfWeek: 6, // Saturday
-          isRecurring: true,
-          recurrencePattern: {
-            type: "weekly",
-            days: [6], // Saturday only
-          },
-          sessionDuration: 90,
-          breakBetweenSessions: 30,
-          isActive: true,
-        },
-      ];
-
-      setTimeSlots(mockAvailability);
+      const response = await fetch("/api/therapist/availability");
+      if (response.ok) {
+        const data = await response.json();
+        setTimeSlots(data.availability || []);
+      } else {
+        console.error("Failed to fetch availability");
+      }
     } catch (error) {
       console.error("Error fetching availability:", error);
     } finally {
@@ -168,9 +142,22 @@ function SetAvailabilityPage(): React.JSX.Element {
   const handleSaveAvailability = async () => {
     setSaving(true);
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      alert("Availability saved successfully!");
+      const response = await fetch("/api/therapist/availability", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          availability: timeSlots
+        }),
+      });
+
+      if (response.ok) {
+        alert("Availability saved successfully!");
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to save availability: ${errorData.error}`);
+      }
     } catch (error) {
       console.error("Error saving availability:", error);
       alert("Failed to save availability. Please try again.");

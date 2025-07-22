@@ -9,22 +9,30 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, Clock, MessageCircle, ArrowLeft } from "lucide-react";
+import { Calendar, Clock, MessageCircle, ArrowLeft, AlertCircle, UserCheck } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface Therapist {
     id: string;
     name: string;
+    email: string;
+    image: string | null;
     specialization: string[];
-    availableSlots: string[];
+    experience: number | null;
+    bio: string | null;
 }
 
 export default function RequestSessionPage() {
     const { status } = useSession();
     const router = useRouter();
-    const [therapists, setTherapists] = useState<Therapist[]>([]);
+    const [assignedTherapist, setAssignedTherapist] = useState<Therapist | null>(null);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [hasNoTherapist, setHasNoTherapist] = useState(false);
+    const [suggestedSlots, setSuggestedSlots] = useState<string[]>([]);
+    const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+    const [loadingSlots, setLoadingSlots] = useState(false);
     const [formData, setFormData] = useState({
         therapistId: "",
         sessionType: "",
@@ -40,22 +48,30 @@ export default function RequestSessionPage() {
         }
 
         if (status === "authenticated") {
-            fetchTherapists();
+            fetchAssignedTherapist();
         }
     }, [status, router]);
 
-    const fetchTherapists = async () => {
+    const fetchAssignedTherapist = async () => {
         try {
-            const response = await fetch("/api/therapists");
+            const response = await fetch("/api/patient/assigned-therapist");
             if (!response.ok) {
-                throw new Error("Failed to fetch therapists");
+                throw new Error("Failed to fetch assigned therapist");
             }
             const data = await response.json();
-            console.log("Received therapists data:", data);
-            setTherapists(data.therapists);
+
+            if (data.therapist) {
+                setAssignedTherapist(data.therapist);
+                setFormData(prev => ({
+                    ...prev,
+                    therapistId: data.therapist.id
+                }));
+            } else {
+                setHasNoTherapist(true);
+            }
         } catch (error) {
-            console.error("Error fetching therapists:", error);
-            setError("Failed to load available therapists");
+            console.error("Error fetching assigned therapist:", error);
+            setError("Failed to load therapist information");
         } finally {
             setLoading(false);
         }
@@ -71,6 +87,7 @@ export default function RequestSessionPage() {
 
         setSubmitting(true);
         setError(null);
+        setSuggestedSlots([]);
 
         try {
             const response = await fetch("/api/sessions/request", {
@@ -88,7 +105,11 @@ export default function RequestSessionPage() {
 
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.error || "Failed to submit session request");
+                setError(errorData.error || "Failed to submit session request");
+                if (errorData.suggestedSlots) {
+                    setSuggestedSlots(errorData.suggestedSlots);
+                }
+                return;
             }
 
             // Success - redirect to dashboard
@@ -106,6 +127,34 @@ export default function RequestSessionPage() {
             ...prev,
             [field]: value
         }));
+
+        // If date changes and we have a therapist, fetch available slots
+        if (field === "preferredDate" && value && assignedTherapist) {
+            fetchAvailableSlots(value);
+        }
+    };
+
+    const fetchAvailableSlots = async (date: string) => {
+        if (!assignedTherapist) return;
+        
+        setLoadingSlots(true);
+        try {
+            const response = await fetch(
+                `/api/therapist/availability/slots?therapistId=${assignedTherapist.id}&date=${date}&duration=60`
+            );
+            
+            if (response.ok) {
+                const data = await response.json();
+                setAvailableSlots(data.slots || []);
+            } else {
+                setAvailableSlots([]);
+            }
+        } catch (error) {
+            console.error("Error fetching available slots:", error);
+            setAvailableSlots([]);
+        } finally {
+            setLoadingSlots(false);
+        }
     };
 
     if (status === "loading" || loading) {
@@ -159,73 +208,83 @@ export default function RequestSessionPage() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <form onSubmit={handleSubmit} className="space-y-6">
-                                {/* Therapist Selection */}
-                                <div className="space-y-2">
-                                    <Label htmlFor="therapist">Preferred Therapist *</Label>
-                                    {therapists.length === 0 ? (
-                                        <div className="p-3 bg-muted/20 rounded-lg text-center">
-                                            <p className="text-muted-foreground">No therapists available at the moment.</p>
-                                            <p className="text-sm text-muted-foreground">Please contact support for assistance.</p>
+                            {hasNoTherapist ? (
+                                <Alert>
+                                    <AlertCircle className="h-4 w-4" />
+                                    <AlertDescription>
+                                        You don't have an assigned therapist yet. Please visit the{" "}
+                                        <Button
+                                            variant="link"
+                                            className="p-0 h-auto font-semibold"
+                                            onClick={() => router.push("/patient/find-therapist")}
+                                        >
+                                            Find a Therapist
+                                        </Button>{" "}
+                                        page to request a therapist first.
+                                    </AlertDescription>
+                                </Alert>
+                            ) : (
+                                <form onSubmit={handleSubmit} className="space-y-6">
+                                    {/* Assigned Therapist Display */}
+                                    <div className="space-y-2">
+                                        <Label>Your Therapist</Label>
+                                        <div className="flex items-center space-x-3 p-3 bg-muted/20 rounded-lg">
+                                            {assignedTherapist?.image ? (
+                                                <img
+                                                    src={assignedTherapist.image}
+                                                    alt={assignedTherapist.name}
+                                                    className="w-12 h-12 rounded-full object-cover"
+                                                />
+                                            ) : (
+                                                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                                                    <UserCheck className="h-6 w-6 text-primary" />
+                                                </div>
+                                            )}
+                                            <div className="flex-1">
+                                                <div className="font-medium">{assignedTherapist?.name}</div>
+                                                {assignedTherapist?.specialization && (
+                                                    <div className="text-sm text-muted-foreground">
+                                                        {assignedTherapist.specialization.join(", ")}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
-                                    ) : (
+                                    </div>
+
+                                    {/* Session Type */}
+                                    <div className="space-y-2">
+                                        <Label htmlFor="sessionType">Session Type *</Label>
                                         <Select
-                                            value={formData.therapistId}
-                                            onValueChange={(value) => handleInputChange("therapistId", value)}
+                                            value={formData.sessionType}
+                                            onValueChange={(value) => handleInputChange("sessionType", value)}
                                         >
                                             <SelectTrigger>
-                                                <SelectValue placeholder="Select a therapist" />
+                                                <SelectValue placeholder="Select session type" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                {therapists.map((therapist) => (
-                                                    <SelectItem key={therapist.id} value={therapist.id}>
-                                                        <div>
-                                                            <div className="font-medium">{therapist.name}</div>
-                                                            <div className="text-sm text-muted-foreground">
-                                                                {therapist.specialization.join(", ")}
-                                                            </div>
-                                                        </div>
+                                                {sessionTypes.map((type) => (
+                                                    <SelectItem key={type} value={type}>
+                                                        {type}
                                                     </SelectItem>
                                                 ))}
                                             </SelectContent>
                                         </Select>
-                                    )}
-                                </div>
+                                    </div>
 
-                                {/* Session Type */}
-                                <div className="space-y-2">
-                                    <Label htmlFor="sessionType">Session Type *</Label>
-                                    <Select
-                                        value={formData.sessionType}
-                                        onValueChange={(value) => handleInputChange("sessionType", value)}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select session type" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {sessionTypes.map((type) => (
-                                                <SelectItem key={type} value={type}>
-                                                    {type}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
+                                    {/* Preferred Date */}
+                                    <div className="space-y-2">
+                                        <Label htmlFor="preferredDate">Preferred Date *</Label>
+                                        <Input
+                                            id="preferredDate"
+                                            type="date"
+                                            value={formData.preferredDate}
+                                            onChange={(e) => handleInputChange("preferredDate", e.target.value)}
+                                            min={new Date().toISOString().split('T')[0]}
+                                            required
+                                        />
+                                    </div>
 
-                                {/* Preferred Date */}
-                                <div className="space-y-2">
-                                    <Label htmlFor="preferredDate">Preferred Date *</Label>
-                                    <Input
-                                        id="preferredDate"
-                                        type="date"
-                                        value={formData.preferredDate}
-                                        onChange={(e) => handleInputChange("preferredDate", e.target.value)}
-                                        min={new Date().toISOString().split('T')[0]}
-                                        required
-                                    />
-                                </div>
-
-                                {/* Preferred Time */}
+                                                                    {/* Preferred Time */}
                                 <div className="space-y-2">
                                     <Label htmlFor="preferredTime">Preferred Time *</Label>
                                     <Input
@@ -235,54 +294,117 @@ export default function RequestSessionPage() {
                                         onChange={(e) => handleInputChange("preferredTime", e.target.value)}
                                         required
                                     />
+                                    
+                                    {/* Available Slots */}
+                                    {formData.preferredDate && (
+                                        <div className="mt-3">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <Label className="text-sm font-medium">
+                                                    Available Times for {new Date(formData.preferredDate).toLocaleDateString()}:
+                                                </Label>
+                                                {loadingSlots && (
+                                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                                                )}
+                                            </div>
+                                            {availableSlots.length > 0 ? (
+                                                <div className="flex flex-wrap gap-2">
+                                                    {availableSlots.map((slot, index) => (
+                                                        <Button
+                                                            key={index}
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => handleInputChange("preferredTime", slot)}
+                                                            className={`text-xs ${
+                                                                formData.preferredTime === slot 
+                                                                    ? "bg-primary text-primary-foreground" 
+                                                                    : ""
+                                                            }`}
+                                                        >
+                                                            {slot}
+                                                        </Button>
+                                                    ))}
+                                                </div>
+                                            ) : !loadingSlots ? (
+                                                <p className="text-sm text-muted-foreground">
+                                                    No available slots for this date. Please select a different date.
+                                                </p>
+                                            ) : null}
+                                        </div>
+                                    )}
                                 </div>
 
-                                {/* Notes */}
-                                <div className="space-y-2">
-                                    <Label htmlFor="notes">Additional Notes</Label>
-                                    <Textarea
-                                        id="notes"
-                                        placeholder="Any specific concerns, goals, or requirements for this session..."
-                                        value={formData.notes}
-                                        onChange={(e) => handleInputChange("notes", e.target.value)}
-                                        rows={4}
-                                    />
-                                </div>
+                                    {/* Notes */}
+                                    <div className="space-y-2">
+                                        <Label htmlFor="notes">Additional Notes</Label>
+                                        <Textarea
+                                            id="notes"
+                                            placeholder="Any specific concerns, goals, or requirements for this session..."
+                                            value={formData.notes}
+                                            onChange={(e) => handleInputChange("notes", e.target.value)}
+                                            rows={4}
+                                        />
+                                    </div>
 
-                                {error && (
+                                                                    {error && (
                                     <div className="bg-destructive/10 border border-destructive/20 rounded-md p-3">
                                         <p className="text-destructive text-sm">{error}</p>
+                                        {suggestedSlots.length > 0 && (
+                                            <div className="mt-3">
+                                                <p className="text-sm font-medium text-gray-700 mb-2">
+                                                    Suggested alternative times:
+                                                </p>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {suggestedSlots.map((slot, index) => (
+                                                        <Button
+                                                            key={index}
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => {
+                                                                const [hours, minutes] = slot.split(':');
+                                                                const date = new Date(formData.preferredDate);
+                                                                date.setHours(parseInt(hours), parseInt(minutes));
+                                                                handleInputChange("preferredTime", slot);
+                                                            }}
+                                                            className="text-xs"
+                                                        >
+                                                            {slot}
+                                                        </Button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
 
-                                <div className="flex gap-4">
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        onClick={() => router.back()}
-                                        className="flex-1"
-                                    >
-                                        Cancel
-                                    </Button>
-                                    <Button
-                                        type="submit"
-                                        disabled={submitting}
-                                        className="flex-1"
-                                    >
-                                        {submitting ? (
-                                            <>
-                                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                                Submitting...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <MessageCircle className="mr-2 h-4 w-4" />
-                                                Submit Request
-                                            </>
-                                        )}
-                                    </Button>
-                                </div>
-                            </form>
+                                    <div className="flex gap-4">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={() => router.back()}
+                                            className="flex-1"
+                                        >
+                                            Cancel
+                                        </Button>
+                                        <Button
+                                            type="submit"
+                                            disabled={submitting}
+                                            className="flex-1"
+                                        >
+                                            {submitting ? (
+                                                <>
+                                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                                    Submitting...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <MessageCircle className="mr-2 h-4 w-4" />
+                                                    Submit Request
+                                                </>
+                                            )}
+                                        </Button>
+                                    </div>
+                                </form>
+                            )}
                         </CardContent>
                     </Card>
 

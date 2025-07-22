@@ -1,4 +1,3 @@
-
 "use client";
 import React from "react";
 
@@ -10,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { ArrowLeft, Calendar, ClipboardList, Users, BarChart3, UserPlus, UserMinus } from "lucide-react";
+import { Input } from "@/components/ui/input"; // Make sure you have a date input component
 
 interface Assessment {
   id: string;
@@ -34,6 +34,7 @@ interface Assessment {
     completedAt?: string;
     score?: number;
     responses?: unknown;
+    deadline?: string; // Add deadline field
   }[];
   averageScore?: number;
   completionRate: number;
@@ -58,6 +59,9 @@ export default function AssessmentDetailsPage() {
   const [showAddPatientList, setShowAddPatientList] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Store deadlines for each patient being added
+  const [patientDeadlines, setPatientDeadlines] = useState<{ [id: string]: string }>({});
 
   const fetchAssessment = React.useCallback(async () => {
     setLoading(true);
@@ -106,13 +110,22 @@ export default function AssessmentDetailsPage() {
   // Add patient to assignedPatients
   const handleAddPatient = (patient: { id: string; name: string; email: string }) => {
     if (!assessment) return;
+    const deadline = patientDeadlines[patient.id] || "";
     const updated = {
       ...assessment,
-      assignedPatients: [...assessment.assignedPatients, patient],
+      assignedPatients: [
+        ...assessment.assignedPatients,
+        { ...patient, deadline }, // Add deadline to patient object
+      ],
     };
     setAssessment(updated);
     setAvailablePatients(prev => prev.filter(p => p.id !== patient.id));
     setShowAddPatientList(false);
+    setPatientDeadlines(prev => {
+      const copy = { ...prev };
+      delete copy[patient.id];
+      return copy;
+    });
   };
 
   // Remove patient from assignedPatients
@@ -220,13 +233,22 @@ export default function AssessmentDetailsPage() {
   // Add patient to assignedPatients
   const handleAddPatient = (patient: { id: string; name: string; email: string }) => {
     if (!assessment) return;
+    const deadline = patientDeadlines[patient.id] || "";
     const updated = {
       ...assessment,
-      assignedPatients: [...assessment.assignedPatients, patient],
+      assignedPatients: [
+        ...assessment.assignedPatients,
+        { ...patient, deadline }, // Add deadline to patient object
+      ],
     };
     setAssessment(updated);
     setAvailablePatients(prev => prev.filter(p => p.id !== patient.id));
     setShowAddPatientList(false);
+    setPatientDeadlines(prev => {
+      const copy = { ...prev };
+      delete copy[patient.id];
+      return copy;
+    });
   };
 
   // Remove patient from assignedPatients
@@ -275,24 +297,12 @@ export default function AssessmentDetailsPage() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <Card className="p-6">
             <div className="flex items-center space-x-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <ClipboardList className="w-5 h-5 text-blue-600" />
+              <div className="p-2 bg-purple-100 rounded-lg">
+          <ClipboardList className="w-5 h-5 text-[#8159A8]" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-800">{assessment.questions.length}</p>
-                <p className="text-gray-600 text-sm">Questions</p>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-6">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <Users className="w-5 h-5 text-green-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-800">{assessment.assignedPatients.length}</p>
-                <p className="text-gray-600 text-sm">Assigned Patients</p>
+          <p className="text-2xl font-bold text-gray-800">{assessment.questions.length}</p>
+          <p className="text-gray-600 text-sm">Questions</p>
               </div>
             </div>
           </Card>
@@ -300,25 +310,37 @@ export default function AssessmentDetailsPage() {
           <Card className="p-6">
             <div className="flex items-center space-x-3">
               <div className="p-2 bg-purple-100 rounded-lg">
-                <BarChart3 className="w-5 h-5 text-purple-600" />
+          <Users className="w-5 h-5 text-[#8159A8]" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-800">{assessment.completionRate}%</p>
-                <p className="text-gray-600 text-sm">Completion Rate</p>
+          <p className="text-2xl font-bold text-gray-800">{assessment.assignedPatients.length}</p>
+          <p className="text-gray-600 text-sm">Assigned Patients</p>
               </div>
             </div>
           </Card>
 
           <Card className="p-6">
             <div className="flex items-center space-x-3">
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <Calendar className="w-5 h-5 text-orange-600" />
+              <div className="p-2 bg-purple-100 rounded-lg">
+          <BarChart3 className="w-5 h-5 text-[#8159A8]" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-800">
-                  {assessment.averageScore ? Math.round(assessment.averageScore) : "N/A"}
-                </p>
-                <p className="text-gray-600 text-sm">Average Score</p>
+          <p className="text-2xl font-bold text-gray-800">{assessment.completionRate}%</p>
+          <p className="text-gray-600 text-sm">Completion Rate</p>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="p-6">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-purple-100 rounded-lg">
+          <Calendar className="w-5 h-5 text-[#8159A8]" />
+              </div>
+              <div>
+          <p className="text-2xl font-bold text-gray-800">
+            {assessment.averageScore ? Math.round(assessment.averageScore) : "N/A"}
+          </p>
+          <p className="text-gray-600 text-sm">Average Score</p>
               </div>
             </div>
           </Card>
@@ -390,10 +412,36 @@ export default function AssessmentDetailsPage() {
                           <div>
                             <span className="font-medium text-gray-800">{patient.name}</span>
                             <span className="ml-2 text-xs text-gray-500">{patient.email}</span>
+                            {/* Deadline input on next line */}
+                            <div className="mt-2 flex items-center space-x-2">
+                              <Calendar className="w-4 h-4 text-orange-600" />
+                              <span className="text-xs text-gray-600 font-medium">Deadline</span>
+                              <Input
+                              type="date"
+                              value={patientDeadlines[patient.id] || ""}
+                              onChange={e =>
+                                setPatientDeadlines(prev => ({
+                                ...prev,
+                                [patient.id]: e.target.value,
+                                }))
+                              }
+                              className="w-38" // Increased width
+                              title="Select deadline"
+                              />
+                            </div>
                           </div>
-                          <Button size="icon" variant="outline" className="text-green-700 border-green-300" onClick={() => handleAddPatient(patient)} title="Add Patient">
-                            <UserPlus className="w-4 h-4" />
-                          </Button>
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              className="text-green-700 border-green-300"
+                              onClick={() => handleAddPatient(patient)}
+                              title="Add Patient"
+                              disabled={!patientDeadlines[patient.id]} // Disable if no deadline
+                            >
+                              <UserPlus className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </li>
                       ))}
                     </ul>
@@ -421,6 +469,11 @@ export default function AssessmentDetailsPage() {
                     <div>
                       <p className="font-medium text-gray-800">{patient.name}</p>
                       <p className="text-sm text-gray-500">{patient.email}</p>
+                      {patient.deadline && (
+                        <p className="text-xs text-gray-500">
+                          Deadline: {new Date(patient.deadline).toLocaleDateString()}
+                        </p>
+                      )}
                       {patient.completedAt && (
                         <p className="text-xs text-gray-500">
                           Completed: {new Date(patient.completedAt).toLocaleDateString()}

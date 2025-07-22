@@ -127,7 +127,8 @@ export async function GET(req: NextRequest) {
             user: therapist.user,
             organization: therapist.organization,
             createdAt: therapist.createdAt,
-            updatedAt: therapist.updatedAt
+            updatedAt: therapist.updatedAt,
+            hasAvailability: therapist.availability && Array.isArray(therapist.availability) && therapist.availability.length > 0
         });
 
     } catch (error) {

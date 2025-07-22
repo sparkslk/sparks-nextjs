@@ -20,6 +20,9 @@ const buttonVariants = cva(
         ghost:
           "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
         link: "text-primary underline-offset-4 hover:underline",
+        badge: "px-3 py-1 rounded-lg text-xs font-semibold min-w-[90px] h-8 flex items-center justify-center",
+        badgeGreen: "bg-green-100 text-green-800 px-3 py-1 rounded-lg text-xs font-semibold min-w-[90px] h-8 flex items-center justify-center",
+        badgeRed: "bg-white border border-red-300 text-red-600 px-1 py-1 rounded-lg text-xs font-semibold min-w-[90px] h-5 flex items-center justify-center hover:bg-red-50",
       },
       size: {
         default: "h-9 px-4 py-2 has-[>svg]:px-3",
