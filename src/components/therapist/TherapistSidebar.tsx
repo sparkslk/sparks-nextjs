@@ -5,12 +5,10 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import NotificationBell from "@/components/NotificationBell";
 import {
-  Calendar,
   CalendarDays,
   Clock,
   Users,
   BarChart3,
-  Settings,
   User,
   ClipboardList,
   MessageSquare,
@@ -67,12 +65,12 @@ const getMenuItems = (pendingRequests: number) => ({
       icon: Home,
       badge: null,
     },
-    {
+    /* {
       title: "Profile",
       url: "/therapist/profile",
       icon: User,
       badge: pendingRequests > 0 ? pendingRequests.toString() : null,
-    },
+    }, */
   ],
   clinical: [
     {
@@ -224,8 +222,8 @@ export function TherapistSidebar({ children }: TherapistSidebarProps) {
                     asChild
                     isActive={pathname === item.url}
                     className={`w-full rounded-lg px-3 py-2 pl-3 transition flex items-center gap-3
-    ${pathname === item.url ? "bg-primary/10 font-semibold text-primary" : "hover:bg-primary/10"}
-  `}
+                      ${pathname === item.url ? "bg-primary/10 font-semibold text-primary" : "hover:bg-primary/10"}
+                    `}
                   >
                     <Link href={item.url}>
                       <item.icon className="size-4 text-primary" />
@@ -342,10 +340,10 @@ export function TherapistSidebar({ children }: TherapistSidebarProps) {
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link href="/therapist/settings" className="flex items-center gap-2">
+              {/* <Link href="/therapist/settings" className="flex items-center gap-2">
                 <Settings className="size-4" />
                 Settings
-              </Link>
+              </Link> */}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={handleSignOut} className="flex items-center gap-2 text-red-600">
               <LogOut className="size-4" />
