@@ -48,8 +48,8 @@ export async function GET(req: NextRequest) {
                 duration: session.duration,
                 type: session.type,
                 status: session.status.toLowerCase(),
-                notes: session.notes,
-                objectives: session.objectives,
+                notes: session.sessionNotes,
+                objectives: session.nextSessionGoals,
                 createdAt: session.createdAt
             }))
         });

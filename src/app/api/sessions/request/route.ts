@@ -161,11 +161,11 @@ export async function POST(request: NextRequest) {
         }
 
         // Check therapist availability
-        const availabilityCheck = await fetch(`${req.nextUrl.origin}/api/therapist/availability/check`, {
+        const availabilityCheck = await fetch(`${request.nextUrl.origin}/api/therapist/availability/check`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Cookie': req.headers.get('cookie') || ''
+                'Cookie': request.headers.get('cookie') || ''
             },
             body: JSON.stringify({
                 therapistId,
@@ -222,7 +222,7 @@ export async function POST(request: NextRequest) {
                 type: therapySession.type,
                 status: therapySession.status,
                 therapistName: therapist.user.name || therapist.user.email,
-                notes: therapySession.notes
+                sessionNotes: therapySession.sessionNotes
             }
         });
 

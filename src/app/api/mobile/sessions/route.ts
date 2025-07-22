@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Build where clause
-    const where: any = {
+    const where: Record<string, unknown> = {
       patientId: patient.id
     };
 
@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
 
     // Get sessions with pagination
     const [sessions, total] = await Promise.all([
-      prisma.session.findMany({
+      prisma.therapySession.findMany({
         where,
         include: {
           therapist: {
@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
         take: limit,
         skip: offset
       }),
-      prisma.session.count({ where })
+      prisma.therapySession.count({ where })
     ]);
 
     // Format sessions for mobile
@@ -89,10 +89,7 @@ export async function GET(request: NextRequest) {
       status: session.status,
       scheduledAt: session.scheduledAt,
       duration: session.duration,
-      location: session.location,
-      notes: session.notes,
-      isUrgent: session.isUrgent,
-      cancelReason: session.cancelReason,
+      sessionNotes: session.sessionNotes,
       therapist: {
         id: session.therapist.id,
         name: session.therapist.user.name || "Therapist",
@@ -104,7 +101,7 @@ export async function GET(request: NextRequest) {
     }));
 
     // Get session statistics
-    const stats = await prisma.session.groupBy({
+    const stats = await prisma.therapySession.groupBy({
       by: ['status'],
       where: { patientId: patient.id },
       _count: true
@@ -112,7 +109,7 @@ export async function GET(request: NextRequest) {
 
     const statistics = {
       total: total,
-      pending: stats.find(s => s.status === "PENDING")?._count || 0,
+      requested: stats.find(s => s.status === "REQUESTED")?._count || 0,
       scheduled: stats.find(s => s.status === "SCHEDULED")?._count || 0,
       completed: stats.find(s => s.status === "COMPLETED")?._count || 0,
       cancelled: stats.find(s => s.status === "CANCELLED")?._count || 0,

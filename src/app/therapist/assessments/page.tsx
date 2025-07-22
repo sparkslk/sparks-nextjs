@@ -1,7 +1,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -31,12 +31,9 @@ interface Assessment {
 export default function AssessmentsPage() {
   const { status: authStatus } = useSession();
   const router = useRouter();
-  const params = useParams();
-  const assessmentId = params.id as string;
 
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [assessmentToDelete, setAssessmentToDelete] = useState<Assessment | null>(null);
   const [selectedAssessment, setSelectedAssessment] = useState<Assessment | null>(null);
   const [showPatientsModal, setShowPatientsModal] = useState(false);
   const [showAddPatientList, setShowAddPatientList] = useState(false);
@@ -180,9 +177,6 @@ export default function AssessmentsPage() {
   const totalAssessments = assessments.length;
   const totalPatients = assessments.reduce((sum, a) => sum + a.assignedPatients.length, 0);
 
-  const handleNewAssessment = () => {
-    router.push("/therapist/assessments/new");
-  };
 
   const getTypeBadgeColor = (type: string) => {
     switch (type) {

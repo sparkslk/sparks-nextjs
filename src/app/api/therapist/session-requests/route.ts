@@ -130,7 +130,7 @@ export async function GET(req: NextRequest) {
                 duration: request.duration,
                 type: request.type,
                 status: request.status,
-                notes: request.notes,
+                notes: request.sessionNotes,
                 createdAt: request.createdAt
             }))
         });
@@ -288,7 +288,7 @@ export async function PATCH(req: NextRequest) {
             where: { id: sessionId },
             data: {
                 status: newStatus,
-                notes: notes || therapySession.notes
+                sessionNotes: notes || therapySession.sessionNotes
             }
         });
 
@@ -309,7 +309,7 @@ export async function PATCH(req: NextRequest) {
             session: {
                 id: updatedSession.id,
                 status: updatedSession.status,
-                notes: updatedSession.notes
+                notes: updatedSession.sessionNotes
             }
         });
 

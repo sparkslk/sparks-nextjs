@@ -32,7 +32,7 @@ interface Session {
   risk?: string;
   focusAreas?: string[];
   observations?: string;
-  notes?: string;
+  sessionNotes?: string;
   nextSessionGoals?: string;
 }
 
@@ -343,7 +343,7 @@ export default function SessionDetailsPage() {
                 <CardContent>
                   <div className="mb-2">
                     <span className="font-semibold text-gray-600">Clinical Observations</span>
-                    <div className="bg-gray-100 rounded p-2 mt-1 text-sm">{session.observations || session.notes || "No clinical observations recorded"}</div>
+                    <div className="bg-gray-100 rounded p-2 mt-1 text-sm">{session.observations || session.sessionNotes || "No clinical observations recorded"}</div>
                   </div>
                   <div className="mb-2">
                     <span className="font-semibold text-gray-600">Next Session Goals</span>

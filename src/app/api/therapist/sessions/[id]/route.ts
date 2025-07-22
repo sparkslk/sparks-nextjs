@@ -4,10 +4,11 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        console.log("GET /api/therapist/sessions/[id] - Starting request for session ID:", params.id);
+        const { id } = await params;
+        console.log("GET /api/therapist/sessions/[id] - Starting request for session ID:", id);
         
         const session = await requireApiAuth(request, ['THERAPIST']);
         console.log("Authentication successful for user:", session.user.id);
@@ -27,7 +28,7 @@ export async function GET(
         }
 
         console.log("Therapist profile found:", user.therapistProfile.id);
-        const sessionId = params.id;
+        const sessionId = id;
 
         // Get detailed session information
         const therapySession = await prisma.therapySession.findFirst({
@@ -175,7 +176,7 @@ export async function GET(
 
 export async function PUT(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         const session = await requireApiAuth(request, ['THERAPIST']);
@@ -193,7 +194,8 @@ export async function PUT(
             );
         }
 
-        const sessionId = params.id;
+        const { id } = await params;
+        const sessionId = id;
 
         // Verify the session belongs to this therapist
         const existingSession = await prisma.therapySession.findFirst({

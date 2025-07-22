@@ -258,64 +258,64 @@ export default function PatientDetailsPage() {
   // For now, keeping the hardcoded data for other sections as they don't exist in the API yet
   // These can be moved to the API later
 
-  // Medical History data
-  const medicalHistory = {
-    adherenceRate: "89%",
-    missedDoses: 12,
-    totalDoses: 247,
-    currentStreak: 7,
-    weeklyPattern: [
-      { day: "Mon", status: "taken" },
-      { day: "Tue", status: "taken" },
-      { day: "Wed", status: "taken" },
-      { day: "Thu", status: "taken" },
-      { day: "Fri", status: "missed" },
-      { day: "Sat", status: "taken" },
-      { day: "Sun", status: "taken" }
-    ],
-    detailedHistory: [
-      {
-        id: 1,
-        date: "June 25, 2025",
-        medication: "Adderall XR 20mg",
-        time: "8:00 AM & 2:30 PM",
-        status: "EXCELLENT",
-        notes: "Feeling focused and alert. No side effects noticed. Taking with breakfast as recommended."
-      },
-      {
-        id: 2,
-        date: "June 23, 2025",
-        medication: "Adderall XR 20mg",
-        time: "8:15 AM & Evening: Missed",
-        status: "PARTIAL",
-        notes: "Forgot evening dose due to busy work meeting. Recommend to set alarms, reminders."
-      },
-      {
-        id: 3,
-        date: "June 21, 2025",
-        medication: "Adderall XR 20mg",
-        time: "7:45 AM & 2:30 PM",
-        status: "EXCELLENT",
-        notes: "Completely forgot about morning. Need to set multiple reminders."
-      },
-      {
-        id: 4,
-        date: "June 20, 2025",
-        medication: "Adderall XR 20mg",
-        time: "Morning: Missed",
-        status: "MISSED",
-        notes: "Woke up late and rushed to work. Completely forgot about medication. Need to set automatic reminders."
-      },
-      {
-        id: 5,
-        date: "June 18, 2025",
-        medication: "Strattera 40mg",
-        time: "9:02 AM",
-        status: "EXCELLENT",
-        notes: "Once daily medication. Patient compliance is Adhered ok. Monitoring for effectiveness and side effects during medication switch."
-      }
-    ]
-  };
+  // Medical History data (commented out as unused)
+  // const medicalHistory = {
+  //   adherenceRate: "89%",
+  //   missedDoses: 12,
+  //   totalDoses: 247,
+  //   currentStreak: 7,
+  //   weeklyPattern: [
+  //     { day: "Mon", status: "taken" },
+  //     { day: "Tue", status: "taken" },
+  //     { day: "Wed", status: "taken" },
+  //     { day: "Thu", status: "taken" },
+  //     { day: "Fri", status: "missed" },
+  //     { day: "Sat", status: "taken" },
+  //     { day: "Sun", status: "taken" }
+  //   ],
+  //   detailedHistory: [
+  //     {
+  //       id: 1,
+  //       date: "June 25, 2025",
+  //       medication: "Adderall XR 20mg",
+  //       time: "8:00 AM & 2:30 PM",
+  //       status: "EXCELLENT",
+  //       notes: "Feeling focused and alert. No side effects noticed. Taking with breakfast as recommended."
+  //     },
+  //     {
+  //       id: 2,
+  //       date: "June 23, 2025",
+  //       medication: "Adderall XR 20mg",
+  //       time: "8:15 AM & Evening: Missed",
+  //       status: "PARTIAL",
+  //       notes: "Forgot evening dose due to busy work meeting. Recommend to set alarms, reminders."
+  //     },
+  //     {
+  //       id: 3,
+  //       date: "June 21, 2025",
+  //       medication: "Adderall XR 20mg",
+  //       time: "7:45 AM & 2:30 PM",
+  //       status: "EXCELLENT",
+  //       notes: "Completely forgot about morning. Need to set multiple reminders."
+  //     },
+  //     {
+  //       id: 4,
+  //       date: "June 20, 2025",
+  //       medication: "Adderall XR 20mg",
+  //       time: "Morning: Missed",
+  //       status: "MISSED",
+  //       notes: "Woke up late and rushed to work. Completely forgot about medication. Need to set automatic reminders."
+  //     },
+  //     {
+  //       id: 5,
+  //       date: "June 18, 2025",
+  //       medication: "Strattera 40mg",
+  //       time: "9:02 AM",
+  //       status: "EXCELLENT",
+  //       notes: "Once daily medication. Patient compliance is Adhered ok. Monitoring for effectiveness and side effects during medication switch."
+  //     }
+  //   ]
+  // };
 
   // Assigned Tasks data
   const assignedAssessments = [
@@ -712,20 +712,20 @@ export default function PatientDetailsPage() {
                 {/* Session Cards */}
                 <div className="space-y-8">
                   {getFilteredSessions().length > 0 ? getFilteredSessions().map((session, index) => {
-                    const getStatusColor = (status: string) => {
-                      switch (status) {
-                        case 'COMPLETED':
-                          return 'bg-green-400';
-                        case 'SCHEDULED':
-                        case 'APPROVED':
-                          return 'bg-blue-400';
-                        case 'CANCELLED':
-                        case 'NO_SHOW':
-                          return 'bg-red-400';
-                        default:
-                          return 'bg-gray-400';
-                      }
-                    };
+                    // const getStatusColor = (status: string) => {
+                    //   switch (status) {
+                    //     case 'COMPLETED':
+                    //       return 'bg-green-400';
+                    //     case 'SCHEDULED':
+                    //     case 'APPROVED':
+                    //       return 'bg-blue-400';
+                    //     case 'CANCELLED':
+                    //     case 'NO_SHOW':
+                    //       return 'bg-red-400';
+                    //     default:
+                    //       return 'bg-gray-400';
+                    //   }
+                    // };
 
                     const getProgressText = (overallProgress: string) => {
                       switch (overallProgress) {

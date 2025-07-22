@@ -3,7 +3,7 @@
 import { useRouter, usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+// import { Badge } from "@/components/ui/badge";
 import { Bell } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";

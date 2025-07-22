@@ -133,7 +133,7 @@ export async function GET(req: NextRequest) {
                     type: session.type,
                     status: session.status,
                     therapistName: session.therapist.user.name || 'Unknown Therapist',
-                    notes: session.notes
+                    sessionNotes: session.sessionNotes
                 }));
 
             const recentSessions = patient.therapySessions
@@ -146,7 +146,7 @@ export async function GET(req: NextRequest) {
                     type: session.type,
                     status: session.status,
                     therapistName: session.therapist.user.name || 'Unknown Therapist',
-                    notes: session.notes
+                    sessionNotes: session.sessionNotes
                 }));
 
             return NextResponse.json({

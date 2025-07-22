@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
     const scheduledAt = new Date(`${preferredDate}T${preferredTime}`);
     
     // Check if the time slot is available
-    const existingSession = await prisma.session.findFirst({
+    const existingSession = await prisma.therapySession.findFirst({
       where: {
         therapistId: patient.primaryTherapistId,
         scheduledAt: {
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
           lt: new Date(scheduledAt.getTime() + duration * 60000)
         },
         status: {
-          in: ["SCHEDULED", "IN_PROGRESS"]
+          in: ["SCHEDULED", "APPROVED"]
         }
       }
     });
@@ -101,17 +101,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Create session request
-    const session = await prisma.session.create({
+    const session = await prisma.therapySession.create({
       data: {
         patientId: patient.id,
         therapistId: patient.primaryTherapistId,
         type: sessionType,
         scheduledAt,
         duration,
-        status: "PENDING",
-        notes,
-        location: patient.primaryTherapist!.consultationMode === "ONLINE" ? "Online" : "In-Person",
-        isUrgent
+        status: "REQUESTED",
+        sessionNotes: notes || null
       }
     });
 
@@ -120,11 +118,10 @@ export async function POST(request: NextRequest) {
       data: {
         senderId: payload.userId,
         receiverId: patient.primaryTherapist!.userId,
-        type: "SESSION_REQUEST",
+        type: "APPOINTMENT",
         title: isUrgent ? "Urgent Session Request" : "New Session Request",
         message: `${patient.firstName} ${patient.lastName} has requested a ${sessionType.toLowerCase().replace('_', ' ')} session on ${new Date(scheduledAt).toLocaleDateString()} at ${new Date(scheduledAt).toLocaleTimeString()}.${notes ? ` Notes: ${notes}` : ''}`,
-        isUrgent,
-        relatedId: session.id
+        isUrgent
       }
     });
 
@@ -136,8 +133,7 @@ export async function POST(request: NextRequest) {
         type: "SYSTEM",
         title: "Session Request Sent",
         message: `Your session request for ${new Date(scheduledAt).toLocaleDateString()} at ${new Date(scheduledAt).toLocaleTimeString()} has been sent to ${patient.primaryTherapist!.user.name || 'your therapist'}. You will be notified once they respond.`,
-        isUrgent: false,
-        relatedId: session.id
+        isUrgent: false
       }
     });
 
@@ -222,7 +218,7 @@ export async function GET(request: NextRequest) {
     const endOfDay = new Date(date);
     endOfDay.setHours(23, 59, 59, 999);
 
-    const bookedSessions = await prisma.session.findMany({
+    const bookedSessions = await prisma.therapySession.findMany({
       where: {
         therapistId: therapistIdToUse,
         scheduledAt: {
@@ -230,7 +226,7 @@ export async function GET(request: NextRequest) {
           lte: endOfDay
         },
         status: {
-          in: ["PENDING", "SCHEDULED", "IN_PROGRESS"]
+          in: ["REQUESTED", "SCHEDULED", "APPROVED"]
         }
       },
       select: {

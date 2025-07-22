@@ -20,8 +20,6 @@ export default function ManagerSignupPage() {
         password: "",
         confirmPassword: "",
         name: "",
-        organizationCode: "",
-        department: "",
     });
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
@@ -53,11 +51,6 @@ export default function ManagerSignupPage() {
             return;
         }
 
-        if (!formData.organizationCode.trim()) {
-            setError("Organization code is required for manager registration.");
-            setIsLoading(false);
-            return;
-        }
 
         try {
             const response = await fetch("/api/auth/signup", {
@@ -70,10 +63,6 @@ export default function ManagerSignupPage() {
                     password: formData.password,
                     name: formData.name,
                     role: UserRole.MANAGER,
-                    metadata: {
-                        organizationCode: formData.organizationCode,
-                        department: formData.department,
-                    },
                 }),
             });
 
@@ -158,36 +147,6 @@ export default function ManagerSignupPage() {
                             />
                         </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="organizationCode" className="text-sm font-medium">
-                                Organization Code *
-                            </Label>
-                            <Input
-                                id="organizationCode"
-                                name="organizationCode"
-                                type="text"
-                                placeholder="Enter your organization code"
-                                value={formData.organizationCode}
-                                onChange={handleChange}
-                                required
-                                className="h-11"
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="department" className="text-sm font-medium">
-                                Department
-                            </Label>
-                            <Input
-                                id="department"
-                                name="department"
-                                type="text"
-                                placeholder="e.g., Clinical Operations, IT, etc."
-                                value={formData.department}
-                                onChange={handleChange}
-                                className="h-11"
-                            />
-                        </div>
 
                         <div className="space-y-2">
                             <Label htmlFor="password" className="text-sm font-medium">

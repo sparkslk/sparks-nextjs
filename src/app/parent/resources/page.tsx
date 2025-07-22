@@ -71,13 +71,18 @@ type Guide = {
 };
 
 async function getGuides(): Promise<Guide[]> {
-	const baseUrl =
-		typeof window === "undefined"
-			? process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
-			: "";
-	const res = await fetch(`${baseUrl}/api/resources`, { next: { revalidate: 60 } });
-	if (!res.ok) return [];
-	return res.json();
+	try {
+		const baseUrl =
+			typeof window === "undefined"
+				? process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
+				: "";
+		const res = await fetch(`${baseUrl}/api/resources`, { next: { revalidate: 60 } });
+		if (!res.ok) return [];
+		return res.json();
+	} catch (error) {
+		console.error("Failed to fetch guides:", error);
+		return [];
+	}
 }
 
 export default async function ParentResourcesPage() {

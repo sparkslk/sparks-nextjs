@@ -133,7 +133,7 @@ export async function GET(req: NextRequest) {
                 id: s.id,
                 type: "session" as const,
                 title: `Session with ${s.patient.firstName} ${s.patient.lastName}`,
-                description: s.notes || `${s.type} session`,
+                description: s.sessionNotes || `${s.type} session`,
                 time: s.scheduledAt,
                 status: s.status.toLowerCase(),
             }));

@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 // Get detailed therapist information
 export async function GET(
   request: NextRequest,
-  { params }: { params: { therapistId: string } }
+  { params }: { params: Promise<{ therapistId: string }> }
 ) {
   try {
     const authHeader = request.headers.get("authorization");
@@ -20,28 +20,29 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { therapistId } = await params;
+
     const therapist = await prisma.therapist.findUnique({
-      where: { id: params.therapistId },
+      where: { id: therapistId },
       include: {
         user: {
           select: {
             id: true,
             name: true,
             email: true,
-            image: true,
-            isActive: true
+            image: true
           }
         },
         _count: {
           select: {
             patients: true,
-            sessions: true
+            therapySessions: true
           }
         }
       }
     });
 
-    if (!therapist || !therapist.user.isActive) {
+    if (!therapist) {
       return NextResponse.json(
         { error: "Therapist not found" },
         { status: 404 }
@@ -57,7 +58,7 @@ export async function GET(
     });
 
     // Get therapist's average session duration
-    const sessions = await prisma.session.findMany({
+    const sessions = await prisma.therapySession.findMany({
       where: {
         therapistId: therapist.id,
         status: "COMPLETED"
@@ -76,7 +77,7 @@ export async function GET(
     const today = new Date();
     const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-    const bookedSlots = await prisma.session.findMany({
+    const bookedSlots = await prisma.therapySession.findMany({
       where: {
         therapistId: therapist.id,
         scheduledAt: {
@@ -84,7 +85,7 @@ export async function GET(
           lte: nextWeek
         },
         status: {
-          in: ["SCHEDULED", "IN_PROGRESS"]
+          in: ["SCHEDULED", "APPROVED"]
         }
       },
       select: {
@@ -101,15 +102,12 @@ export async function GET(
         email: therapist.user.email,
         image: therapist.user.image,
         bio: therapist.bio,
-        qualifications: therapist.qualifications,
-        specializations: therapist.specializations,
-        experienceYears: therapist.experienceYears,
-        sessionRate: therapist.sessionRate,
-        rating: therapist.rating || 0,
-        consultationMode: therapist.consultationMode,
-        languages: therapist.languages,
+        specialization: therapist.specialization,
+        experience: therapist.experience,
+        rating: therapist.rating?.toNumber() || 0,
+        availability: therapist.availability,
         patientCount: therapist._count.patients,
-        sessionCount: therapist._count.sessions,
+        sessionCount: therapist._count.therapySessions,
         isMyTherapist: patient?.primaryTherapistId === therapist.id,
         averageSessionDuration: sessions.length > 0 
           ? sessions.reduce((acc, s) => acc + s.duration, 0) / sessions.length 

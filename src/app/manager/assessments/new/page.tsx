@@ -36,7 +36,7 @@ export default function NewAssessmentPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [type, setType] = useState<"INITIAL" | "PROGRESS" | "FINAL" | "FOLLOW_UP">("INITIAL");
-  const [assessmentDate, setAssessmentDate] = useState("");
+  // const [assessmentDate, setAssessmentDate] = useState("");
   const [questions, setQuestions] = useState<Question[]>([]);
   const [selectedPatients, setSelectedPatients] = useState<string[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);

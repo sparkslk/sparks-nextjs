@@ -212,7 +212,7 @@ export default function RequestSessionPage() {
                                 <Alert>
                                     <AlertCircle className="h-4 w-4" />
                                     <AlertDescription>
-                                        You don't have an assigned therapist yet. Please visit the{" "}
+                                        You don&apos;t have an assigned therapist yet. Please visit the{" "}
                                         <Button
                                             variant="link"
                                             className="p-0 h-auto font-semibold"
@@ -230,11 +230,13 @@ export default function RequestSessionPage() {
                                         <Label>Your Therapist</Label>
                                         <div className="flex items-center space-x-3 p-3 bg-muted/20 rounded-lg">
                                             {assignedTherapist?.image ? (
-                                                <img
-                                                    src={assignedTherapist.image}
-                                                    alt={assignedTherapist.name}
-                                                    className="w-12 h-12 rounded-full object-cover"
-                                                />
+                                                <picture>
+                                                    <img
+                                                        src={assignedTherapist.image}
+                                                        alt={assignedTherapist.name}
+                                                        className="w-12 h-12 rounded-full object-cover"
+                                                    />
+                                                </picture>
                                             ) : (
                                                 <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
                                                     <UserCheck className="h-6 w-6 text-primary" />

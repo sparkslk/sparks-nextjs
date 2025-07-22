@@ -22,12 +22,25 @@ import {
   Shield,
 } from "lucide-react";
 
+// Basic User type to replace 'any'
+interface User {
+  id?: string;
+  fullName?: string;
+  email?: string;
+  role?: string;
+  phone?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  address?: string;
+  [key: string]: unknown;
+}
+
 interface UserTableProps {
   selectedRole: string;
-  filteredUsers: any[];
-  setEditUser: (user: any) => void;
+  filteredUsers: User[];
+  setEditUser: (user: User) => void;
   setEditModalOpen: (open: boolean) => void;
-  setDeleteUser: (user: any) => void;
+  setDeleteUser: (user: User) => void;
   setDeleteModalOpen: (open: boolean) => void;
   setEmergencyContactDetails: (details: string | null) => void;
   setEmergencyContactOpen: (open: boolean) => void;
@@ -51,7 +64,7 @@ function getRoleColor(role: string) {
 
 // Updated UserDetailsModal Component with purple color scheme
 const UserDetailsModal: React.FC<{
-  user: any;
+  user: User;
   isOpen: boolean;
   onClose: () => void;
 }> = ({ user, isOpen, onClose }) => {
@@ -74,16 +87,16 @@ const UserDetailsModal: React.FC<{
 
           <div className="flex items-center space-x-4">
             <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white font-bold text-2xl shadow-lg border border-white/30">
-              {user.avatar}
+              {String(user.avatar || '')}
             </div>
             <div>
-              <h2 className="text-2xl font-bold">{user.name}</h2>
+              <h2 className="text-2xl font-bold">{String(user.name || '')}</h2>
               <div className="flex items-center space-x-2 mt-1">
                 <span className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium border border-white/30">
-                  {user.role}
+                  {String(user.role || '')}
                 </span>
                 <span className="text-white/90 text-sm">
-                  Joined {user.joinedDate}
+                  Joined {String(user.joinedDate || '')}
                 </span>
               </div>
             </div>
@@ -107,7 +120,7 @@ const UserDetailsModal: React.FC<{
                     <User className="h-4 w-4 text-purple-500 mt-1" />
                     <div>
                       <p className="text-sm text-gray-600">Gender</p>
-                      <p className="font-medium text-gray-900">{user.gender}</p>
+                      <p className="font-medium text-gray-900">{String(user.gender || '')}</p>
                     </div>
                   </div>
                   <div className="flex items-start space-x-3">
@@ -115,7 +128,7 @@ const UserDetailsModal: React.FC<{
                     <div>
                       <p className="text-sm text-gray-600">Date of Birth</p>
                       <p className="font-medium text-gray-900">
-                        {user.dateOfBirth}
+                        {String(user.dateOfBirth || '')}
                       </p>
                     </div>
                   </div>
@@ -123,14 +136,14 @@ const UserDetailsModal: React.FC<{
                     <Phone className="h-4 w-4 text-purple-500 mt-1" />
                     <div>
                       <p className="text-sm text-gray-600">Phone</p>
-                      <p className="font-medium text-gray-900">{user.phone}</p>
+                      <p className="font-medium text-gray-900">{String(user.phone || '')}</p>
                     </div>
                   </div>
                   <div className="flex items-start space-x-3">
                     <Mail className="h-4 w-4 text-purple-500 mt-1" />
                     <div>
                       <p className="text-sm text-gray-600">Email</p>
-                      <p className="font-medium text-gray-900">{user.email}</p>
+                      <p className="font-medium text-gray-900">{String(user.email || '')}</p>
                     </div>
                   </div>
                 </div>
@@ -144,7 +157,7 @@ const UserDetailsModal: React.FC<{
                     Address
                   </h3>
                 </div>
-                <p className="text-gray-700 leading-relaxed">{user.address}</p>
+                <p className="text-gray-700 leading-relaxed">{String(user.address || '')}</p>
               </div>
 
               {/* Medical History */}
@@ -156,7 +169,7 @@ const UserDetailsModal: React.FC<{
                   </h3>
                 </div>
                 <p className="text-gray-700 leading-relaxed">
-                  {user.medicalHistory}
+                  {String(user.medicalHistory || '')}
                 </p>
               </div>
 
@@ -170,7 +183,7 @@ const UserDetailsModal: React.FC<{
                 </div>
                 <div className="bg-purple-50 rounded-lg p-4 border border-purple-100">
                   <p className="text-gray-700 leading-relaxed whitespace-pre-line">
-                    {user.emergencyContact}
+                    {String(user.emergencyContact || '')}
                   </p>
                 </div>
               </div>
@@ -193,7 +206,7 @@ const UserDetailsModal: React.FC<{
                     <div>
                       <p className="text-sm text-gray-600">License Number</p>
                       <p className="font-medium text-gray-900">
-                        {user.licenseNumber}
+                        {String(user.licenseNumber || '')}
                       </p>
                     </div>
                   </div>
@@ -202,7 +215,7 @@ const UserDetailsModal: React.FC<{
                     <div>
                       <p className="text-sm text-gray-600">Specialization</p>
                       <p className="font-medium text-gray-900">
-                        {user.specialization}
+                        {String(user.specialization || '')}
                       </p>
                     </div>
                   </div>
@@ -211,7 +224,7 @@ const UserDetailsModal: React.FC<{
                     <div>
                       <p className="text-sm text-gray-600">Experience</p>
                       <p className="font-medium text-gray-900">
-                        {user.experience}
+                        {String(user.experience || '')}
                       </p>
                     </div>
                   </div>
@@ -219,7 +232,7 @@ const UserDetailsModal: React.FC<{
                     <Mail className="h-4 w-4 text-purple-500 mt-1" />
                     <div>
                       <p className="text-sm text-gray-600">Email</p>
-                      <p className="font-medium text-gray-900">{user.email}</p>
+                      <p className="font-medium text-gray-900">{String(user.email || '')}</p>
                     </div>
                   </div>
                 </div>
@@ -235,7 +248,7 @@ const UserDetailsModal: React.FC<{
                     </h3>
                   </div>
                   <p className="text-gray-700 leading-relaxed">
-                    {user.availability}
+                    {String(user.availability || '')}
                   </p>
                 </div>
 
@@ -252,7 +265,7 @@ const UserDetailsModal: React.FC<{
                         <Star
                           key={i}
                           className={`h-5 w-5 ${
-                            i < Math.floor(parseFloat(user.rating) || 0)
+                            i < Math.floor(parseFloat(String(user.rating || '0')))
                               ? "text-yellow-400 fill-current"
                               : "text-gray-300"
                           }`}
@@ -260,7 +273,7 @@ const UserDetailsModal: React.FC<{
                       ))}
                     </div>
                     <span className="text-xl font-bold text-gray-900">
-                      {user.rating}
+                      {String(user.rating || '')}
                     </span>
                   </div>
                 </div>
@@ -298,8 +311,12 @@ const UserTable: React.FC<UserTableProps> = ({
   setEmergencyContactOpen,
   recordsPerPage = 10,
 }) => {
+  // Mark unused parameters to avoid ESLint warnings
+  void setEmergencyContactDetails;
+  void setEmergencyContactOpen;
+  
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
   // Calculate pagination
@@ -336,7 +353,7 @@ const UserTable: React.FC<UserTableProps> = ({
       }
     } else {
       let start = Math.max(1, currentPage - 2);
-      let end = Math.min(totalPages, start + maxVisiblePages - 1);
+      const end = Math.min(totalPages, start + maxVisiblePages - 1);
 
       if (end - start < maxVisiblePages - 1) {
         start = Math.max(1, end - maxVisiblePages + 1);
@@ -349,7 +366,7 @@ const UserTable: React.FC<UserTableProps> = ({
     return pages;
   };
 
-  const handleViewDetails = (user: any) => {
+  const handleViewDetails = (user: User) => {
     setSelectedUser(user);
     setIsDetailsModalOpen(true);
   };
@@ -419,17 +436,17 @@ const UserTable: React.FC<UserTableProps> = ({
                   <td className="py-6 px-8">
                     <div className="flex items-center gap-4">
                       <div
-                        className={`w-12 h-12 rounded-2xl ${user.avatarColor} flex items-center justify-center text-white font-semibold text-lg shadow-lg border-2 border-white/80 backdrop-blur-sm transition-all duration-300 group-hover:scale-110 group-hover:shadow-xl`}
+                        className={`w-12 h-12 rounded-2xl ${String(user.avatarColor || '')} flex items-center justify-center text-white font-semibold text-lg shadow-lg border-2 border-white/80 backdrop-blur-sm transition-all duration-300 group-hover:scale-110 group-hover:shadow-xl`}
                       >
-                        {user.avatar}
+                        {String(user.avatar || '')}
                       </div>
                       <div>
                         <div className="font-semibold text-gray-900 text-base transition-colors duration-300 group-hover:text-[#8159A8]">
-                          {user.name}
+                          {String(user.name || '')}
                         </div>
                         {user.email && (
                           <div className="text-sm text-gray-600 transition-colors duration-300 group-hover:text-gray-700">
-                            {user.email}
+                            {String(user.email || '')}
                           </div>
                         )}
                       </div>
@@ -438,20 +455,20 @@ const UserTable: React.FC<UserTableProps> = ({
                   <td className="py-6 px-8">
                     <span
                       className={`inline-flex px-4 py-2 text-xs font-semibold rounded-full shadow-md transition-all duration-300 group-hover:shadow-lg ${getRoleColor(
-                        user.role
+                        String(user.role || '')
                       )}`}
                     >
-                      {user.role}
+                      {String(user.role || '')}
                     </span>
                   </td>
                   <td className="py-6 px-8 text-sm text-gray-700 font-medium transition-colors duration-300 group-hover:text-gray-900">
-                    {user.joinedDate}
+                    {String(user.joinedDate || '')}
                   </td>
 
                   {/* Role-specific data cells with proper alignment */}
                   {user.role === "Patient" && selectedRole === "Patient" && (
                     <td className="py-6 px-8 text-sm text-gray-700 transition-colors duration-300 group-hover:text-gray-900">
-                      <div className="font-medium">{user.phone}</div>
+                      <div className="font-medium">{String(user.phone || '')}</div>
                     </td>
                   )}
 
@@ -462,10 +479,10 @@ const UserTable: React.FC<UserTableProps> = ({
                           <Star className="h-4 w-4 text-yellow-500 fill-current" />
                         </div>
                         <span className="font-medium text-gray-900 group-hover:text-[#8159A8] transition-colors duration-300">
-                          {user.rating}
+                          {String(user.rating || '')}
                         </span>
                         <span className="text-xs text-gray-500">
-                          ({user.experience})
+                          ({String(user.experience || '')})
                         </span>
                       </div>
                     </td>
@@ -474,11 +491,11 @@ const UserTable: React.FC<UserTableProps> = ({
                   {user.role === "Guardian" && selectedRole === "Guardian" && (
                     <>
                       <td className="py-6 px-8 text-sm text-gray-700 font-medium transition-colors duration-300 group-hover:text-gray-900">
-                        {user.patient}
+                        {String(user.patient || '')}
                       </td>
                       <td className="py-6 px-8 text-sm text-gray-700 transition-colors duration-300 group-hover:text-gray-900">
                         <span className="inline-flex px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold shadow-sm">
-                          {user.relationship}
+                          {String(user.relationship || '')}
                         </span>
                       </td>
                     </>
@@ -486,7 +503,7 @@ const UserTable: React.FC<UserTableProps> = ({
 
                   {user.role === "Manager" && selectedRole === "Manager" && (
                     <td className="py-6 px-8 text-sm text-gray-700 font-medium transition-colors duration-300 group-hover:text-gray-900">
-                      {user.email}
+                      {String(user.email || '')}
                     </td>
                   )}
 
@@ -608,14 +625,16 @@ const UserTable: React.FC<UserTableProps> = ({
       </div>
 
       {/* Details Modal */}
-      <UserDetailsModal
-        user={selectedUser}
-        isOpen={isDetailsModalOpen}
-        onClose={() => {
-          setIsDetailsModalOpen(false);
-          setSelectedUser(null);
-        }}
-      />
+      {selectedUser && (
+        <UserDetailsModal
+          user={selectedUser}
+          isOpen={isDetailsModalOpen}
+          onClose={() => {
+            setIsDetailsModalOpen(false);
+            setSelectedUser(null);
+          }}
+        />
+      )}
     </>
   );
 };

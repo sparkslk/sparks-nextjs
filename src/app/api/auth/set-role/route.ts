@@ -28,23 +28,6 @@ export async function POST(request: NextRequest) {
         }
 
         // Role-specific validation
-        if (role === UserRole.THERAPIST) {
-            if (!metadata?.licenseNumber) {
-                return NextResponse.json(
-                    { error: "License number is required for therapist role" },
-                    { status: 400 }
-                );
-            }
-        }
-
-        if (role === UserRole.MANAGER) {
-            if (!metadata?.organizationCode) {
-                return NextResponse.json(
-                    { error: "Organization code is required for manager role" },
-                    { status: 400 }
-                );
-            }
-        }
 
         if (role === UserRole.ADMIN) {
             if (!metadata?.adminKey || metadata.adminKey !== process.env.ADMIN_KEY) {

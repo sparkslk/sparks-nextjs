@@ -19,9 +19,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Stepper } from "@/components/ui/stepper";
 import { Upload, FileText, X } from "lucide-react";
@@ -224,13 +222,10 @@ export default function TherapistVerificationPage() {
 
   const validateLicenseNumber = (license: string): string => {
     const licenseRegex = /^[A-Za-z0-9]+$/;
-    if (!license.trim()) {
-      return "License number is required";
-    }
-    if (license.trim().length < 3) {
+    if (license.trim() && license.trim().length < 3) {
       return "License number must be at least 3 characters long";
     }
-    if (!licenseRegex.test(license.trim())) {
+    if (license.trim() && !licenseRegex.test(license.trim())) {
       return "License number should only contain letters and numbers";
     }
     return "";
@@ -502,7 +497,7 @@ export default function TherapistVerificationPage() {
 
       // Redirect to dashboard or success page
       router.push("/therapist/verification/success");
-    } catch (error) {
+    } catch {
       setError("Failed to submit verification. Please try again.");
     } finally {
       setIsLoading(false);
