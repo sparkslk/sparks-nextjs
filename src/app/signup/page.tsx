@@ -8,6 +8,9 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordInput } from "@/components/ui/password-input";
+import { PasswordStrengthIndicator } from "@/components/ui/password-strength-indicator";
+import { validatePassword } from "@/lib/password-validation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import Header from "@/components/landingpage/Header/page";
@@ -63,8 +66,9 @@ export default function SignupPage() {
             return;
         }
 
-        if (formData.password.length < 6) {
-            setError("Password must be at least 6 characters long.");
+        const passwordValidation = validatePassword(formData.password);
+        if (!passwordValidation.isValid) {
+            setError(passwordValidation.errors.join(". "));
             setIsLoading(false);
             return;
         }
@@ -120,7 +124,7 @@ export default function SignupPage() {
     const handleGoogleSignIn = async () => {
         setIsLoading(true);
         try {
-            await signIn("google", { callbackUrl: "/dashboard" });
+            await signIn("google", { callbackUrl: "/dashboard-redirect" });
         } catch {
             setError("Google sign-in failed. Please try again.");
             setIsLoading(false);
@@ -259,26 +263,27 @@ export default function SignupPage() {
                                         <Label htmlFor="password" className="text-sm font-medium">
                                             Password
                                         </Label>
-                                        <Input
+                                        <PasswordInput
                                             id="password"
                                             name="password"
-                                            type="password"
                                             placeholder="Create a password"
                                             value={formData.password}
                                             onChange={handleInputChange}
                                             required
                                             className="h-11"
                                         />
+                                        {formData.password && (
+                                            <PasswordStrengthIndicator password={formData.password} />
+                                        )}
                                     </div>
 
                                     <div className="space-y-2">
                                         <Label htmlFor="confirmPassword" className="text-sm font-medium">
                                             Confirm Password
                                         </Label>
-                                        <Input
+                                        <PasswordInput
                                             id="confirmPassword"
                                             name="confirmPassword"
-                                            type="password"
                                             placeholder="Confirm your password"
                                             value={formData.confirmPassword}
                                             onChange={handleInputChange}
