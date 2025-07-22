@@ -590,12 +590,8 @@ export default function PatientDetailsPage() {
                       className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white shadow-sm min-w-[140px] focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     >
                       <option value="">All Types</option>
-                      <option value="INDIVIDUAL">Individual</option>
-                      <option value="GROUP">Group</option>
-                      <option value="FAMILY">Family</option>
-                      <option value="ASSESSMENT">Assessment</option>
-                      <option value="CONSULTATION">Consultation</option>
-                      <option value="FOLLOW_UP">Follow-up</option>
+                      <option value="Individual">Individual</option>
+                      <option value="With Guardian">With Guardian</option>
                     </select>
                   </div>
                   
@@ -1155,16 +1151,15 @@ export default function PatientDetailsPage() {
                       >
                         {assessment.status}
                       </span>
-                      
-                      </div>
+                    </div>
                     {/* Title below badges */}
                     <h4 className="text-lg font-semibold text-[#8159A8] mb-2 truncate">{assessment.title}</h4>
                     <div className="flex flex-col gap-1 text-sm text-gray-700 flex-1 mt-1">
                       <div>
-                      <span className="font-medium text-black">Assigned:</span> {assessment.assignedDate}
+                        <span className="font-medium text-black">Assigned:</span> {assessment.assignedDate}
                       </div>
                       <div>
-                      <span className="font-medium text-black">Deadline:</span> {assessment.deadline}
+                        <span className="font-medium text-black">Deadline:</span> {assessment.deadline}
                       </div>
                       {assessment.completedAt && (
                       <div>
@@ -1179,17 +1174,19 @@ export default function PatientDetailsPage() {
                     </div>
                     <div className="mt-4 flex gap-2">
                       <div className="flex-1 flex justify-end">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="hover:bg-red-50 text-red-600"
-                          onClick={() => {
-                            // TODO: Replace with API call to unassign the assessment
-                            alert(`Unassigned "${assessment.title}" (mock action)`);
-                          }}
-                        >
-                          Unassign
-                        </Button>
+                        {assessment.status === 'Pending' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="hover:bg-red-50 text-red-600"
+                            onClick={() => {
+                              // TODO: Replace with API call to unassign the assessment
+                              alert(`Unassigned "${assessment.title}" (mock action)`);
+                            }}
+                          >
+                            Unassign
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </div>
