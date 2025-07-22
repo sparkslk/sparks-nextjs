@@ -359,7 +359,7 @@ export default function PatientDetailsPage() {
       type: "Therapy Records",
       uploadDate: "January 16, 2024",
       size: "4.7 MB",
-      description: "Records from previous therapy sessions with Dr. Sarah Williams (2022-2023)",
+      description: "Records from previous therapy sessions with Dr. Ravindi Fernando (2022-2023)",
       uploadedBy: "Patient"
     },
     {
@@ -368,7 +368,7 @@ export default function PatientDetailsPage() {
       type: "Assessment",
       uploadDate: "January 18, 2024",
       size: "3.2 MB",
-      description: "Comprehensive ADHD assessment conducted by Dr. Michael Chen in December 2023",
+      description: "Comprehensive ADHD assessment conducted by Dr. Anuki Wanniarachchi 2023",
       uploadedBy: "Patient"
     },
    

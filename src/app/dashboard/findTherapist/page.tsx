@@ -95,7 +95,7 @@ export default function FindTherapistPage() {
     const mockTherapists = useMemo<Therapist[]>(() => [
         {
             id: "1",
-            name: "Dr. Ben Carter",
+            name: "Dr. Anuki Wanniarachchi",
             title: "Clinical Psychologist",
             specialties: ["Anxiety & Depression", "Trauma Therapy", "ADHD & Behavioral Issues"],
             rating: 4.9,
@@ -108,12 +108,12 @@ export default function FindTherapistPage() {
                 timeCategory: "today"
             },
             cost: { isFree: false, priceRange: "Rs. 800-1200/session" },
-            languages: ["English", "Spanish"],
-            tags: ["English", "Spanish"]
+            languages: ["English"],
+            tags: ["English"]
         },
         {
             id: "2",
-            name: "Sarah Miller, LCSW",
+            name: "Dr. Kasun De Zoysa",
             title: "Licensed Clinical Social Worker",
             specialties: ["Depression & Anxiety", "Trauma & PTSD", "Life Transitions"],
             rating: 4.8,
@@ -144,12 +144,12 @@ export default function FindTherapistPage() {
                 timeCategory: "thisWeek"
             },
             cost: { isFree: false, priceRange: "Rs. 1000-1500/session" },
-            languages: ["English", "Spanish"],
+            languages: ["English", "Sinhala"],
             tags: ["English", "Spanish"]
         },
         {
             id: "4",
-            name: "Michael Thompson, PhD",
+            name: "Dr. Nimal Perera, PhD",
             title: "Clinical Psychologist",
             specialties: ["ADHD & Behavioral Issues", "Autism Spectrum", "Learning Disabilities"],
             rating: 4.9,
@@ -167,7 +167,7 @@ export default function FindTherapistPage() {
         },
         {
             id: "5",
-            name: "Dr. Lisa Chen",
+            name: "Dr. Ravindi Fernando",
             title: "Psychiatrist",
             specialties: ["Anxiety & Depression", "Bipolar Disorder", "Medication Management"],
             rating: 4.8,

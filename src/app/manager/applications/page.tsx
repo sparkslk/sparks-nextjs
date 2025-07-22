@@ -71,12 +71,12 @@ interface TherapistApplication {
 const mockApplications: TherapistApplication[] = [
   {
     id: "1",
-    name: "Dr. Sarah Johnson",
-    email: "sarah.johnson@email.com",
+    name: "Dr. Dinithi Gunawardena",
+    email: "dinithi@email.com",
     phone: "0771234567",
     dateOfBirth: "1985-03-15",
     address: {
-      houseNumber: "123",
+      houseNumber: "312/2,H",
       streetName: "Colombo Road",
       city: "Kandy",
     },
@@ -98,8 +98,8 @@ const mockApplications: TherapistApplication[] = [
       ],
     },
     reference: {
-      firstName: "John",
-      lastName: "Smith",
+      firstName: "Dr.Anuki",
+      lastName: "Wanniarachchi",
       professionalTitle: "Senior Psychiatrist",
       phoneNumber: "0779876543",
     },
@@ -108,8 +108,8 @@ const mockApplications: TherapistApplication[] = [
   },
   {
     id: "2",
-    name: "Dr. Michael Chen",
-    email: "michael.chen@email.com",
+    name: "Dr. Chameera Jayasinghe",
+    email: "chameerajayasinghe@email.com",
     phone: "0762345678",
     dateOfBirth: "1980-07-22",
     address: {
@@ -135,8 +135,8 @@ const mockApplications: TherapistApplication[] = [
       additionalCertifications: [],
     },
     reference: {
-      firstName: "Emma",
-      lastName: "Wilson",
+      firstName: "Dr. Malini",
+      lastName: "Perera",
       professionalTitle: "Chief Psychologist",
       phoneNumber: "0758765432",
     },

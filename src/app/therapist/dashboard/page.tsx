@@ -102,32 +102,32 @@ export default function TherapistDashboard() {
 
     const quickActions = [
         {
-            title: "Session Requests",
-            description: "Review and approve session requests",
+            title: "View Sessions",
+            description: "See all your upcoming and past therapy sessions",
             icon: Bell,
-            onClick: () => router.push("/therapist/requests")
+            onClick: () => router.push("/therapist/sessions")
         },
         {
-            title: "Schedule Session",
-            description: "Book a new therapy session",
+            title: "Set Availability",
+            description: "Update your available time slots for sessions",
             icon: Calendar,
-            onClick: () => router.push("/therapist/appointments/new")
+            onClick: () => router.push("/therapist/setAvailability")
         },
         {
-            title: "Add New Patient",
-            description: "Register a new patient",
+            title: "View Patients",
+            description: "Browse and manage your patients",
             icon: UserPlus,
-            onClick: () => router.push("/therapist/patients/new")
+            onClick: () => router.push("/therapist/patients")
         },
         {
-            title: "Create Assessment",
-            description: "Design a new assessment form",
+            title: "View Assessments",
+            description: "Access and manage assessments",
             icon: ClipboardList,
-            onClick: () => router.push("/therapist/assessments/new")
+            onClick: () => router.push("/therapist/assessments")
         },
         {
             title: "View Reports",
-            description: "Generate patient progress reports",
+            description: "Review and generate patient progress reports",
             icon: FileText,
             onClick: () => router.push("/therapist/reports")
         }
@@ -177,7 +177,7 @@ export default function TherapistDashboard() {
             <div className="container mx-auto p-6 space-y-6">
                 {/* Header */}
                 <div className="mb-8">
-                    <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">
+                    <h1 className="text-3xl font-bold text-primary">
                         Therapist Dashboard
                     </h1>
                     <p className="text-muted-foreground mt-2">
@@ -186,7 +186,7 @@ export default function TherapistDashboard() {
                 </div>
 
                 {/* Statistics Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <StatCard
                         title="Total Patients"
                         value={stats.totalPatients}
@@ -200,7 +200,7 @@ export default function TherapistDashboard() {
                         value={stats.todayAppointments}
                         description="Scheduled sessions for today"
                         icon={Calendar}
-                        color="success"
+                        color="primary"
                     />
                     <StatCard
                         title="Completed Sessions"
@@ -208,14 +208,7 @@ export default function TherapistDashboard() {
                         description="This month"
                         icon={CheckCircle}
                         trend={{ value: 8, isPositive: true }}
-                        color="default"
-                    />
-                    <StatCard
-                        title="Pending Tasks"
-                        value={stats.pendingTasks}
-                        description="Assessments and reviews"
-                        icon={Clock}
-                        color="warning"
+                        color="primary"
                     />
                 </div>
 
