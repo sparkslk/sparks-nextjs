@@ -77,8 +77,8 @@ interface TherapistProfile {
 }
 
 const mockProfile: TherapistProfile = {
-  name: "Dr. Sarah Johnson",
-  email: "sarah.johnson@email.com",
+  name: "Dr. Ravindi Fernando",
+  email: "ravindi@email.com",
   phone: "0771234567",
   dateOfBirth: "1985-03-15",
   gender: "female",
@@ -98,7 +98,7 @@ const mockProfile: TherapistProfile = {
     "Extensive experience working with ADHD patients including children and adults.",
   hourlyRate: "2500",
   bankDetails: {
-    accountHolderName: "Sarah Johnson",
+    accountHolderName: "Ravindi Fernando",
     accountNumber: "1234567890123",
     bankName: "Commercial Bank",
     branchName: "Kandy",

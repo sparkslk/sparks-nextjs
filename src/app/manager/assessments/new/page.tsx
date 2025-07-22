@@ -69,12 +69,12 @@ export default function NewAssessmentPage() {
     try {
       // Mock data - replace with actual API call
       const mockPatients: Patient[] = [
-        { id: "p1", name: "Sarah Johnson", email: "sarah.johnson@email.com" },
-        { id: "p2", name: "Michael Chen", email: "michael.chen@email.com" },
-        { id: "p3", name: "Emma Davis", email: "emma.davis@email.com" },
-        { id: "p4", name: "David Wilson", email: "david.wilson@email.com" },
-        { id: "p5", name: "Lisa Rodriguez", email: "lisa.rodriguez@email.com" },
-        { id: "p6", name: "James Thompson", email: "james.thompson@email.com" },
+        { id: "p1", name: "Ravindi Fernando", email: "ravindifernando@gmail.com" },
+        { id: "p2", name: "Anuki Wanniarachchi", email: "anukiw@gmail.com" },
+        { id: "p3", name: "Nimal Perera", email: "nimalperera@e=gmail.com" },
+        { id: "p4", name: "Malini De Silve", email: "malini@e=gmail.com" },
+        { id: "p5", name: "Kamal Wanigasooriya", email: "kamal@gmail.com" },
+        { id: "p6", name: "Sandhavi Gunasekara", email: "sandhavi@gmail.com" },
       ];
       setPatients(mockPatients);
     } catch (error) {
