@@ -7,6 +7,7 @@ interface Session {
   sessionDetails: string;
   amount: string;
   commission: string;
+  scheduledAt: string;
 }
 
 interface SessionModalProps {
@@ -54,9 +55,22 @@ const SessionModal: React.FC<SessionModalProps> = ({ isOpen, onClose, sessions =
                     <div className="text-sm text-gray-500">{session.sessionDetails}</div>
                     <div className="text-sm text-gray-400">Commission: {session.commission}</div>
                   </div>
-                  <div className="text-right">
-                    <div className="font-semibold text-[#8159A8]">
-                      Rs. {session.amount.toLocaleString()}
+                  <div className="text-right flex flex-col items-end">
+                    <div className="text-sm font-semibold text-gray-700 mb-0.5">
+                      {session.scheduledAt ?
+                        new Date(session.scheduledAt).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        }) : "-"}
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      {session.scheduledAt ?
+                        new Date(session.scheduledAt).toLocaleTimeString("en-US", {
+                          hour: "numeric",
+                          minute: "2-digit",
+                          hour12: true,
+                        }) : "-"}
                     </div>
                   </div>
                 </div>
