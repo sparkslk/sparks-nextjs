@@ -83,7 +83,7 @@ model Organization {
 model Therapist {
   id              String           @id @default(cuid())
   userId          String           @unique
-  licenseNumber   String           @unique
+  licenseNumber   String?          @unique
   specialization  String[]
   experience      Int?
   bio             String?
