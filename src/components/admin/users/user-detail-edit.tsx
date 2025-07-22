@@ -22,11 +22,24 @@ import {
 import { AlertCircle, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
+// Basic User type to replace 'any'
+interface User {
+  id?: string;
+  fullName?: string;
+  email?: string;
+  role?: string;
+  phone?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  address?: string;
+  [key: string]: unknown;
+}
+
 interface UserDetailEditProps {
-  user: any;
+  user: User;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (updatedUser: any) => void;
+  onSave: (updatedUser: User) => void;
 }
 
 const UserDetailEdit: React.FC<UserDetailEditProps> = ({
@@ -35,7 +48,7 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
   onOpenChange,
   onSave,
 }) => {
-  const [formData, setFormData] = useState<any>({});
+  const [formData, setFormData] = useState<User>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -72,7 +85,7 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
   }, [user]);
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData((prev: any) => ({
+    setFormData((prev: User) => ({
       ...prev,
       [field]: value,
     }));
@@ -86,7 +99,7 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
 
     try {
       // Prepare the data to send to API based on role
-      let apiData: any = {
+      let apiData: User & Record<string, unknown> = {
         role: user.role,
       };
 

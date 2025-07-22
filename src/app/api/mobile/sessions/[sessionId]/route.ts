@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 // Get specific session details
 export async function GET(
   request: NextRequest,
-  { params }: { params: { sessionId: string } }
+  { params }: { params: Promise<{ sessionId: string }> }
 ) {
   try {
     const authHeader = request.headers.get("authorization");
@@ -20,8 +20,9 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { sessionId } = await params;
     const session = await prisma.session.findUnique({
-      where: { id: params.sessionId },
+      where: { id: sessionId },
       include: {
         patient: {
           select: {
@@ -102,7 +103,7 @@ export async function GET(
 // Cancel a session
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { sessionId: string } }
+  { params }: { params: Promise<{ sessionId: string }> }
 ) {
   try {
     const authHeader = request.headers.get("authorization");
@@ -117,10 +118,11 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { sessionId } = await params;
     const { reason } = await request.json();
 
     const session = await prisma.session.findUnique({
-      where: { id: params.sessionId },
+      where: { id: sessionId },
       include: {
         patient: true,
         therapist: {
@@ -166,7 +168,7 @@ export async function DELETE(
 
     // Update session status
     await prisma.session.update({
-      where: { id: params.sessionId },
+      where: { id: sessionId },
       data: {
         status: "CANCELLED",
         cancelReason: reason || "Cancelled by patient"
@@ -203,7 +205,7 @@ export async function DELETE(
 // Reschedule a session
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { sessionId: string } }
+  { params }: { params: Promise<{ sessionId: string }> }
 ) {
   try {
     const authHeader = request.headers.get("authorization");
@@ -218,6 +220,7 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { sessionId } = await params;
     const { newDate, newTime, reason } = await request.json();
 
     if (!newDate || !newTime) {
@@ -228,7 +231,7 @@ export async function PATCH(
     }
 
     const session = await prisma.session.findUnique({
-      where: { id: params.sessionId },
+      where: { id: sessionId },
       include: {
         patient: true,
         therapist: {
@@ -267,7 +270,7 @@ export async function PATCH(
     // Check if the new time slot is available
     const existingSession = await prisma.session.findFirst({
       where: {
-        id: { not: params.sessionId },
+        id: { not: sessionId },
         therapistId: session.therapistId,
         scheduledAt: {
           gte: new Date(newScheduledAt.getTime() - session.duration * 60000),
@@ -288,7 +291,7 @@ export async function PATCH(
 
     // Update session
     const updatedSession = await prisma.session.update({
-      where: { id: params.sessionId },
+      where: { id: sessionId },
       data: {
         scheduledAt: newScheduledAt,
         status: "PENDING" // Change to pending for therapist approval

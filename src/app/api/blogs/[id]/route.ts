@@ -7,10 +7,11 @@ const prisma = new PrismaClient();
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const blogId = parseInt(params.id);
+    const { id } = await params;
+    const blogId = parseInt(id);
 
     if (isNaN(blogId)) {
       return NextResponse.json({ error: "Invalid blog ID" }, { status: 400 });
@@ -63,7 +64,7 @@ export async function GET(
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -75,7 +76,8 @@ export async function PATCH(
       );
     }
 
-    const id = parseInt(params.id);
+    const { id: idParam } = await params;
+    const id = parseInt(idParam);
 
     if (isNaN(id)) {
       return NextResponse.json({ error: "Invalid blog ID" }, { status: 400 });
@@ -159,7 +161,7 @@ export async function PATCH(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -171,7 +173,8 @@ export async function DELETE(
       );
     }
 
-    const id = parseInt(params.id);
+    const { id: idParam } = await params;
+    const id = parseInt(idParam);
 
     if (isNaN(id)) {
       return NextResponse.json({ error: "Invalid blog ID" }, { status: 400 });

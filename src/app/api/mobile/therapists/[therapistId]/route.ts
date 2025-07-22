@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 // Get detailed therapist information
 export async function GET(
   request: NextRequest,
-  { params }: { params: { therapistId: string } }
+  { params }: { params: Promise<{ therapistId: string }> }
 ) {
   try {
     const authHeader = request.headers.get("authorization");
@@ -20,8 +20,10 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { therapistId } = await params;
+
     const therapist = await prisma.therapist.findUnique({
-      where: { id: params.therapistId },
+      where: { id: therapistId },
       include: {
         user: {
           select: {

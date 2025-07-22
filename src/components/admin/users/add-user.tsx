@@ -21,10 +21,23 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { UserPlus, Loader2, AlertTriangle, Eye, EyeOff } from "lucide-react";
 
+// Basic User type to replace 'any'
+interface User {
+  id?: string;
+  fullName?: string;
+  email?: string;
+  phone?: string;
+  role?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  address?: string;
+  [key: string]: unknown; // Allow other properties
+}
+
 interface AddUserProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAdd: (newUser: any) => void;
+  onAdd: (newUser: User) => void;
 }
 
 const AddUser: React.FC<AddUserProps> = ({ open, onOpenChange, onAdd }) => {
@@ -95,7 +108,7 @@ const AddUser: React.FC<AddUserProps> = ({ open, onOpenChange, onAdd }) => {
 
     try {
       // Prepare data based on role
-      let userData: any = {
+      let userData: User & Record<string, unknown> = {
         role: selectedRole,
         temporaryPassword: formData.temporaryPassword,
       };

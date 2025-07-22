@@ -7,7 +7,7 @@ import { MedicationHistoryAction, MedicationHistoryEntry } from '@/types/medicat
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string; medicationId: string } }
+  { params }: { params: Promise<{ id: string; medicationId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);

@@ -13,8 +13,17 @@ import { Button } from "@/components/ui/button";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
+// Basic User type to replace 'any'
+interface User {
+  id?: string;
+  fullName?: string;
+  email?: string;
+  role?: string;
+  [key: string]: unknown;
+}
+
 interface UserDeleteProps {
-  user: any;
+  user: User;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onDelete: (userId: string | number) => void;

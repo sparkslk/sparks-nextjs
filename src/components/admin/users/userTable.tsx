@@ -22,12 +22,25 @@ import {
   Shield,
 } from "lucide-react";
 
+// Basic User type to replace 'any'
+interface User {
+  id?: string;
+  fullName?: string;
+  email?: string;
+  role?: string;
+  phone?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  address?: string;
+  [key: string]: unknown;
+}
+
 interface UserTableProps {
   selectedRole: string;
-  filteredUsers: any[];
-  setEditUser: (user: any) => void;
+  filteredUsers: User[];
+  setEditUser: (user: User) => void;
   setEditModalOpen: (open: boolean) => void;
-  setDeleteUser: (user: any) => void;
+  setDeleteUser: (user: User) => void;
   setDeleteModalOpen: (open: boolean) => void;
   setEmergencyContactDetails: (details: string | null) => void;
   setEmergencyContactOpen: (open: boolean) => void;
@@ -51,7 +64,7 @@ function getRoleColor(role: string) {
 
 // Updated UserDetailsModal Component with purple color scheme
 const UserDetailsModal: React.FC<{
-  user: any;
+  user: User;
   isOpen: boolean;
   onClose: () => void;
 }> = ({ user, isOpen, onClose }) => {
@@ -294,12 +307,16 @@ const UserTable: React.FC<UserTableProps> = ({
   setEditModalOpen,
   setDeleteUser,
   setDeleteModalOpen,
-  setEmergencyContactDetails: _setEmergencyContactDetails,
-  setEmergencyContactOpen: _setEmergencyContactOpen,
+  setEmergencyContactDetails,
+  setEmergencyContactOpen,
   recordsPerPage = 10,
 }) => {
+  // Mark unused parameters to avoid ESLint warnings
+  void setEmergencyContactDetails;
+  void setEmergencyContactOpen;
+  
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
   // Calculate pagination
@@ -349,7 +366,7 @@ const UserTable: React.FC<UserTableProps> = ({
     return pages;
   };
 
-  const handleViewDetails = (user: any) => {
+  const handleViewDetails = (user: User) => {
     setSelectedUser(user);
     setIsDetailsModalOpen(true);
   };

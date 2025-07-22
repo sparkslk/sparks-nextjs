@@ -76,7 +76,7 @@ const getFieldDisplayName = (key: string): string => {
 };
 
 // Helper function to format field values for better readability
-const formatFieldValue = (key: string, value: any): string => {
+const formatFieldValue = (key: string, value: unknown): string => {
   if (value === null || value === undefined) {
     return 'Not set';
   }
@@ -426,7 +426,7 @@ export default function MedicationManagement({
       let response;
       if (editingMedication) {
         // Helper function to normalize empty values for comparison
-        const normalizeEmpty = (value: any): string | null => {
+        const normalizeEmpty = (value: unknown): string | null => {
           if (value === null || value === undefined || value === '') {
             return null;
           }
