@@ -171,11 +171,11 @@ export function TherapistSidebar({ children }: TherapistSidebarProps) {
       {/* Brand Header */}
       <SidebarHeader className="py-6 px-4 border-b bg-gradient-to-r from-primary/10 to-primary/5">
         <div className="flex items-center gap-3">
-          <div className="flex aspect-square size-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <User className="size-5" />
-          </div>
+            <div className="flex aspect-square size-10 items-center justify-center rounded-lg bg-trasparent">
+            <img src="\images\sparkslogo-bg.png" alt="Sparks Logo" className="h-10 w-10" />
+            </div>
           <div>
-            <span className="block font-semibold text-base tracking-tight">Sparks Therapy</span>
+            <span className="block font-semibold text-base tracking-tight">Sparks</span>
             <span className="block text-xs text-muted-foreground">Therapist Portal</span>
           </div>
         </div>
