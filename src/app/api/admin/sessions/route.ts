@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     const endDate = searchParams.get("endDate");
 
     // Build where clause dynamically
-    const whereClause: any = {};
+    const whereClause: Record<string, unknown> = {};
 
     if (status && status !== "All Status") {
       whereClause.status = status;

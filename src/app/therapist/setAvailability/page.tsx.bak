@@ -48,12 +48,12 @@ interface SessionSlot {
   parentAvailabilityId: string;
 }
 
-// interface AvailabilityStats {
-//   totalHours: number;
-//   availableDays: number;
-//   maxSessionsPerWeek: number;
-//   averageSessionsPerDay: number;
-// }
+interface AvailabilityStats {
+  totalHours: number;
+  availableDays: number;
+  maxSessionsPerWeek: number;
+  averageSessionsPerDay: number;
+}
 
 function SetAvailabilityPage(): React.JSX.Element {
   const { status: authStatus } = useSession();
@@ -164,39 +164,39 @@ function SetAvailabilityPage(): React.JSX.Element {
   };
 
   // const calculateStats = (): AvailabilityStats => {
-  //   const activeSlots = timeSlots.filter((slot) => slot.isActive);
+    const activeSlots = timeSlots.filter((slot) => slot.isActive);
 
-  //   const totalHours = activeSlots.reduce((total, slot) => {
-  //     const start = new Date(`1970-01-01T${slot.startTime}:00`);
-  //     const end = new Date(`1970-01-01T${slot.endTime}:00`);
-  //     const hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
-  //     return total + hours;
-  //   }, 0);
+    const totalHours = activeSlots.reduce((total, slot) => {
+      const start = new Date(`1970-01-01T${slot.startTime}:00`);
+      const end = new Date(`1970-01-01T${slot.endTime}:00`);
+      const hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+      return total + hours;
+    }, 0);
 
-  //   const availableDays = new Set(activeSlots.map((slot) => slot.dayOfWeek))
-  //     .size;
+    const availableDays = new Set(activeSlots.map((slot) => slot.dayOfWeek))
+      .size;
 
-  //   const maxSessionsPerWeek = activeSlots.reduce((total, slot) => {
-  //     const start = new Date(`1970-01-01T${slot.startTime}:00`);
-  //     const end = new Date(`1970-01-01T${slot.endTime}:00`);
-  //     const totalMinutes = (end.getTime() - start.getTime()) / (1000 * 60);
-  //     const sessionMinutes = slot.sessionDuration + slot.breakBetweenSessions;
-  //     const sessionsPerDay = Math.floor(totalMinutes / sessionMinutes);
+    const maxSessionsPerWeek = activeSlots.reduce((total, slot) => {
+      const start = new Date(`1970-01-01T${slot.startTime}:00`);
+      const end = new Date(`1970-01-01T${slot.endTime}:00`);
+      const totalMinutes = (end.getTime() - start.getTime()) / (1000 * 60);
+      const sessionMinutes = slot.sessionDuration + slot.breakBetweenSessions;
+      const sessionsPerDay = Math.floor(totalMinutes / sessionMinutes);
 
-  //     const daysPerWeek = slot.recurrencePattern?.days?.length || 1;
-  //     return total + sessionsPerDay * daysPerWeek;
-  //   }, 0);
+      const daysPerWeek = slot.recurrencePattern?.days?.length || 1;
+      return total + sessionsPerDay * daysPerWeek;
+    }, 0);
 
-  //   const averageSessionsPerDay =
-  //     availableDays > 0 ? maxSessionsPerWeek / availableDays : 0;
+    const averageSessionsPerDay =
+      availableDays > 0 ? maxSessionsPerWeek / availableDays : 0;
 
-  //   return {
-  //     totalHours,
-  //     availableDays,
-  //     maxSessionsPerWeek,
-  //     averageSessionsPerDay,
-  //   };
-  // };
+    return {
+      totalHours,
+      availableDays,
+      maxSessionsPerWeek,
+      averageSessionsPerDay,
+    };
+  };
 
   const generateSessionSlots = (timeSlots: TimeSlot[]): SessionSlot[] => {
     const sessionSlots: SessionSlot[] = [];

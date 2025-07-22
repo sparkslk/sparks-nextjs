@@ -552,17 +552,17 @@ export default function MedicationManagement({
   const activeMedications = medications.filter(med => med.isActive && !med.isDiscontinued);
   const discontinuedMedications = medications.filter(med => med.isDiscontinued);
   
-  // Calculate recent activity
-  const recentlyUpdated = medications.filter(med => {
-    const daysSinceUpdate = (new Date().getTime() - new Date(med.updatedAt).getTime()) / (1000 * 60 * 60 * 24);
-    return daysSinceUpdate <= 7; // Updated in last 7 days
-  });
+  // Calculate recent activity (currently unused but may be needed for future features)
+  // const recentlyUpdated = medications.filter(med => {
+  //   const daysSinceUpdate = (new Date().getTime() - new Date(med.updatedAt).getTime()) / (1000 * 60 * 60 * 24);
+  //   return daysSinceUpdate <= 7; // Updated in last 7 days
+  // });
 
-  const recentlyDiscontinued = discontinuedMedications.filter(med => {
-    if (!med.discontinuedAt) return false;
-    const daysSinceDiscontinued = (new Date().getTime() - new Date(med.discontinuedAt).getTime()) / (1000 * 60 * 60 * 24);
-    return daysSinceDiscontinued <= 7; // Discontinued in last 7 days
-  });
+  // const recentlyDiscontinued = discontinuedMedications.filter(med => {
+  //   if (!med.discontinuedAt) return false;
+  //   const daysSinceDiscontinued = (new Date().getTime() - new Date(med.discontinuedAt).getTime()) / (1000 * 60 * 60 * 24);
+  //   return daysSinceDiscontinued <= 7; // Discontinued in last 7 days
+  // });
 
   return (
     <div className="space-y-6">

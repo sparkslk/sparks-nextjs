@@ -14,13 +14,12 @@ import {
   CheckSquare,
   ArrowLeft,
   AlertCircle,
-  CheckCircle,
   XCircle,
   Clock3,
   Edit,
   Plus
 } from "lucide-react";
-import { format, differenceInYears } from "date-fns";
+import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"; // Make sure you have a Dialog component
 
 interface DetailedSession {
@@ -154,7 +153,7 @@ export default function SessionDetailsPage() {
   const [showTasks, setShowTasks] = useState(false);
   const [showAddMedication, setShowAddMedication] = useState(false);
   const [showEditMedication, setShowEditMedication] = useState(false);
-  const [editMedication, setEditMedication] = useState<any>(null);
+  const [editMedication, setEditMedication] = useState<unknown>(null);
   const [showAssignTask, setShowAssignTask] = useState(false);
   
   const params = useParams();
@@ -241,37 +240,37 @@ export default function SessionDetailsPage() {
     }
   };
 
-  const getTaskStatusIcon = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'completed':
-        return <CheckCircle className="w-4 h-4 text-green-600" />;
-      case 'in_progress':
-        return <Clock3 className="w-4 h-4 text-blue-600" />;
-      case 'overdue':
-        return <XCircle className="w-4 h-4 text-red-600" />;
-      default:
-        return <AlertCircle className="w-4 h-4 text-gray-600" />;
-    }
-  };
+  // const getTaskStatusIcon = (status: string) => {
+  //   switch (status.toLowerCase()) {
+  //     case 'completed':
+  //       return <CheckCircle className="w-4 h-4 text-green-600" />;
+  //     case 'in_progress':
+  //       return <Clock3 className="w-4 h-4 text-blue-600" />;
+  //     case 'overdue':
+  //       return <XCircle className="w-4 h-4 text-red-600" />;
+  //     default:
+  //       return <AlertCircle className="w-4 h-4 text-gray-600" />;
+  //   }
+  // };
 
-  const getPriorityColor = (priority: number) => {
-    switch (priority) {
-      case 5:
-        return 'bg-red-100 text-red-800';
-      case 4:
-        return 'bg-orange-100 text-orange-800';
-      case 3:
-        return 'bg-yellow-100 text-yellow-800';
-      case 2:
-        return 'bg-blue-100 text-blue-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
+  // const getPriorityColor = (priority: number) => {
+  //   switch (priority) {
+  //     case 5:
+  //       return 'bg-red-100 text-red-800';
+  //     case 4:
+  //       return 'bg-orange-100 text-orange-800';
+  //     case 3:
+  //       return 'bg-yellow-100 text-yellow-800';
+  //     case 2:
+  //       return 'bg-blue-100 text-blue-800';
+  //     default:
+  //       return 'bg-gray-100 text-gray-800';
+  //   }
+  // };
 
-  const calculateAge = (dateOfBirth: string) => {
-    return differenceInYears(new Date(), new Date(dateOfBirth));
-  };
+  // const calculateAge = (dateOfBirth: string) => {
+  //   return differenceInYears(new Date(), new Date(dateOfBirth));
+  // };
 
   const availableTasks = [
     {

@@ -45,7 +45,7 @@ export default function VerificationApprovedPage() {
             <CardContent className="text-center space-y-6">
               <p className="text-muted-foreground text-lg leading-relaxed">
                 Welcome to the ADHD Management Platform! Your credentials have
-                been verified and you're now ready to start helping patients on
+                been verified and you&apos;re now ready to start helping patients on
                 their ADHD journey.
               </p>
 

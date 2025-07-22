@@ -92,7 +92,7 @@ export default function FindTherapistPage() {
     }, []);
 
     // Mock data as fallback
-    const mockTherapists: Therapist[] = [
+    const mockTherapists = React.useMemo<Therapist[]>(() => [
         {
             id: "1",
             name: "Dr. Ben Carter",
@@ -183,7 +183,7 @@ export default function FindTherapistPage() {
             languages: ["English", "Mandarin"],
             tags: ["English", "Mandarin"]
         }
-    ];
+    ], []);
 
     // Fetch therapists from API
     useEffect(() => {

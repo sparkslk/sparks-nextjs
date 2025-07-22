@@ -56,7 +56,8 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(req: NextRequest) {
     try {
-        const session = await requireApiAuth(req);
+        // const session = await requireApiAuth(req);
+        await requireApiAuth(req);
         const { searchParams } = new URL(req.url);
 
         const therapistId = searchParams.get('therapistId');
@@ -96,7 +97,7 @@ export async function GET(req: NextRequest) {
         // Get all available slots for this day
         const availableSlots: string[] = [];
 
-        therapist.availability.forEach((slot: any) => {
+        therapist.availability.forEach((slot: {isActive?: boolean; recurrencePattern?: {days?: number[]}; dayOfWeek?: number; startTime: string; endTime: string; sessionDuration?: number; breakBetweenSessions?: number}) => {
             if (!slot.isActive) return;
 
             // Check if this slot applies to the requested day
@@ -110,7 +111,7 @@ export async function GET(req: NextRequest) {
             const startTime = new Date(`1970-01-01T${slot.startTime}:00`);
             const endTime = new Date(`1970-01-01T${slot.endTime}:00`);
 
-            let currentTime = new Date(startTime);
+            const currentTime = new Date(startTime);
             const sessionDuration = slot.sessionDuration || 60;
             const breakDuration = slot.breakBetweenSessions || 15;
             const totalSlotDuration = sessionDuration + breakDuration;

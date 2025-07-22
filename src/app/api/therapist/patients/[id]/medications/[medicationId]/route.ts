@@ -6,7 +6,7 @@ import {
   UpdateMedicationData, 
   DiscontinueMedicationData,
   MedicationFrequency,
-  MedicationHistoryAction
+  // MedicationHistoryAction
 } from '@/types/medications';
 
 export async function PUT(
@@ -141,8 +141,8 @@ export async function PUT(
           medicationId: medicationId,
           action: 'UPDATED',
           changedBy: session.user.id,
-          previousValues: previousValues as Record<string, any>,
-          newValues: newValues as Record<string, any>,
+          previousValues: previousValues as Record<string, unknown>,
+          newValues: newValues as Record<string, unknown>,
           notes: `Updated ${changeDescriptions.join(', ')} for ${updatedMedication.name}`,
         },
       });
@@ -296,12 +296,12 @@ export async function PATCH(
         previousValues: {
           isActive: existingMedication.isActive,
           isDiscontinued: existingMedication.isDiscontinued,
-        } as Record<string, any>,
+        } as Record<string, unknown>,
         newValues: {
           isActive: false,
           isDiscontinued: true,
           discontinuedAt: discontinuedMedication.discontinuedAt?.toISOString(),
-        } as Record<string, any>,
+        } as Record<string, unknown>,
         reason: body.reason,
         notes: `${discontinuedMedication.name} has been discontinued${body.reason ? `: ${body.reason}` : ''}`,
       },

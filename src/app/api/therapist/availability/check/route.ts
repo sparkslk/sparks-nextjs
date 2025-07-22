@@ -63,7 +63,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function POST(req: NextRequest) {
     try {
-        const session = await requireApiAuth(req);
+        await requireApiAuth(req);
         const { therapistId, dateTime, duration = 60 } = await req.json();
 
         if (!therapistId || !dateTime) {
@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Check if the requested time falls within any availability slot
-        const isAvailable = therapist.availability.some((slot: any) => {
+        const isAvailable = therapist.availability.some((slot: {recurrencePattern?: {days?: number[]}; dayOfWeek?: number; startTime: string; endTime: string}) => {
             // Check if the day matches
             if (slot.recurrencePattern?.days) {
                 if (!slot.recurrencePattern.days.includes(dayOfWeek)) {
@@ -174,10 +174,10 @@ export async function POST(req: NextRequest) {
 }
 
 // Helper function to get suggested time slots
-function getSuggestedSlots(availability: any[], dayOfWeek: number, duration: number): string[] {
+function getSuggestedSlots(availability: Array<{isActive?: boolean; recurrencePattern?: {days?: number[]}; dayOfWeek?: number; startTime: string; endTime: string; sessionDuration?: number; breakBetweenSessions?: number}>, dayOfWeek: number): string[] {
     const suggestions: string[] = [];
 
-    availability.forEach((slot: any) => {
+    availability.forEach((slot) => {
         if (!slot.isActive) return;
 
         // Check if this slot applies to the requested day
@@ -191,7 +191,7 @@ function getSuggestedSlots(availability: any[], dayOfWeek: number, duration: num
         const startTime = new Date(`1970-01-01T${slot.startTime}:00`);
         const endTime = new Date(`1970-01-01T${slot.endTime}:00`);
 
-        let currentTime = new Date(startTime);
+        const currentTime = new Date(startTime);
         const sessionDuration = slot.sessionDuration || 60;
         const breakDuration = slot.breakBetweenSessions || 15;
         const totalSlotDuration = sessionDuration + breakDuration;

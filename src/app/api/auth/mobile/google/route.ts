@@ -72,17 +72,17 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        let payload: any;
+        let payload: {email?: string; name?: string; picture?: string; iss?: string} | undefined;
         
         // In development, allow test tokens
         if (process.env.NODE_ENV === 'development' && idToken.startsWith('eyJ')) {
             try {
                 // Try to decode as a test token first
-                const decoded = jwt.verify(idToken, "mock-secret-key") as any;
+                const decoded = jwt.verify(idToken, "mock-secret-key") as {iss?: string; email?: string; name?: string; picture?: string};
                 if (decoded.iss === "https://accounts.google.com") {
                     payload = decoded;
                 }
-            } catch (e) {
+            } catch {
                 // Not a test token, proceed with Google verification
             }
         }
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
                     audience: process.env.GOOGLE_CLIENT_ID,
                 });
                 payload = ticket.getPayload();
-            } catch (error) {
+            } catch {
                 return NextResponse.json(
                     { error: "Invalid ID token" },
                     { status: 401 }

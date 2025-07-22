@@ -1,8 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { useRouter } from "next/navigation";
-import Image from "next/image";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,7 +20,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
   Edit,
@@ -114,11 +111,9 @@ const mockProfile: TherapistProfile = {
 };
 
 export default function TherapistProfilePage() {
-  const router = useRouter();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [profile, setProfile] = useState<TherapistProfile>(mockProfile);
   const [activeSection, setActiveSection] = useState<string | null>(null);
-  const [editData, setEditData] = useState<TherapistProfile | any>({});
+  const [editData, setEditData] = useState<Partial<TherapistProfile>>({});
   const [isLoading, setIsLoading] = useState(false);
 
   const getStatusInfo = (status: string) => {
@@ -154,16 +149,16 @@ export default function TherapistProfilePage() {
     }
   };
 
-  const getCompletionStatus = () => {
-    const completion = profile.profileCompletion;
-    if (completion === 100)
-      return { color: "bg-green-500", status: "Complete" };
-    if (completion >= 80)
-      return { color: "bg-blue-500", status: "Almost Complete" };
-    if (completion >= 60)
-      return { color: "bg-yellow-500", status: "In Progress" };
-    return { color: "bg-red-500", status: "Needs Attention" };
-  };
+  // const getCompletionStatus = () => {
+  //   const completion = profile.profileCompletion;
+  //   if (completion === 100)
+  //     return { color: "bg-green-500", status: "Complete" };
+  //   if (completion >= 80)
+  //     return { color: "bg-blue-500", status: "Almost Complete" };
+  //   if (completion >= 60)
+  //     return { color: "bg-yellow-500", status: "In Progress" };
+  //   return { color: "bg-red-500", status: "Needs Attention" };
+  // };
 
   const startEdit = (section: string) => {
     setActiveSection(section);
@@ -192,7 +187,6 @@ export default function TherapistProfilePage() {
 
   const ProfileHeader = () => {
     const statusInfo = getStatusInfo(profile.verificationStatus);
-    const completionStatus = getCompletionStatus();
 
     return (
       <div className="space-y-6 mb-8">
@@ -385,32 +379,6 @@ export default function TherapistProfilePage() {
               icon={<User className="w-5 h-5" />}
               sectionKey="personal"
               required
-              children={
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <InfoItem
-                    label="Phone Number"
-                    value={profile.phone}
-                    icon={<Phone className="w-4 h-4" />}
-                  />
-                  <InfoItem
-                    label="Date of Birth"
-                    value={new Date(profile.dateOfBirth).toLocaleDateString()}
-                    icon={<Calendar className="w-4 h-4" />}
-                  />
-                  <InfoItem
-                    label="Gender"
-                    value={
-                      profile.gender.charAt(0).toUpperCase() +
-                      profile.gender.slice(1).replace("-", " ")
-                    }
-                  />
-                  <InfoItem
-                    label="Location"
-                    value={`${profile.address.city}, Sri Lanka`}
-                    icon={<MapPin className="w-4 h-4" />}
-                  />
-                </div>
-              }
               editChildren={
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -496,7 +464,32 @@ export default function TherapistProfilePage() {
                   </div>
                 </div>
               }
-            />
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <InfoItem
+                  label="Phone Number"
+                  value={profile.phone}
+                  icon={<Phone className="w-4 h-4" />}
+                />
+                <InfoItem
+                  label="Date of Birth"
+                  value={new Date(profile.dateOfBirth).toLocaleDateString()}
+                  icon={<Calendar className="w-4 h-4" />}
+                />
+                <InfoItem
+                  label="Gender"
+                  value={
+                    profile.gender.charAt(0).toUpperCase() +
+                    profile.gender.slice(1).replace("-", " ")
+                  }
+                />
+                <InfoItem
+                  label="Location"
+                  value={`${profile.address.city}, Sri Lanka`}
+                  icon={<MapPin className="w-4 h-4" />}
+                />
+              </div>
+            </EditableSection>
 
             {/* Professional Qualifications */}
             <EditableSection
@@ -505,42 +498,6 @@ export default function TherapistProfilePage() {
               icon={<GraduationCap className="w-5 h-5" />}
               sectionKey="professional"
               required
-              children={
-                <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <InfoItem
-                      label="License Number"
-                      value={profile.licenseNumber}
-                      icon={<Award className="w-4 h-4" />}
-                    />
-                    <InfoItem
-                      label="Primary Specialty"
-                      value={profile.primarySpecialty
-                        .split("-")
-                        .map(
-                          (word) => word.charAt(0).toUpperCase() + word.slice(1)
-                        )
-                        .join(" ")}
-                    />
-                    <InfoItem
-                      label="Experience Level"
-                      value={profile.yearsOfExperience
-                        .split("-")
-                        .join(" ")
-                        .toUpperCase()}
-                      icon={<Star className="w-4 h-4" />}
-                    />
-                    <InfoItem
-                      label="Education"
-                      value={
-                        profile.highestEducation.charAt(0).toUpperCase() +
-                        profile.highestEducation.slice(1)
-                      }
-                    />
-                  </div>
-                  <InfoItem label="Institution" value={profile.institution} />
-                </div>
-              }
               editChildren={
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -590,7 +547,42 @@ export default function TherapistProfilePage() {
                   </div>
                 </div>
               }
-            />
+            >
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <InfoItem
+                      label="License Number"
+                      value={profile.licenseNumber}
+                      icon={<Award className="w-4 h-4" />}
+                    />
+                    <InfoItem
+                      label="Primary Specialty"
+                      value={profile.primarySpecialty
+                        .split("-")
+                        .map(
+                          (word) => word.charAt(0).toUpperCase() + word.slice(1)
+                        )
+                        .join(" ")}
+                    />
+                    <InfoItem
+                      label="Experience Level"
+                      value={profile.yearsOfExperience
+                        .split("-")
+                        .join(" ")
+                        .toUpperCase()}
+                      icon={<Star className="w-4 h-4" />}
+                    />
+                    <InfoItem
+                      label="Education"
+                      value={
+                        profile.highestEducation.charAt(0).toUpperCase() +
+                        profile.highestEducation.slice(1)
+                      }
+                    />
+                  </div>
+                  <InfoItem label="Institution" value={profile.institution} />
+                </div>
+              </EditableSection>
 
             {/* Business Settings */}
             <EditableSection
@@ -598,50 +590,6 @@ export default function TherapistProfilePage() {
               description="Your consultation rates and payment information"
               icon={<DollarSign className="w-5 h-5" />}
               sectionKey="business"
-              children={
-                <div className="space-y-6">
-                  <div className="p-4 rounded-lg bg-green-50 border border-green-200">
-                    <div className="flex items-center gap-3 mb-2">
-                      <DollarSign className="w-5 h-5 text-green-600" />
-                      <span className="font-medium text-green-800">
-                        Consultation Rate
-                      </span>
-                    </div>
-                    <p className="text-2xl font-bold text-green-900">
-                      {profile.hourlyRate === "0"
-                        ? "Free Consultations"
-                        : `Rs. ${profile.hourlyRate}/hour`}
-                    </p>
-                  </div>
-
-                  <div>
-                    <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
-                      <CreditCard className="w-4 h-4" />
-                      Bank Details
-                    </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <InfoItem
-                        label="Account Holder"
-                        value={profile.bankDetails.accountHolderName}
-                      />
-                      <InfoItem
-                        label="Bank"
-                        value={profile.bankDetails.bankName}
-                      />
-                      <InfoItem
-                        label="Account Number"
-                        value={`****${profile.bankDetails.accountNumber.slice(
-                          -4
-                        )}`}
-                      />
-                      <InfoItem
-                        label="Branch"
-                        value={profile.bankDetails.branchName}
-                      />
-                    </div>
-                  </div>
-                </div>
-              }
               editChildren={
                 <div className="space-y-6">
                   <div>
@@ -738,7 +686,50 @@ export default function TherapistProfilePage() {
                   </div>
                 </div>
               }
-            />
+            >
+                <div className="space-y-6">
+                  <div className="p-4 rounded-lg bg-green-50 border border-green-200">
+                    <div className="flex items-center gap-3 mb-2">
+                      <DollarSign className="w-5 h-5 text-green-600" />
+                      <span className="font-medium text-green-800">
+                        Consultation Rate
+                      </span>
+                    </div>
+                    <p className="text-2xl font-bold text-green-900">
+                      {profile.hourlyRate === "0"
+                        ? "Free Consultations"
+                        : `Rs. ${profile.hourlyRate}/hour`}
+                    </p>
+                  </div>
+
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+                      <CreditCard className="w-4 h-4" />
+                      Bank Details
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <InfoItem
+                        label="Account Holder"
+                        value={profile.bankDetails.accountHolderName}
+                      />
+                      <InfoItem
+                        label="Bank"
+                        value={profile.bankDetails.bankName}
+                      />
+                      <InfoItem
+                        label="Account Number"
+                        value={`****${profile.bankDetails.accountNumber.slice(
+                          -4
+                        )}`}
+                      />
+                      <InfoItem
+                        label="Branch"
+                        value={profile.bankDetails.branchName}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </EditableSection>
           </div>
         </div>
       </div>

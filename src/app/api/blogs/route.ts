@@ -83,7 +83,7 @@ export async function POST(request: Request) {
     }
 
     // Prepare the blog data
-    const blogData: any = {
+    const blogData: Record<string, unknown> = {
       title: data.title.trim(),
       summary: data.summary.trim(),
       content: data.content.trim(),

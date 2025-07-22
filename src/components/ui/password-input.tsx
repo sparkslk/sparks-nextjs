@@ -12,7 +12,7 @@ export interface PasswordInputProps extends React.InputHTMLAttributes<HTMLInputE
 }
 
 const PasswordInput = React.forwardRef<HTMLInputElement, PasswordInputProps>(
-    ({ className, showStrength = false, onPasswordChange, ...props }, ref) => {
+    ({ className, showStrength: _showStrength = false, onPasswordChange, ...props }, ref) => {
         const [showPassword, setShowPassword] = React.useState(false);
         const [isFocused, setIsFocused] = React.useState(false);
 

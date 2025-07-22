@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get("search");
 
     // Build where clause
-    const where: any = {
+    const where: Record<string, unknown> = {
       user: {
         isActive: true
       }

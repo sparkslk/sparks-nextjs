@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
         const skip = (page - 1) * limit;
 
         // Build where clause for search
-        const whereClause: any = {};
+        const whereClause: Record<string, unknown> = {};
         if (search) {
             whereClause.OR = [
                 {
@@ -216,7 +216,7 @@ export async function POST(req: NextRequest) {
         // Hash password
         const hashedPassword = await bcrypt.hash(temporaryPassword, 12);
 
-        let createdUser: any;
+        let createdUser: unknown;
 
         switch (role) {
             case 'Patient':
@@ -242,7 +242,7 @@ export async function POST(req: NextRequest) {
                         }
                     });
 
-                    const patientData: any = {
+                    const patientData: Record<string, unknown> = {
                         userId: patientUser.id,
                         firstName: firstName,
                         lastName: lastName,
@@ -320,7 +320,7 @@ export async function POST(req: NextRequest) {
 
                     console.log('Created therapist user:', therapistUser.id); // Debug log
 
-                    const therapistData: any = {
+                    const therapistData: Record<string, unknown> = {
                         userId: therapistUser.id,
                         licenseNumber: userData.licenseNumber,
                     };
@@ -408,7 +408,7 @@ export async function POST(req: NextRequest) {
                         patientId = patient?.id || null;
                     }
 
-                    const guardianData: any = {
+                    const guardianData: Record<string, unknown> = {
                         userId: guardianUser.id,
                     };
 

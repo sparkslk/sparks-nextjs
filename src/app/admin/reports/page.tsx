@@ -4,14 +4,14 @@ import React, { useState } from "react";
 import { Calendar } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-interface ReportItemProps {
-  title: string;
-  description: string;
-  isPinned?: boolean;
-  isRecent?: boolean;
-  date?: string;
-  size?: string;
-}
+// interface ReportItemProps {
+//   title: string;
+//   description: string;
+//   isPinned?: boolean;
+//   isRecent?: boolean;
+//   date?: string;
+//   size?: string;
+// }
 
 interface RecentReportProps {
   title: string;
@@ -175,7 +175,7 @@ const AllDonationsCard = () => {
     const pages = [];
     const showPages = 5; // Show 5 page numbers at a time
     let start = Math.max(1, currentPage - Math.floor(showPages / 2));
-    let end = Math.min(totalPages, start + showPages - 1);
+    const end = Math.min(totalPages, start + showPages - 1);
 
     if (end - start + 1 < showPages) {
       start = Math.max(1, end - showPages + 1);
@@ -330,7 +330,7 @@ const AllDonationsCard = () => {
 
 const FinancialDashboard: React.FC = () => {
 
-  const ReportItem: React.FC<ReportItemProps> = ({
+  /* const ReportItem: React.FC<ReportItemProps> = ({
     title,
     description,
     isPinned,
@@ -370,7 +370,7 @@ const FinancialDashboard: React.FC = () => {
         </div>
       </div>
     );
-  };
+  }; */
 
   const RecentReport: React.FC<RecentReportProps> = ({ title, date, size }) => {
     return (

@@ -19,9 +19,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Stepper } from "@/components/ui/stepper";
 import { Upload, FileText, X } from "lucide-react";
@@ -502,7 +500,7 @@ export default function TherapistVerificationPage() {
 
       // Redirect to dashboard or success page
       router.push("/therapist/verification/success");
-    } catch (error) {
+    } catch {
       setError("Failed to submit verification. Please try again.");
     } finally {
       setIsLoading(false);

@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { UserCheck, Star, Calendar, MessageSquare, Clock } from "lucide-react";
+import { UserCheck, Calendar, MessageSquare, Clock } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 interface Therapist {
@@ -62,7 +62,7 @@ export function AssignedTherapistCard() {
             Your Therapist
           </CardTitle>
           <CardDescription>
-            You don't have an assigned therapist yet
+            You don&apos;t have an assigned therapist yet
           </CardDescription>
         </CardHeader>
         <CardContent>

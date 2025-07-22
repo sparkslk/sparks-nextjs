@@ -21,14 +21,14 @@ export default function UsersPage() {
   const [selectedRole, setSelectedRole] = useState("Patient"); // Default to Patient
   const [emergencyContactOpen, setEmergencyContactOpen] = React.useState(false);
   const [emergencyContactDetails, setEmergencyContactDetails] =
-    React.useState<any>(null);
+    React.useState<{name?: string; phone?: string; relationship?: string} | null>(null);
   const [editModalOpen, setEditModalOpen] = React.useState(false);
-  const [editUser, setEditUser] = React.useState<any>(null);
+  const [editUser, setEditUser] = React.useState<{id?: string; name?: string; email?: string; phone?: string; role?: string} | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = React.useState(false);
-  const [deleteUser, setDeleteUser] = React.useState<any>(null);
+  const [deleteUser, setDeleteUser] = React.useState<{id?: string; name?: string} | null>(null);
 
   // State to hold users fetched from the API
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<Array<{id: string; name: string; email: string; phone?: string; role: string; createdAt?: string; therapistProfile?: unknown; patientProfile?: unknown; managerProfile?: unknown}>>([]);
 
   // State for add user modal
   const [addUserOpen, setAddUserOpen] = useState(false);
@@ -49,7 +49,7 @@ export default function UsersPage() {
         }
         // Only set lastUpdated on the client to avoid hydration mismatch
         setTimeout(() => setLastUpdated(new Date()), 0);
-      } catch (err) {
+      } catch {
         setError("Failed to load users");
       } finally {
         setLoading(false);
@@ -60,7 +60,7 @@ export default function UsersPage() {
 
   // Map API data to table display format, handling different user types
   // Ensure that any object fields are stringified for safe rendering
-  const safeString = (val: any) => {
+  const safeString = (val: unknown) => {
     if (val == null || val === "" || val === undefined) return "N/A";
     if (typeof val === "object") {
       // If it's an array, join; if object, JSON.stringify but remove braces for readability

@@ -101,7 +101,7 @@ export async function PATCH(
     const data = await request.json();
 
     // Handle status change to published
-    const updates: any = {
+    const updates: Record<string, unknown> = {
       title: data.title,
       summary: data.summary,
       content: data.content,

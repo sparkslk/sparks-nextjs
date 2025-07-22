@@ -294,8 +294,8 @@ const UserTable: React.FC<UserTableProps> = ({
   setEditModalOpen,
   setDeleteUser,
   setDeleteModalOpen,
-  setEmergencyContactDetails,
-  setEmergencyContactOpen,
+  setEmergencyContactDetails: _setEmergencyContactDetails,
+  setEmergencyContactOpen: _setEmergencyContactOpen,
   recordsPerPage = 10,
 }) => {
   const [currentPage, setCurrentPage] = useState(1);
@@ -336,7 +336,7 @@ const UserTable: React.FC<UserTableProps> = ({
       }
     } else {
       let start = Math.max(1, currentPage - 2);
-      let end = Math.min(totalPages, start + maxVisiblePages - 1);
+      const end = Math.min(totalPages, start + maxVisiblePages - 1);
 
       if (end - start < maxVisiblePages - 1) {
         start = Math.max(1, end - maxVisiblePages + 1);

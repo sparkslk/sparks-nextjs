@@ -216,7 +216,7 @@ export async function PATCH(request: NextRequest) {
     const data = await request.json();
 
     // Prepare update data
-    const updateData: any = {};
+    const updateData: Record<string, unknown> = {};
     const allowedFields = [
       'firstName', 'lastName', 'phone', 'address', 'city', 'state', 'zipCode',
       'emergencyContactName', 'emergencyContactPhone', 'emergencyContactRelation',

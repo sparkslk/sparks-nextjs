@@ -42,7 +42,7 @@ interface Blog {
 }
 
 export default function EditBlogPage({ params }: { params: { id: string } }) {
-  const { data: session, status: authStatus } = useSession();
+  const { status: authStatus } = useSession();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(true);
@@ -146,7 +146,7 @@ export default function EditBlogPage({ params }: { params: { id: string } }) {
 
     try {
       // Prepare the data for submission
-      const submitData: any = {
+      const submitData: Record<string, unknown> = {
         title: formData.title,
         summary: formData.summary,
         content: formData.content,
@@ -182,7 +182,7 @@ export default function EditBlogPage({ params }: { params: { id: string } }) {
     }
   };
 
-  const submitBlog = async (data: any) => {
+  const submitBlog = async (data: Record<string, unknown>) => {
     const response = await fetch(`/api/blogs/${params.id}`, {
       method: "PATCH",
       headers: {

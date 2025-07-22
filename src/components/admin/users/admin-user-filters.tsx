@@ -7,7 +7,6 @@ import {
   Search,
   X,
   Filter,
-  Users,
   Heart,
   UserCheck,
   Shield,

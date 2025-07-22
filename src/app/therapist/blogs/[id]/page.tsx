@@ -31,7 +31,7 @@ interface Blog {
 }
 
 export default function BlogDetailPage({ params }: { params: { id: string } }) {
-  const { data: session, status: authStatus } = useSession();
+  const { status: authStatus } = useSession();
   const router = useRouter();
   const [blog, setBlog] = useState<Blog | null>(null);
   const [loading, setLoading] = useState(true);

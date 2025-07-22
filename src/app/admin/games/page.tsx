@@ -109,7 +109,7 @@ const mockGameStats: GameStats = {
 
 export default function GameManagementDashboard() {
     const [gameData, setGameData] = useState<GameData[]>(mockGameData);
-    const [gameStats, setGameStats] = useState<GameStats>(mockGameStats);
+    const [gameStats] = useState<GameStats>(mockGameStats);
     const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
     const [selectedCategory, setSelectedCategory] = useState<string>("all");
 

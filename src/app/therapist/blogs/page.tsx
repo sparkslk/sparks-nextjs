@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
@@ -52,7 +52,7 @@ interface Blog {
 }
 
 export default function BlogManagementPage() {
-  const { data: session, status: authStatus } = useSession();
+  const { status: authStatus } = useSession();
   const router = useRouter();
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -157,8 +157,6 @@ export default function BlogManagementPage() {
   const totalViews = blogs
     .filter((blog) => blog.status === "published")
     .reduce((sum, blog) => sum + blog.views, 0);
-  const avgEngagement =
-    publishedCount > 0 ? Math.round(totalViews / publishedCount) : 0;
 
   const handleNewBlog = () => {
     router.push("/therapist/blogs/new");

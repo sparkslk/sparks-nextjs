@@ -112,8 +112,8 @@ export async function GET(
           action: record.action as MedicationHistoryAction,
           changedBy: record.changedBy,
           changedAt: record.changedAt,
-          previousValues: record.previousValues as Record<string, any> | undefined,
-          newValues: record.newValues as Record<string, any> | undefined,
+          previousValues: record.previousValues as Record<string, unknown> | undefined,
+          newValues: record.newValues as Record<string, unknown> | undefined,
           reason: record.reason || undefined,
           notes: record.notes || undefined,
           therapist: therapistInfo || {
