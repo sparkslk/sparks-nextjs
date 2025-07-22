@@ -111,23 +111,6 @@ export async function POST(request: NextRequest) {
         }
 
         // Role-specific validation
-        if (role === UserRole.THERAPIST) {
-            if (!metadata?.licenseNumber) {
-                return NextResponse.json(
-                    { error: "License number is required for therapist registration" },
-                    { status: 400 }
-                );
-            }
-        }
-
-        if (role === UserRole.MANAGER) {
-            if (!metadata?.organizationCode) {
-                return NextResponse.json(
-                    { error: "Organization code is required for manager registration" },
-                    { status: 400 }
-                );
-            }
-        }
 
         if (role === UserRole.ADMIN) {
             if (!metadata?.adminKey || metadata.adminKey !== process.env.ADMIN_KEY) {
@@ -176,7 +159,7 @@ export async function POST(request: NextRequest) {
             await prisma.therapist.create({
                 data: {
                     userId: user.id,
-                    licenseNumber: metadata.licenseNumber,
+                    licenseNumber: metadata?.licenseNumber || "",
                     specialization: specializationArray,
                     experience: metadata.experience || 0,
                     bio: metadata.bio || '',

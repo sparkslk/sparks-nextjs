@@ -222,13 +222,10 @@ export default function TherapistVerificationPage() {
 
   const validateLicenseNumber = (license: string): string => {
     const licenseRegex = /^[A-Za-z0-9]+$/;
-    if (!license.trim()) {
-      return "License number is required";
-    }
-    if (license.trim().length < 3) {
+    if (license.trim() && license.trim().length < 3) {
       return "License number must be at least 3 characters long";
     }
-    if (!licenseRegex.test(license.trim())) {
+    if (license.trim() && !licenseRegex.test(license.trim())) {
       return "License number should only contain letters and numbers";
     }
     return "";
