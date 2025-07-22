@@ -246,15 +246,15 @@ if (filterStatus === 'all') {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-2">
               <Button
-                variant="outline"
+                variant="ghost"
                 onClick={() => setShowFilters(!showFilters)}
-                className="flex items-center space-x-2 border-[#8159A8] text-[#8159A8] hover:bg-[#8159A8]/10 shadow-sm"
+                className="flex items-center gap-2 rounded-full px-4 py-2 border border-gray-200 shadow-sm bg-white text-[#8159A8] hover:bg-[#f5f3fb] hover:border-[#8159A8] transition-all"
               >
                 <Filter className="w-4 h-4" />
-                <span>Filters</span>
+                <span className="font-semibold">Filter</span>
               </Button>
               {(filterType !== 'all' || filterStatus !== 'all') && (
-                <Badge variant="secondary" className="bg-[#8159A8]/10 text-[#8159A8] text-xs">
+                <Badge variant="secondary" className="bg-[#8159A8]/10 text-[#8159A8] text-xs rounded-full px-3 py-1">
                   {filteredTasks.length} filtered
                 </Badge>
               )}
@@ -262,168 +262,128 @@ if (filterStatus === 'all') {
           </div>
           
           {showFilters && (
-            <Card className="shadow-lg border-0 mb-4" style={{ background: 'linear-gradient(135deg, #ffffff 0%, #f8f6fc 100%)' }}>
-              <CardHeader className="pb-2">
-                <h3 className="text-lg font-semibold text-gray-800">Filter Options</h3>
+            <Card className="shadow-xl border-0 mb-4 rounded-2xl" style={{ background: 'linear-gradient(135deg, #ffffff 0%, #f5f3fb 100%)' }}>
+              <CardHeader className="pb-2 border-b border-gray-100">
+                <h3 className="text-lg font-bold text-gray-800">Filter Options</h3>
               </CardHeader>
-              <CardContent className="space-y-6 pt-0">
+              <CardContent className="space-y-8 pt-0">
                 {/* Task Type Filters */}
                 <div>
-                  <h4 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
-                    <Target className="w-4 h-4 mr-2 text-[#8159A8]" />
+                  <h4 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                    <Target className="w-4 h-4 text-[#8159A8]" />
                     Task Type
                   </h4>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                     <button
                       onClick={() => setFilterType('all')}
-                      className={`relative p-3 rounded-lg border-2 transition-all duration-200 hover:shadow-md ${
+                      className={`flex flex-row items-center justify-center text-center p-2 rounded-full border transition-all duration-200 shadow-sm focus:outline-none gap-2 min-w-[0] ${
                         filterType === 'all' 
-                          ? 'border-[#8159A8] bg-[#8159A8]/5 shadow-md' 
-                          : 'border-gray-200 bg-white hover:border-[#8159A8]/30'
+                          ? 'border-[#8159A8] bg-[#f5f3fb] text-[#8159A8] shadow-md' 
+                          : 'border-gray-200 bg-white text-gray-700 hover:border-[#8159A8]/30 hover:bg-[#f8f6fc]'
                       }`}
                     >
-                      <div className="flex flex-col items-center text-center">
-                        <div className={`w-6 h-6 rounded-md flex items-center justify-center mb-1 ${
-                          filterType === 'all' ? 'bg-[#8159A8] text-white' : 'bg-gray-100 text-gray-600'
-                        }`}>
-                          📋
-                        </div>
-                        <span className={`text-xs font-medium ${
-                          filterType === 'all' ? 'text-[#8159A8]' : 'text-gray-700'
-                        }`}>
-                          All Tasks
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {tasks.length}
-                        </span>
-                      </div>
+                      <span className={`w-6 h-6 rounded-full flex items-center justify-center text-lg font-bold ${
+                        filterType === 'all' ? 'bg-[#8159A8] text-white' : 'bg-gray-100 text-gray-600'
+                      }`}>📋</span>
+                      <span className="text-[12px] font-semibold">All Tasks</span>
+                      <span className="text-[12px] text-gray-500">{tasks.length}</span>
                     </button>
 
                     <button
                       onClick={() => setFilterType('daily')}
-                      className={`relative p-3 rounded-lg border-2 transition-all duration-200 hover:shadow-md ${
+                      className={`flex flex-row items-center justify-center text-center p-2 rounded-full border transition-all duration-200 shadow-sm focus:outline-none gap-2 min-w-[0] ${
                         filterType === 'daily' 
-                          ? 'border-[#8159A8] bg-[#8159A8]/5 shadow-md' 
-                          : 'border-gray-200 bg-white hover:border-[#8159A8]/30'
+                          ? 'border-[#8159A8] bg-[#f5f3fb] text-[#8159A8] shadow-md' 
+                          : 'border-gray-200 bg-white text-gray-700 hover:border-[#8159A8]/30 hover:bg-[#f8f6fc]'
                       }`}
                     >
-                      <div className="flex flex-col items-center text-center">
-                        <div className={`w-6 h-6 rounded-md flex items-center justify-center mb-1 ${
-                          filterType === 'daily' ? 'bg-[#8159A8] text-white' : 'bg-gray-100 text-gray-600'
-                        }`}>
-                          <Calendar className="w-3 h-3" />
-                        </div>
-                        <span className={`text-xs font-medium ${
-                          filterType === 'daily' ? 'text-[#8159A8]' : 'text-gray-700'
-                        }`}>
-                          Daily Tasks
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {tasks.filter(t => t.isRecurring && t.recurringPattern === 'daily').length}
-                        </span>
-                      </div>
+                      <span className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                        filterType === 'daily' ? 'bg-[#8159A8] text-white' : 'bg-gray-100 text-gray-600'
+                      }`}><Calendar className="w-4 h-4" /></span>
+                      <span className="text-[12px] font-semibold">Daily Tasks</span>
+                      <span className="text-[12px] text-gray-500">{tasks.filter(t => t.isRecurring && t.recurringPattern === 'daily').length}</span>
                     </button>
 
                     <button
                       onClick={() => setFilterType('therapist')}
-                      className={`relative p-3 rounded-lg border-2 transition-all duration-200 hover:shadow-md ${
+                      className={`flex flex-row items-center justify-center text-center p-2 rounded-full border transition-all duration-200 shadow-sm focus:outline-none gap-2 min-w-[0] ${
                         filterType === 'therapist' 
-                          ? 'border-[#8159A8] bg-[#8159A8]/5 shadow-md' 
-                          : 'border-gray-200 bg-white hover:border-[#8159A8]/30'
+                          ? 'border-[#8159A8] bg-[#f5f3fb] text-[#8159A8] shadow-md' 
+                          : 'border-gray-200 bg-white text-gray-700 hover:border-[#8159A8]/30 hover:bg-[#f8f6fc]'
                       }`}
                     >
-                      <div className="flex flex-col items-center text-center">
-                        <div className={`w-6 h-6 rounded-md flex items-center justify-center mb-1 ${
-                          filterType === 'therapist' ? 'bg-[#8159A8] text-white' : 'bg-gray-100 text-gray-600'
-                        }`}>
-                          <User className="w-3 h-3" />
-                        </div>
-                        <span className={`text-xs font-medium ${
-                          filterType === 'therapist' ? 'text-[#8159A8]' : 'text-gray-700'
-                        }`}>
-                          Therapist Tasks
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {tasks.filter(t => !t.isRecurring || t.recurringPattern !== 'daily').length}
-                        </span>
-                      </div>
+                      <span className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                        filterType === 'therapist' ? 'bg-[#8159A8] text-white' : 'bg-gray-100 text-gray-600'
+                      }`}><User className="w-4 h-4" /></span>
+                      <span className="text-[12px] font-semibold">Assessments</span>
+                      <span className="text-[12px] text-gray-500">{tasks.filter(t => !t.isRecurring || t.recurringPattern !== 'daily').length}</span>
                     </button>
 
                     <button
                       onClick={() => setFilterType('weekly')}
-                      className={`relative p-3 rounded-lg border-2 transition-all duration-200 hover:shadow-md ${
+                      className={`flex flex-row items-center justify-center text-center p-2 rounded-full border transition-all duration-200 shadow-sm focus:outline-none gap-2 min-w-[0] ${
                         filterType === 'weekly' 
-                          ? 'border-[#8159A8] bg-[#8159A8]/5 shadow-md' 
-                          : 'border-gray-200 bg-white hover:border-[#8159A8]/30'
+                          ? 'border-[#8159A8] bg-[#f5f3fb] text-[#8159A8] shadow-md' 
+                          : 'border-gray-200 bg-white text-gray-700 hover:border-[#8159A8]/30 hover:bg-[#f8f6fc]'
                       }`}
                     >
-                      <div className="flex flex-col items-center text-center">
-                        <div className={`w-6 h-6 rounded-md flex items-center justify-center mb-1 ${
-                          filterType === 'weekly' ? 'bg-[#8159A8] text-white' : 'bg-gray-100 text-gray-600'
-                        }`}>
-                          <Target className="w-3 h-3" />
-                        </div>
-                        <span className={`text-xs font-medium ${
-                          filterType === 'weekly' ? 'text-[#8159A8]' : 'text-gray-700'
-                        }`}>
-                          Weekly Goals
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {tasks.filter(t => t.isRecurring && t.recurringPattern === 'weekly').length}
-                        </span>
-                      </div>
+                      <span className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                        filterType === 'weekly' ? 'bg-[#8159A8] text-white' : 'bg-gray-100 text-gray-600'
+                      }`}><Target className="w-4 h-4" /></span>
+                      <span className="text-[12px] font-semibold">Weekly Goals</span>
+                      <span className="text-[12px] text-gray-500">{tasks.filter(t => t.isRecurring && t.recurringPattern === 'weekly').length}</span>
                     </button>
                   </div>
                 </div>
 
                 {/* Status Filters */}
                 <div>
-                  <h4 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
-                    <Clock className="w-4 h-4 mr-2 text-[#8159A8]" />
+                  <h4 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-[#8159A8]" />
                     Task Status
                   </h4>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-3">
                     <button
                       onClick={() => setFilterStatus('all')}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+                      className={`px-5 py-2 rounded-full text-sm font-semibold transition-all duration-200 shadow-sm focus:outline-none ${
                         filterStatus === 'all'
                           ? 'bg-[#8159A8] text-white shadow-md'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          : 'bg-gray-100 text-gray-700 hover:bg-[#f5f3fb] border border-gray-200'
                       }`}
                     >
                       All Statuses ({tasks.length})
                     </button>
                     <button
                       onClick={() => setFilterStatus('pending')}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 flex items-center ${
+                      className={`px-5 py-2 rounded-full text-sm font-semibold transition-all duration-200 flex items-center shadow-sm focus:outline-none ${
                         filterStatus === 'pending'
                           ? 'bg-yellow-500 text-white shadow-md'
                           : 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100 border border-yellow-200'
                       }`}
                     >
-                      <Clock className="w-3 h-3 mr-1" />
+                      <Clock className="w-4 h-4 mr-1" />
                       Pending ({tasks.filter(t => t.status === 'PENDING' || t.status === 'IN_PROGRESS').length})
                     </button>
                     <button
                       onClick={() => setFilterStatus('completed')}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 flex items-center ${
+                      className={`px-5 py-2 rounded-full text-sm font-semibold transition-all duration-200 flex items-center shadow-sm focus:outline-none ${
                         filterStatus === 'completed'
                           ? 'bg-green-500 text-white shadow-md'
                           : 'bg-green-50 text-green-700 hover:bg-green-100 border border-green-200'
                       }`}
                     >
-                      <CheckCircle className="w-3 h-3 mr-1" />
+                      <CheckCircle className="w-4 h-4 mr-1" />
                       Completed ({tasks.filter(t => t.status === 'COMPLETED').length})
                     </button>
                     <button
                       onClick={() => setFilterStatus('overdue')}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 flex items-center ${
+                      className={`px-5 py-2 rounded-full text-sm font-semibold transition-all duration-200 flex items-center shadow-sm focus:outline-none ${
                         filterStatus === 'overdue'
                           ? 'bg-red-500 text-white shadow-md'
                           : 'bg-red-50 text-red-700 hover:bg-red-100 border border-red-200'
                       }`}
                     >
-                      <AlertTriangle className="w-3 h-3 mr-1" />
+                      <AlertTriangle className="w-4 h-4 mr-1" />
                       Overdue ({tasks.filter(t => t.status === 'OVERDUE' || isOverdue(t.dueDate)).length})
                     </button>
                   </div>
@@ -431,19 +391,19 @@ if (filterStatus === 'all') {
 
                 {/* Active Filters Summary */}
                 {(filterType !== 'all' || filterStatus !== 'all') && (
-                  <div className="pt-4 border-t border-gray-200">
+                  <div className="pt-4 border-t border-gray-100">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-sm font-medium text-gray-700">Active filters:</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-gray-700">Active filters:</span>
                         {filterType !== 'all' && (
-                          <Badge variant="secondary" className="bg-[#8159A8]/10 text-[#8159A8]">
+                          <Badge variant="secondary" className="bg-[#8159A8]/10 text-[#8159A8] rounded-full px-3 py-1">
                             {filterType === 'daily' ? 'Daily Tasks' :
                              filterType === 'therapist' ? 'Therapist Tasks' :
                              'Weekly Goals'}
                           </Badge>
                         )}
                         {filterStatus !== 'all' && (
-                          <Badge variant="secondary" className="bg-[#8159A8]/10 text-[#8159A8]">
+                          <Badge variant="secondary" className="bg-[#8159A8]/10 text-[#8159A8] rounded-full px-3 py-1">
                             {filterStatus.charAt(0).toUpperCase() + filterStatus.slice(1)}
                           </Badge>
                         )}
@@ -455,7 +415,7 @@ if (filterStatus === 'all') {
                           setFilterType('all');
                           setFilterStatus('all');
                         }}
-                        className="text-gray-500 hover:text-gray-700"
+                        className="text-gray-500 hover:text-[#8159A8] px-3 py-1 rounded-full"
                       >
                         Clear all
                       </Button>
