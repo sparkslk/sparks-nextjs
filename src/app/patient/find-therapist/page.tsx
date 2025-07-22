@@ -2,10 +2,10 @@
 
 import React, { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertCircle, Star, Users, Calendar, Send, CheckCircle, XCircle } from "lucide-react";
+import { AlertCircle, Star, Users, Calendar, Send, CheckCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Dialog,
@@ -36,7 +36,7 @@ export default function FindTherapistPage() {
   const [selectedTherapist, setSelectedTherapist] = useState<Therapist | null>(null);
   const [requestMessage, setRequestMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [assignedTherapist, setAssignedTherapist] = useState<any>(null);
+  const [assignedTherapist, setAssignedTherapist] = useState<Therapist | null>(null);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
 
   useEffect(() => {
@@ -97,8 +97,8 @@ export default function FindTherapistPage() {
       setShowSuccessDialog(true);
       setSelectedTherapist(null);
       setRequestMessage('');
-    } catch (err: any) {
-      setError(err.message || 'Failed to send request');
+    } catch (err: unknown) {
+      setError((err as Error).message || 'Failed to send request');
     } finally {
       setSubmitting(false);
     }
@@ -151,11 +151,13 @@ export default function FindTherapistPage() {
                 <div className="flex items-start justify-between">
                   <div className="flex items-center space-x-3">
                     {therapist.image ? (
-                      <img
-                        src={therapist.image}
-                        alt={therapist.name}
-                        className="w-12 h-12 rounded-full object-cover"
-                      />
+                      <picture>
+                        <img
+                          src={therapist.image}
+                          alt={therapist.name}
+                          className="w-12 h-12 rounded-full object-cover"
+                        />
+                      </picture>
                     ) : (
                       <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
                         <span className="text-primary font-semibold">
@@ -229,7 +231,7 @@ export default function FindTherapistPage() {
             <DialogHeader>
               <DialogTitle>Request {selectedTherapist?.name}</DialogTitle>
               <DialogDescription>
-                Send a message to introduce yourself and explain why you'd like to work with this therapist.
+                Send a message to introduce yourself and explain why you&apos;d like to work with this therapist.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">

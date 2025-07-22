@@ -20,7 +20,6 @@ export default function TherapistSignupPage() {
     password: "",
     confirmPassword: "",
     name: "",
-    licenseNumber: "",
     specialization: "",
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -53,11 +52,6 @@ export default function TherapistSignupPage() {
       return;
     }
 
-    if (!formData.licenseNumber.trim()) {
-      setError("License number is required for therapist registration.");
-      setIsLoading(false);
-      return;
-    }
 
     try {
       const response = await fetch("/api/auth/signup", {
@@ -71,7 +65,6 @@ export default function TherapistSignupPage() {
           name: formData.name,
           role: UserRole.THERAPIST,
           metadata: {
-            licenseNumber: formData.licenseNumber,
             specialization: formData.specialization,
           },
         }),
@@ -162,21 +155,6 @@ export default function TherapistSignupPage() {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="licenseNumber" className="text-sm font-medium">
-                License Number *
-              </Label>
-              <Input
-                id="licenseNumber"
-                name="licenseNumber"
-                type="text"
-                placeholder="Enter your therapy license number"
-                value={formData.licenseNumber}
-                onChange={handleChange}
-                required
-                className="h-11"
-              />
-            </div>
 
             <div className="space-y-2">
               <Label htmlFor="specialization" className="text-sm font-medium">

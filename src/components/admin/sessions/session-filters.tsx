@@ -166,7 +166,7 @@ export default function SessionFilters({
               
               {searchTerm && (
                 <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold shadow-sm">
-                  Search: "{searchTerm}"
+                  Search: &quot;{searchTerm}&quot;
                   <button
                     onClick={clearSearch}
                     className="ml-1 hover:bg-blue-200 rounded-full p-0.5 transition-colors duration-200"

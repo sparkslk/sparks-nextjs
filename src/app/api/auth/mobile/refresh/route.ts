@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Verify refresh token
-        const decoded = jwt.verify(refreshToken, process.env.NEXTAUTH_SECRET!) as any;
+        const decoded = jwt.verify(refreshToken, process.env.NEXTAUTH_SECRET!) as {userId?: string; type?: string};
 
         if (!decoded.userId || decoded.type !== 'refresh') {
             return NextResponse.json(
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Verify stored refresh token matches
-        const storedToken = (user.metadata as any)?.mobileRefreshToken;
+        const storedToken = (user.metadata as {mobileRefreshToken?: string})?.mobileRefreshToken;
         if (storedToken !== refreshToken) {
             return NextResponse.json(
                 { error: "Invalid refresh token" },
@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
             where: { id: user.id },
             data: {
                 metadata: {
-                    ...user.metadata,
+                    ...(typeof user.metadata === 'object' && user.metadata !== null && !Array.isArray(user.metadata) ? user.metadata : {}),
                     mobileRefreshToken: newRefreshToken,
                 },
             },

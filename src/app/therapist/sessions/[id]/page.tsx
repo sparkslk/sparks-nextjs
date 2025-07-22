@@ -14,14 +14,23 @@ import {
   CheckSquare,
   ArrowLeft,
   AlertCircle,
-  CheckCircle,
   XCircle,
   Clock3,
   Edit,
   Plus
 } from "lucide-react";
-import { format, differenceInYears } from "date-fns";
+import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"; // Make sure you have a Dialog component
+
+interface EditMedication {
+  name: string;
+  dosage: string;
+  frequency: string;
+  mealTiming: string;
+  startDate: string;
+  endDate?: string;
+  instructions?: string;
+}
 
 interface DetailedSession {
   id: string;
@@ -154,7 +163,7 @@ export default function SessionDetailsPage() {
   const [showTasks, setShowTasks] = useState(false);
   const [showAddMedication, setShowAddMedication] = useState(false);
   const [showEditMedication, setShowEditMedication] = useState(false);
-  const [editMedication, setEditMedication] = useState<any>(null);
+  const [editMedication, setEditMedication] = useState<EditMedication | null>(null);
   const [showAssignTask, setShowAssignTask] = useState(false);
   
   const params = useParams();
@@ -241,37 +250,37 @@ export default function SessionDetailsPage() {
     }
   };
 
-  const getTaskStatusIcon = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'completed':
-        return <CheckCircle className="w-4 h-4 text-green-600" />;
-      case 'in_progress':
-        return <Clock3 className="w-4 h-4 text-blue-600" />;
-      case 'overdue':
-        return <XCircle className="w-4 h-4 text-red-600" />;
-      default:
-        return <AlertCircle className="w-4 h-4 text-gray-600" />;
-    }
-  };
+  // const getTaskStatusIcon = (status: string) => {
+  //   switch (status.toLowerCase()) {
+  //     case 'completed':
+  //       return <CheckCircle className="w-4 h-4 text-green-600" />;
+  //     case 'in_progress':
+  //       return <Clock3 className="w-4 h-4 text-blue-600" />;
+  //     case 'overdue':
+  //       return <XCircle className="w-4 h-4 text-red-600" />;
+  //     default:
+  //       return <AlertCircle className="w-4 h-4 text-gray-600" />;
+  //   }
+  // };
 
-  const getPriorityColor = (priority: number) => {
-    switch (priority) {
-      case 5:
-        return 'bg-red-100 text-red-800';
-      case 4:
-        return 'bg-orange-100 text-orange-800';
-      case 3:
-        return 'bg-yellow-100 text-yellow-800';
-      case 2:
-        return 'bg-blue-100 text-blue-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
+  // const getPriorityColor = (priority: number) => {
+  //   switch (priority) {
+  //     case 5:
+  //       return 'bg-red-100 text-red-800';
+  //     case 4:
+  //       return 'bg-orange-100 text-orange-800';
+  //     case 3:
+  //       return 'bg-yellow-100 text-yellow-800';
+  //     case 2:
+  //       return 'bg-blue-100 text-blue-800';
+  //     default:
+  //       return 'bg-gray-100 text-gray-800';
+  //   }
+  // };
 
-  const calculateAge = (dateOfBirth: string) => {
-    return differenceInYears(new Date(), new Date(dateOfBirth));
-  };
+  // const calculateAge = (dateOfBirth: string) => {
+  //   return differenceInYears(new Date(), new Date(dateOfBirth));
+  // };
 
   const availableTasks = [
     {
@@ -786,83 +795,83 @@ export default function SessionDetailsPage() {
             <DialogTitle>Edit Medication</DialogTitle>
           </DialogHeader>
           {editMedication && (
-      <form className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Medication Name *</label>
-            <input
-              className="w-full border rounded px-3 py-2 text-sm"
-              defaultValue={editMedication.name}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Dosage *</label>
-            <input
-              className="w-full border rounded px-3 py-2 text-sm"
-              defaultValue={editMedication.dosage}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Frequency *</label>
-            <select className="w-full border rounded px-3 py-2 text-sm" defaultValue={editMedication.frequency}>
-              <option>Select frequency</option>
-              <option>Once daily</option>
-              <option>Twice daily</option>
-              <option>Three times daily</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Meal Timing</label>
-            <select className="w-full border rounded px-3 py-2 text-sm" defaultValue={editMedication.mealTiming}>
-              <option>No specific timing</option>
-              <option>Before meals</option>
-              <option>After meals</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Start Date *</label>
-            <input
-              type="date"
-              className="w-full border rounded px-3 py-2 text-sm"
-              defaultValue={editMedication.startDate}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">End Date (Optional)</label>
-            <input
-              type="date"
-              className="w-full border rounded px-3 py-2 text-sm"
-              defaultValue={editMedication.endDate}
-            />
-          </div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Instructions</label>
-          <textarea
-            className="w-full border rounded px-3 py-2 text-sm"
-            rows={3}
-            defaultValue={editMedication.instructions}
-          />
-        </div>
-        <div className="flex justify-between mt-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setShowEditMedication(false)}
-            className="font-semibold px-6 py-2 rounded-lg"
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            style={{ backgroundColor: "#8159A8", color: "#fff" }}
-            className="font-semibold px-6 py-2 rounded-lg"
-          >
-            Update Medication
-          </Button>
-        </div>
-      </form>
-    )}
+            <form className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Medication Name *</label>
+                  <input
+                    className="w-full border rounded px-3 py-2 text-sm"
+                    defaultValue={editMedication.name}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Dosage *</label>
+                  <input
+                    className="w-full border rounded px-3 py-2 text-sm"
+                    defaultValue={editMedication.dosage}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Frequency *</label>
+                  <select className="w-full border rounded px-3 py-2 text-sm" defaultValue={editMedication.frequency}>
+                    <option>Select frequency</option>
+                    <option>Once daily</option>
+                    <option>Twice daily</option>
+                    <option>Three times daily</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Meal Timing</label>
+                  <select className="w-full border rounded px-3 py-2 text-sm" defaultValue={editMedication.mealTiming}>
+                    <option>No specific timing</option>
+                    <option>Before meals</option>
+                    <option>After meals</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Start Date *</label>
+                  <input
+                    type="date"
+                    className="w-full border rounded px-3 py-2 text-sm"
+                    defaultValue={editMedication.startDate}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">End Date (Optional)</label>
+                  <input
+                    type="date"
+                    className="w-full border rounded px-3 py-2 text-sm"
+                    defaultValue={editMedication.endDate}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Instructions</label>
+                <textarea
+                  className="w-full border rounded px-3 py-2 text-sm"
+                  rows={3}
+                  defaultValue={editMedication.instructions}
+                />
+              </div>
+              <div className="flex justify-between mt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowEditMedication(false)}
+                  className="font-semibold px-6 py-2 rounded-lg"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  style={{ backgroundColor: "#8159A8", color: "#fff" }}
+                  className="font-semibold px-6 py-2 rounded-lg"
+                >
+                  Update Medication
+                </Button>
+              </div>
+                  </form>
+          )}
         </DialogContent>
       </Dialog>
 

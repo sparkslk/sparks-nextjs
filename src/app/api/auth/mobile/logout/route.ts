@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Verify JWT token
-        const decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET!) as any;
+        const decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET!) as {userId?: string};
 
         if (!decoded.userId) {
             return NextResponse.json(

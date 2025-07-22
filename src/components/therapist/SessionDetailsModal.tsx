@@ -3,7 +3,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, Clock, User, MapPin, FileText, Target, TrendingUp } from "lucide-react";
+import { Calendar, Clock, User, FileText, Target, TrendingUp } from "lucide-react";
 import { format } from "date-fns";
 
 
@@ -15,9 +15,8 @@ interface Session {
   duration: number;
   type: string;
   status: string;
-  location?: string;
-  notes?: string;
-  objectives: string[];
+  sessionNotes?: string;
+  primaryFocusAreas: string[];
   patientMood?: number;
   engagement?: number;
   progressNotes?: string;
@@ -98,34 +97,25 @@ export function SessionDetailsModal({ session, isOpen, onClose }: SessionDetails
                   <p className="text-sm font-medium">Session Type</p>
                   <p className="text-sm text-gray-600 capitalize">{session.type}</p>
                 </div>
-                {session.location && (
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-gray-500" />
-                    <div>
-                      <p className="text-sm font-medium">Location</p>
-                      <p className="text-sm text-gray-600">{session.location}</p>
-                    </div>
-                  </div>
-                )}
               </div>
             </CardContent>
           </Card>
 
-          {/* Session Objectives */}
-          {session.objectives.length > 0 && (
+          {/* Primary Focus Areas */}
+          {session.primaryFocusAreas.length > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Target className="w-5 h-5" />
-                  Session Objectives
+                  Primary Focus Areas
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-2">
-                  {session.objectives.map((objective, index) => (
+                  {session.primaryFocusAreas.map((focusArea, index) => (
                     <li key={index} className="flex items-start gap-2">
                       <span className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></span>
-                      <span className="text-sm">{objective}</span>
+                      <span className="text-sm">{focusArea}</span>
                     </li>
                   ))}
                 </ul>
@@ -178,7 +168,7 @@ export function SessionDetailsModal({ session, isOpen, onClose }: SessionDetails
           )}
 
           {/* Session Notes */}
-          {session.notes && (
+          {session.sessionNotes && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
@@ -188,7 +178,7 @@ export function SessionDetailsModal({ session, isOpen, onClose }: SessionDetails
               </CardHeader>
               <CardContent>
                 <div className="prose prose-sm max-w-none">
-                  <p className="text-sm whitespace-pre-wrap">{session.notes}</p>
+                  <p className="text-sm whitespace-pre-wrap">{session.sessionNotes}</p>
                 </div>
               </CardContent>
             </Card>

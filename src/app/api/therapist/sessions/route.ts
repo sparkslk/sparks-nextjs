@@ -24,9 +24,8 @@ export async function POST(request: NextRequest) {
             scheduledAt,
             duration,
             type,
-            location,
-            notes,
-            objectives
+            sessionNotes,
+            primaryFocusAreas
         } = await request.json();
 
         // Validate required fields
@@ -60,9 +59,8 @@ export async function POST(request: NextRequest) {
                 scheduledAt: new Date(scheduledAt),
                 duration,
                 type: type || "individual",
-                location: location || null,
-                notes: notes || null,
-                objectives: objectives || []
+                sessionNotes: sessionNotes || null,
+                primaryFocusAreas: primaryFocusAreas || []
             },
             include: {
                 patient: {
@@ -164,9 +162,8 @@ export async function GET(request: NextRequest) {
             duration: session.duration,
             type: session.type,
             status: session.status,
-            location: session.location,
-            notes: session.notes,
-            objectives: session.objectives
+            sessionNotes: session.sessionNotes,
+            primaryFocusAreas: session.primaryFocusAreas
         }));
 
         return NextResponse.json(

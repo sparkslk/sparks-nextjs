@@ -4,8 +4,9 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { UserCheck, Star, Calendar, MessageSquare, Clock } from "lucide-react";
+import { UserCheck, Calendar, MessageSquare, Clock } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 interface Therapist {
   id: string;
@@ -62,7 +63,7 @@ export function AssignedTherapistCard() {
             Your Therapist
           </CardTitle>
           <CardDescription>
-            You don't have an assigned therapist yet
+            You don&apos;t have an assigned therapist yet
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -92,10 +93,12 @@ export function AssignedTherapistCard() {
         <div className="space-y-4">
           <div className="flex items-start space-x-4">
             {therapist.image ? (
-              <img
+              <Image
                 src={therapist.image}
                 alt={therapist.name}
-                className="w-16 h-16 rounded-full object-cover"
+                width={64}
+                height={64}
+                className="rounded-full object-cover"
               />
             ) : (
               <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -41,13 +41,13 @@ interface Assessment {
 export default function AssessmentsPage() {
   const { status: authStatus } = useSession();
   const router = useRouter();
-  const params = useParams();
-  const assessmentId = params?.id as string | undefined;
+  // const params = useParams();
+  // const assessmentId = params?.id as string | undefined;
 
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [assessmentToDelete, setAssessmentToDelete] =
-    useState<Assessment | null>(null);
+  // const [_assessmentToDelete, setAssessmentToDelete] =
+  //   useState<Assessment | null>(null);
   const [selectedAssessment, setSelectedAssessment] =
     useState<Assessment | null>(null);
   const [showPatientsModal, setShowPatientsModal] = useState(false);
@@ -147,17 +147,17 @@ export default function AssessmentsPage() {
     }
   };
 
-  const handleViewPatients = (e: React.MouseEvent, assessment: Assessment) => {
-    e.stopPropagation();
-    setSelectedAssessment(assessment);
-    setShowPatientsModal(true);
-    // Remove already assigned patients from availablePatients
-    const assignedIds = new Set(assessment.assignedPatients.map((p) => p.id));
-    setAvailablePatients(
-      possiblePatients.filter((p) => !assignedIds.has(p.id))
-    );
-    setShowAddPatientList(false);
-  };
+  // const handleViewPatients = (e: React.MouseEvent, assessment: Assessment) => {
+  //   e.stopPropagation();
+  //   setSelectedAssessment(assessment);
+  //   setShowPatientsModal(true);
+  //   // Remove already assigned patients from availablePatients
+  //   const assignedIds = new Set(assessment.assignedPatients.map((p) => p.id));
+  //   setAvailablePatients(
+  //     possiblePatients.filter((p) => !assignedIds.has(p.id))
+  //   );
+  //   setShowAddPatientList(false);
+  // };
 
   const handleAddPatient = (patient: {
     id: string;
@@ -521,8 +521,9 @@ export default function AssessmentsPage() {
                         className="bg-[#FAF8FB] hover:bg-[#FAF8FB] text-red-600 border-red-300"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setAssessmentToDelete(assessment);
-                          // You may want to show a confirmation modal here before actually deleting
+                          // setAssessmentToDelete(assessment);
+                          // TODO: Show a confirmation modal here before actually deleting
+                          console.log('Delete assessment:', assessment.id);
                         }}
                       >
                         Remove

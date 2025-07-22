@@ -6,14 +6,14 @@ console.log("API route file loaded");
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  console.log("PATCH request received for user id:", params.id);
+  const { id } = await params;
+  console.log("PATCH request received for user id:", id);
 
   try {
     await requireApiAuth(req, ["ADMIN"]);
 
-    const id = params.id;
     const body = await req.json();
 
     console.log("Request body:", body);
@@ -95,14 +95,13 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  console.log("DELETE request received for user id:", params.id);
+  const { id } = await params;
+  console.log("DELETE request received for user id:", id);
 
   try {
     await requireApiAuth(req, ["ADMIN"]);
-
-    const id = params.id;
 
     // First, we need to determine what type of user this is
     // We'll check each table to find the user

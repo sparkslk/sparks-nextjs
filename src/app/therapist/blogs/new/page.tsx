@@ -30,7 +30,7 @@ interface FormData {
 }
 
 export default function NewBlogPage() {
-  const { data: session, status: authStatus } = useSession();
+  const { status: authStatus } = useSession();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [saveAsDraft, setSaveAsDraft] = useState(true);
@@ -98,7 +98,7 @@ export default function NewBlogPage() {
       }
 
       // Prepare the data for submission
-      const submitData: any = {
+      const submitData: Record<string, unknown> = {
         title: formData.title.trim(),
         summary: formData.summary.trim(),
         content: formData.content.trim(),
@@ -134,7 +134,7 @@ export default function NewBlogPage() {
     }
   };
 
-  const submitBlog = async (data: any) => {
+  const submitBlog = async (data: Record<string, unknown>) => {
     const response = await fetch("/api/blogs", {
       method: "POST",
       headers: {

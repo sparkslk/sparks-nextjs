@@ -41,12 +41,18 @@ interface Blog {
   imageUrl: string | null;
 }
 
-export default function EditBlogPage({ params }: { params: { id: string } }) {
-  const { data: session, status: authStatus } = useSession();
+export default function EditBlogPage({ params }: { params: Promise<{ id: string }> }) {
+  const { status: authStatus } = useSession();
   const router = useRouter();
+  const [id, setId] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Extract id from params
+  useEffect(() => {
+    params.then((p) => setId(p.id));
+  }, [params]);
 
   // Form state
   const [formData, setFormData] = useState<FormData>({
@@ -66,7 +72,7 @@ export default function EditBlogPage({ params }: { params: { id: string } }) {
     setError(null);
 
     try {
-      const response = await fetch(`/api/blogs/${params.id}`);
+      const response = await fetch(`/api/blogs/${id}`);
 
       if (!response.ok) {
         if (response.status === 404) {
@@ -98,7 +104,7 @@ export default function EditBlogPage({ params }: { params: { id: string } }) {
     } finally {
       setFetchLoading(false);
     }
-  }, [params.id]);
+  }, [id]);
 
   // Fetch the blog data when the component mounts
   useEffect(() => {
@@ -107,10 +113,10 @@ export default function EditBlogPage({ params }: { params: { id: string } }) {
       return;
     }
 
-    if (authStatus === "authenticated") {
+    if (authStatus === "authenticated" && id) {
       fetchBlog();
     }
-  }, [authStatus, router, fetchBlog]);
+  }, [authStatus, router, fetchBlog, id]);
 
   // Handle file input changes
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -146,7 +152,7 @@ export default function EditBlogPage({ params }: { params: { id: string } }) {
 
     try {
       // Prepare the data for submission
-      const submitData: any = {
+      const submitData: Record<string, unknown> = {
         title: formData.title,
         summary: formData.summary,
         content: formData.content,
@@ -182,8 +188,8 @@ export default function EditBlogPage({ params }: { params: { id: string } }) {
     }
   };
 
-  const submitBlog = async (data: any) => {
-    const response = await fetch(`/api/blogs/${params.id}`, {
+  const submitBlog = async (data: Record<string, unknown>) => {
+    const response = await fetch(`/api/blogs/${id}`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -197,7 +203,7 @@ export default function EditBlogPage({ params }: { params: { id: string } }) {
     }
 
     // Redirect to the blog detail page
-    router.push(`/therapist/blogs/${params.id}`);
+    router.push(`/therapist/blogs/${id}`);
   };
 
   const handleStatusChange = (status: string) => {
@@ -210,7 +216,7 @@ export default function EditBlogPage({ params }: { params: { id: string } }) {
   };
 
   const handlePreview = () => {
-    router.push(`/therapist/blogs/${params.id}`);
+    router.push(`/therapist/blogs/${id}`);
   };
 
   if (authStatus === "loading" || fetchLoading) {

@@ -1,4 +1,3 @@
-import { TherapistSidebar } from "@/components/therapist/TherapistSidebar";
 
 export default function SetAvailabilityLayout({
   children,

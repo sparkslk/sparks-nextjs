@@ -2,11 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireApiAuth } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
 
-export async function GET(request: NextRequest, context: { params: { id: string } }) {
+export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const sessionUser = await requireApiAuth(request, ['PARENT_GUARDIAN']);
-    const { params } = await context;
-    const { id } = await params; // Await params before destructuring
+    const { id } = await context.params; // Await params before destructuring
 
     // Fetch the session by id
     const session = await prisma.therapySession.findUnique({
@@ -92,8 +91,8 @@ export async function GET(request: NextRequest, context: { params: { id: string 
       status: session.status,
       duration: session.duration || 60,
       sessionType: session.type || 'Therapy Session',
-      notes: session.sessionNotes || '',
-    //   objectives: session.objectives || [],
+      sessionNotes: session.sessionNotes || '',
+      primaryFocusAreas: session.primaryFocusAreas || [],
       attendance: session.attendanceStatus || '',
       engagement: session.patientEngagement || '',
       progress: session.overallProgress || '',

@@ -71,12 +71,13 @@ import { prisma } from "@/lib/prisma";
  */
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         const session = await requireApiAuth(request, ['THERAPIST']);
+        const { id } = await params;
         
-        console.log("Patient details request - Patient ID:", params.id);
+        console.log("Patient details request - Patient ID:", id);
         console.log("Patient details request - User ID:", session.user.id);
 
         // Get therapist profile
@@ -95,7 +96,7 @@ export async function GET(
         // Get the specific patient with detailed information
         const patient = await prisma.patient.findFirst({
             where: {
-                id: params.id,
+                id: id,
                 primaryTherapistId: user.therapistProfile.id
             },
             include: {
@@ -201,7 +202,7 @@ export async function GET(
                 status: session.status,
                 duration: session.duration || 60,
                 type: session.type,
-                therapistName: (session as any).therapist?.user?.name || "Unknown Therapist",
+                therapistName: (session as {therapist?: {user?: {name?: string}}}).therapist?.user?.name || "Unknown Therapist",
                 // Include all clinical documentation fields from the session details API
                 attendanceStatus: (session as unknown as Record<string, unknown>).attendanceStatus || null,
                 overallProgress: (session as unknown as Record<string, unknown>).overallProgress || null,
