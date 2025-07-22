@@ -45,6 +45,25 @@ const AddUser: React.FC<AddUserProps> = ({ open, onOpenChange, onAdd }) => {
   const [error, setError] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState("Patient");
   const [showPassword, setShowPassword] = useState(false);
+  const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
+  const [isPasswordTouched, setIsPasswordTouched] = useState(false);
+
+  const validatePassword = (password: string): string[] => {
+    const errors: string[] = [];
+    if (password.length < 8) {
+      errors.push("Password must be at least 8 characters long");
+    }
+    if (!/[A-Z]/.test(password)) {
+      errors.push("Password must contain at least one uppercase letter");
+    }
+    if (!/\d/.test(password)) {
+      errors.push("Password must contain at least one number");
+    }
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+      errors.push("Password must contain at least one special character");
+    }
+    return errors;
+  };
 
   // Common fields
   const [formData, setFormData] = useState({
@@ -95,16 +114,31 @@ const AddUser: React.FC<AddUserProps> = ({ open, onOpenChange, onAdd }) => {
     setSelectedRole("Patient");
     setError(null);
     setShowPassword(false);
+    setIsPasswordTouched(false);
   };
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    if (field === 'temporaryPassword') {
+      if (!isPasswordTouched) {
+        setIsPasswordTouched(true);
+      }
+      setPasswordErrors(validatePassword(value));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+
+    // Validate password before submission
+    const passwordValidationErrors = validatePassword(formData.temporaryPassword);
+    if (passwordValidationErrors.length > 0) {
+      setError("Please fix the password validation errors before submitting");
+      setLoading(false);
+      return;
+    }
 
     try {
       // Prepare data based on role
@@ -545,6 +579,15 @@ const AddUser: React.FC<AddUserProps> = ({ open, onOpenChange, onAdd }) => {
                 )}
               </Button>
             </div>
+            {isPasswordTouched && passwordErrors.length > 0 && (
+              <div className="mt-2 space-y-1">
+                {passwordErrors.map((error, index) => (
+                  <p key={index} className="text-sm text-red-600">
+                    • {error}
+                  </p>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Error display */}

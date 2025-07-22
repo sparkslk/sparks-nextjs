@@ -50,13 +50,13 @@ interface UserTableProps {
 function getRoleColor(role: string) {
   switch (role) {
     case "Patient":
-      return "bg-green-100 text-green-800";
+      return "bg-pink-100 text-pink-700";
     case "Therapist":
-      return "bg-blue-100 text-blue-800";
+      return "bg-blue-100 text-blue-700";
     case "Guardian":
-      return "bg-yellow-100 text-yellow-800";
+      return "bg-green-100 text-green-700";
     case "Manager":
-      return "bg-purple-100 text-purple-800";
+      return "bg-orange-100 text-orange-700";
     default:
       return "bg-gray-100 text-gray-800";
   }
@@ -77,25 +77,25 @@ const UserDetailsModal: React.FC<{
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-6 text-white relative">
+        <div className="bg-gradient-to-r from-purple-100 to-indigo-100 p-6 text-gray-800 relative">
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 p-2 hover:bg-white/10 rounded-full transition-colors"
+            className="absolute top-4 right-4 p-2 hover:bg-gray-200/50 rounded-full transition-colors"
           >
             <X className="h-5 w-5" />
           </button>
 
           <div className="flex items-center space-x-4">
-            <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white font-bold text-2xl shadow-lg border border-white/30">
+            <div className="w-16 h-16 rounded-full bg-purple-200/50 backdrop-blur-sm flex items-center justify-center text-purple-700 font-bold text-2xl shadow-lg border-2 border-purple-300/30">
               {String(user.avatar || '')}
             </div>
             <div>
-              <h2 className="text-2xl font-bold">{String(user.name || '')}</h2>
+              <h2 className="text-2xl font-bold text-gray-800">{String(user.name || '')}</h2>
               <div className="flex items-center space-x-2 mt-1">
-                <span className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium border border-white/30">
+                <span className="bg-purple-200/40 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium border border-purple-300/30 text-purple-700">
                   {String(user.role || '')}
                 </span>
-                <span className="text-white/90 text-sm">
+                <span className="text-gray-600 text-sm">
                   Joined {String(user.joinedDate || '')}
                 </span>
               </div>
@@ -281,20 +281,6 @@ const UserDetailsModal: React.FC<{
             </div>
           )}
         </div>
-
-        {/* Footer */}
-        <div className="bg-gradient-to-r from-purple-50 to-indigo-50 p-6 border-t border-purple-200 flex justify-end space-x-3">
-          <Button
-            variant="outline"
-            onClick={onClose}
-            className="px-6 border-purple-300 text-purple-700 hover:bg-purple-50"
-          >
-            Close
-          </Button>
-          <Button className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 px-6 text-white shadow-lg">
-            Edit Profile
-          </Button>
-        </div>
       </div>
     </div>
   );
@@ -383,42 +369,42 @@ const UserTable: React.FC<UserTableProps> = ({
           <table className="w-full min-w-[900px] text-sm text-gray-700">
             <thead className="bg-gradient-to-r from-[#8159A8]/15 via-blue-500/8 to-teal-500/10 border-b-2 border-[#8159A8]/20">
               <tr>
-                <th className="text-left py-6 px-8 font-bold text-[#8159A8] tracking-wide uppercase text-xs">
+                <th className="text-left py-6 px-8 font-bold text-[#8159A8] tracking-wide uppercase text-xs w-[300px]">
                   User
                 </th>
-                <th className="text-left py-6 px-8 font-bold text-[#8159A8] tracking-wide uppercase text-xs">
+                <th className="text-center py-6 px-8 font-bold text-[#8159A8] tracking-wide uppercase text-xs">
                   Role
                 </th>
-                <th className="text-left py-6 px-8 font-bold text-[#8159A8] tracking-wide uppercase text-xs">
+                <th className="text-center py-6 px-8 font-bold text-[#8159A8] tracking-wide uppercase text-xs">
                   Joined Date
                 </th>
                 {/* Dynamic headers based on selected role */}
                 {selectedRole === "Patient" && (
-                  <th className="text-left py-6 px-8 font-bold text-[#8159A8] tracking-wide uppercase text-xs">
+                  <th className="text-center py-6 px-8 font-bold text-[#8159A8] tracking-wide uppercase text-xs">
                     Contact
                   </th>
                 )}
                 {selectedRole === "Therapist" && (
-                  <th className="text-left py-6 px-8 font-bold text-[#8159A8] tracking-wide uppercase text-xs">
+                  <th className="text-center py-6 px-8 font-bold text-[#8159A8] tracking-wide uppercase text-xs">
                     Rating
                   </th>
                 )}
                 {selectedRole === "Guardian" && (
                   <>
-                    <th className="text-left py-6 px-8 font-bold text-[#8159A8] tracking-wide uppercase text-xs">
+                    <th className="text-center py-6 px-8 font-bold text-[#8159A8] tracking-wide uppercase text-xs">
                       Patient
                     </th>
-                    <th className="text-left py-6 px-8 font-bold text-[#8159A8] tracking-wide uppercase text-xs">
+                    <th className="text-center py-6 px-8 font-bold text-[#8159A8] tracking-wide uppercase text-xs">
                       Relationship
                     </th>
                   </>
                 )}
                 {selectedRole === "Manager" && (
-                  <th className="text-left py-6 px-8 font-bold text-[#8159A8] tracking-wide uppercase text-xs">
+                  <th className="text-center py-6 px-8 font-bold text-[#8159A8] tracking-wide uppercase text-xs">
                     Email
                   </th>
                 )}
-                <th className="text-left py-6 px-8 font-bold text-[#8159A8] tracking-wide uppercase text-xs">
+                <th className="text-center py-6 px-8 font-bold text-[#8159A8] tracking-wide uppercase text-xs">
                   Actions
                 </th>
               </tr>
@@ -452,7 +438,7 @@ const UserTable: React.FC<UserTableProps> = ({
                       </div>
                     </div>
                   </td>
-                  <td className="py-6 px-8">
+                  <td className="py-6 px-8 text-center">
                     <span
                       className={`inline-flex px-4 py-2 text-xs font-semibold rounded-full shadow-md transition-all duration-300 group-hover:shadow-lg ${getRoleColor(
                         String(user.role || '')
@@ -461,20 +447,20 @@ const UserTable: React.FC<UserTableProps> = ({
                       {String(user.role || '')}
                     </span>
                   </td>
-                  <td className="py-6 px-8 text-sm text-gray-700 font-medium transition-colors duration-300 group-hover:text-gray-900">
+                  <td className="py-6 px-8 text-sm text-gray-700 font-medium transition-colors duration-300 group-hover:text-gray-900 text-center">
                     {String(user.joinedDate || '')}
                   </td>
 
                   {/* Role-specific data cells with proper alignment */}
                   {user.role === "Patient" && selectedRole === "Patient" && (
-                    <td className="py-6 px-8 text-sm text-gray-700 transition-colors duration-300 group-hover:text-gray-900">
+                    <td className="py-6 px-8 text-sm text-gray-700 transition-colors duration-300 group-hover:text-gray-900 text-center">
                       <div className="font-medium">{String(user.phone || '')}</div>
                     </td>
                   )}
 
                   {user.role === "Therapist" && selectedRole === "Therapist" && (
-                    <td className="py-6 px-8 text-sm text-gray-700">
-                      <div className="flex items-center space-x-2 transition-all duration-300 group-hover:scale-105">
+                    <td className="py-6 px-8 text-sm text-gray-700 text-center">
+                      <div className="inline-flex items-center space-x-2 transition-all duration-300 group-hover:scale-105 justify-center">
                         <div className="p-2 bg-yellow-100 rounded-xl shadow-sm">
                           <Star className="h-4 w-4 text-yellow-500 fill-current" />
                         </div>
@@ -490,10 +476,10 @@ const UserTable: React.FC<UserTableProps> = ({
 
                   {user.role === "Guardian" && selectedRole === "Guardian" && (
                     <>
-                      <td className="py-6 px-8 text-sm text-gray-700 font-medium transition-colors duration-300 group-hover:text-gray-900">
+                      <td className="py-6 px-8 text-sm text-gray-700 font-medium transition-colors duration-300 group-hover:text-gray-900 text-center">
                         {String(user.patient || '')}
                       </td>
-                      <td className="py-6 px-8 text-sm text-gray-700 transition-colors duration-300 group-hover:text-gray-900">
+                      <td className="py-6 px-8 text-sm text-gray-700 transition-colors duration-300 group-hover:text-gray-900 text-center">
                         <span className="inline-flex px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold shadow-sm">
                           {String(user.relationship || '')}
                         </span>
@@ -502,18 +488,19 @@ const UserTable: React.FC<UserTableProps> = ({
                   )}
 
                   {user.role === "Manager" && selectedRole === "Manager" && (
-                    <td className="py-6 px-8 text-sm text-gray-700 font-medium transition-colors duration-300 group-hover:text-gray-900">
+                    <td className="py-6 px-8 text-sm text-gray-700 font-medium transition-colors duration-300 group-hover:text-gray-900 text-center">
                       {String(user.email || '')}
                     </td>
                   )}
 
-                  <td className="py-6 px-8">
+                  <td className="py-6 px-8 text-center">
                     <div className="flex items-center gap-3">
                       {/* View Details button for Patient and Therapist */}
                       {(user.role === "Patient" || user.role === "Therapist") && (
                         <Button
                           size="sm"
-                          className="text-xs bg-primary text-white hover:from-[#6b4890] hover:to-blue-700 shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105 active:scale-95 rounded-xl px-4 py-2"
+                          variant="outline"
+                          className="text-xs border-2 border-blue-400/60 text-blue-600 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-500 hover:shadow-md transition-all duration-300 transform hover:scale-105 active:scale-95 rounded-xl px-4 py-2 backdrop-blur-sm"
                           onClick={() => handleViewDetails(user)}
                         >
                           View Details

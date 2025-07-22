@@ -51,6 +51,34 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
   const [formData, setFormData] = useState<User>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<{
+    email?: string;
+    phone?: string;
+  }>({});
+
+  // Validation functions
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const isValid = emailRegex.test(email);
+    setValidationErrors(prev => ({
+      ...prev,
+      email: isValid ? undefined : 'Please enter a valid email address'
+    }));
+    return isValid;
+  };
+
+  const validatePhone = (phone: string): boolean => {
+    // Allow empty phone as it's optional
+    if (!phone) return true;
+    // Accept formats: +94XXXXXXXXX or 0XXXXXXXXX
+    const phoneRegex = /^(?:\+94|0)\d{9}$/;
+    const isValid = phoneRegex.test(phone);
+    setValidationErrors(prev => ({
+      ...prev,
+      phone: isValid ? undefined : 'Please enter a valid phone number (+94XXXXXXXXX or 0XXXXXXXXX)'
+    }));
+    return isValid;
+  };
 
   // Initialize form data when user changes
   useEffect(() => {
@@ -62,7 +90,6 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
         fullName: (user.name as string) || user.fullName || "",
         fullname: (user.name as string) || user.fullName || "", // For therapist
         email: user.email || "",
-        status: (user.status as string) || "Active",
         // Patient specific
         gender: user.gender || "",
         phone: user.phone || "",
@@ -89,6 +116,13 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
       ...prev,
       [field]: value,
     }));
+    
+    // Validate fields on change
+    if (field === 'email') {
+      validateEmail(value);
+    } else if (field === 'phone') {
+      validatePhone(value);
+    }
   };
 
   const handleSave = async () => {
@@ -96,6 +130,19 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
 
     setLoading(true);
     setError(null);
+    
+    // Validate all fields before submitting
+    const isEmailValid = validateEmail(formData.email as string);
+    const isPhoneValid = validatePhone(formData.phone as string);
+
+    if (!isEmailValid || !isPhoneValid) {
+      setLoading(false);
+      const errorMessages = [];
+      if (!isEmailValid) errorMessages.push("Please enter a valid email address");
+      if (!isPhoneValid) errorMessages.push("Please enter a valid phone number");
+      setError(errorMessages.join(". "));
+      return;
+    }
 
     try {
       // Prepare the data to send to API based on role
@@ -178,9 +225,7 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
           address: formData.address,
           medicalHistory: formData.medicalHistory,
           emergencyContact: formData.emergencyContact,
-          status: formData.status,
         }),
-        
         ...(user.role === "Therapist" && {
           fullname: formData.fullname,
           licenseNumber: formData.licenseNumber,
@@ -188,21 +233,16 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
           experience: formData.experience,
           availability: formData.availability,
           rating: formData.rating,
-          status: formData.status,
         }),
-        
         ...(user.role === "Guardian" && {
           fullName: formData.fullName,
           email: formData.email,
           patient: formData.patient,
           relationship: formData.relationship,
-          status: formData.status,
         }),
-        
         ...(user.role === "Manager" && {
           fullName: formData.fullName,
           email: formData.email,
-          status: formData.status,
         }),
       };
       
@@ -247,11 +287,13 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
         <div className="space-y-2">
           <Label htmlFor="gender">Gender</Label>
           <Select
-            value={(formData.gender as string) || ""}
+            value={formData.gender ? String(formData.gender) : ""}
             onValueChange={(value) => handleInputChange("gender", value)}
           >
             <SelectTrigger>
-              <SelectValue placeholder="Select gender" />
+              <SelectValue placeholder="Select gender">
+                {formData.gender ? String(formData.gender) : "Select gender"}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="Male">Male</SelectItem>
@@ -262,12 +304,18 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
         </div>
         <div className="space-y-2">
           <Label htmlFor="phone">Phone</Label>
-          <Input
-            id="phone"
-            value={(formData.phone as string) || ""}
-            onChange={(e) => handleInputChange("phone", e.target.value)}
-            placeholder="Enter phone number"
-          />
+          <div className="space-y-1">
+            <Input
+              id="phone"
+              value={(formData.phone as string) || ""}
+              onChange={(e) => handleInputChange("phone", e.target.value)}
+              placeholder="Enter phone number (e.g., +94XXXXXXXXX)"
+              className={validationErrors.phone ? "border-red-500" : ""}
+            />
+            {validationErrors.phone && (
+              <p className="text-sm text-red-500">{validationErrors.phone}</p>
+            )}
+          </div>
         </div>
       </div>
 
@@ -280,22 +328,6 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
             value={(formData.dateOfBirth as string) || ""}
             onChange={(e) => handleInputChange("dateOfBirth", e.target.value)}
           />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="status">Status</Label>
-          <Select
-            value={(formData.status as string) || ""}
-            onValueChange={(value) => handleInputChange("status", value)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Active">Active</SelectItem>
-              <SelectItem value="Inactive">Inactive</SelectItem>
-              <SelectItem value="Pending">Pending</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
       </div>
 
@@ -347,6 +379,19 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
           />
         </div>
         <div className="space-y-2">
+          <Label htmlFor="email">Email *</Label>
+          <Input
+            id="email"
+            type="email"
+            value={(formData.email as string) || ""}
+            onChange={(e) => handleInputChange("email", e.target.value)}
+            placeholder="Enter email"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
           <Label htmlFor="licenseNumber">License Number</Label>
           <Input
             id="licenseNumber"
@@ -355,9 +400,6 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
             placeholder="Enter license number"
           />
         </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="specialization">Specialization</Label>
           <Input
@@ -367,6 +409,9 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
             placeholder="Enter specialization"
           />
         </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="experience">Experience</Label>
           <Input
@@ -376,9 +421,6 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
             placeholder="Enter experience (e.g., 5 years)"
           />
         </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="availability">Availability</Label>
           <Input
@@ -388,6 +430,9 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
             placeholder="Enter availability"
           />
         </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="rating">Rating</Label>
           <Input
@@ -401,23 +446,6 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
             placeholder="Enter rating (0-5)"
           />
         </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="status">Status</Label>
-        <Select
-          value={(formData.status as string) || ""}
-          onValueChange={(value) => handleInputChange("status", value)}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Active">Active</SelectItem>
-            <SelectItem value="Inactive">Inactive</SelectItem>
-            <SelectItem value="Pending">Pending</SelectItem>
-          </SelectContent>
-        </Select>
       </div>
     </>
   );
@@ -477,22 +505,7 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="status">Status</Label>
-        <Select
-          value={(formData.status as string) || ""}
-          onValueChange={(value) => handleInputChange("status", value)}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Active">Active</SelectItem>
-            <SelectItem value="Inactive">Inactive</SelectItem>
-            <SelectItem value="Pending">Pending</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+
     </>
   );
 
@@ -520,7 +533,7 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
         </div>
       </div>
 
-      <div className="space-y-2">
+      {/*<div className="space-y-2">
         <Label htmlFor="status">Status</Label>
         <Select
           value={(formData.status as string) || ""}
@@ -535,7 +548,7 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
             <SelectItem value="Pending">Pending</SelectItem>
           </SelectContent>
         </Select>
-      </div>
+      </div>*/}
     </>
   );
 
