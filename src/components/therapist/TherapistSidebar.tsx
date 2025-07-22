@@ -9,7 +9,6 @@ import {
   Clock,
   Users,
   BarChart3,
-  Settings,
   User,
   ClipboardList,
   MessageSquare,
@@ -55,7 +54,7 @@ function getInitials(name: string): string {
 }
 
 // Menu items data
-const getMenuItems = (pendingRequests: number) => ({
+const getMenuItems = () => ({
   overview: [
     {
       title: "Dashboard",
@@ -63,12 +62,12 @@ const getMenuItems = (pendingRequests: number) => ({
       icon: Home,
       badge: null,
     },
-    {
+    /* {
       title: "Profile",
       url: "/therapist/profile",
       icon: User,
       badge: pendingRequests > 0 ? pendingRequests.toString() : null,
-    },
+    }, */
   ],
   clinical: [
     {
@@ -121,7 +120,6 @@ interface TherapistSidebarProps {
 
 export function TherapistSidebar({ children }: TherapistSidebarProps) {
   const pathname = usePathname();
-  const [pendingRequests, setPendingRequests] = React.useState(0);
   const [therapistData, setTherapistData] = React.useState<{
     name: string | null;
     email: string | null;
@@ -130,15 +128,14 @@ export function TherapistSidebar({ children }: TherapistSidebarProps) {
   } | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
 
-  // Get menu items with current pending requests count
-  const menuItems = getMenuItems(pendingRequests);
+  // Menu items data (no pendingRequests)
+  const menuItems = getMenuItems();
 
-  // Fetch therapist data and pending requests count
+  // Fetch therapist data only
   React.useEffect(() => {
     const fetchTherapistData = async () => {
       try {
         setIsLoading(true);
-
         // Fetch therapist profile
         const profileResponse = await fetch("/api/therapist/profile");
         if (profileResponse.ok) {
@@ -150,15 +147,6 @@ export function TherapistSidebar({ children }: TherapistSidebarProps) {
             specialization: profileData.specialization || [],
           });
         }
-
-        // Fetch pending requests count
-        const requestsResponse = await fetch(
-          "/api/therapist/session-requests/count"
-        );
-        if (requestsResponse.ok) {
-          const requestsData = await requestsResponse.json();
-          setPendingRequests(requestsData.count);
-        }
       } catch (error) {
         console.error("Failed to fetch therapist data:", error);
       } finally {
@@ -167,21 +155,6 @@ export function TherapistSidebar({ children }: TherapistSidebarProps) {
     };
 
     fetchTherapistData();
-
-    // Poll pending requests every 30 seconds for updates
-    const interval = setInterval(async () => {
-      try {
-        const response = await fetch("/api/therapist/session-requests/count");
-        if (response.ok) {
-          const data = await response.json();
-          setPendingRequests(data.count);
-        }
-      } catch (error) {
-        console.error("Failed to fetch pending requests:", error);
-      }
-    }, 30000);
-
-    return () => clearInterval(interval);
   }, []);
 
   const handleSignOut = async () => {
@@ -220,8 +193,8 @@ export function TherapistSidebar({ children }: TherapistSidebarProps) {
                     asChild
                     isActive={pathname === item.url}
                     className={`w-full rounded-lg px-3 py-2 pl-3 transition flex items-center gap-3
-    ${pathname === item.url ? "bg-primary/10 font-semibold text-primary" : "hover:bg-primary/10"}
-  `}
+                      ${pathname === item.url ? "bg-primary/10 font-semibold text-primary" : "hover:bg-primary/10"}
+                    `}
                   >
                     <Link href={item.url}>
                       <item.icon className="size-4 text-primary" />
@@ -338,10 +311,10 @@ export function TherapistSidebar({ children }: TherapistSidebarProps) {
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link href="/therapist/settings" className="flex items-center gap-2">
+              {/* <Link href="/therapist/settings" className="flex items-center gap-2">
                 <Settings className="size-4" />
                 Settings
-              </Link>
+              </Link> */}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={handleSignOut} className="flex items-center gap-2 text-red-600">
               <LogOut className="size-4" />
