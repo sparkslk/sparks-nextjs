@@ -442,7 +442,6 @@ enum MedicationHistoryAction {
   FREQUENCY_CHANGED
   INSTRUCTIONS_UPDATED
 }
-
 model TherapistAssignmentRequest {
   id              String           @id @default(cuid())
   patientId       String

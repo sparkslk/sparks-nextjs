@@ -4,7 +4,7 @@
 import { useRouter, usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
-import { User, Settings, LogOut, Menu, X } from "lucide-react";
+import { User,  LogOut, Menu, X } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState} from "react";
 import NotificationBell from "@/components/NotificationBell";
@@ -14,7 +14,7 @@ const tabs = [
     { name: 'My Children', path: '/parent/children' },
     { name: 'Find Therapists', path: '/parent/findTherapist' },
     { name: 'Messages', path: '/parent/messages' },
-    { name: 'Appointments', path: '/parent/appointments' },
+    { name: 'Sessions', path: '/parent/appointments' },
     { name: 'Resources', path: '/parent/resources' }
 ];
 
@@ -116,9 +116,7 @@ export default function ParentNavigation() {
                                 </span>
                             </div>
                             <NotificationBell />
-                            <Button variant="ghost" size="icon" className="hover:bg-accent">
-                                <Settings className="h-5 w-5" />
-                            </Button>
+                           
                             <div className="flex items-center space-x-2">
                                 {parentData?.parentImage ? (
                                     <Image
@@ -126,11 +124,13 @@ export default function ParentNavigation() {
                                         alt={parentData.parentName || 'Parent'}
                                         width={32}
                                         height={32}
-                                        className="object-cover w-8 h-8 rounded-full"
+                                        className="object-cover w-8 h-8 rounded-full cursor-pointer"
                                         priority
+                                        onClick={() => router.push('/parent/profile')}
                                     />
                                 ) : (
-                                    <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#8159A8' }}>
+                                    <div className="w-8 h-8 rounded-full flex items-center justify-center cursor-pointer" style={{ backgroundColor: '#8159A8' }}
+                                        onClick={() => router.push('/parent/profile')}>
                                         <User className="h-4 w-4 text-white" />
                                     </div>
                                 )}
@@ -168,9 +168,7 @@ export default function ParentNavigation() {
                             </div>
                             <div className="flex justify-center space-x-4">
                                 <NotificationBell />
-                                <Button variant="ghost" size="icon" className="hover:bg-accent">
-                                    <Settings className="h-5 w-5" />
-                                </Button>
+                               
                                 <div className="flex items-center space-x-2">
                                     {parentData?.parentImage ? (
                                         <Image
@@ -178,11 +176,13 @@ export default function ParentNavigation() {
                                             alt={parentData.parentName || 'Parent'}
                                             width={32}
                                             height={32}
-                                            className="object-cover w-8 h-8 rounded-full"
+                                            className="object-cover w-8 h-8 rounded-full cursor-pointer"
                                             priority
+                                            onClick={() => router.push('/parent/profile')}
                                         />
                                     ) : (
-                                        <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#8159A8' }}>
+                                        <div className="w-8 h-8 rounded-full flex items-center justify-center cursor-pointer" style={{ backgroundColor: '#8159A8' }}
+                                            onClick={() => router.push('/parent/profile')}>
                                             <User className="h-4 w-4 text-white" />
                                         </div>
                                     )}

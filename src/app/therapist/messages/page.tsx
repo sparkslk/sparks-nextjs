@@ -248,7 +248,7 @@ export default function TherapistMessagesPage() {
     <div className="min-h-screen bg-gradient-to-br from-[#F5F3FB] via-white to-[#F5F3FB]">
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Messages</h1>
+          <h1 className="text-3xl font-bold mb-2 text-[#8159A8]">Messages</h1>
           <p className="text-gray-600">Communicate with patients and their families</p>
         </div>
 

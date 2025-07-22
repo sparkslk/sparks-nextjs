@@ -364,11 +364,7 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
                 {/* Risk Assessment */}
                 <div>
                   <Label htmlFor="riskAssessment" className="flex items-center gap-2">
-                    <AlertTriangle className={`w-4 h-4 ${
-                      riskAssessment === 'HIGH' ? 'text-red-500' : 
-                      riskAssessment === 'MEDIUM' ? 'text-orange-500' : 
-                      riskAssessment === 'LOW' ? 'text-yellow-500' : 'text-gray-400'
-                    }`} />
+                    
                     Risk Assessment
                   </Label>
                   <Select value={riskAssessment} onValueChange={setRiskAssessment}>
@@ -384,9 +380,9 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
                   </Select>
                   {riskAssessment !== 'NONE' && riskAssessment !== '' && (
                     <p className="text-xs text-gray-600 mt-1">
-                      {riskAssessment === 'HIGH' && '⚠️ High risk - Immediate attention may be required'}
-                      {riskAssessment === 'MEDIUM' && '⚠️ Medium risk - Monitor closely and follow up'}
-                      {riskAssessment === 'LOW' && 'ℹ️ Low risk - Minimal risk identified'}
+                      {riskAssessment === 'HIGH' && 'High risk - Immediate attention may be required'}
+                      {riskAssessment === 'MEDIUM' && 'Medium risk - Monitor closely and follow up'}
+                      {riskAssessment === 'LOW' && 'Low risk - Minimal risk identified'}
                     </p>
                   )}
                 </div>
@@ -398,7 +394,7 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
-                <Target className="w-5 h-5" />
+                
                 Primary Focus Areas
               </CardTitle>
               <p className="text-sm text-gray-600">Select 2-3 key areas addressed in this session</p>
@@ -463,6 +459,49 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
             </CardContent>
           </Card>
 
+          {/* --- New Section: Medications & Tasks --- */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Patient Medications & Assessments</CardTitle>
+              <p className="text-sm text-gray-600">Use these options to update the patient's current medications or assign new assessments directly from this session.</p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Button
+                  style={{ backgroundColor: "#FAF8FB", color: "#8159A8" }}
+                  className="font-semibold px-4 py-2 rounded-lg transition-colors duration-150 hover:bg-[#E9E3F2] hover:text-[#6B399A] hover:shadow-md hover:scale-103"
+                  type="button"
+                  onClick={() => {
+                    // Open the medications modal from parent
+                    if (typeof window !== "undefined") {
+                      const event = new CustomEvent("openMedicationsModal");
+                      window.dispatchEvent(event);
+                    }
+                  }}
+                >
+                  Update Patient's Medication
+                </Button>
+                <Button
+                  style={{ backgroundColor: "#FAF8FB", color: "#8159A8" }}
+                  className="font-semibold px-4 py-2 rounded-lg transition-colors duration-150 hover:bg-[#E9E3F2] hover:text-[#6B399A] hover:shadow-md hover:scale-103"
+                  type="button"
+                  onClick={() => {
+                    // Open the tasks modal from parent
+                    if (typeof window !== "undefined") {
+                      const event = new CustomEvent("openTasksModal");
+                      window.dispatchEvent(event);
+                    }
+                  }}
+                >
+                  Assign New Assessments to Patient
+                </Button>
+                </div>
+            </CardContent>
+          </Card>
+
+          
+
+
           {/* Success/Error Messages */}
           {submitSuccess && (
             <div className="bg-green-50 border border-green-200 rounded-md p-4">
@@ -481,6 +520,7 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
               </div>
             </div>
           )}
+
 
           {/* Action Buttons */}
           <div className="flex justify-end gap-3 pt-4 border-t">
@@ -504,6 +544,8 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
               )}
             </Button>
           </div>
+
+          
         </div>
         )}
       </DialogContent>
