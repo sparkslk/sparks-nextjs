@@ -42,6 +42,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import Image from "next/image";
 
 // Helper function to get initials from name
 function getInitials(name: string): string {
@@ -172,7 +173,14 @@ export function TherapistSidebar({ children }: TherapistSidebarProps) {
       <SidebarHeader className="py-6 px-4 border-b bg-gradient-to-r from-primary/10 to-primary/5">
         <div className="flex items-center gap-3">
             <div className="flex aspect-square size-10 items-center justify-center rounded-lg bg-trasparent">
-            <img src="\images\sparkslogo-bg.png" alt="Sparks Logo" className="h-10 w-10" />
+              <Image
+                src="/images/sparkslogo-bg.png"
+                alt="Sparks Logo"
+                width={40}
+                height={40}
+                className="h-10 w-10"
+                priority
+              />
             </div>
           <div>
             <span className="block font-semibold text-base tracking-tight">Sparks</span>
