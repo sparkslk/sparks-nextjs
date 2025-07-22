@@ -12,10 +12,10 @@ interface Session {
   therapist: string;
   mode: string;
   status: 'upcoming' | 'past';
-  notes?: string;
+  sessionNotes?: string;
   duration?: number;
   sessionType?: string;
-  objectives?: string[];
+  primaryFocusAreas?: string[];
   homework?: string;
   nextSteps?: string;
 }
@@ -282,10 +282,10 @@ export default function SessionDetailsModal({ isOpen, onClose, childName, childI
                                 <span>Duration: {session.duration || 60} minutes</span>
                               </div>
                             </div>
-                            {session.notes && (
+                            {session.sessionNotes && (
                               <div className="flex items-center space-x-4 text-sm text-gray-600 mt-2">
                                 <span className="text-gray-500">Session Notes:</span>
-                                <span className="italic">{session.notes}</span>
+                                <span className="italic">{session.sessionNotes}</span>
                               </div>
                             )}
                           </div>
@@ -306,7 +306,7 @@ export default function SessionDetailsModal({ isOpen, onClose, childName, childI
                           <div className="mt-4 p-3 bg-gray-50 rounded-lg">
                             <h4 className="font-medium text-gray-900 mb-2">Session Summary</h4>
                             <p className="text-sm text-gray-700 mb-3">
-                              {session.notes || 'No detailed notes available for this session.'}
+                              {session.sessionNotes || 'No detailed notes available for this session.'}
                             </p>
                             <div className="grid grid-cols-2 gap-4 text-xs text-gray-600">
                               <div>
@@ -316,7 +316,7 @@ export default function SessionDetailsModal({ isOpen, onClose, childName, childI
                                 <span className="font-medium">Session Type:</span> {session.sessionType || 'N/A'}
                               </div>
                               <div>
-                                <span className="font-medium">Objectives:</span> {session.objectives?.join(', ') || 'N/A'}
+                                <span className="font-medium">Primary Focus Areas:</span> {session.primaryFocusAreas?.join(', ') || 'N/A'}
                               </div>
                               <div>
                                 <span className="font-medium">Homework:</span> {session.homework || 'N/A'}

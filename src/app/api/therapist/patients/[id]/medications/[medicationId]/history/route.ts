@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { format } from 'date-fns';
-import { MedicationHistoryAction, MedicationHistoryEntry } from '@/types/medications';
+import { MedicationHistoryAction } from '@/types/medications';
 
 export async function GET(
   request: NextRequest,
@@ -15,7 +15,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id: patientId, medicationId } = params;
+    const { id: patientId, medicationId } = await params;
 
     // Verify therapist has access to this patient
     const therapist = await prisma.therapist.findUnique({
@@ -79,7 +79,7 @@ export async function GET(
     });
 
     // Transform database records to include therapist information
-    const history: MedicationHistoryEntry[] = await Promise.all(
+    const history = await Promise.all(
       medicationHistoryRecords.map(async (record) => {
         // Get therapist information for the person who made the change
         let therapistInfo = null;
@@ -112,8 +112,8 @@ export async function GET(
           action: record.action as MedicationHistoryAction,
           changedBy: record.changedBy,
           changedAt: record.changedAt,
-          previousValues: record.previousValues as Record<string, unknown> | undefined,
-          newValues: record.newValues as Record<string, unknown> | undefined,
+          previousValues: record.previousValues,
+          newValues: record.newValues,
           reason: record.reason || undefined,
           notes: record.notes || undefined,
           therapist: therapistInfo || {
@@ -134,6 +134,7 @@ export async function GET(
         action: MedicationHistoryAction.CREATED,
         changedBy: medication.therapistId,
         changedAt: medication.createdAt,
+        previousValues: null,
         newValues: {
           name: medication.name,
           dosage: medication.dosage,
@@ -144,6 +145,7 @@ export async function GET(
           startDate: medication.startDate.toISOString(),
           endDate: medication.endDate?.toISOString(),
         },
+        reason: undefined,
         notes: `New medication prescribed: ${medication.name} ${medication.dosage}`,
         therapist: {
           user: {
@@ -160,13 +162,15 @@ export async function GET(
           action: MedicationHistoryAction.UPDATED,
           changedBy: medication.therapistId,
           changedAt: medication.updatedAt,
-          notes: `${medication.name} details were updated on ${format(new Date(medication.updatedAt), 'MMM dd, yyyy')}`,
+          previousValues: null,
           newValues: {
             currentName: medication.name,
             currentDosage: medication.dosage,
             currentFrequency: medication.frequency,
             currentMealTiming: medication.mealTiming,
           },
+          reason: undefined,
+          notes: `${medication.name} details were updated on ${format(new Date(medication.updatedAt), 'MMM dd, yyyy')}`,
           therapist: {
             user: {
               name: medication.Therapist.user.name || 'Unknown Therapist',

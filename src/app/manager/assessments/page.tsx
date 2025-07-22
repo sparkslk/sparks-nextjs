@@ -46,7 +46,7 @@ export default function AssessmentsPage() {
 
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [loading, setLoading] = useState(true);
-  // const [assessmentToDelete, setAssessmentToDelete] =
+  // const [_assessmentToDelete, setAssessmentToDelete] =
   //   useState<Assessment | null>(null);
   const [selectedAssessment, setSelectedAssessment] =
     useState<Assessment | null>(null);
@@ -159,7 +159,7 @@ export default function AssessmentsPage() {
   //   setShowAddPatientList(false);
   // };
 
-  /* const handleAddPatient = (patient: {
+  const handleAddPatient = (patient: {
     id: string;
     name: string;
     email: string;
@@ -180,7 +180,7 @@ export default function AssessmentsPage() {
     );
     setAvailablePatients((prev) => prev.filter((p) => p.id !== patient.id));
     setShowAddPatientList(false);
-  }; */
+  };
 
   const handleUnassignPatient = (patient: {
     id: string;
@@ -521,8 +521,9 @@ export default function AssessmentsPage() {
                         className="bg-[#FAF8FB] hover:bg-[#FAF8FB] text-red-600 border-red-300"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setAssessmentToDelete(assessment);
-                          // You may want to show a confirmation modal here before actually deleting
+                          // setAssessmentToDelete(assessment);
+                          // TODO: Show a confirmation modal here before actually deleting
+                          console.log('Delete assessment:', assessment.id);
                         }}
                       >
                         Remove

@@ -174,7 +174,7 @@ export default function TherapistProfilePage() {
     setIsLoading(true);
     try {
       // TODO: API call
-      setProfile(editData);
+      setProfile(prev => ({...prev, ...editData}));
       setActiveSection(null);
       setEditData({});
       await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -437,7 +437,8 @@ export default function TherapistProfilePage() {
                           setEditData({
                             ...editData,
                             address: {
-                              ...editData.address,
+                              houseNumber: editData.address?.houseNumber || profile.address.houseNumber || "",
+                              streetName: editData.address?.streetName || profile.address.streetName || "",
                               city: e.target.value,
                             },
                           })
@@ -628,8 +629,10 @@ export default function TherapistProfilePage() {
                           setEditData({
                             ...editData,
                             bankDetails: {
-                              ...editData.bankDetails,
                               accountHolderName: e.target.value,
+                              accountNumber: editData.bankDetails?.accountNumber || profile.bankDetails.accountNumber || "",
+                              bankName: editData.bankDetails?.bankName || profile.bankDetails.bankName || "",
+                              branchName: editData.bankDetails?.branchName || profile.bankDetails.branchName || "",
                             },
                           })
                         }
@@ -644,8 +647,10 @@ export default function TherapistProfilePage() {
                           setEditData({
                             ...editData,
                             bankDetails: {
-                              ...editData.bankDetails,
+                              accountHolderName: editData.bankDetails?.accountHolderName || profile.bankDetails.accountHolderName || "",
+                              accountNumber: editData.bankDetails?.accountNumber || profile.bankDetails.accountNumber || "",
                               bankName: e.target.value,
+                              branchName: editData.bankDetails?.branchName || profile.bankDetails.branchName || "",
                             },
                           })
                         }
@@ -660,8 +665,10 @@ export default function TherapistProfilePage() {
                           setEditData({
                             ...editData,
                             bankDetails: {
-                              ...editData.bankDetails,
+                              accountHolderName: editData.bankDetails?.accountHolderName || profile.bankDetails.accountHolderName || "",
                               accountNumber: e.target.value,
+                              bankName: editData.bankDetails?.bankName || profile.bankDetails.bankName || "",
+                              branchName: editData.bankDetails?.branchName || profile.bankDetails.branchName || "",
                             },
                           })
                         }
@@ -676,7 +683,9 @@ export default function TherapistProfilePage() {
                           setEditData({
                             ...editData,
                             bankDetails: {
-                              ...editData.bankDetails,
+                              accountHolderName: editData.bankDetails?.accountHolderName || profile.bankDetails.accountHolderName || "",
+                              accountNumber: editData.bankDetails?.accountNumber || profile.bankDetails.accountNumber || "",
+                              bankName: editData.bankDetails?.bankName || profile.bankDetails.bankName || "",
                               branchName: e.target.value,
                             },
                           })

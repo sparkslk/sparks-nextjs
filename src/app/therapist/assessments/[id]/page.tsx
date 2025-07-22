@@ -104,7 +104,7 @@ export default function AssessmentDetailsPage() {
     } finally {
       setLoading(false);
     }
-  }, [assessment, patientDeadlines]);
+  }, []);
 
   useEffect(() => {
     if (authStatus === "unauthenticated") {
@@ -217,9 +217,8 @@ export default function AssessmentDetailsPage() {
       assignedPatients: assessment.assignedPatients.filter(p => p.id !== patient.id),
     };
     setAssessment(updated);
-    // Add back to availablePatients if in possiblePatients
-    const found = possiblePatients.find(p => p.id === patient.id);
-    if (found) setAvailablePatients(prev => [...prev, found]);
+    // Add the removed patient back to availablePatients
+    setAvailablePatients(prev => [...prev, {id: patient.id, name: patient.name, email: patient.email}]);
   };
 
   return (

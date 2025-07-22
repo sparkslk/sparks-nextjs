@@ -85,11 +85,11 @@ const formatFieldValue = (key: string, value: unknown): string => {
   switch (key) {
     case 'frequency':
     case 'currentFrequency':
-      return FREQUENCY_LABELS[value as MedicationFrequency] || value;
+      return FREQUENCY_LABELS[value as MedicationFrequency] || String(value);
     
     case 'mealTiming':
     case 'currentMealTiming':
-      return MEAL_TIMING_LABELS[value as MealTiming] || value;
+      return MEAL_TIMING_LABELS[value as MealTiming] || String(value);
     
     case 'startDate':
     case 'endDate':
@@ -98,10 +98,10 @@ const formatFieldValue = (key: string, value: unknown): string => {
         try {
           return format(new Date(value), 'MMM dd, yyyy');
         } catch {
-          return value;
+          return String(value);
         }
       }
-      return value;
+      return String(value);
     
     case 'isActive':
       return value ? 'Active' : 'Inactive';

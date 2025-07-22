@@ -52,7 +52,7 @@ interface Blog {
 }
 
 export default function BlogManagementPage() {
-  const { status: authStatus } = useSession();
+  const { status: authStatus, data: session } = useSession();
   const router = useRouter();
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [loading, setLoading] = useState(true);

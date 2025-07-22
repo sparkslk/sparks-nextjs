@@ -28,9 +28,8 @@ interface SessionForm {
     scheduledAt: string;
     duration: number;
     type: string;
-    location: string;
-    notes: string;
-    objectives: string[];
+    sessionNotes: string;
+    primaryFocusAreas: string[];
 }
 
 export default function NewAppointmentPage() {
@@ -43,9 +42,8 @@ export default function NewAppointmentPage() {
         scheduledAt: "",
         duration: 60,
         type: "individual",
-        location: "",
-        notes: "",
-        objectives: []
+        sessionNotes: "",
+        primaryFocusAreas: []
     });
 
     useEffect(() => {
@@ -284,13 +282,15 @@ export default function NewAppointmentPage() {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label htmlFor="location">Location</Label>
+                                    <Label htmlFor="location">Location (Not Available)</Label>
                                     <Input
                                         id="location"
                                         type="text"
-                                        placeholder="Office, telehealth, etc."
-                                        value={formData.location}
-                                        onChange={(e) => handleInputChange("location", e.target.value)}
+                                        placeholder="Location field is not supported"
+                                        value={""}
+                                        onChange={() => console.log('Location field not supported')}
+                                        disabled
+                                        className="opacity-50"
                                     />
                                 </div>
                             </CardContent>
@@ -306,13 +306,13 @@ export default function NewAppointmentPage() {
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="objectives">Session Objectives</Label>
+                                    <Label htmlFor="objectives">Primary Focus Areas</Label>
                                     <Input
                                         id="objectives"
                                         type="text"
-                                        placeholder="Enter objectives separated by commas"
-                                        value={formData.objectives.join(", ")}
-                                        onChange={(e) => handleInputChange("objectives", e.target.value.split(",").map(obj => obj.trim()).filter(obj => obj))}
+                                        placeholder="Enter focus areas separated by commas"
+                                        value={formData.primaryFocusAreas.join(", ")}
+                                        onChange={(e) => handleInputChange("primaryFocusAreas", e.target.value.split(",").map(obj => obj.trim()).filter(obj => obj))}
                                     />
                                     <p className="text-xs text-muted-foreground">
                                         Separate multiple objectives with commas
@@ -325,8 +325,8 @@ export default function NewAppointmentPage() {
                                         id="notes"
                                         rows={4}
                                         placeholder="Any preparation notes or special considerations for this session..."
-                                        value={formData.notes}
-                                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleInputChange("notes", e.target.value)}
+                                        value={formData.sessionNotes}
+                                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleInputChange("sessionNotes", e.target.value)}
                                     />
                                 </div>
                             </CardContent>

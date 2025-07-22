@@ -19,7 +19,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id: patientId, medicationId } = params;
+    const { id: patientId, medicationId } = await params;
     const body: UpdateMedicationData = await request.json();
 
     // Verify therapist has access to this patient
@@ -141,8 +141,8 @@ export async function PUT(
           medicationId: medicationId,
           action: 'UPDATED',
           changedBy: session.user.id,
-          previousValues: previousValues as Record<string, unknown>,
-          newValues: newValues as Record<string, unknown>,
+          previousValues: JSON.parse(JSON.stringify(previousValues)),
+          newValues: JSON.parse(JSON.stringify(newValues)),
           notes: `Updated ${changeDescriptions.join(', ')} for ${updatedMedication.name}`,
         },
       });
@@ -168,7 +168,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id: patientId, medicationId } = params;
+    const { id: patientId, medicationId } = await params;
 
     // Verify therapist has access to this patient
     const therapist = await prisma.therapist.findUnique({
@@ -223,7 +223,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id: patientId, medicationId } = params;
+    const { id: patientId, medicationId } = await params;
     const body: DiscontinueMedicationData = await request.json();
 
     // Verify therapist has access to this patient
@@ -293,15 +293,15 @@ export async function PATCH(
         medicationId: medicationId,
         action: 'DISCONTINUED',
         changedBy: session.user.id,
-        previousValues: {
+        previousValues: JSON.parse(JSON.stringify({
           isActive: existingMedication.isActive,
           isDiscontinued: existingMedication.isDiscontinued,
-        } as Record<string, unknown>,
-        newValues: {
+        })),
+        newValues: JSON.parse(JSON.stringify({
           isActive: false,
           isDiscontinued: true,
           discontinuedAt: discontinuedMedication.discontinuedAt?.toISOString(),
-        } as Record<string, unknown>,
+        })),
         reason: body.reason,
         notes: `${discontinuedMedication.name} has been discontinued${body.reason ? `: ${body.reason}` : ''}`,
       },

@@ -97,7 +97,17 @@ export async function GET(req: NextRequest) {
         // Get all available slots for this day
         const availableSlots: string[] = [];
 
-        therapist.availability.forEach((slot: {isActive?: boolean; recurrencePattern?: {days?: number[]}; dayOfWeek?: number; startTime: string; endTime: string; sessionDuration?: number; breakBetweenSessions?: number}) => {
+        const availabilityData = therapist.availability as Array<{
+            isActive?: boolean;
+            recurrencePattern?: {days?: number[]};
+            dayOfWeek?: number;
+            startTime: string;
+            endTime: string;
+            sessionDuration?: number;
+            breakBetweenSessions?: number;
+        }>;
+
+        availabilityData.forEach((slot) => {
             if (!slot.isActive) return;
 
             // Check if this slot applies to the requested day
@@ -137,7 +147,7 @@ export async function GET(req: NextRequest) {
                     lt: new Date(requestedDate.setHours(23, 59, 59, 999))
                 },
                 status: {
-                    in: ['SCHEDULED', 'APPROVED', 'IN_PROGRESS']
+                    in: ['SCHEDULED', 'APPROVED']
                 }
             },
             select: {

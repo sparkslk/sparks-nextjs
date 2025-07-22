@@ -22,6 +22,16 @@ import {
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"; // Make sure you have a Dialog component
 
+interface EditMedication {
+  name: string;
+  dosage: string;
+  frequency: string;
+  mealTiming: string;
+  startDate: string;
+  endDate?: string;
+  instructions?: string;
+}
+
 interface DetailedSession {
   id: string;
   patientId: string;
@@ -153,7 +163,7 @@ export default function SessionDetailsPage() {
   const [showTasks, setShowTasks] = useState(false);
   const [showAddMedication, setShowAddMedication] = useState(false);
   const [showEditMedication, setShowEditMedication] = useState(false);
-  const [editMedication, setEditMedication] = useState<unknown>(null);
+  const [editMedication, setEditMedication] = useState<EditMedication | null>(null);
   const [showAssignTask, setShowAssignTask] = useState(false);
   
   const params = useParams();
@@ -785,83 +795,83 @@ export default function SessionDetailsPage() {
             <DialogTitle>Edit Medication</DialogTitle>
           </DialogHeader>
           {editMedication && (
-      <form className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Medication Name *</label>
-            <input
-              className="w-full border rounded px-3 py-2 text-sm"
-              defaultValue={editMedication.name}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Dosage *</label>
-            <input
-              className="w-full border rounded px-3 py-2 text-sm"
-              defaultValue={editMedication.dosage}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Frequency *</label>
-            <select className="w-full border rounded px-3 py-2 text-sm" defaultValue={editMedication.frequency}>
-              <option>Select frequency</option>
-              <option>Once daily</option>
-              <option>Twice daily</option>
-              <option>Three times daily</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Meal Timing</label>
-            <select className="w-full border rounded px-3 py-2 text-sm" defaultValue={editMedication.mealTiming}>
-              <option>No specific timing</option>
-              <option>Before meals</option>
-              <option>After meals</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Start Date *</label>
-            <input
-              type="date"
-              className="w-full border rounded px-3 py-2 text-sm"
-              defaultValue={editMedication.startDate}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">End Date (Optional)</label>
-            <input
-              type="date"
-              className="w-full border rounded px-3 py-2 text-sm"
-              defaultValue={editMedication.endDate}
-            />
-          </div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Instructions</label>
-          <textarea
-            className="w-full border rounded px-3 py-2 text-sm"
-            rows={3}
-            defaultValue={editMedication.instructions}
-          />
-        </div>
-        <div className="flex justify-between mt-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setShowEditMedication(false)}
-            className="font-semibold px-6 py-2 rounded-lg"
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            style={{ backgroundColor: "#8159A8", color: "#fff" }}
-            className="font-semibold px-6 py-2 rounded-lg"
-          >
-            Update Medication
-          </Button>
-        </div>
-      </form>
-    )}
+            <form className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Medication Name *</label>
+                  <input
+                    className="w-full border rounded px-3 py-2 text-sm"
+                    defaultValue={editMedication.name}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Dosage *</label>
+                  <input
+                    className="w-full border rounded px-3 py-2 text-sm"
+                    defaultValue={editMedication.dosage}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Frequency *</label>
+                  <select className="w-full border rounded px-3 py-2 text-sm" defaultValue={editMedication.frequency}>
+                    <option>Select frequency</option>
+                    <option>Once daily</option>
+                    <option>Twice daily</option>
+                    <option>Three times daily</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Meal Timing</label>
+                  <select className="w-full border rounded px-3 py-2 text-sm" defaultValue={editMedication.mealTiming}>
+                    <option>No specific timing</option>
+                    <option>Before meals</option>
+                    <option>After meals</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Start Date *</label>
+                  <input
+                    type="date"
+                    className="w-full border rounded px-3 py-2 text-sm"
+                    defaultValue={editMedication.startDate}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">End Date (Optional)</label>
+                  <input
+                    type="date"
+                    className="w-full border rounded px-3 py-2 text-sm"
+                    defaultValue={editMedication.endDate}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Instructions</label>
+                <textarea
+                  className="w-full border rounded px-3 py-2 text-sm"
+                  rows={3}
+                  defaultValue={editMedication.instructions}
+                />
+              </div>
+              <div className="flex justify-between mt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowEditMedication(false)}
+                  className="font-semibold px-6 py-2 rounded-lg"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  style={{ backgroundColor: "#8159A8", color: "#fff" }}
+                  className="font-semibold px-6 py-2 rounded-lg"
+                >
+                  Update Medication
+                </Button>
+              </div>
+                  </form>
+          )}
         </DialogContent>
       </Dialog>
 

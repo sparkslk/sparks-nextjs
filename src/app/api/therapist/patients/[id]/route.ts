@@ -75,8 +75,9 @@ export async function GET(
 ) {
     try {
         const session = await requireApiAuth(request, ['THERAPIST']);
+        const { id } = await params;
         
-        console.log("Patient details request - Patient ID:", params.id);
+        console.log("Patient details request - Patient ID:", id);
         console.log("Patient details request - User ID:", session.user.id);
 
         // Get therapist profile
@@ -95,7 +96,7 @@ export async function GET(
         // Get the specific patient with detailed information
         const patient = await prisma.patient.findFirst({
             where: {
-                id: params.id,
+                id: id,
                 primaryTherapistId: user.therapistProfile.id
             },
             include: {

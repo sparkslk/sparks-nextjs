@@ -59,10 +59,10 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
         id: user.id,
         role: user.role,
         // Common fields
-        fullName: user.name || "",
-        fullname: user.name || "", // For therapist
+        fullName: (user.name as string) || user.fullName || "",
+        fullname: (user.name as string) || user.fullName || "", // For therapist
         email: user.email || "",
-        status: user.status || "Active",
+        status: (user.status as string) || "Active",
         // Patient specific
         gender: user.gender || "",
         phone: user.phone || "",
@@ -127,7 +127,7 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
           specialization: formData.specialization,
           experience: formData.experience,
           availability: formData.availability,
-          rating: parseFloat(formData.rating) || null,
+          rating: parseFloat(formData.rating as string) || null,
         };
       } else if (user.role === "Guardian") {
         apiData = {
@@ -226,7 +226,7 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
           <Label htmlFor="fullName">Full Name *</Label>
           <Input
             id="fullName"
-            value={formData.fullName || ""}
+            value={(formData.fullName as string) || ""}
             onChange={(e) => handleInputChange("fullName", e.target.value)}
             placeholder="Enter full name"
           />
@@ -236,7 +236,7 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
           <Input
             id="email"
             type="email"
-            value={formData.email || ""}
+            value={(formData.email as string) || ""}
             onChange={(e) => handleInputChange("email", e.target.value)}
             placeholder="Enter email"
           />
@@ -247,7 +247,7 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
         <div className="space-y-2">
           <Label htmlFor="gender">Gender</Label>
           <Select
-            value={formData.gender || ""}
+            value={(formData.gender as string) || ""}
             onValueChange={(value) => handleInputChange("gender", value)}
           >
             <SelectTrigger>
@@ -264,7 +264,7 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
           <Label htmlFor="phone">Phone</Label>
           <Input
             id="phone"
-            value={formData.phone || ""}
+            value={(formData.phone as string) || ""}
             onChange={(e) => handleInputChange("phone", e.target.value)}
             placeholder="Enter phone number"
           />
@@ -277,14 +277,14 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
           <Input
             id="dateOfBirth"
             type="date"
-            value={formData.dateOfBirth || ""}
+            value={(formData.dateOfBirth as string) || ""}
             onChange={(e) => handleInputChange("dateOfBirth", e.target.value)}
           />
         </div>
         <div className="space-y-2">
           <Label htmlFor="status">Status</Label>
           <Select
-            value={formData.status || ""}
+            value={(formData.status as string) || ""}
             onValueChange={(value) => handleInputChange("status", value)}
           >
             <SelectTrigger>
@@ -303,7 +303,7 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
         <Label htmlFor="address">Address</Label>
         <Textarea
           id="address"
-          value={formData.address || ""}
+          value={(formData.address as string) || ""}
           onChange={(e) => handleInputChange("address", e.target.value)}
           placeholder="Enter address"
           rows={2}
@@ -314,7 +314,7 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
         <Label htmlFor="medicalHistory">Medical History</Label>
         <Textarea
           id="medicalHistory"
-          value={formData.medicalHistory || ""}
+          value={(formData.medicalHistory as string) || ""}
           onChange={(e) => handleInputChange("medicalHistory", e.target.value)}
           placeholder="Enter medical history"
           rows={3}
@@ -325,7 +325,7 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
         <Label htmlFor="emergencyContact">Emergency Contact</Label>
         <Textarea
           id="emergencyContact"
-          value={formData.emergencyContact || ""}
+          value={(formData.emergencyContact as string) || ""}
           onChange={(e) => handleInputChange("emergencyContact", e.target.value)}
           placeholder="Enter emergency contact details"
           rows={2}
@@ -341,7 +341,7 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
           <Label htmlFor="fullname">Full Name *</Label>
           <Input
             id="fullname"
-            value={formData.fullname || ""}
+            value={(formData.fullname as string) || ""}
             onChange={(e) => handleInputChange("fullname", e.target.value)}
             placeholder="Enter full name"
           />
@@ -350,7 +350,7 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
           <Label htmlFor="licenseNumber">License Number</Label>
           <Input
             id="licenseNumber"
-            value={formData.licenseNumber || ""}
+            value={(formData.licenseNumber as string) || ""}
             onChange={(e) => handleInputChange("licenseNumber", e.target.value)}
             placeholder="Enter license number"
           />
@@ -362,7 +362,7 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
           <Label htmlFor="specialization">Specialization</Label>
           <Input
             id="specialization"
-            value={formData.specialization || ""}
+            value={(formData.specialization as string) || ""}
             onChange={(e) => handleInputChange("specialization", e.target.value)}
             placeholder="Enter specialization"
           />
@@ -371,7 +371,7 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
           <Label htmlFor="experience">Experience</Label>
           <Input
             id="experience"
-            value={formData.experience || ""}
+            value={(formData.experience as string) || ""}
             onChange={(e) => handleInputChange("experience", e.target.value)}
             placeholder="Enter experience (e.g., 5 years)"
           />
@@ -383,7 +383,7 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
           <Label htmlFor="availability">Availability</Label>
           <Input
             id="availability"
-            value={formData.availability || ""}
+            value={(formData.availability as string) || ""}
             onChange={(e) => handleInputChange("availability", e.target.value)}
             placeholder="Enter availability"
           />
@@ -396,7 +396,7 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
             min="0"
             max="5"
             step="0.1"
-            value={formData.rating || ""}
+            value={(formData.rating as string) || ""}
             onChange={(e) => handleInputChange("rating", e.target.value)}
             placeholder="Enter rating (0-5)"
           />
@@ -406,7 +406,7 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
       <div className="space-y-2">
         <Label htmlFor="status">Status</Label>
         <Select
-          value={formData.status || ""}
+          value={(formData.status as string) || ""}
           onValueChange={(value) => handleInputChange("status", value)}
         >
           <SelectTrigger>
@@ -429,7 +429,7 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
           <Label htmlFor="fullName">Full Name *</Label>
           <Input
             id="fullName"
-            value={formData.fullName || ""}
+            value={(formData.fullName as string) || ""}
             onChange={(e) => handleInputChange("fullName", e.target.value)}
             placeholder="Enter full name"
           />
@@ -439,7 +439,7 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
           <Input
             id="email"
             type="email"
-            value={formData.email || ""}
+            value={(formData.email as string) || ""}
             onChange={(e) => handleInputChange("email", e.target.value)}
             placeholder="Enter email"
           />
@@ -451,7 +451,7 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
           <Label htmlFor="patient">Patient</Label>
           <Input
             id="patient"
-            value={formData.patient || ""}
+            value={(formData.patient as string) || ""}
             onChange={(e) => handleInputChange("patient", e.target.value)}
             placeholder="Enter patient name/ID"
           />
@@ -459,7 +459,7 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
         <div className="space-y-2">
           <Label htmlFor="relationship">Relationship</Label>
           <Select
-            value={formData.relationship || ""}
+            value={(formData.relationship as string) || ""}
             onValueChange={(value) => handleInputChange("relationship", value)}
           >
             <SelectTrigger>
@@ -480,7 +480,7 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
       <div className="space-y-2">
         <Label htmlFor="status">Status</Label>
         <Select
-          value={formData.status || ""}
+          value={(formData.status as string) || ""}
           onValueChange={(value) => handleInputChange("status", value)}
         >
           <SelectTrigger>
@@ -503,7 +503,7 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
           <Label htmlFor="fullName">Full Name *</Label>
           <Input
             id="fullName"
-            value={formData.fullName || ""}
+            value={(formData.fullName as string) || ""}
             onChange={(e) => handleInputChange("fullName", e.target.value)}
             placeholder="Enter full name"
           />
@@ -513,7 +513,7 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
           <Input
             id="email"
             type="email"
-            value={formData.email || ""}
+            value={(formData.email as string) || ""}
             onChange={(e) => handleInputChange("email", e.target.value)}
             placeholder="Enter email"
           />
@@ -523,7 +523,7 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
       <div className="space-y-2">
         <Label htmlFor="status">Status</Label>
         <Select
-          value={formData.status || ""}
+          value={(formData.status as string) || ""}
           onValueChange={(value) => handleInputChange("status", value)}
         >
           <SelectTrigger>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -92,7 +92,7 @@ export default function FindTherapistPage() {
     }, []);
 
     // Mock data as fallback
-    const mockTherapists = React.useMemo<Therapist[]>(() => [
+    const mockTherapists = useMemo<Therapist[]>(() => [
         {
             id: "1",
             name: "Dr. Ben Carter",
@@ -486,7 +486,8 @@ export default function FindTherapistPage() {
                             key={therapist.id}
                             therapist={therapist}
                             bookingStatus={bookingStatus[therapist.id] || 'idle'}
-                            onBookSession={handleBookSession}
+                            onViewProfile={() => handleBookSession(therapist.id)}
+                            viewDetailsText="Book Session"
                         />
                     ))}
                 </div>

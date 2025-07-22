@@ -19,6 +19,9 @@ interface User {
   fullName?: string;
   email?: string;
   role?: string;
+  name?: string;
+  avatar?: string;
+  avatarColor?: string;
   [key: string]: unknown;
 }
 
@@ -59,7 +62,9 @@ const UserDelete: React.FC<UserDeleteProps> = ({
       }
 
       // Call the onDelete callback to update the parent component's state
-      onDelete(user.id);
+      if (user.id) {
+        onDelete(user.id);
+      }
       
       // Close the modal
       onOpenChange(false);
@@ -104,11 +109,11 @@ const UserDelete: React.FC<UserDeleteProps> = ({
               <div
                 className={`w-12 h-12 rounded-full ${user.avatarColor} flex items-center justify-center text-white font-semibold text-lg shadow-md border-2 border-white`}
               >
-                {user.avatar}
+                {user.avatar || ''}
               </div>
               <div>
                 <div className="font-semibold text-gray-900 text-base">
-                  {user.name}
+                  {user.name || user.fullName || 'Unknown User'}
                 </div>
                 {user.email && (
                   <div className="text-sm text-gray-500">{user.email}</div>
