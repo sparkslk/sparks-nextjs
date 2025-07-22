@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
 
     const token = authHeader.substring(7);
     const payload = await verifyMobileToken(token);
-    
+
     if (!payload || payload.role !== "NORMAL_USER") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -20,22 +20,10 @@ export async function GET(request: NextRequest) {
     const patient = await prisma.patient.findUnique({
       where: { userId: payload.userId },
       include: {
-        user: {
-          select: {
-            name: true,
-            email: true,
-            image: true
-          }
-        },
+        user: true,
         primaryTherapist: {
-          select: {
-            id: true,
-            user: {
-              select: {
-                name: true,
-                email: true
-              }
-            }
+          include: {
+            user: true
           }
         }
       }
@@ -51,6 +39,27 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // Debug log for emergencyContact and medicalHistory
+    console.log('DEBUG: patient.emergencyContact:', patient.emergencyContact);
+    console.log('DEBUG: patient.medicalHistory:', patient.medicalHistory);
+
+    // Handle emergencyContact as object or stringified JSON
+    let emergencyContactRaw = patient.emergencyContact;
+    if (typeof emergencyContactRaw === 'string') {
+      try {
+        emergencyContactRaw = JSON.parse(emergencyContactRaw);
+      } catch (e) {
+        emergencyContactRaw = {};
+      }
+    }
+    let emergencyContact: { name: string; phone: string; relation: string } = { name: '', phone: '', relation: '' };
+    if (emergencyContactRaw && typeof emergencyContactRaw === 'object' && !Array.isArray(emergencyContactRaw)) {
+      emergencyContact = {
+        name: typeof emergencyContactRaw.name === 'string' ? emergencyContactRaw.name : '',
+        phone: typeof emergencyContactRaw.phone === 'string' ? emergencyContactRaw.phone : '',
+        relation: typeof emergencyContactRaw.relation === 'string' ? emergencyContactRaw.relation : ''
+      };
+    }
     return NextResponse.json({
       hasProfile: true,
       profile: {
@@ -61,21 +70,11 @@ export async function GET(request: NextRequest) {
         gender: patient.gender,
         phone: patient.phone,
         address: patient.address,
-        city: patient.city,
-        state: patient.state,
-        zipCode: patient.zipCode,
-        emergencyContactName: patient.emergencyContactName,
-        emergencyContactPhone: patient.emergencyContactPhone,
-        emergencyContactRelation: patient.emergencyContactRelation,
-        medicalHistory: patient.medicalHistory,
-        currentMedications: patient.currentMedications,
-        allergies: patient.allergies,
-        previousTherapy: patient.previousTherapy,
-        reasonForTherapy: patient.reasonForTherapy,
-        goals: patient.goals,
-        email: patient.user.email,
-        image: patient.user.image,
-        therapist: patient.primaryTherapist ? {
+        emergencyContact,
+        medicalHistory: patient.medicalHistory || '',
+        email: patient.user ? patient.user.email : null,
+        image: patient.user ? patient.user.image : null,
+        therapist: patient.primaryTherapist && patient.primaryTherapist.user ? {
           id: patient.primaryTherapist.id,
           name: patient.primaryTherapist.user.name || "Your Therapist",
           email: patient.primaryTherapist.user.email
@@ -102,7 +101,7 @@ export async function POST(request: NextRequest) {
 
     const token = authHeader.substring(7);
     const payload = await verifyMobileToken(token);
-    
+
     if (!payload || payload.role !== "NORMAL_USER") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -135,7 +134,7 @@ export async function POST(request: NextRequest) {
     // Create patient profile
     const patient = await prisma.patient.create({
       data: {
-        userId: payload.userId,
+        user: { connect: { id: payload.userId } },
         email: payload.email,
         firstName: data.firstName,
         lastName: data.lastName,
@@ -143,18 +142,9 @@ export async function POST(request: NextRequest) {
         gender: data.gender,
         phone: data.phone,
         address: data.address || '',
-        city: data.city || '',
-        state: data.state || '',
-        zipCode: data.zipCode || '',
-        emergencyContactName: data.emergencyContactName || '',
-        emergencyContactPhone: data.emergencyContactPhone || '',
-        emergencyContactRelation: data.emergencyContactRelation || '',
-        medicalHistory: data.medicalHistory || '',
-        currentMedications: data.currentMedications || '',
-        allergies: data.allergies || '',
-        previousTherapy: data.previousTherapy || false,
-        reasonForTherapy: data.reasonForTherapy || '',
-        goals: data.goals || ''
+        emergencyContact: data.emergencyContact || undefined,
+
+
       }
     });
 
@@ -197,7 +187,7 @@ export async function PATCH(request: NextRequest) {
 
     const token = authHeader.substring(7);
     const payload = await verifyMobileToken(token);
-    
+
     if (!payload || payload.role !== "NORMAL_USER") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -217,25 +207,35 @@ export async function PATCH(request: NextRequest) {
 
     // Prepare update data
     const updateData: any = {};
+    // Map emergency contact fields from UI to emergencyContact object
+    if (
+      data.emergencyContactName ||
+      data.emergencyContactPhone ||
+      data.emergencyContactRelation
+    ) {
+      updateData.emergencyContact = {
+        name: data.emergencyContactName || '',
+        phone: data.emergencyContactPhone || '',
+        relation: data.emergencyContactRelation || ''
+      };
+    }
+    // Map medical info
+    if (data.medicalInfo !== undefined) {
+      updateData.medicalHistory = data.medicalInfo;
+    }
+    // Map other allowed fields
     const allowedFields = [
-      'firstName', 'lastName', 'phone', 'address', 'city', 'state', 'zipCode',
-      'emergencyContactName', 'emergencyContactPhone', 'emergencyContactRelation',
-      'medicalHistory', 'currentMedications', 'allergies', 'previousTherapy',
-      'reasonForTherapy', 'goals'
+      'firstName', 'lastName', 'phone', 'address',
+      'currentMedications', 'allergies', 'previousTherapy',
+      'reasonForTherapy', 'goals', 'dateOfBirth', 'gender', 'city', 'state', 'zipCode'
     ];
-
     for (const field of allowedFields) {
       if (data[field] !== undefined) {
         updateData[field] = data[field];
       }
     }
-
-    if (data.dateOfBirth) {
-      updateData.dateOfBirth = new Date(data.dateOfBirth);
-    }
-
-    if (data.gender && ['MALE', 'FEMALE', 'OTHER'].includes(data.gender)) {
-      updateData.gender = data.gender;
+    if (updateData.dateOfBirth) {
+      updateData.dateOfBirth = new Date(updateData.dateOfBirth);
     }
 
     // Update patient profile
@@ -248,7 +248,7 @@ export async function PATCH(request: NextRequest) {
     if (data.firstName || data.lastName) {
       const firstName = data.firstName || updatedPatient.firstName;
       const lastName = data.lastName || updatedPatient.lastName;
-      
+
       await prisma.user.update({
         where: { id: payload.userId },
         data: {
