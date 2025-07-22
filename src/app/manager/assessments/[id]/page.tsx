@@ -371,43 +371,7 @@ export default function AssessmentDetailsPage() {
           {/* Assigned Patients */}
           <Card className="p-6">
             <h2 className="text-xl font-semibold text-gray-800 mb-6">Assigned Patients</h2>
-            <div className="mb-4">
-              <Button
-                variant="outline"
-                size="sm"
-                className="bg-[#FAF8FB] hover:bg-[#FAF8FB] text-[#8159A8]"
-                onClick={() => setShowAddPatientList((prev) => !prev)}
-              >
-                + Add Patient
-              </Button>
-              {showAddPatientList && (
-                <div className="mt-3">
-                  <h4 className="font-semibold text-gray-700 mb-2">Select a patient to add</h4>
-                  {availablePatients.length > 0 ? (
-                    <ul className="space-y-2">
-                      {availablePatients.map((patient) => (
-                        <li key={patient.id} className="flex items-center justify-between bg-gray-50 p-2 rounded">
-                          <div>
-                            <span className="font-medium text-gray-800">{patient.name}</span>
-                            <span className="ml-2 text-xs text-gray-500">{patient.email}</span>
-                          </div>
-                          <Button size="icon" variant="outline" className="text-green-700 border-green-300" onClick={() => handleAddPatient(patient)} title="Add Patient">
-                            <UserPlus className="w-4 h-4" />
-                          </Button>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-sm text-gray-500">No more patients to add.</p>
-                  )}
-                  <div className="flex justify-end mt-2">
-                    <Button size="sm" variant="ghost" onClick={() => setShowAddPatientList(false)}>
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
+            
             <div className="space-y-4">
               {assessment.assignedPatients.map((patient) => (
                 <div
@@ -443,9 +407,7 @@ export default function AssessmentDetailsPage() {
                     >
                       {patient.completedAt ? "Completed" : "Pending"}
                     </Badge>
-                    <Button size="icon" variant="outline" className="text-red-700 border-red-300" onClick={() => handleUnassignPatient(patient)} title="Unassign Patient">
-                      <UserMinus className="w-4 h-4" />
-                    </Button>
+                    
                   </div>
                 </div>
               ))}
