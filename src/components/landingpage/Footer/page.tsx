@@ -1,100 +1,134 @@
-import Image from "next/image";
-import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
+import React from "react";
+
+// Mock Next.js components for demo
+const Link: React.FC<{
+  href: string;
+  children: React.ReactNode;
+  className?: string;
+}> = ({ href, children, className }) => (
+  <a href={href} className={className}>
+    {children}
+  </a>
+);
 
 export default function Footer() {
-    const userLinks = [
-        { href: "/signup", label: "Get Started" },
-        { href: "/login", label: "Sign In" },
-        { href: "/features", label: "Features" },
-        { href: "/resources", label: "Resources" }
-    ];
+  const userLinks = [
+    { href: "/signup", label: "Get Started" },
+    { href: "/login", label: "Sign In" },
+    { href: "/features", label: "Features" },
+    { href: "/resources", label: "Resources" },
+  ];
 
-    const supportLinks = [
-        { href: "/help", label: "Help Center" },
-        { href: "/contact", label: "Contact Us" },
-        { href: "/community", label: "Community" },
-        { href: "/feedback", label: "Feedback" }
-    ];
+  const supportLinks = [
+    { href: "/help", label: "Help Center" },
+    { href: "/contact", label: "Contact Us" },
+    { href: "/community", label: "Community" },
+    { href: "/feedback", label: "Feedback" },
+  ];
 
-    const legalLinks = [
-        { href: "/privacy", label: "Privacy Policy" },
-        { href: "/terms", label: "Terms of Service" },
-        { href: "/accessibility", label: "Accessibility" },
-        { href: "/security", label: "Security" }
-    ];
+  const legalLinks = [
+    { href: "/privacy", label: "Privacy Policy" },
+    { href: "/terms", label: "Terms of Service" },
+    { href: "/accessibility", label: "Accessibility" },
+    { href: "/security", label: "Security" },
+  ];
 
-    return (
-        <footer className="border-t border-border bg-card/80 backdrop-blur-sm mt-12 sm:mt-16">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-                <div className="grid gap-6 sm:gap-8 md:grid-cols-2 lg:grid-cols-4">
-                    <div className="space-y-3 sm:space-y-4 md:col-span-2 lg:col-span-1">
-                        <Image
-                            src="/images/sparkslogo.png"
-                            alt="SPARKS Logo"
-                            width={100}
-                            height={50}
-                            className="object-contain"
-                        />
-                        <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">
-                            Comprehensive ADHD support platform designed specifically for Sri Lankan communities.
-                        </p>
-                    </div>
+  return (
+    <footer
+      className="relative mt-16 overflow-hidden border-t border-gray-200"
+      style={{ backgroundColor: "#F5F3FB" }}
+    >
+      {/* Subtle background decoration matching other sections */}
+      <div className="absolute inset-0 opacity-5">
+        <div className="absolute top-10 left-16 w-24 h-24 rounded-full bg-gradient-to-r from-gray-200 to-gray-100 blur-2xl"></div>
+        <div className="absolute bottom-16 right-20 w-32 h-32 rounded-full bg-gradient-to-r from-gray-200 to-gray-100 blur-3xl"></div>
+      </div>
 
-                    <div>
-                        <h3 className="font-semibold text-foreground mb-3 sm:mb-4 text-sm sm:text-base">For Users</h3>
-                        <ul className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-muted-foreground">
-                            {userLinks.map((link, index) => (
-                                <li key={index}>
-                                    <Link href={link.href} className="hover:text-primary transition-colors">
-                                        {link.label}
-                                    </Link>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-
-                    <div>
-                        <h3 className="font-semibold text-foreground mb-3 sm:mb-4 text-sm sm:text-base">Support</h3>
-                        <ul className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-muted-foreground">
-                            {supportLinks.map((link, index) => (
-                                <li key={index}>
-                                    <Link href={link.href} className="hover:text-primary transition-colors">
-                                        {link.label}
-                                    </Link>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-
-                    <div>
-                        <h3 className="font-semibold text-foreground mb-3 sm:mb-4 text-sm sm:text-base">Legal</h3>
-                        <ul className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-muted-foreground">
-                            {legalLinks.map((link, index) => (
-                                <li key={index}>
-                                    <Link href={link.href} className="hover:text-primary transition-colors">
-                                        {link.label}
-                                    </Link>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                </div>
-
-                <div className="border-t border-border mt-6 sm:mt-8 pt-6 sm:pt-8 flex flex-col sm:flex-row justify-between items-center space-y-3 sm:space-y-0">
-                    <div className="text-xs sm:text-sm text-muted-foreground text-center sm:text-left">
-                        © 2025 SPARKS. All rights reserved. Made with ❤️ for Sri Lanka.
-                    </div>
-                    <div className="flex flex-wrap gap-2 sm:gap-6 justify-center">
-                        <Badge variant="outline" className="text-xs">
-                            🇱🇰 Proudly Sri Lankan
-                        </Badge>
-                        <Badge variant="outline" className="text-xs">
-                            🧠 ADHD Focused
-                        </Badge>
-                    </div>
-                </div>
+      <div className="max-w-6xl mx-auto px-6 py-16 relative z-10">
+        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+          {/* Logo and Description */}
+          <div className="space-y-6 md:col-span-2 lg:col-span-1">
+            <div>
+              <h3 className="text-2xl font-bold" style={{ color: "#8159A8" }}>
+                SPARKS
+              </h3>
+              <div className="w-12 h-1 bg-gradient-to-r from-transparent via-gray-300 to-transparent rounded-full mt-2"></div>
             </div>
-        </footer>
-    );
+            <p className="text-gray-600 leading-relaxed max-w-sm font-light">
+              Comprehensive ADHD support platform designed specifically for Sri
+              Lankan communities, empowering individuals and families with
+              culturally-aware tools and resources.
+            </p>
+          </div>
+
+          {/* For Users */}
+          <div className="space-y-6">
+            <h3 className="font-bold text-xl text-gray-900">For Users</h3>
+            <ul className="space-y-3 text-gray-600">
+              {userLinks.map((link, index) => (
+                <li key={index}>
+                  <Link
+                    href={link.href}
+                    className="hover:text-gray-900 transition-colors duration-200 font-light"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Support */}
+          <div className="space-y-6">
+            <h3 className="font-bold text-xl text-gray-900">Support</h3>
+            <ul className="space-y-3 text-gray-600">
+              {supportLinks.map((link, index) => (
+                <li key={index}>
+                  <Link
+                    href={link.href}
+                    className="hover:text-gray-900 transition-colors duration-200 font-light"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Legal */}
+          <div className="space-y-6">
+            <h3 className="font-bold text-xl text-gray-900">Legal</h3>
+            <ul className="space-y-3 text-gray-600">
+              {legalLinks.map((link, index) => (
+                <li key={index}>
+                  <Link
+                    href={link.href}
+                    className="hover:text-gray-900 transition-colors duration-200 font-light"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        {/* Separator */}
+        <div className="py-8">
+          <div className="w-full h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent rounded-full"></div>
+        </div>
+
+        {/* Footer Bottom */}
+        <div className="flex flex-col lg:flex-row justify-between items-center space-y-6 lg:space-y-0">
+          <div className="text-gray-600 text-center lg:text-left font-light">
+            © 2025{" "}
+            <span className="font-semibold" style={{ color: "#8159A8" }}>
+              SPARKS
+            </span>
+            . All rights reserved. Made with ❤️ for Sri Lanka.
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
 }
