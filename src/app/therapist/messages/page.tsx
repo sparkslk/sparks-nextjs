@@ -104,7 +104,7 @@ export default function TherapistMessagesPage() {
         },
         {
           id: "2",
-          patientName: "Sarah Fernando",
+          patientName: "Ravindi Fernando",
           contactType: "patient",
           patientId: "P002",
           lastMessage: "I've been practicing the breathing exercises daily as we discussed.",

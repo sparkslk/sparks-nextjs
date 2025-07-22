@@ -389,6 +389,9 @@ export default function MyChildrenPage() {
                       variant="outline"
                       size="sm"
                       className="border-border text-foreground font-medium rounded-lg hover:bg-muted"
+                      onClick={() => {
+                        window.location.href = `/parent/children/medications?childId=${child.id}&childName=${encodeURIComponent(child.firstName + ' ' + child.lastName)}`;
+                      }}
                       disabled={!child.therapist}
                     >
                       <span className="mr-2">💊</span>

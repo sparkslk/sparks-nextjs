@@ -74,7 +74,7 @@ export async function middleware(req: NextRequest) {
   // Define role-based route access
   const roleRoutes: Record<string, RegExp> = {
     NORMAL_USER: /^\/(dashboard|sessions(\/|$)|profile\/create)/,
-    THERAPIST: /^\/therapist\/(dashboard|verification|profile|patients|sessions|setAvailability|assessments)/,
+    THERAPIST: /^\/therapist\/(dashboard|verification|profile|patients|sessions|setAvailability|assessments|messages)/,
     PARENT_GUARDIAN: /^\/parent\//,
     ADMIN: /^\/admin\//,
   };

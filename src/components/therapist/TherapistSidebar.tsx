@@ -54,7 +54,7 @@ function getInitials(name: string): string {
 }
 
 // Menu items data
-const getMenuItems = (pendingRequests: number) => ({
+const getMenuItems = () => ({
   overview: [
     {
       title: "Dashboard",
@@ -120,7 +120,6 @@ interface TherapistSidebarProps {
 
 export function TherapistSidebar({ children }: TherapistSidebarProps) {
   const pathname = usePathname();
-  const [pendingRequests, setPendingRequests] = React.useState(0);
   const [therapistData, setTherapistData] = React.useState<{
     name: string | null;
     email: string | null;
@@ -129,15 +128,14 @@ export function TherapistSidebar({ children }: TherapistSidebarProps) {
   } | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
 
-  // Get menu items with current pending requests count
-  const menuItems = getMenuItems(pendingRequests);
+  // Menu items data (no pendingRequests)
+  const menuItems = getMenuItems();
 
-  // Fetch therapist data and pending requests count
+  // Fetch therapist data only
   React.useEffect(() => {
     const fetchTherapistData = async () => {
       try {
         setIsLoading(true);
-
         // Fetch therapist profile
         const profileResponse = await fetch("/api/therapist/profile");
         if (profileResponse.ok) {
@@ -149,15 +147,6 @@ export function TherapistSidebar({ children }: TherapistSidebarProps) {
             specialization: profileData.specialization || [],
           });
         }
-
-        // Fetch pending requests count
-        const requestsResponse = await fetch(
-          "/api/therapist/session-requests/count"
-        );
-        if (requestsResponse.ok) {
-          const requestsData = await requestsResponse.json();
-          setPendingRequests(requestsData.count);
-        }
       } catch (error) {
         console.error("Failed to fetch therapist data:", error);
       } finally {
@@ -166,21 +155,6 @@ export function TherapistSidebar({ children }: TherapistSidebarProps) {
     };
 
     fetchTherapistData();
-
-    // Poll pending requests every 30 seconds for updates
-    const interval = setInterval(async () => {
-      try {
-        const response = await fetch("/api/therapist/session-requests/count");
-        if (response.ok) {
-          const data = await response.json();
-          setPendingRequests(data.count);
-        }
-      } catch (error) {
-        console.error("Failed to fetch pending requests:", error);
-      }
-    }, 30000);
-
-    return () => clearInterval(interval);
   }, []);
 
   const handleSignOut = async () => {
