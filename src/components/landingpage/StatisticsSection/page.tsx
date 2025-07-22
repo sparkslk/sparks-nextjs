@@ -1,29 +1,5 @@
 import React, { useState, useEffect } from "react";
 
-// Mock Badge component to match your existing design
-const Badge = ({
-  children,
-  variant = "default",
-  className = "",
-}: {
-  children: React.ReactNode;
-  variant?: "default" | "secondary";
-  className?: string;
-}) => {
-  const baseStyles =
-    "inline-flex items-center rounded-full px-3 py-1 text-xs font-medium";
-  const variants = {
-    default: "bg-gray-900 text-white",
-    secondary: "bg-gray-100 text-gray-900",
-  };
-
-  return (
-    <div className={`${baseStyles} ${variants[variant]} ${className}`}>
-      {children}
-    </div>
-  );
-};
-
 interface StatisticProps {
   value: string;
   label: string;

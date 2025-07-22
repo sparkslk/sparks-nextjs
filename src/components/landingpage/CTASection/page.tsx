@@ -27,8 +27,7 @@ const Button = ({
   variant?: "default" | "outline";
   size?: "default" | "lg";
   className?: string;
-  [key: string]: any;
-}) => {
+} & React.ButtonHTMLAttributes<HTMLButtonElement>) => {
   const baseStyles =
     "inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none";
   const variants = {
@@ -52,17 +51,14 @@ const Button = ({
 
 export default function CTASection() {
   const [isVisible, setIsVisible] = useState(false);
-  const [badgeVisible, setBadgeVisible] = useState(false);
   const [buttonsVisible, setButtonsVisible] = useState(false);
 
   useEffect(() => {
     // Staggered animation sequence
-    const badgeTimer = setTimeout(() => setBadgeVisible(true), 300);
     const contentTimer = setTimeout(() => setIsVisible(true), 600);
     const buttonsTimer = setTimeout(() => setButtonsVisible(true), 1200);
 
     return () => {
-      clearTimeout(badgeTimer);
       clearTimeout(contentTimer);
       clearTimeout(buttonsTimer);
     };

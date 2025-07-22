@@ -1,28 +1,31 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 
 export default function WhoSparksForSection() {
   const [visibleItems, setVisibleItems] = useState(new Set());
 
-  const targetAudience = [
-    {
-      text: "Individuals with ADHD seeking comprehensive support",
-    },
-    {
-      text: "Families looking for guidance and management tools",
-    },
-    {
-      text: "Healthcare professionals treating ADHD patients",
-    },
-    {
-      text: "Educators working with ADHD students",
-    },
-    {
-      text: "Support groups and community organizations",
-    },
-    {
-      text: "Anyone interested in understanding ADHD better",
-    },
-  ];
+  const targetAudience = useMemo(
+    () => [
+      {
+        text: "Individuals with ADHD seeking comprehensive support",
+      },
+      {
+        text: "Families looking for guidance and management tools",
+      },
+      {
+        text: "Healthcare professionals treating ADHD patients",
+      },
+      {
+        text: "Educators working with ADHD students",
+      },
+      {
+        text: "Support groups and community organizations",
+      },
+      {
+        text: "Anyone interested in understanding ADHD better",
+      },
+    ],
+    []
+  );
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -34,7 +37,7 @@ export default function WhoSparksForSection() {
     }, 300);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [targetAudience]);
 
   return (
     <section
@@ -51,7 +54,7 @@ export default function WhoSparksForSection() {
         {/* Header */}
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-            Who's{" "}
+            Who&apos;s{" "}
             <span
               style={{
                 background: `linear-gradient(135deg, #8159A8 0%, #9d7bb8 100%)`,

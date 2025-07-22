@@ -23,7 +23,7 @@ interface Blog {
 }
 
 export default function BlogDetails() {
-  const params = useParams();
+  const params = useParams() ?? {};
   const router = useRouter();
   const [blog, setBlog] = useState<Blog | null>(null);
   const [loading, setLoading] = useState(true);
@@ -32,7 +32,11 @@ export default function BlogDetails() {
   useEffect(() => {
     const fetchBlog = async () => {
       try {
-        const response = await fetch(`/api/blogs/${params.id}`);
+        const blogId = (params as { id?: string }).id;
+        if (!blogId) {
+          throw new Error("Blog ID is missing");
+        }
+        const response = await fetch(`/api/blogs/${blogId}`);
         if (!response.ok) {
           throw new Error("Blog not found");
         }
@@ -45,10 +49,13 @@ export default function BlogDetails() {
       }
     };
 
-    if (params.id) {
+    if ((params as { id?: string }).id) {
       fetchBlog();
+    } else {
+      setLoading(false);
+      setError("Blog ID is missing");
     }
-  }, [params.id]);
+  }, [params]);
 
   if (loading) {
     return (

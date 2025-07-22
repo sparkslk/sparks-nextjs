@@ -27,8 +27,7 @@ const Button = ({
   variant?: "default" | "outline";
   size?: "default" | "lg";
   className?: string;
-  [key: string]: any;
-}) => {
+} & React.ButtonHTMLAttributes<HTMLButtonElement>) => {
   const baseStyles =
     "inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none";
   const variants = {
@@ -67,7 +66,7 @@ export default function HeroSection() {
       setCurrentFeature((prev) => (prev + 1) % features.length);
     }, 3000);
     return () => clearInterval(interval);
-  }, []);
+  }, [features.length]);
 
   return (
     <div
@@ -91,7 +90,7 @@ export default function HeroSection() {
           <h1 className="text-5xl md:text-7xl font-bold text-gray-900 leading-tight tracking-tight">
             Hello,
             <br />
-            I'm{" "}
+            I&apos;m{" "}
             <span
               className="relative inline-block"
               style={{

@@ -1,21 +1,6 @@
 import React from "react";
 
 // Mock Next.js components for demo
-const Image: React.FC<{
-  src: string;
-  alt: string;
-  width: number;
-  height: number;
-  className?: string;
-}> = ({ src, alt, width, height, className }) => (
-  <div
-    className={`${className} bg-gray-200 rounded flex items-center justify-center text-gray-500 text-xs`}
-    style={{ width: `${width}px`, height: `${height}px` }}
-  >
-    {alt}
-  </div>
-);
-
 const Link: React.FC<{
   href: string;
   children: React.ReactNode;
@@ -25,24 +10,6 @@ const Link: React.FC<{
     {children}
   </a>
 );
-
-const Badge: React.FC<{
-  children: React.ReactNode;
-  variant?: "outline";
-  className?: string;
-}> = ({ children, variant = "outline", className = "" }) => {
-  const baseStyles =
-    "inline-flex items-center rounded-full px-2.5 py-0.5 font-medium";
-  const variants: Record<"outline", string> = {
-    outline: "border border-gray-300 text-gray-700 bg-white",
-  };
-
-  return (
-    <span className={`${baseStyles} ${variants[variant]} ${className}`}>
-      {children}
-    </span>
-  );
-};
 
 export default function Footer() {
   const userLinks = [
