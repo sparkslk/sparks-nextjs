@@ -58,44 +58,28 @@ export async function GET(request: NextRequest) {
         }
 
         // Verify JWT token
-        const decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET!) as {userId?: string};
-
-        if (!decoded.userId) {
+        const decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET!);
+        // Type guard for decoded payload
+        if (
+            !decoded ||
+            typeof decoded !== 'object' ||
+            !('userId' in decoded) ||
+            typeof (decoded as { userId?: unknown }).userId !== 'string'
+        ) {
             return NextResponse.json(
                 { error: "Invalid token" },
                 { status: 401 }
             );
         }
-
-        // Get user data
+        // Get user data (only valid fields for User model)
         const user = await prisma.user.findUnique({
-            where: { id: decoded.userId },
+            where: { id: (decoded as { userId: string }).userId },
             select: {
                 id: true,
                 email: true,
                 name: true,
                 role: true,
                 image: true,
-                patientProfile: {
-                    select: {
-                        id: true,
-                        firstName: true,
-                        lastName: true,
-                    }
-                },
-                therapistProfile: {
-                    select: {
-                        id: true,
-                        licenseNumber: true,
-                        specialization: true,
-                    }
-                },
-                parentGuardianRel: {
-                    select: {
-                        id: true,
-                        relationship: true,
-                    }
-                },
             }
         });
 
@@ -106,20 +90,12 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        // Determine profile type
-        let profileType = "NORMAL_USER";
-        let hasProfile = false;
+        // Determine profile type (basic fallback, since related fields are not selected)
+        const profileType = "NORMAL_USER";
+        const hasProfile = false;
 
-        if (user.patientProfile) {
-            profileType = "PATIENT";
-            hasProfile = true;
-        } else if (user.therapistProfile) {
-            profileType = "THERAPIST";
-            hasProfile = true;
-        } else if (user.parentGuardianRel.length > 0) {
-            profileType = "PARENT_GUARDIAN";
-            hasProfile = true;
-        }
+        // If you want to support profile types, fetch and check related fields here
+        // For now, always return NORMAL_USER
 
         return NextResponse.json({
             user: {
