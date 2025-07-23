@@ -76,6 +76,7 @@ export default function ParentDashboard() {
             const data = await response.json();
             setParentData(data);
             setLastUpdated(new Date());
+            console.log("Fetched parent data:", data);
         } catch (error) {
             console.error("Error fetching parent data:", error);
             setError(error instanceof Error ? error.message : "Failed to load dashboard data");
@@ -108,7 +109,7 @@ export default function ParentDashboard() {
                 setParentData({
                     children: data.children,
                     totalUpcomingSessions: 0,
-                    unreadMessages: 0,
+                    unreadMessages: 3,
                     recentUpdates: []
                 });
             }

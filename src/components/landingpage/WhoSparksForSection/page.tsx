@@ -1,40 +1,159 @@
+import { useState, useEffect, useMemo } from "react";
+
 export default function WhoSparksForSection() {
-    const targetAudience = [
-        "Individuals with ADHD seeking comprehensive support",
-        "Families looking for guidance and management tools",
-        "Healthcare professionals treating ADHD patients",
-        "Educators working with ADHD students",
-        "Support groups and community organizations",
-        "Anyone interested in understanding ADHD better"
-    ];
+  const [visibleItems, setVisibleItems] = useState(new Set());
 
-    return (
-        <section className="py-8 sm:py-12 md:py-16 bg-gradient-to-r from-purple-600 to-primary text-white rounded-2xl sm:rounded-3xl my-8 sm:my-16 mx-4 sm:mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-8 sm:mb-12">
-                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-white/20 rounded-xl sm:rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6">
-                    <svg className="w-6 h-6 sm:w-8 sm:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
+  const targetAudience = useMemo(
+    () => [
+      {
+        text: "Individuals with ADHD seeking comprehensive support",
+      },
+      {
+        text: "Families looking for guidance and management tools",
+      },
+      {
+        text: "Healthcare professionals treating ADHD patients",
+      },
+      {
+        text: "Educators working with ADHD students",
+      },
+      {
+        text: "Support groups and community organizations",
+      },
+      {
+        text: "Anyone interested in understanding ADHD better",
+      },
+    ],
+    []
+  );
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      targetAudience.forEach((_, index) => {
+        setTimeout(() => {
+          setVisibleItems((prev) => new Set([...prev, index]));
+        }, index * 200);
+      });
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [targetAudience]);
+
+  return (
+    <section
+      className="py-16 md:py-20 relative overflow-hidden"
+      style={{ backgroundColor: "#F5F3FB" }}
+    >
+      {/* Subtle background decoration */}
+      <div className="absolute inset-0 opacity-3">
+        <div className="absolute top-10 right-10 w-40 h-40 rounded-full bg-gradient-to-r from-gray-100 to-gray-50 blur-3xl"></div>
+        <div className="absolute bottom-20 left-16 w-32 h-32 rounded-full bg-gradient-to-r from-gray-100 to-gray-50 blur-2xl"></div>
+      </div>
+
+      <div className="max-w-6xl mx-auto px-6 relative z-10">
+        {/* Header */}
+        <div className="text-center mb-16">
+          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+            Who&apos;s{" "}
+            <span
+              style={{
+                background: `linear-gradient(135deg, #8159A8 0%, #9d7bb8 100%)`,
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                backgroundClip: "text",
+              }}
+            >
+              SPARKS
+            </span>{" "}
+            For?
+          </h2>
+
+          <div className="w-20 h-1 bg-gradient-to-r from-transparent via-gray-300 to-transparent mx-auto rounded-full"></div>
+        </div>
+
+        {/* Audience Grid */}
+        <div className="max-w-4xl mx-auto">
+          <div className="flex flex-col items-center gap-4 md:gap-5">
+            {targetAudience.map((item, index) => (
+              <div
+                key={index}
+                className={`
+                  flex items-center space-x-4 px-6 py-4 rounded-2xl bg-white border border-gray-100 shadow-sm
+                  hover:shadow-md hover:border-gray-200 transition-all duration-300
+                  transform ${
+                    visibleItems.has(index)
+                      ? "translate-x-0 opacity-100"
+                      : "translate-x-8 opacity-0"
+                  }
+                `}
+                style={{
+                  transitionDelay: `${index * 100}ms`,
+                  transitionDuration: "500ms",
+                  width: "max-content",
+                  minWidth: "100%",
+                }}
+              >
+                {/* Check mark */}
+                <div
+                  className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: "#8159A8" }}
+                >
+                  <svg
+                    className="w-4 h-4 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={3}
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
                 </div>
-                <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-6 sm:mb-8 px-2">Who&apos;s SPARKS For?</h2>
-            </div>
 
-            <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
-                {targetAudience.map((item, index) => (
-                    <div key={index} className="flex items-start sm:items-center space-x-3 sm:space-x-4 text-base sm:text-lg px-2">
-                        <svg className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-300 flex-shrink-0 mt-0.5 sm:mt-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span className="leading-relaxed">{item}</span>
-                    </div>
-                ))}
-            </div>
+                {/* Text */}
+                <span className="text-lg text-gray-700 font-medium leading-relaxed whitespace-nowrap flex-1">
+                  {item.text}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
 
-            <div className="text-center mt-8 sm:mt-12 px-4">
-                <div className="inline-block px-4 sm:px-6 md:px-8 py-3 sm:py-4 bg-yellow-400 text-primary rounded-full font-bold text-base sm:text-lg md:text-xl border-2 sm:border-4 border-yellow-300">
-                    SPARKS IS FOR YOU
-                </div>
+        {/* Call to Action */}
+        <div className="text-center mt-16">
+          <div className="inline-block relative group">
+            {/* Glow effect */}
+            <div
+              className="absolute -inset-1 rounded-2xl blur opacity-25 group-hover:opacity-40 transition duration-300"
+              style={{ backgroundColor: "#8159A8" }}
+            ></div>
+
+            {/* Button */}
+            <div
+              className="relative px-12 py-4 rounded-2xl font-bold text-xl text-white shadow-lg transform group-hover:-translate-y-0.5 transition-all duration-200"
+              style={{ backgroundColor: "#8159A8" }}
+            >
+              ✨ SPARKS IS FOR YOU
             </div>
-        </section>
-    );
+          </div>
+        </div>
+
+        {/* Bottom decoration */}
+        <div className="text-center mt-12">
+          <p className="text-gray-500 text-sm">
+            Join thousands of individuals and families on their ADHD journey
+          </p>
+        </div>
+      </div>
+
+      <style jsx>{`
+        .opacity-3 {
+          opacity: 0.03;
+        }
+      `}</style>
+    </section>
+  );
 }

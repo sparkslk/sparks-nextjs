@@ -471,15 +471,8 @@ export default function FindTherapistPage() {
                                             </div>
                                             {/* Action Buttons */}
                                             <div className="flex flex-col gap-2 px-7 pb-7 pt-2">
-                                                {selectedTherapist.isChildConnection ? (
-                                                    <Button
-                                                        variant="default"
-                                                        className="font-semibold w-full h-11 text-base rounded-xl"
-                                                        onClick={() => window.location.href = '/parent/messages'}
-                                                    >
-                                                        Contact Therapist
-                                                    </Button>
-                                                ) : (
+                                                {/* Only show button if not a child connection */}
+                                                {!selectedTherapist.isChildConnection && (
                                                     <Button variant="default" className="font-semibold w-full h-11 text-base rounded-xl" onClick={() => handleChooseTherapist(selectedTherapist)}>
                                                         Choose Therapist
                                                     </Button>

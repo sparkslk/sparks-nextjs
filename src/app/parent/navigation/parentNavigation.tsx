@@ -15,7 +15,7 @@ const tabs = [
     { name: 'Find Therapists', path: '/parent/findTherapist' },
     { name: 'Messages', path: '/parent/messages' },
     { name: 'Sessions', path: '/parent/appointments' },
-    { name: 'Resources', path: '/parent/resources' }
+    { name: 'Resources', path: '/parent/blogs' }
 ];
 
 interface ParentData {

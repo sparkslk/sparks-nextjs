@@ -107,8 +107,22 @@ export async function GET(req: NextRequest) {
                     where: {
                         patientId: relation.patient.id,
                         status: 'SCHEDULED',
-                        scheduledAt: { gte: now }
+                        // scheduledAt: { gte: now }
                     }
+                });
+
+                // Debug logging for next upcoming session
+                const scheduledCount = await prisma.therapySession.count({
+                    where: {
+                        patientId: relation.patient.id,
+                        status: 'SCHEDULED',
+                        // scheduledAt: { gte: now }
+                    }
+                });
+                console.error('Debug nextUpcomingSession:', {
+                    patientId: relation.patient.id,
+                    now,
+                    scheduledCount
                 });
 
                 // Get next upcoming session (soonest SCHEDULED session in the future)
@@ -116,10 +130,11 @@ export async function GET(req: NextRequest) {
                     where: {
                         patientId: relation.patient.id,
                         status: 'SCHEDULED',
-                        scheduledAt: { gte: now }
+                        // scheduledAt: { gte: now }
                     },
                     orderBy: { scheduledAt: 'asc' }
                 });
+                console.error('Next upcoming session result:', nextUpcomingSession);
 
                 return {
                     id: relation.patient.id,
