@@ -464,3 +464,27 @@ enum AssignmentStatus {
   REJECTED
   CANCELLED
 }
+
+// Quiz-related models for SPARKS well-being assessment
+model QuizSubmission {
+  id               String     @id @default(cuid())
+  userId           String?    // Optional - can be null for anonymous users
+  sessionId        String     // For tracking anonymous sessions
+  responses        Json       // Stores all quiz answers as a JSON object
+  currentStep      Int        @default(1) // Track current quiz step (1-26)
+  completionStatus QuizStatus @default(IN_PROGRESS)
+  startedAt        DateTime   @default(now())
+  completedAt      DateTime?
+  updatedAt        DateTime   @updatedAt
+
+  // Index for better query performance
+  @@index([userId])
+  @@index([sessionId])
+  @@index([completionStatus])
+}
+
+enum QuizStatus {
+  IN_PROGRESS
+  COMPLETED
+  ABANDONED
+}
