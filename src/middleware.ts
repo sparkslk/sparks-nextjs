@@ -30,6 +30,7 @@ const PUBLIC_PATHS = [
   "/confirm-role",
   "/set-password",
   "/blogs",
+  "/api/mobile", // Allow all /api/mobile routes to bypass middleware
 ];
 
 function isPublicPath(path: string) {
