@@ -42,9 +42,14 @@ export async function POST(request: NextRequest) {
         }
 
         // Verify JWT token
-        const decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET!) as {userId?: string};
-
-        if (!decoded.userId) {
+        const decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET!);
+        // Type guard for decoded payload
+        if (
+            !decoded ||
+            typeof decoded !== 'object' ||
+            !('userId' in decoded) ||
+            typeof (decoded as { userId?: unknown }).userId !== 'string'
+        ) {
             return NextResponse.json(
                 { error: "Invalid token" },
                 { status: 401 }
