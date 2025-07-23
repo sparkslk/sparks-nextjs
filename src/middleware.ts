@@ -27,6 +27,9 @@ const PUBLIC_PATHS = [
   "/about",
   "/resources",
   "/contact",
+  "/confirm-role",
+  "/set-password",
+  "/blogs",
 ];
 
 function isPublicPath(path: string) {
@@ -73,8 +76,9 @@ export async function middleware(req: NextRequest) {
 
   // Define role-based route access
   const roleRoutes: Record<string, RegExp> = {
-    NORMAL_USER: /^\/(dashboard|sessions(\/|$)|profile\/create)/,
-    THERAPIST: /^\/therapist\/(dashboard|verification|profile|patients|sessions|setAvailability|assessments|messages)/,
+    NORMAL_USER: /^\/(dashboard(\/findTherapist)?|sessions(\/my-requests|\/request|\/|$)|profile\/create|patient\/find-therapist)/,
+    THERAPIST: /^\/therapist\/(dashboard|verification|profile(\/setup)?|patients(\/new|\/[^\/]+)?|sessions(\/[^\/]+)?|setAvailability|assessments(\/new|\/[^\/]+)?|messages|blogs(\/new|\/[^\/]+|\/[^\/]+\/edit)?|appointments(\/new)?|assignment-requests|requests)/,
+    MANAGER: /^\/manager\/(dashboard|applications|assessments(\/new|\/[^\/]+)?|verification)/,
     PARENT_GUARDIAN: /^\/parent\//,
     ADMIN: /^\/admin\//,
   };
@@ -84,6 +88,8 @@ export async function middleware(req: NextRequest) {
   if (role === "NORMAL_USER" && roleRoutes.NORMAL_USER.test(pathname))
     allowed = true;
   if (role === "THERAPIST" && roleRoutes.THERAPIST.test(pathname))
+    allowed = true;
+  if (role === "MANAGER" && roleRoutes.MANAGER.test(pathname))
     allowed = true;
   if (role === "PARENT_GUARDIAN" && roleRoutes.PARENT_GUARDIAN.test(pathname))
     allowed = true;
