@@ -42,18 +42,50 @@ export async function PATCH(
         });
         break;
 
-      case "Therapist":
-        updatedUser = await prisma.therapist.update({
+      case "Therapist": {
+        // Update therapist-specific fields
+        // Ensure specialization is always an array (String[])
+        let specializationArr = body.specialization;
+        if (typeof specializationArr === "string") {
+          specializationArr = specializationArr.split(",").map((s: string) => s.trim()).filter(Boolean);
+        } else if (!Array.isArray(specializationArr)) {
+          specializationArr = [];
+        }
+        // Convert experience to integer or null
+        let experienceInt = null;
+        if (typeof body.experience === "number") {
+          experienceInt = body.experience;
+        } else if (typeof body.experience === "string" && body.experience.trim() !== "") {
+          const parsed = parseInt(body.experience, 10);
+          experienceInt = isNaN(parsed) ? null : parsed;
+        }
+        // Fetch therapist to get userId
+        const therapistRecord = await prisma.therapist.findUnique({ where: { id } });
+        if (!therapistRecord || !therapistRecord.userId) {
+          return NextResponse.json({ error: "Therapist or associated user not found" }, { status: 404 });
+        }
+        const therapistUpdate = prisma.therapist.update({
           where: { id },
           data: {
             licenseNumber: body.licenseNumber,
-            specialization: body.specialization,
-            experience: body.experience,
+            specialization: specializationArr,
+            experience: experienceInt,
             availability: body.availability,
             rating: body.rating,
           },
         });
+        // Update user table for email and name (handle fullname/fullName/name)
+        const userUpdate = prisma.user.update({
+          where: { id: therapistRecord.userId },
+          data: {
+            email: body.email,
+            name: body.fullname || body.fullName || body.name,
+          },
+        });
+        const [therapist, user] = await prisma.$transaction([therapistUpdate, userUpdate]);
+        updatedUser = { ...therapist, email: user.email, name: user.name };
         break;
+      }
 
       case "Guardian":
         updatedUser = await prisma.parentGuardian.update({

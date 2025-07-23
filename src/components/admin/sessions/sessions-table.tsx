@@ -113,32 +113,32 @@ const SessionsTable: React.FC<SessionsTableProps> = ({
   };
 
   const getStatusColor = (status: string) => {
-    switch (status) {
+    switch (status.toLowerCase()) {
       case "scheduled":
-        return "bg-blue-500 text-white border border-blue-600 shadow-md";
+        return "bg-blue-100 text-blue-700 border border-blue-200 shadow-sm hover:bg-blue-200";
       case "completed":
-        return "bg-emerald-500 text-white border border-emerald-600 shadow-md";
+        return "bg-green-100 text-green-700 border border-green-200 shadow-sm hover:bg-green-200";
       case "cancelled":
-        return "bg-red-500 text-white border border-red-600 shadow-md";
+        return "bg-red-100 text-red-700 border border-red-200 shadow-sm hover:bg-red-200";
       case "rescheduled":
-        return "bg-amber-500 text-white border border-amber-600 shadow-md";
+        return "bg-purple-100 text-purple-700 border border-purple-200 shadow-sm hover:bg-purple-200";
       default:
-        return "bg-gray-500 text-white border border-gray-600 shadow-md";
+        return "bg-gray-100 text-gray-700 border border-gray-200 shadow-sm hover:bg-gray-200";
     }
   };
 
   const getAttendanceColor = (status: string) => {
     switch (status) {
       case "present":
-        return "bg-emerald-500 text-white border border-emerald-600 shadow-md";
+        return "bg-green-100 text-green-700 border border-green-200 shadow-sm hover:bg-green-200";
       case "absent":
-        return "bg-red-500 text-white border border-red-600 shadow-md";
+        return "bg-red-100 text-red-700 border border-red-200 shadow-sm hover:bg-red-200";
       case "partial":
-        return "bg-amber-500 text-white border border-amber-600 shadow-md";
+        return "bg-blue-100 text-blue-700 border border-blue-200 shadow-sm hover:bg-blue-200";
       case "pending":
-        return "bg-gray-500 text-white border border-gray-600 shadow-md";
+        return "bg-purple-100 text-purple-700 border border-purple-200 shadow-sm hover:bg-purple-200";
       default:
-        return "bg-gray-500 text-white border border-gray-600 shadow-md";
+        return "bg-gray-100 text-gray-700 border border-gray-200 shadow-sm hover:bg-gray-200";
     }
   };
 
@@ -160,7 +160,7 @@ const SessionsTable: React.FC<SessionsTableProps> = ({
                 <th className="text-left py-6 px-8 font-bold text-[#8159A8] tracking-wide uppercase text-xs">
                   Therapist
                 </th>
-                <th className="text-left py-6 px-8 font-bold text-[#8159A8] tracking-wide uppercase text-xs">
+                <th className="text-center py-6 px-8 font-bold text-[#8159A8] tracking-wide uppercase text-xs">
                   Type
                 </th>
                 <th className="text-left py-6 px-8 font-bold text-[#8159A8] tracking-wide uppercase text-xs">
@@ -172,7 +172,7 @@ const SessionsTable: React.FC<SessionsTableProps> = ({
                 <th className="text-left py-6 px-8 font-bold text-[#8159A8] tracking-wide uppercase text-xs">
                   Duration
                 </th>
-                <th className="text-left py-6 px-8 font-bold text-[#8159A8] tracking-wide uppercase text-xs">
+                <th className="text-center py-6 px-8 font-bold text-[#8159A8] tracking-wide uppercase text-xs">
                   Status
                 </th>
                 <th className="text-left py-6 px-8 font-bold text-[#8159A8] tracking-wide uppercase text-xs">
