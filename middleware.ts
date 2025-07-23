@@ -11,6 +11,11 @@ export default withAuth(
         const { pathname } = request.nextUrl;
         const token = request.nextauth.token;
 
+        // Allow quiz route for everyone (authenticated or not)
+        if (pathname.startsWith("/quiz")) {
+            return NextResponse.next();
+        }
+
         // Skip middleware for API routes (except auth routes that need protection)
         if (pathname.startsWith('/api/') && !pathname.startsWith('/api/auth/')) {
             return NextResponse.next();
@@ -24,7 +29,6 @@ export default withAuth(
             pathname === "/confirm-role" ||
             pathname === "/set-password" ||
             pathname === "/api-docs" ||
-            pathname.startsWith("/quiz") ||
             pathname.startsWith("/therapist/signup") ||
             pathname.startsWith("/manager/signup") ||
             pathname.startsWith("/admin/signup")
