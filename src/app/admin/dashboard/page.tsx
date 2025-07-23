@@ -2,17 +2,13 @@
 
 import React, { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DonationModal } from '@/components/admin/donation-modal';
 import { SessionModal } from '@/components/admin/session-modal';
 import {
     Users,
-    BarChart3,
-    Shield,
     Database,
     Zap,
-    Globe,
-    Settings,
     CalendarCheck,
     RefreshCw
 } from "lucide-react";
@@ -327,6 +323,7 @@ export default function AdminDashboard() {
                                                 amount: session.sessionDetails?.duration?.toString() || "0",
                                                 commission: "N/A",
                                                 sessionDetails: `Session with ${session.patient.name} • ${session.sessionDetails.duration} mins • ${session.sessionDetails.status}`,
+                                                scheduledAt: session.sessionDetails.scheduledAt,
                                             }))
                                             : []
                                     }
@@ -389,164 +386,6 @@ export default function AdminDashboard() {
                                     onClose={() => setShowDonationModal(false)}
                                     donations={mappedDonationData}
                                 />
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-
-                <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-                        <CardHeader>
-                            <CardTitle className="flex items-center">
-                                <Users className="mr-2 h-5 w-5" />
-                                User Management
-                            </CardTitle>
-                            <CardDescription>
-                                Manage all user accounts, roles, and permissions across the system
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <Button className="w-full hover:opacity-90" style={{ backgroundColor: '#8159A8', color: 'white' }}>
-                                Manage Users
-                            </Button>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-                        <CardHeader>
-                            <CardTitle className="flex items-center">
-                                <Shield className="mr-2 h-5 w-5" />
-                                Security & Permissions
-                            </CardTitle>
-                            <CardDescription>
-                                Configure security settings, audit logs, and access controls
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <Button className="w-full hover:opacity-90" style={{ backgroundColor: '#8159A8', color: 'white' }}>
-                                Security Settings
-                            </Button>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-                        <CardHeader>
-                            <CardTitle className="flex items-center">
-                                <Database className="mr-2 h-5 w-5" />
-                                Database Management
-                            </CardTitle>
-                            <CardDescription>
-                                Monitor database performance, backups, and maintenance
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <Button className="w-full hover:opacity-90" style={{ backgroundColor: '#8159A8', color: 'white' }}>
-                                Database Admin
-                            </Button>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-                        <CardHeader>
-                            <CardTitle className="flex items-center">
-                                <BarChart3 className="mr-2 h-5 w-5" />
-                                System Analytics
-                            </CardTitle>
-                            <CardDescription>
-                                View comprehensive system metrics and usage analytics
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <Button className="w-full hover:opacity-90" style={{ backgroundColor: '#8159A8', color: 'white' }}>
-                                View Analytics
-                            </Button>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => window.open('/api-docs', '_blank')}>
-                        <CardHeader>
-                            <CardTitle className="flex items-center">
-                                <Globe className="mr-2 h-5 w-5" />
-                                API Documentation
-                            </CardTitle>
-                            <CardDescription>
-                                Interactive Swagger documentation for all API endpoints
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <Button className="w-full hover:opacity-90" style={{ backgroundColor: '#8159A8', color: 'white' }}>
-                                View API Docs
-                            </Button>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-                        <CardHeader>
-                            <CardTitle className="flex items-center">
-                                <Settings className="mr-2 h-5 w-5" />
-                                System Configuration
-                            </CardTitle>
-                            <CardDescription>
-                                Configure global system settings and application parameters
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <Button className="w-full hover:opacity-90" style={{ backgroundColor: '#8159A8', color: 'white' }}>
-                                System Config
-                            </Button>
-                        </CardContent>
-                    </Card>
-                </div>
-
-                <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>System Health</CardTitle>
-                            <CardDescription>Real-time system performance metrics</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-4">
-                                <div className="flex justify-between">
-                                    <span className="text-sm">CPU Usage</span>
-                                    <span className="text-sm font-medium">{adminData?.systemHealth?.cpuUsage?.toFixed(1) || '0'}%</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-sm">Memory Usage</span>
-                                    <span className="text-sm font-medium">{adminData?.systemHealth?.memoryUsage?.toFixed(1) || '0'}%</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-sm">Disk Usage</span>
-                                    <span className="text-sm font-medium">{adminData?.systemHealth?.diskUsage?.toFixed(1) || '0'}%</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-sm">Network I/O</span>
-                                    <span className="text-sm font-medium">{adminData?.systemHealth?.networkIO || '0 MB/s'}</span>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Recent System Events</CardTitle>
-                            <CardDescription>Important system events and alerts</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-4">
-                                {adminData?.recentEvents?.map((event) => (
-                                    <div key={event.id} className="flex items-center space-x-4">
-                                        <div className={`w-2 h-2 rounded-full ${
-                                            event.type === "success" ? "bg-green-500" :
-                                            event.type === "warning" ? "bg-yellow-500" : "bg-blue-500"
-                                        }`}></div>
-                                        <div className="flex-1">
-                                            <p className="text-sm font-medium">{event.message}</p>
-                                            <p className="text-xs text-muted-foreground">{event.timestamp}</p>
-                                        </div>
-                                    </div>
-                                )) || (
-                                    <p className="text-sm text-muted-foreground">No recent events</p>
-                                )}
                             </div>
                         </CardContent>
                     </Card>

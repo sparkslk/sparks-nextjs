@@ -13,10 +13,10 @@ const tabs = [
   { name: "User Management", path: "/manager/users" },
   { name: "Session Oversight", path: "/manager/sessions" },
   { name: "Therapist requests", path: "/manager/applications" },
-  { name: "Financial Reports", path: "/manager/reports" },
+  //{ name: "Financial Reports", path: "/manager/reports" },
   { name: "Game Management", path: "/manager/games" },
   { name: "Assessments", path: "/manager/assessments" },
-  { name: "Blogs", path: "/manager/blogs" },
+  //{ name: "Blogs", path: "/manager/blogs" },
 ];
 
 interface ManagerData {

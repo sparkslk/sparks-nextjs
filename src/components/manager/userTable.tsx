@@ -38,12 +38,6 @@ interface User {
 interface UserTableProps {
   selectedRole: string;
   filteredUsers: User[];
-  setEditUser: (user: User) => void;
-  setEditModalOpen: (open: boolean) => void;
-  setDeleteUser: (user: User) => void;
-  setDeleteModalOpen: (open: boolean) => void;
-  setEmergencyContactDetails: (details: string | null) => void;
-  setEmergencyContactOpen: (open: boolean) => void;
   recordsPerPage?: number;
 }
 
@@ -289,17 +283,8 @@ const UserDetailsModal: React.FC<{
 const UserTable: React.FC<UserTableProps> = ({
   selectedRole,
   filteredUsers,
-  setEditUser,
-  setEditModalOpen,
-  setDeleteUser,
-  setDeleteModalOpen,
-  setEmergencyContactDetails,
-  setEmergencyContactOpen,
   recordsPerPage = 10,
 }) => {
-  // Mark unused parameters to avoid ESLint warnings
-  void setEmergencyContactDetails;
-  void setEmergencyContactOpen;
   
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -404,9 +389,11 @@ const UserTable: React.FC<UserTableProps> = ({
                     Email
                   </th>
                 )}
-                <th className="text-center py-6 px-8 font-bold text-[#8159A8] tracking-wide uppercase text-xs">
-                  Actions
-                </th>
+                {(selectedRole === "Patient" || selectedRole === "Therapist") && (
+                  <th className="text-left py-6 px-8 font-bold text-[#8159A8] tracking-wide uppercase text-xs">
+                    Actions
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody>
@@ -493,10 +480,9 @@ const UserTable: React.FC<UserTableProps> = ({
                     </td>
                   )}
 
-                  <td className="py-6 px-8 text-center">
-                    <div className="flex items-center gap-3">
-                      {/* View Details button for Patient and Therapist */}
-                      {(user.role === "Patient" || user.role === "Therapist") && (
+                  {(user.role === "Patient" || user.role === "Therapist") && (
+                    <td className="py-6 px-8 text-center">
+                      <div className="flex items-center gap-3">
                         <Button
                           size="sm"
                           variant="outline"
@@ -505,31 +491,9 @@ const UserTable: React.FC<UserTableProps> = ({
                         >
                           View Details
                         </Button>
-                      )}
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-xs border-2 border-[#8159A8]/60 text-[#8159A8] hover:bg-[#8159A8]/10 hover:border-[#8159A8] hover:shadow-md transition-all duration-300 transform hover:scale-105 active:scale-95 rounded-xl px-4 py-2 backdrop-blur-sm"
-                        onClick={() => {
-                          setEditUser(user);
-                          setEditModalOpen(true);
-                        }}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-xs border-2 border-red-400/60 text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-500 hover:shadow-md transition-all duration-300 transform hover:scale-105 active:scale-95 rounded-xl px-4 py-2 backdrop-blur-sm"
-                        onClick={() => {
-                          setDeleteUser(user);
-                          setDeleteModalOpen(true);
-                        }}
-                      >
-                        Delete
-                      </Button>
-                    </div>
-                  </td>
+                      </div>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
