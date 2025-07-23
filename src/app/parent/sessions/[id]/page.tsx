@@ -66,53 +66,134 @@ export default function SessionDetailsPage() {
   const [tasksError, setTasksError] = useState<string | null>(null);
   const [selectedTab, setSelectedTab] = useState<string>("clinical");
   const [taskActionLoading, setTaskActionLoading] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const [tasksRetryCount, setTasksRetryCount] = useState(0);
 
   useEffect(() => {
     if (!id) return;
-    setLoading(true);
-    fetch(`/api/parent/sessions/${id}`)
-      .then(async (res) => {
-        if (!res.ok) throw new Error("Failed to fetch session details");
-        return res.json();
-      })
-      .then((data) => {
+    
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort(), 30000); // 30 second timeout
+    
+    const fetchWithRetry = async (attempt = 0) => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const response = await fetch(`/api/parent/sessions/${id}`, {
+          signal: abortController.signal
+        });
+        
+        if (!response.ok) {
+          if (response.status >= 500 && attempt < 2) {
+            // Retry on server errors
+            setTimeout(() => {
+              setRetryCount(attempt + 1);
+              fetchWithRetry(attempt + 1);
+            }, 1000 * (attempt + 1)); // Exponential backoff
+            return;
+          }
+          throw new Error("Failed to fetch session details");
+        }
+        
+        const data = await response.json();
         setSession(data.session || null);
         setLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message || "Unknown error");
+      } catch (err) {
+        if (err instanceof Error) {
+          if (err.name === 'AbortError') {
+            setError('Request timed out. Please refresh the page.');
+          } else {
+            setError(err.message || "Unknown error");
+          }
+        } else {
+          setError("Unknown error");
+        }
         setLoading(false);
-      });
-  }, [id]);
+      }
+    };
+    
+    fetchWithRetry();
+    
+    return () => {
+      clearTimeout(timeoutId);
+      abortController.abort();
+    };
+  }, [id, retryCount]);
 
   useEffect(() => {
     if (!id) return;
-    setTasksLoading(true);
-    fetch(`/api/parent/sessions/${id}/tasks`)
-      .then(async (res) => {
-        if (!res.ok) throw new Error("Failed to fetch session tasks");
-        return res.json();
-      })
-      .then((data) => {
+    
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort(), 30000); // 30 second timeout
+    
+    const fetchTasksWithRetry = async (attempt = 0) => {
+      try {
+        setTasksLoading(true);
+        setTasksError(null);
+        
+        const response = await fetch(`/api/parent/sessions/${id}/tasks`, {
+          signal: abortController.signal
+        });
+        
+        if (!response.ok) {
+          if (response.status >= 500 && attempt < 2) {
+            // Retry on server errors
+            setTimeout(() => {
+              setTasksRetryCount(attempt + 1);
+              fetchTasksWithRetry(attempt + 1);
+            }, 1000 * (attempt + 1)); // Exponential backoff
+            return;
+          }
+          throw new Error("Failed to fetch session tasks");
+        }
+        
+        const data = await response.json();
         setTasks(data.tasks || []);
         setTasksLoading(false);
-      })
-      .catch((err) => {
-        setTasksError(err.message || "Unknown error");
+      } catch (err) {
+        if (err instanceof Error) {
+          if (err.name === 'AbortError') {
+            setTasksError('Request timed out. Please refresh the page.');
+          } else {
+            setTasksError(err.message || "Unknown error");
+          }
+        } else {
+          setTasksError("Unknown error");
+        }
         setTasksLoading(false);
-      });
-  }, [id]);
+      }
+    };
+    
+    fetchTasksWithRetry();
+    
+    return () => {
+      clearTimeout(timeoutId);
+      abortController.abort();
+    };
+  }, [id, tasksRetryCount]);
 
   const refreshTasks = async () => {
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort(), 15000); // 15 second timeout for refresh
+    
     try {
-      const response = await fetch(`/api/parent/sessions/${id}/tasks`);
+      const response = await fetch(`/api/parent/sessions/${id}/tasks`, {
+        signal: abortController.signal
+      });
       if (!response.ok) {
         throw new Error("Failed to fetch session tasks");
       }
       const data = await response.json();
       setTasks(data.tasks || []);
-    } catch {
-      setTasksError("Failed to load session tasks");
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        setTasksError("Request timed out. Please try again.");
+      } else {
+        setTasksError("Failed to load session tasks");
+      }
+    } finally {
+      clearTimeout(timeoutId);
     }
   };
 
@@ -198,14 +279,35 @@ export default function SessionDetailsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen">Loading session details...</div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#8159A8] mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading session details...</p>
+          {retryCount > 0 && (
+            <p className="text-sm text-gray-500 mt-2">Retrying... (Attempt {retryCount + 1})</p>
+          )}
+        </div>
+      </div>
     );
   }
   if (error) {
     return (
-      <div className="min-h-screen">
-        <p>{error}</p>
-        <Button onClick={() => router.back()}>Go Back</Button>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{error}</p>
+          <div className="flex gap-3 justify-center">
+            <Button onClick={() => router.back()}>Go Back</Button>
+            <Button 
+              onClick={() => {
+                setRetryCount(prev => prev + 1);
+                setError(null);
+              }}
+              variant="outline"
+            >
+              Retry
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }

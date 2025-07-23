@@ -15,49 +15,53 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });
     }
 
-    // Check parent access to the child
-    const parentGuardianRelation = await prisma.parentGuardian.findFirst({
-      where: {
-        userId: sessionUser.user.id,
-        patientId: session.patientId,
-      },
-    });
+    // Run queries in parallel for better performance
+    const [parentGuardianRelation, patient, therapistData] = await Promise.all([
+      // Check parent access
+      prisma.parentGuardian.findFirst({
+        where: {
+          userId: sessionUser.user.id,
+          patientId: session.patientId,
+        },
+      }),
+      // Fetch patient info
+      session.patientId ? prisma.patient.findUnique({
+        where: { id: session.patientId },
+        select: { firstName: true, lastName: true },
+      }) : null,
+      // Fetch therapist info with user data
+      session.therapistId ? prisma.therapist.findUnique({
+        where: { id: session.therapistId },
+        select: { 
+          userId: true, 
+          specialization: true,
+          user: {
+            select: { name: true, email: true }
+          }
+        },
+      }) : null,
+    ]);
+
     if (!parentGuardianRelation) {
       return NextResponse.json({ error: "You don't have access to this session" }, { status: 403 });
     }
 
-    // Fetch therapist info
+    // Process fetched data
     let therapistName = 'Assigned Therapist';
     let therapistEmail = '';
     let specializations: string[] = [];
-    // Fetch patient name from Patient table
-    // Fetch patient name from Patient table (combine firstName and lastName)
     let patientName = '';
-    if (session.patientId) {
-      const patient = await prisma.patient.findUnique({
-        where: { id: session.patientId },
-        select: { firstName: true, lastName: true },
-      });
-      if (patient) {
-        patientName = [patient.firstName, patient.lastName].filter(Boolean).join(' ');
-      }
+
+    if (patient) {
+      patientName = [patient.firstName, patient.lastName].filter(Boolean).join(' ');
     }
-    if (session.therapistId) {
-      const therapist = await prisma.therapist.findUnique({
-        where: { id: session.therapistId },
-        select: { userId: true, specialization: true },
-      });
-      if (therapist) {
-        const user = await prisma.user.findUnique({
-          where: { id: therapist.userId },
-          select: { name: true, email: true },
-        });
-        therapistName = user?.name || therapistName;
-        therapistEmail = user?.email || '';
-        specializations = Array.isArray(therapist.specialization)
-          ? therapist.specialization
-          : [therapist.specialization].filter(Boolean);
-      }
+
+    if (therapistData) {
+      therapistName = therapistData.user?.name || therapistName;
+      therapistEmail = therapistData.user?.email || '';
+      specializations = Array.isArray(therapistData.specialization)
+        ? therapistData.specialization
+        : [therapistData.specialization].filter(Boolean);
     }
 
     // Format session data for frontend
