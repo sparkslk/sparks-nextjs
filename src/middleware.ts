@@ -78,7 +78,7 @@ export async function middleware(req: NextRequest) {
   const roleRoutes: Record<string, RegExp> = {
     NORMAL_USER: /^\/(dashboard(\/findTherapist)?|sessions(\/my-requests|\/request|\/|$)|profile\/create|patient\/find-therapist)/,
     THERAPIST: /^\/therapist\/(dashboard|verification|profile(\/setup)?|patients(\/new|\/[^\/]+)?|sessions(\/[^\/]+)?|setAvailability|assessments(\/new|\/[^\/]+)?|messages|blogs(\/new|\/[^\/]+|\/[^\/]+\/edit)?|appointments(\/new)?|assignment-requests|requests)/,
-    MANAGER: /^\/manager\/(dashboard|applications|assessments(\/new|\/[^\/]+)?|verification)/,
+    MANAGER: /^\/manager\/(dashboard|applications|assessments(\/new|\/[^\/]+)?|verification|users|sessions|games)/,
     PARENT_GUARDIAN: /^\/parent\//,
     ADMIN: /^\/admin\//,
   };
