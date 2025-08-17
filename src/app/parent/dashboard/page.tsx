@@ -114,7 +114,7 @@ export default function ParentDashboard() {
                 });
             }
         } catch (error) {
-            console.error("Error fetching children:", error);
+            console.error("Error fetching patient:", error);
         }
     };
 
@@ -130,55 +130,6 @@ export default function ParentDashboard() {
         fetchChildren();
     };
 
-    // const openBookSession = (childId: string) => {
-    //     setShowBookSession(childId);
-    //     setPopupState(prev => ({
-    //         ...prev,
-    //         [childId]: {
-    //             selectedDate: new Date(),
-    //             selectedSlot: null,
-    //             showCalendar: false
-    //         }
-    //     }));
-    // };
-    // const closeBookSession = () => setShowBookSession(null);
-
-    // const handleDateClick = (childId: string, day: number) => {
-    //     setPopupState(prev => ({
-    //         ...prev,
-    //         [childId]: {
-    //             ...prev[childId],
-    //             selectedDate: new Date(new Date().getFullYear(), new Date().getMonth(), day),
-    //             selectedSlot: null
-    //         }
-    //     }));
-    // };
-    // const handleSlotClick = (childId: string, slot: string) => {
-    //     setPopupState(prev => ({
-    //         ...prev,
-    //         [childId]: {
-    //             ...prev[childId],
-    //             selectedSlot: slot
-    //         }
-    //     }));
-    // };
-    // const toggleCalendar = (childId: string) => {
-    //     setPopupState(prev => ({
-    //         ...prev,
-    //         [childId]: {
-    //             ...prev[childId],
-    //             showCalendar: !prev[childId]?.showCalendar
-    //         }
-    //     }));
-    // };
-
-    // const handleConfirmBooking = (childId: string) => {
-    //     setBookingConfirmed(prev => ({ ...prev, [childId]: true }));
-    //     setTimeout(() => {
-    //         setBookingConfirmed(prev => ({ ...prev, [childId]: false }));
-    //         closeBookSession();
-    //     }, 2000);
-    // };
 
     if (loading) {
         return (
@@ -186,7 +137,7 @@ export default function ParentDashboard() {
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mb-4 mx-auto"></div>
                     <h3 className="text-lg font-semibold mb-2 text-gray-900">Loading Dashboard</h3>
-                    <p className="text-gray-600">Fetching your children&apos; progress data...</p>
+                    <p className="text-gray-600">Fetching your patient&apos;s progress data...</p>
                 </div>
             </div>
         );
@@ -242,7 +193,7 @@ export default function ParentDashboard() {
                             </div>
                         </div>
                         <p className="text-muted-foreground text-base font-medium">
-                            Monitor and manage your children&apos; therapeutic progress
+                            Monitor and manage your patient&apos;s therapeutic progress
                         </p>
                         {lastUpdated && (
                             <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
@@ -261,14 +212,14 @@ export default function ParentDashboard() {
                                 aria-label="Connect to an existing child's account"
                             >
                                 <UserPlus className="h-4 w-4 mr-2" />
-                                Connect Child
+                                Connect Patient
                             </Button>
                         </DialogTrigger>
                         <DialogContent>
                             <DialogHeader>
                                 <DialogTitle>Connect to Existing Child</DialogTitle>
                                 <DialogDescription>
-                                    Use your child&apos;s Patient ID to connect to their account
+                                    Use your Patient&apos;s ID to connect to their account
                                 </DialogDescription>
                             </DialogHeader>
                             <ConnectChildForm onSuccess={handleChildConnected} />
@@ -282,14 +233,14 @@ export default function ParentDashboard() {
                                 aria-label="Add a new child to your account"
                             >
                                 <Plus className="h-4 w-4 mr-2" />
-                                Add Child
+                                Add Patient
                             </Button>
                         </DialogTrigger>
                         <DialogContent className="max-w-2xl">
                             <DialogHeader>
-                                <DialogTitle>Add New Child</DialogTitle>
+                                <DialogTitle>Add New Patient</DialogTitle>
                                 <DialogDescription>
-                                    Create a new patient profile for your child
+                                    Create a new patient profile for your patient
                                 </DialogDescription>
                             </DialogHeader>
                             <AddChildForm onSuccess={handleChildAdded} />
@@ -329,7 +280,7 @@ export default function ParentDashboard() {
                         <CardHeader className="border-b border-border pb-4">
                             <CardTitle className="text-xl font-bold flex items-center gap-2 text-foreground">
                                 <Users className="h-5 w-5" />
-                                Children Progress Overview
+                                Patient Progress Overview
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-6 pt-6">
@@ -541,9 +492,9 @@ export default function ParentDashboard() {
                 <Card className="shadow-md border-border bg-background">
                     <CardContent className="text-center py-12">
                         <Users className="h-16 w-16 text-muted-foreground mb-4 mx-auto" />
-                        <h3 className="text-lg font-semibold mb-2 text-foreground">No Children Enrolled</h3>
+                        <h3 className="text-lg font-semibold mb-2 text-foreground">No Patients Connected</h3>
                         <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                            You don&apos;t have any children enrolled in therapy services yet. Get started by adding your first child or connecting to an existing account.
+                            You don&apos;t have any patients enrolled in therapy services yet. Get started by adding your first patient or connecting to an existing account.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-3 justify-center">
                             <Button
@@ -553,7 +504,7 @@ export default function ParentDashboard() {
                                 aria-label="Connect to an existing child's therapy account"
                             >
                                 <UserPlus className="h-4 w-4 mr-2" />
-                                Connect Existing Child
+                                Connect Existing Patient
                             </Button>
                             <Button
                                 onClick={() => setShowAddChild(true)}
@@ -561,7 +512,7 @@ export default function ParentDashboard() {
                                 aria-label="Add a new child to start therapy services"
                             >
                                 <Plus className="h-4 w-4 mr-2" />
-                                Add New Child
+                                Add New Patient
                             </Button>
                         </div>
                         <div className="mt-6 p-4 bg-accent/10 rounded-lg border border-accent">

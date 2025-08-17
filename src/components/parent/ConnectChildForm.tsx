@@ -12,7 +12,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, AlertCircle, CheckCircle, UserCheck } from "lucide-react";
+import { Loader2, AlertCircle, CheckCircle, UserCheck, Info } from "lucide-react";
 
 interface ConnectChildFormProps {
     onSuccess: () => void;
@@ -27,6 +27,7 @@ export function ConnectChildForm({ onSuccess }: ConnectChildFormProps) {
         relationship: "",
         isPrimary: false
     });
+    const [showTooltip, setShowTooltip] = useState(false);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value, type } = e.target;
@@ -113,30 +114,40 @@ export function ConnectChildForm({ onSuccess }: ConnectChildFormProps) {
             <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
                 <UserCheck className="h-5 w-5 text-blue-600" />
                 <div className="text-sm text-blue-800">
-                    <p className="font-medium">Connect to Your Child&apos;s Account</p>
-                    <p className="text-blue-700">Enter your child&apos;s Patient ID to connect to their therapy account.</p>
+                    <p className="font-medium">Connect to Your Patient&apos;s Account</p>
+                    {/* <p className="text-blue-700">Patient</p> */}
                 </div>
             </div>
 
-            <div className="space-y-4">
-                <div>
-                    <Label htmlFor="patientId">Patient ID *</Label>
-                    <Input
-                        id="patientId"
-                        name="patientId"
-                        value={formData.patientId}
-                        onChange={handleInputChange}
-                        placeholder="Enter your child's Patient ID"
-                        required
-                        className="font-mono"
-                    />
-                    <p className="text-sm text-muted-foreground mt-1">
-                        Ask your child to share their Patient ID from their dashboard
-                    </p>
+            <div className="space-y-6">
+                <div className="space-y-1.5">
+                    <Label htmlFor="patientId" className="text-sm font-medium">Patient ID *</Label>
+                    <div className="relative">
+                        <Input
+                            id="patientId"
+                            name="patientId"
+                            value={formData.patientId}
+                            onChange={handleInputChange}
+                            placeholder="Enter your patient's Patient ID"
+                            required
+                            className="font-mono pr-8"
+                        />
+                        <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                            <Info 
+                                className="h-4 w-4 text-muted-foreground cursor-pointer hover:text-primary" 
+                                onClick={() => setShowTooltip(!showTooltip)}
+                            />
+                            {showTooltip && (
+                                <div className="absolute right-6 top-1/2 -translate-y-1/2 bg-popover text-popover-foreground text-sm rounded-lg px-3 py-2 z-10 whitespace-nowrap shadow-lg border border-border animate-in fade-in-0 duration-200">
+                                    Ask your patient to share their ID from their dashboard
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
 
-                <div>
-                    <Label htmlFor="relationship">Your Relationship to Child *</Label>
+                <div className="space-y-1.5">
+                    <Label htmlFor="relationship" className="text-sm font-medium">Your Relationship to Patient *</Label>
                     <Select value={formData.relationship} onValueChange={handleSelectChange}>
                         <SelectTrigger>
                             <SelectValue placeholder="Select your relationship" />
@@ -164,7 +175,7 @@ export function ConnectChildForm({ onSuccess }: ConnectChildFormProps) {
                         className="rounded"
                     />
                     <Label htmlFor="isPrimary" className="text-sm">
-                        I am the primary guardian for this child
+                        I am the primary guardian for this patient
                     </Label>
                 </div>
             </div>
@@ -175,8 +186,8 @@ export function ConnectChildForm({ onSuccess }: ConnectChildFormProps) {
                     <div className="text-sm text-yellow-800">
                         <p className="font-medium mb-1">Important Note</p>
                         <p>
-                            Only connect to accounts of children you are legally responsible for.
-                            The child must provide their consent and their Patient ID for you to connect.
+                            Only connect to accounts of patients you are legally responsible for.
+                            The patient must provide their consent and their ID for you to connect.
                         </p>
                     </div>
                 </div>
