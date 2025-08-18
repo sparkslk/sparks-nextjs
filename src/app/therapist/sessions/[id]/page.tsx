@@ -6,31 +6,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SessionUpdateModal } from "@/components/therapist/SessionUpdateModal";
+import MedicationManagement from "@/components/therapist/MedicationManagement";
+import { Medication } from "@/types/medications";
 import {
   Calendar,
   User,
   FileText,
-  Pill,
   CheckSquare,
   ArrowLeft,
   AlertCircle,
-  XCircle,
   Clock3,
   Edit,
   Plus
 } from "lucide-react";
 import { format } from "date-fns";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"; // Make sure you have a Dialog component
-
-interface EditMedication {
-  name: string;
-  dosage: string;
-  frequency: string;
-  mealTiming: string;
-  startDate: string;
-  endDate?: string;
-  instructions?: string;
-}
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface DetailedSession {
   id: string;
@@ -84,7 +74,6 @@ interface Task {
   createdAt: string;
 }
 
-
 interface Assessment {
   id: string;
   type: string;
@@ -95,7 +84,6 @@ interface Assessment {
   recommendations?: string;
   assessmentDate: string;
 }
-
 
 interface SessionHistory {
   id: string;
@@ -108,32 +96,7 @@ interface SessionHistory {
   engagement?: number;
 }
 
-const hardcodedMedications = [
-  {
-    id: "1",
-    name: "Methylphenidate",
-    dosage: "7",
-    frequency: "Twice daily",
-    mealTiming: "Before meals",
-    startDate: "2025-07-07",
-    endDate: "2025-07-12",
-    prescribedBy: "Ravindi Fernando",
-    instructions: "Take with a full glass of water. Do not exceed recommended dose.",
-    isActive: true,
-  },
-  {
-    id: "2",
-    name: "Amoxicillin",
-    dosage: "500mg",
-    frequency: "Three times daily",
-    mealTiming: "After meals",
-    startDate: "2025-07-01",
-    endDate: "2025-07-10",
-    prescribedBy: "Dr. Nimal Perera",
-    instructions: "Complete the full course even if you feel better.",
-    isActive: true,
-  }
-];
+// Remove hardcodedMedications array as we'll use real data
 
 const hardcodedTasks = [
   {
@@ -161,10 +124,15 @@ export default function SessionDetailsPage() {
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [showMedications, setShowMedications] = useState(false);
   const [showTasks, setShowTasks] = useState(false);
-  const [showAddMedication, setShowAddMedication] = useState(false);
-  const [showEditMedication, setShowEditMedication] = useState(false);
-  const [editMedication, setEditMedication] = useState<EditMedication | null>(null);
   const [showAssignTask, setShowAssignTask] = useState(false);
+  
+  // Add medications state
+  const [medications, setMedications] = useState<Medication[]>([]);
+  
+  // Remove medication-related states that are now handled by MedicationManagement
+  // const [showAddMedication, setShowAddMedication] = useState(false);
+  // const [showEditMedication, setShowEditMedication] = useState(false);
+  // const [editMedication, setEditMedication] = useState<EditMedication | null>(null);
   
   const params = useParams();
   const router = useRouter();
@@ -221,11 +189,41 @@ export default function SessionDetailsPage() {
     }
   }, [sessionId]);
 
+  // Add function to fetch medications
+  const fetchMedications = useCallback(async (patientId: string) => {
+    try {
+      const response = await fetch(`/api/therapist/patients/${patientId}/medications`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setMedications(data);
+      } else {
+        console.error("Failed to fetch medications:", response.statusText);
+        setMedications([]);
+      }
+    } catch (error) {
+      console.error("Error fetching medications:", error);
+      setMedications([]);
+    }
+  }, []);
+
   useEffect(() => {
     if (sessionId) {
       fetchSessionDetails();
     }
   }, [sessionId, fetchSessionDetails]);
+
+  // Fetch medications when session is loaded
+  useEffect(() => {
+    if (session?.patientId) {
+      fetchMedications(session.patientId);
+    }
+  }, [session?.patientId, fetchMedications]);
 
   const handleSessionUpdated = () => {
     // Refresh the session details after update
@@ -249,38 +247,6 @@ export default function SessionDetailsPage() {
         return 'bg-gray-100 text-gray-800';
     }
   };
-
-  // const getTaskStatusIcon = (status: string) => {
-  //   switch (status.toLowerCase()) {
-  //     case 'completed':
-  //       return <CheckCircle className="w-4 h-4 text-green-600" />;
-  //     case 'in_progress':
-  //       return <Clock3 className="w-4 h-4 text-blue-600" />;
-  //     case 'overdue':
-  //       return <XCircle className="w-4 h-4 text-red-600" />;
-  //     default:
-  //       return <AlertCircle className="w-4 h-4 text-gray-600" />;
-  //   }
-  // };
-
-  // const getPriorityColor = (priority: number) => {
-  //   switch (priority) {
-  //     case 5:
-  //       return 'bg-red-100 text-red-800';
-  //     case 4:
-  //       return 'bg-orange-100 text-orange-800';
-  //     case 3:
-  //       return 'bg-yellow-100 text-yellow-800';
-  //     case 2:
-  //       return 'bg-blue-100 text-blue-800';
-  //     default:
-  //       return 'bg-gray-100 text-gray-800';
-  //   }
-  // };
-
-  // const calculateAge = (dateOfBirth: string) => {
-  //   return differenceInYears(new Date(), new Date(dateOfBirth));
-  // };
 
   const availableTasks = [
     {
@@ -603,275 +569,19 @@ export default function SessionDetailsPage() {
         </div>
       </div>
 
-      {/* Medications Modal */}
+      {/* Updated Medications Modal with MedicationManagement component */}
       <Dialog open={showMedications} onOpenChange={setShowMedications}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Medication Updates for This Patient</DialogTitle>
-          </DialogHeader>
-          <div className="flex items-center justify-between mb-2">
-            <Badge variant="outline" className="text-sm">
-              {hardcodedMedications.filter(t => t.isActive).length} Active
-            </Badge>
-            <Button
-              style={{ backgroundColor: "#8159A8", color: "#fff" }}
-              className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 shadow hover:brightness-110"
-              onClick={() => setShowAddMedication(true)}
-            >
-              <Plus className="w-5 h-5" />
-              Add Medication
-            </Button>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden">
+          
+          <div className="overflow-y-auto max-h-[calc(90vh-8rem)] pr-2">
+            {session?.patientId && (
+              <MedicationManagement 
+                patientId={session.patientId}
+                medications={medications}
+                onMedicationUpdate={() => fetchMedications(session.patientId)}
+              />
+            )}
           </div>
-          {hardcodedMedications.length === 0 ? (
-      <Card>
-        <CardContent className="p-8 text-center">
-          <Pill className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-          <p className="text-muted-foreground">No medications on record.</p>
-        </CardContent>
-      </Card>
-    ) : (
-      hardcodedMedications.map((med) => (
-        <Card
-          key={med.id}
-          className="mb-4 shadow-md bg-[#F8F6FB] border-0"
-        >
-          <div className="p-4 flex flex-col gap-3">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <Pill className="w-5 h-5 text-[#8159A8]" />
-                <span className="text-base font-semibold text-[#8159A8]">{med.name}</span>
-                {med.isActive ? (
-                  <Badge className="ml-2 bg-green-100 text-green-700 text-xs font-semibold">
-                    Active
-                  </Badge>
-                ) : (
-                  <Badge className="ml-2 bg-gray-100 text-gray-500 text-xs font-semibold">
-                    Inactive
-                  </Badge>
-                )}
-              </div>
-              <div className="flex gap-2">
-                
-                <Button
-                  variant="outline"
-                  className="flex items-center gap-1 border-blue-400 text-blue-700 hover:bg-blue-50 px-2 py-1 text-xs"
-                  size="sm"
-                  style={{ borderColor: "#3B82F6" }}
-                  onClick={() => {
-                    setEditMedication(med);
-                    setShowEditMedication(true);
-                  }}
-                >
-                  <Edit className="w-4 h-4" />
-                  Edit
-                </Button>
-                <Button
-                  variant="outline"
-                  className="flex items-center gap-1 border-red-400 text-red-700 hover:bg-red-50 px-2 py-1 text-xs"
-                  size="sm"
-                  style={{ borderColor: "#EF4444" }}
-                >
-                  <XCircle className="w-4 h-4" />
-                  Discontinue
-                </Button>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-2">
-              <div>
-                <p className="text-[10px] font-medium text-muted-foreground uppercase">Dosage</p>
-                <p className="text-sm font-semibold">{med.dosage}</p>
-              </div>
-              <div>
-                <p className="text-[10px] font-medium text-muted-foreground uppercase">Frequency</p>
-                <p className="text-sm font-semibold">{med.frequency}</p>
-              </div>
-              <div>
-                <p className="text-[10px] font-medium text-muted-foreground uppercase">Meal Timing</p>
-                <p className="text-sm font-semibold">{med.mealTiming}</p>
-              </div>
-              <div>
-                <p className="text-[10px] font-medium text-muted-foreground uppercase">Start Date</p>
-                <p className="text-sm font-semibold">
-                  {format(new Date(med.startDate), "MMM dd, yyyy")}
-                </p>
-              </div>
-              <div>
-                <p className="text-[10px] font-medium text-muted-foreground uppercase">End Date</p>
-                <p className="text-sm font-semibold">
-                  {format(new Date(med.endDate), "MMM dd, yyyy")}
-                </p>
-              </div>
-              <div>
-                <p className="text-[10px] font-medium text-muted-foreground uppercase">Prescribed By</p>
-                <p className="text-sm font-semibold">{med.prescribedBy}</p>
-              </div>
-            </div>
-            <div className="bg-[#EDE9F7] mt-3 p-3 rounded flex flex-col gap-1">
-              <div className="flex items-center gap-1 text-[#8159A8] font-medium text-xs">
-                <AlertCircle className="w-4 h-4" />
-                Instructions
-              </div>
-              <div className="text-[#4B3869] text-xs">{med.instructions}</div>
-            </div>
-          </div>
-        </Card>
-      ))
-    )}
-  </DialogContent>
-      </Dialog>
-
-      {/* Add Medication Modal */}
-      <Dialog open={showAddMedication} onOpenChange={setShowAddMedication}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Add New Medication</DialogTitle>
-          </DialogHeader>
-          <form className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Medication Name *</label>
-                <input className="w-full border rounded px-3 py-2 text-sm" placeholder="e.g., Adderall XR" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Dosage *</label>
-                <input className="w-full border rounded px-3 py-2 text-sm" placeholder="e.g., 10mg" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Frequency *</label>
-                <select className="w-full border rounded px-3 py-2 text-sm">
-                  <option>Select frequency</option>
-                  <option>Once daily</option>
-                  <option>Twice daily</option>
-                  <option>Three times daily</option>
-                  {/* Add more as needed */}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Meal Timing</label>
-                <select className="w-full border rounded px-3 py-2 text-sm">
-                  <option>No specific timing</option>
-                  <option>Before meals</option>
-                  <option>After meals</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Start Date *</label>
-                <input type="date" className="w-full border rounded px-3 py-2 text-sm" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">End Date (Optional)</label>
-                <input type="date" className="w-full border rounded px-3 py-2 text-sm" />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Instructions</label>
-              <textarea className="w-full border rounded px-3 py-2 text-sm" rows={3} placeholder="Special instructions for taking this medication..." />
-            </div>
-            <div className="flex justify-between mt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setShowAddMedication(false)}
-                className="font-semibold px-6 py-2 rounded-lg"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                style={{ backgroundColor: "#8159A8", color: "#fff" }}
-                className="font-semibold px-6 py-2 rounded-lg"
-              >
-                Add Medication
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Medication Modal */}
-      <Dialog open={showEditMedication} onOpenChange={setShowEditMedication}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Edit Medication</DialogTitle>
-          </DialogHeader>
-          {editMedication && (
-            <form className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Medication Name *</label>
-                  <input
-                    className="w-full border rounded px-3 py-2 text-sm"
-                    defaultValue={editMedication.name}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Dosage *</label>
-                  <input
-                    className="w-full border rounded px-3 py-2 text-sm"
-                    defaultValue={editMedication.dosage}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Frequency *</label>
-                  <select className="w-full border rounded px-3 py-2 text-sm" defaultValue={editMedication.frequency}>
-                    <option>Select frequency</option>
-                    <option>Once daily</option>
-                    <option>Twice daily</option>
-                    <option>Three times daily</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Meal Timing</label>
-                  <select className="w-full border rounded px-3 py-2 text-sm" defaultValue={editMedication.mealTiming}>
-                    <option>No specific timing</option>
-                    <option>Before meals</option>
-                    <option>After meals</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Start Date *</label>
-                  <input
-                    type="date"
-                    className="w-full border rounded px-3 py-2 text-sm"
-                    defaultValue={editMedication.startDate}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">End Date (Optional)</label>
-                  <input
-                    type="date"
-                    className="w-full border rounded px-3 py-2 text-sm"
-                    defaultValue={editMedication.endDate}
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Instructions</label>
-                <textarea
-                  className="w-full border rounded px-3 py-2 text-sm"
-                  rows={3}
-                  defaultValue={editMedication.instructions}
-                />
-              </div>
-              <div className="flex justify-between mt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowEditMedication(false)}
-                  className="font-semibold px-6 py-2 rounded-lg"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  style={{ backgroundColor: "#8159A8", color: "#fff" }}
-                  className="font-semibold px-6 py-2 rounded-lg"
-                >
-                  Update Medication
-                </Button>
-              </div>
-                  </form>
-          )}
         </DialogContent>
       </Dialog>
 
