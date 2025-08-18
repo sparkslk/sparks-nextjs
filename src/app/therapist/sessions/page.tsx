@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Clock, User, FileText, Edit, Eye, CheckCircle, Plus, Activity, RotateCcw, Video, ArrowRight } from "lucide-react";
+import { Calendar, Clock, User, FileText, Edit, Eye, CheckCircle, Plus, Hourglass , RotateCcw, Video, ArrowRight } from "lucide-react";
 import { SessionUpdateModal } from "@/components/therapist/SessionUpdateModal";
 import { RescheduleModal } from "@/components/therapist/RescheduleModal";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -368,7 +368,7 @@ export default function TherapistSessionsPage() {
             </div>
             
             <div className="flex items-center gap-2">
-              <Activity className="w-6 h-6 text-primary" />
+              <Hourglass  className="w-6 h-6 text-primary" />
               <div>
                 <p className="text-xs text-gray-500">Duration</p>
                 <p className="text-sm font-medium">{session.duration} min</p>

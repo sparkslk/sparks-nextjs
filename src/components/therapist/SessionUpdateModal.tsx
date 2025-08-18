@@ -215,18 +215,15 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
 
       if (response.ok) {
         setSubmitSuccess(true);
-        onSessionUpdated();
-        // Close modal after a brief delay to show success message, only if marking as completed
-        if (!saveOnly) {
+        
+        // Close modal after a brief delay to show success message
+        setTimeout(() => {
+          onClose();
+          // Call onSessionUpdated after modal is closed to prevent reopening
           setTimeout(() => {
-            onClose();
-          }, 1500);
-        } else {
-          // For save only, close after shorter delay or let user manually close
-          setTimeout(() => {
-            setSubmitSuccess(false);
-          }, 2000);
-        }
+            onSessionUpdated();
+          }, 100);
+        }, 1500);
       } else {
         const errorData = await response.json();
         console.error("Server error response:", errorData);
