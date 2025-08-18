@@ -128,6 +128,7 @@ export default function SessionDetailsPage() {
   
   // Add medications state
   const [medications, setMedications] = useState<Medication[]>([]);
+  const [isLoadingMedications, setIsLoadingMedications] = useState(false);
   
   // Remove medication-related states that are now handled by MedicationManagement
   // const [showAddMedication, setShowAddMedication] = useState(false);
@@ -192,6 +193,7 @@ export default function SessionDetailsPage() {
   // Add function to fetch medications
   const fetchMedications = useCallback(async (patientId: string) => {
     try {
+      setIsLoadingMedications(true);
       const response = await fetch(`/api/therapist/patients/${patientId}/medications`, {
         method: "GET",
         headers: {
@@ -209,6 +211,8 @@ export default function SessionDetailsPage() {
     } catch (error) {
       console.error("Error fetching medications:", error);
       setMedications([]);
+    } finally {
+      setIsLoadingMedications(false);
     }
   }, []);
 
@@ -572,15 +576,19 @@ export default function SessionDetailsPage() {
       {/* Updated Medications Modal with MedicationManagement component */}
       <Dialog open={showMedications} onOpenChange={setShowMedications}>
         <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden">
-          
           <div className="overflow-y-auto max-h-[calc(90vh-8rem)] pr-2">
-            {session?.patientId && (
+            {isLoadingMedications ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#8159A8]"></div>
+                <span className="ml-2">Loading medications...</span>
+              </div>
+            ) : session?.patientId ? (
               <MedicationManagement 
                 patientId={session.patientId}
                 medications={medications}
                 onMedicationUpdate={() => fetchMedications(session.patientId)}
               />
-            )}
+            ) : null}
           </div>
         </DialogContent>
       </Dialog>
