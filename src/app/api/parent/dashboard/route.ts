@@ -14,10 +14,8 @@ export async function GET(req: NextRequest) {
                     include: {
                         therapySessions: {
                             where: {
-                                scheduledAt: {
-                                    gte: new Date() // Only future sessions from current date/time
-                                },
-                                status: 'APPROVED' // Only approved upcoming sessions
+                                scheduledAt: { gte: new Date() },
+                                status: { in: ['APPROVED', 'SCHEDULED'] }
                             }
                         },
                         assessments: {
@@ -107,7 +105,7 @@ export async function GET(req: NextRequest) {
                     where: {
                         patientId: relation.patient.id,
                         status: 'SCHEDULED',
-                        // scheduledAt: { gte: now }
+                        scheduledAt: { gte: now }
                     }
                 });
 
@@ -116,7 +114,7 @@ export async function GET(req: NextRequest) {
                     where: {
                         patientId: relation.patient.id,
                         status: 'SCHEDULED',
-                        // scheduledAt: { gte: now }
+                        scheduledAt: { gte: now }
                     }
                 });
                 console.error('Debug nextUpcomingSession:', {
@@ -130,7 +128,7 @@ export async function GET(req: NextRequest) {
                     where: {
                         patientId: relation.patient.id,
                         status: 'SCHEDULED',
-                        // scheduledAt: { gte: now }
+                        scheduledAt: { gte: now }
                     },
                     orderBy: { scheduledAt: 'asc' }
                 });
