@@ -48,6 +48,25 @@ interface Therapist {
     gender?: string
 }
 
+interface TherapistRequest {
+    id: string;
+    childName: string;
+    therapist: {
+        id: string;
+        name: string;
+        licenseNumber?: string;
+        specialization?: string[];
+        experience?: number;
+        bio?: string;
+        rating?: number;
+    };
+    status: "PENDING" | "APPROVED" | "REJECTED";
+    requestMessage: string;
+    responseMessage?: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
 export default function FindTherapistPage() {
     const [therapists, setTherapists] = useState<Therapist[]>([]);
     const [filteredTherapists, setFilteredTherapists] = useState<Therapist[]>([]);
@@ -68,51 +87,78 @@ export default function FindTherapistPage() {
     const [patientTherapistMap, setPatientTherapistMap] = useState<{ [patient: string]: Therapist | null }>({});
     const [pendingTherapist, setPendingTherapist] = useState<Therapist | null>(null);
     const [notification, setNotification] = useState<string | null>(null);
+    const [requestMessage, setRequestMessage] = useState<string>("");
+    const [requestedTherapists, setRequestedTherapists] = useState<TherapistRequest[]>([]);
 
-    // Fetch current therapist from patient data
-    // useEffect(() => {
-    //     const fetchCurrentTherapist = async () => {
-    //         try {
-    //             const response = await fetch("/api/dashboard");
-    //             if (response.ok) {
-    //                 const data = await response.json();
+    // Fetch requested therapists
+    const fetchRequestedTherapists = async () => {
+        try {
+            console.log("Fetching requested therapists");
+            // Get user session to get the parentId
+            const sessionResponse = await fetch("/api/auth/session");
+            if (!sessionResponse.ok) {
+                console.warn("No session found");
+                return;
+            }
+            const session = await sessionResponse.json();
+            const parentId = session?.user?.id;
+            if (!parentId) {
+                console.warn("No parent ID found in session");
+                return;
+            }
 
-    //                 if (data.therapist) {
-    //                     // Convert therapist data to Therapist interface format
-    //                     const therapistData: Therapist = {
-    //                         id: `current-therapist`,
-    //                         name: data.therapist.name,
-    //                         title: "Licensed Therapist", // Default title
-    //                         specialties: data.therapist.specialization || ["General Psychology"], // Use specialization from API
-    //                         rating: 4.8, // Default rating
-    //                         reviewCount: 0,
-    //                         experience: "Licensed Professional",
-    //                         sessionTypes: { inPerson: false, online: true },
-    //                         availability: {
-    //                             nextSlot: "Contact for availability",
-    //                             timeSlot: "Schedule via contact",
-    //                             timeCategory: "thisWeek" as const
-    //                         },
-    //                         cost: { isFree: false, priceRange: "Contact for pricing" },
-    //                         languages: ["English"],
-    //                         tags: ["English"],
-    //                         isCurrentTherapist: true
-    //                     };
+            const response = await fetch(`/api/parent/requested-therapists?parentId=${parentId}`);
+            if (response.ok) {
+                console.log("Fetched requested therapists successfully");
+                const data = await response.json();
+                console.log("Requested Therapists", data);
+                interface RequestedTherapist {
+                    id: string;
+                    childName: string;
+                    therapist: {
+                        id: string;
+                        name: string;
+                        licenseNumber?: string;
+                        specialization?: string[];
+                        experience?: number;
+                        bio?: string;
+                        rating?: number | null;
+                    };
+                    status: string;
+                    requestMessage: string;
+                    responseMessage?: string | null;
+                    createdAt: string;
+                    updatedAt: string;
+                }
+                const formatted = (data.requests || []).map((req: RequestedTherapist) => ({
+                    id: req.id,
+                    childName: req.childName,
+                    therapist: {
+                        id: req.therapist.id,
+                        name: req.therapist.name,
+                        licenseNumber: req.therapist.licenseNumber,
+                        specialization: req.therapist.specialization || [],
+                        experience: req.therapist.experience,
+                        bio: req.therapist.bio || '',
+                        rating: req.therapist.rating || 0
+                    },
+                    status: req.status,
+                    requestMessage: req.requestMessage,
+                    responseMessage: req.responseMessage,
+                    createdAt: req.createdAt,
+                    updatedAt: req.updatedAt
+                }));
+                setRequestedTherapists(formatted);
+            }
+        } catch (error) {
+            console.error("Error fetching requested therapists:", error);
+            setRequestedTherapists([]);
+        }
+    };
 
-    //                     console.log("Current Therapist Data:", therapistData);
-
-    //                     setCurrentTherapist(therapistData);
-    //                 }
-    //             }
-    //         } catch (error) {
-    //             console.error("Error fetching current therapist:", error);
-    //         }
-    //     };
-
-    //     fetchCurrentTherapist();
-    // }, []);
-
-
+    useEffect(() => {
+        fetchRequestedTherapists();
+    }, []);
 
     // Fetch therapists from API
     useEffect(() => {
@@ -122,7 +168,6 @@ export default function FindTherapistPage() {
           
                 if (response.ok) {
                     const data = await response.json();
-                    console.log(data);
                     // Convert API data to Therapist interface format
                     const formattedTherapists: Therapist[] = data.therapists?.map((therapist: {
                         id: string;
@@ -136,26 +181,11 @@ export default function FindTherapistPage() {
                     }) => ({
                         id: therapist.id,
                         name: therapist.name,
-                        title: "Licensed Therapist",
-                        specialties: therapist.specialization || ["General Psychology"],
-                        rating: typeof therapist.rating === 'number' ? therapist.rating : parseFloat(therapist.rating || '0'), // Parse rating as number
-                        // reviewCount: Math.floor(Math.random() * 200) + 50, // Random review count
-                        experience: therapist.experience ? `${therapist.experience}+ years` : "0 years",
-                        sessionTypes: { inPerson: false, online: true },
-                        availability: {
-                            nextSlot: getRandomAvailability(),
-                            timeSlot: getRandomTimeSlot(),
-                            timeCategory: getRandomTimeCategory()
-                        },
-                        cost: {
-                            isFree: Math.random() > 0.7, // 30% chance of being free
-                            priceRange: Math.random() > 0.7 ? "Free consultation" : "Rs. 800-1500/session"
-                        },
-                        languages: ["English"],
-                        tags: ["English"],
-                        image: therapist.image || null,
-                        bio: therapist.bio || "",
-                        patientsCount: typeof therapist.patientsCount === 'number' ? therapist.patientsCount : 0
+                        // title: therapist.licenseNumber ? `License: ${therapist.licenseNumber}` : "Therapist",
+                        specialties: therapist.specialization || [],
+                        rating: typeof therapist.rating === 'number' ? therapist.rating : parseFloat(String(therapist.rating ?? '0')),
+                        experience: therapist.experience ? `${therapist.experience} years` : undefined,
+                        bio: therapist.bio || undefined
                     })) || [];
 
                     setTherapists(formattedTherapists);
@@ -235,21 +265,7 @@ export default function FindTherapistPage() {
         fetchChildTherapistConnections();
     }, []);
 
-    // Helper functions for random data generation
-    const getRandomAvailability = () => {
-        const options = ["Available Today", "Available Tomorrow", "Available This Week", "Available Next Week"];
-        return options[Math.floor(Math.random() * options.length)];
-    };
 
-    const getRandomTimeSlot = () => {
-        const times = ["Today 2:00 PM", "Tomorrow 10:30 AM", "Friday 3:30 PM", "Monday 11:00 AM"];
-        return `Next: ${times[Math.floor(Math.random() * times.length)]}`;
-    };
-
-    const getRandomTimeCategory = (): "today" | "tomorrow" | "thisWeek" | "nextWeek" => {
-        const categories: ("today" | "tomorrow" | "thisWeek" | "nextWeek")[] = ["today", "tomorrow", "thisWeek", "nextWeek"];
-        return categories[Math.floor(Math.random() * categories.length)];
-    };
 
     // Filter therapists based on search and filters
     useEffect(() => {
@@ -331,21 +347,27 @@ export default function FindTherapistPage() {
         const patientObj = patients.find((p) => p.name === selectedPatient);
         if (!patientObj) return;
         try {
-            const response = await fetch("/api/parent/assign-therapist", {
+            const response = await fetch("/api/parent/therapist-assignment-request", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     patientId: patientObj.id,
-                    therapistId: pendingTherapist.id
+                    therapistId: pendingTherapist.id,
+                    requestMessage: requestMessage || `Request to assign ${pendingTherapist.name} as therapist for patient ${selectedPatient}`,
                 })
             });
             if (!response.ok) {
-                throw new Error("Failed to assign therapist");
+                throw new Error("Failed to create therapist assignment request");
             }
-            setNotification(`Now ${selectedPatient}'s therapist is ${pendingTherapist.name}`);
+            setNotification(`Assignment request sent to ${pendingTherapist.name}. They will respond to your request soon.`);
             setTimeout(() => setNotification(null), 5000);
+            // Refresh the requested therapists list
+            await fetchRequestedTherapists();
         } catch (error) {
             console.error(error);
+            setNotification("Failed to send assignment request. Please try again.");
+            setTimeout(() => setNotification(null), 5000);
+            return;
         }
         setChooseModalOpen(false);
         setProfileModalOpen(false);
@@ -357,6 +379,23 @@ export default function FindTherapistPage() {
     const handleViewProfile = (therapist: Therapist, isChildConnection: boolean = false) => {
         setSelectedTherapist({ ...therapist, isChildConnection });
         setProfileModalOpen(true);
+    };
+
+    // Handler for canceling request
+    const handleCancelRequest = async (requestId: string, therapistName: string) => {
+        try {
+            // Here you would implement the cancel request API call
+            // For now, just remove from the local state using request ID
+            setRequestedTherapists(prev => 
+                prev.filter(req => req.id !== requestId)
+            );
+            setNotification(`Request for therapist ${therapistName} cancelled successfully.`);
+            setTimeout(() => setNotification(null), 3000);
+        } catch (error) {
+            console.error("Error canceling request:", error);
+            setNotification("Failed to cancel request. Please try again.");
+            setTimeout(() => setNotification(null), 5000);
+        }
     };
 
     const clearAllFilters = () => {
@@ -474,7 +513,7 @@ export default function FindTherapistPage() {
                                                 {/* Only show button if not a child connection */}
                                                 {!selectedTherapist.isChildConnection && (
                                                     <Button variant="default" className="font-semibold w-full h-11 text-base rounded-xl" onClick={() => handleChooseTherapist(selectedTherapist)}>
-                                                        Choose Therapist
+                                                        Request Therapist
                                                     </Button>
                                                 )}
                                             </div>
@@ -506,7 +545,7 @@ export default function FindTherapistPage() {
                             >
                                 <Dialog.Panel className="w-full max-w-lg min-h-[380px] transform overflow-hidden rounded-2xl bg-white border border-[#e0d7ed] p-0 text-left align-middle shadow-2xl transition-all">
                                     <div className="p-9 flex flex-col gap-6">
-                                        <Dialog.Title as="h3" className="font-bold text-2xl text-primary mb-2">Choose Therapist for Patient</Dialog.Title>
+                                        <Dialog.Title as="h3" className="font-bold text-2xl text-primary mb-2">Request Therapist for Patient</Dialog.Title>
                                         <div>
                                             <label className="block text-sm font-medium mb-2">Select Patient</label>
                                             <Listbox value={selectedPatient} onChange={setSelectedPatient}>
@@ -530,6 +569,15 @@ export default function FindTherapistPage() {
                                                 <strong>Note:</strong> {selectedPatient} already has a primary therapist. If you confirm, their primary therapist will be changed to <span className="font-semibold">{pendingTherapist?.name}</span>. The previous therapist will be politely notified about this change.
                                             </div>
                                         )}
+                                        <div>
+                                            <label className="block text-sm font-medium mb-2">Message to Therapist</label>
+                                            <textarea
+                                                className="w-full border rounded-lg px-3 py-2 min-h-[100px] focus:outline-none focus:ring-2 focus:ring-primary/40"
+                                                placeholder="Write a message to the therapist explaining your needs..."
+                                                value={requestMessage}
+                                                onChange={(e) => setRequestMessage(e.target.value)}
+                                            />
+                                        </div>
                                         <div className="flex gap-2 mt-6">
                                             <Button variant="default" className="flex-1 rounded-lg h-12 text-base font-semibold" disabled={!selectedPatient} onClick={confirmChooseTherapist}>
                                                 Confirm
@@ -551,6 +599,51 @@ export default function FindTherapistPage() {
                 <div className="mb-6">
                     <h1 className="text-4xl font-extrabold bg-gradient-to-r from-primary to-foreground bg-clip-text text-transparent tracking-tight mb-3">Choose your therapist</h1>
                     {/* Child-therapist connections section */}
+                    {requestedTherapists.length > 0 && (
+                        <div className="mb-6">
+                            <h2 className="text-lg font-semibold text-primary mb-2">Pending Therapist Requests</h2>
+                            <div className="space-y-3">
+                                {requestedTherapists.map((req) => (
+                                    <div key={req.id} className="bg-white border border-[#e0d7ed] rounded-xl p-4 shadow-sm">
+                                        <div className="flex justify-between items-start">
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <h3 className="font-semibold text-foreground">{req.therapist.name}</h3>
+                                                    <span className="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full font-medium">
+                                                        {req.status}
+                                                    </span>
+                                                </div>
+                                                <p className="text-sm text-muted-foreground mb-2">
+                                                    <span className="font-medium">Child:</span> {req.childName}
+                                                </p>
+                                                <p className="text-sm text-muted-foreground mb-2">
+                                                    <span className="font-medium">Request:</span> {req.requestMessage || 'No message provided'}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    Requested on {new Date(req.createdAt).toLocaleDateString('en-US', {
+                                                        year: 'numeric',
+                                                        month: 'short',
+                                                        day: 'numeric',
+                                                        hour: '2-digit',
+                                                        minute: '2-digit'
+                                                    })}
+                                                </p>
+                                            </div>
+                                            <Button 
+                                                variant="outline" 
+                                                size="sm"
+                                                className="text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
+                                                onClick={() => handleCancelRequest(req.id, req.therapist.name)}
+                                            >
+                                                Cancel Request
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     {childTherapistConnections.length > 0 && (
                         <div className="mb-6">
                             <h2 className="text-lg font-semibold text-primary mb-2">Your children and their therapists</h2>
