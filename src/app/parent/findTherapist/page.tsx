@@ -95,6 +95,11 @@ export default function FindTherapistPage() {
         therapistName: string;
         childName: string;
     } | null>(null);
+    const [cancelRequestModalOpen, setCancelRequestModalOpen] = useState(false);
+    const [requestToCancel, setRequestToCancel] = useState<{
+        requestId: string;
+        therapistName: string;
+    } | null>(null);
 
     // Fetch requested therapists
     const fetchRequestedTherapists = async () => {
@@ -325,10 +330,17 @@ export default function FindTherapistPage() {
                     firstName: string;
                     lastName?: string;
                     therapist?: Therapist | null;
+                    connectionStatus?: boolean;
                 }
-                setPatients(data.children.map((p: ApiPatient) => ({ id: p.id, name: p.firstName + (p.lastName ? ' ' + p.lastName : '') })));
+                console.log("All patients:", data.children);
+
+                // Only include patients where parentConnectionStatus is true
+                const activePatients = data.children.filter((p: ApiPatient) => p.connectionStatus === true);
+                console.log("Active patients:",activePatients)
+                
+                setPatients(activePatients.map((p: ApiPatient) => ({ id: p.id, name: p.firstName + (p.lastName ? ' ' + p.lastName : '') })));
                 const map: { [patient: string]: Therapist | null } = {};
-                data.children.forEach((p: ApiPatient) => {
+                activePatients.forEach((p: ApiPatient) => {
                     const patientName = p.firstName + (p.lastName ? ' ' + p.lastName : '');
                     map[patientName] = p.therapist || null;
                 });
@@ -398,19 +410,41 @@ export default function FindTherapistPage() {
     };
 
     // Handler for canceling request
-    const handleCancelRequest = async (requestId: string, therapistName: string) => {
+    const handleCancelRequest = (requestId: string, therapistName: string) => {
+        setRequestToCancel({ requestId, therapistName });
+        setCancelRequestModalOpen(true);
+    };
+
+    // Handler for confirming request cancellation
+    const confirmCancelRequest = async () => {
+        if (!requestToCancel) return;
+        
         try {
-            // Here you would implement the cancel request API call
-            // For now, just remove from the local state using request ID
+            const response = await fetch(`/api/parent/cancel-therapist-request?requestId=${requestToCancel.requestId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to cancel request');
+            }
+
+            // Remove from local state after successful API call
             setRequestedTherapists(prev => 
-                prev.filter(req => req.id !== requestId)
+                prev.filter(req => req.id !== requestToCancel.requestId)
             );
-            setNotification(`Request for therapist ${therapistName} cancelled successfully.`);
+            setNotification(`Request for therapist ${requestToCancel.therapistName} cancelled successfully.`);
             setTimeout(() => setNotification(null), 3000);
         } catch (error) {
             console.error("Error canceling request:", error);
             setNotification("Failed to cancel request. Please try again.");
             setTimeout(() => setNotification(null), 5000);
+        } finally {
+            setCancelRequestModalOpen(false);
+            setRequestToCancel(null);
         }
     };
 
@@ -743,6 +777,63 @@ export default function FindTherapistPage() {
                                                 variant="default"
                                                 className="flex-1 bg-red-600 hover:bg-red-700 text-white"
                                                 onClick={confirmDisconnectTherapist}
+                                            >
+                                                Confirm
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </Dialog.Panel>
+                            </Transition.Child>
+                        </div>
+                    </div>
+                </Dialog>
+            </Transition.Root>
+
+            {/* Cancel Request Confirmation Modal */}
+            <Transition.Root show={cancelRequestModalOpen} as={Fragment}>
+                <Dialog as="div" className="relative z-50" onClose={setCancelRequestModalOpen}>
+                    <Transition.Child
+                        as={Fragment}
+                        enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100"
+                        leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0"
+                    >
+                        <div className="fixed inset-0 bg-black/40 transition-opacity" />
+                    </Transition.Child>
+                    <div className="fixed inset-0 z-50 overflow-y-auto">
+                        <div className="flex min-h-full items-center justify-center p-4 text-center">
+                            <Transition.Child
+                                as={Fragment}
+                                enter="ease-out duration-300" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100"
+                                leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95"
+                            >
+                                <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white border border-[#e0d7ed] p-0 text-left align-middle shadow-2xl transition-all">
+                                    <div className="p-6">
+                                        <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-red-100 rounded-full">
+                                            <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                                            </svg>
+                                        </div>
+                                        <Dialog.Title as="h3" className="text-lg font-semibold text-gray-900 text-center mb-2">
+                                            Cancel Request
+                                        </Dialog.Title>
+                                        <p className="text-sm text-gray-600 text-center mb-6">
+                                            Are you sure you want to cancel the request for{' '}
+                                            <span className="font-semibold">{requestToCancel?.therapistName}</span>?
+                                            <br /><br />
+                                            This action cannot be undone and the therapist will be notified of this change.
+                                        </p>
+                                        <div className="flex gap-3">
+                                            <Button
+                                                variant="outline"
+                                                className="flex-1"
+                                                onClick={() => setCancelRequestModalOpen(false)}
+                                            >
+                                                Cancel
+                                            </Button>
+                                            <Button
+                                                variant="default"
+                                                className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                                                onClick={confirmCancelRequest}
                                             >
                                                 Confirm
                                             </Button>
