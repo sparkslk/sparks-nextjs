@@ -352,7 +352,16 @@ export default function FindTherapistPage() {
         if (!selectedPatient || !pendingTherapist) return;
         const patientObj = patients.find((p) => p.name === selectedPatient);
         if (!patientObj) return;
+        
         try {
+            // Get the parent's session to send as senderId
+            const sessionResponse = await fetch("/api/auth/session");
+            let parentId = null;
+            if (sessionResponse.ok) {
+                const session = await sessionResponse.json();
+                parentId = session?.user?.id;
+            }
+
             const response = await fetch("/api/parent/therapist-assignment-request", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -360,6 +369,7 @@ export default function FindTherapistPage() {
                     patientId: patientObj.id,
                     therapistId: pendingTherapist.id,
                     requestMessage: requestMessage || `Request to assign ${pendingTherapist.name} as therapist for patient ${selectedPatient}`,
+                    parentId: parentId  // Include the parent ID as sender
                 })
             });
             if (!response.ok) {
