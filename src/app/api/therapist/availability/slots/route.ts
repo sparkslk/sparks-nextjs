@@ -70,10 +70,13 @@ export async function GET(req: NextRequest) {
             );
         }
 
-        // Get therapist and their availability
+        const requestedDate = new Date(date);
+        const dayOfWeek = requestedDate.getDay();
+
+        // Get therapist and their availability from the new table
         const therapist = await prisma.therapist.findUnique({
             where: { id: therapistId },
-            select: { availability: true }
+            select: { id: true }
         });
 
         if (!therapist) {
@@ -83,35 +86,33 @@ export async function GET(req: NextRequest) {
             );
         }
 
-        const requestedDate = new Date(date);
-        const dayOfWeek = requestedDate.getDay();
+        // Get availability slots from the new table
+        const availabilitySlots = await prisma.therapistAvailability.findMany({
+            where: {
+                therapistId: therapist.id,
+                isActive: true,
+                OR: [
+                    // Direct day match
+                    { dayOfWeek: dayOfWeek },
+                    // Recurrence pattern match
+                    {
+                        isRecurring: true,
+                        recurrenceDays: {
+                            has: dayOfWeek
+                        }
+                    }
+                ]
+            }
+        });
 
-        if (!therapist.availability || !Array.isArray(therapist.availability)) {
+        if (availabilitySlots.length === 0) {
             return NextResponse.json({ slots: [] });
         }
 
         const availableSlots: string[] = [];
-        const availabilityData = therapist.availability as Array<{
-            isActive?: boolean;
-            recurrencePattern?: {days?: number[]};
-            dayOfWeek?: number;
-            startTime: string;
-            endTime: string;
-            sessionDuration?: number;
-            breakBetweenSessions?: number;
-        }>;
 
         // Generate session slots from availability blocks
-        availabilityData.forEach((block) => {
-            if (!block.isActive) return;
-
-            // Check if this block applies to the requested day
-            const appliesToDay = block.recurrencePattern?.days
-                ? block.recurrencePattern.days.includes(dayOfWeek)
-                : block.dayOfWeek === dayOfWeek;
-
-            if (!appliesToDay) return;
-
+        availabilitySlots.forEach((block) => {
             // Generate individual session slots within this availability block
             const startTime = new Date(`1970-01-01T${block.startTime}:00`);
             const endTime = new Date(`1970-01-01T${block.endTime}:00`);
