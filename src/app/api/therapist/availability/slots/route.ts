@@ -56,7 +56,6 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(req: NextRequest) {
     try {
-        // const session = await requireApiAuth(req);
         await requireApiAuth(req);
         const { searchParams } = new URL(req.url);
 
@@ -85,18 +84,13 @@ export async function GET(req: NextRequest) {
         }
 
         const requestedDate = new Date(date);
-        const dayOfWeek = requestedDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
+        const dayOfWeek = requestedDate.getDay();
 
-        // Check if therapist has availability set
         if (!therapist.availability || !Array.isArray(therapist.availability)) {
-            return NextResponse.json({
-                slots: []
-            });
+            return NextResponse.json({ slots: [] });
         }
 
-        // Get all available slots for this day
         const availableSlots: string[] = [];
-
         const availabilityData = therapist.availability as Array<{
             isActive?: boolean;
             recurrencePattern?: {days?: number[]};
@@ -107,34 +101,44 @@ export async function GET(req: NextRequest) {
             breakBetweenSessions?: number;
         }>;
 
-        availabilityData.forEach((slot) => {
-            if (!slot.isActive) return;
+        // Generate session slots from availability blocks
+        availabilityData.forEach((block) => {
+            if (!block.isActive) return;
 
-            // Check if this slot applies to the requested day
-            const appliesToDay = slot.recurrencePattern?.days
-                ? slot.recurrencePattern.days.includes(dayOfWeek)
-                : slot.dayOfWeek === dayOfWeek;
+            // Check if this block applies to the requested day
+            const appliesToDay = block.recurrencePattern?.days
+                ? block.recurrencePattern.days.includes(dayOfWeek)
+                : block.dayOfWeek === dayOfWeek;
 
             if (!appliesToDay) return;
 
-            // Generate slots within this availability window
-            const startTime = new Date(`1970-01-01T${slot.startTime}:00`);
-            const endTime = new Date(`1970-01-01T${slot.endTime}:00`);
-
+            // Generate individual session slots within this availability block
+            const startTime = new Date(`1970-01-01T${block.startTime}:00`);
+            const endTime = new Date(`1970-01-01T${block.endTime}:00`);
             const currentTime = new Date(startTime);
-            const sessionDuration = slot.sessionDuration || 60;
-            const breakDuration = slot.breakBetweenSessions || 15;
-            const totalSlotDuration = sessionDuration + breakDuration;
+            const sessionDuration = block.sessionDuration || 60;
+            const breakDuration = block.breakBetweenSessions || 15;
 
             while (currentTime < endTime) {
                 const sessionEnd = new Date(currentTime);
                 sessionEnd.setMinutes(currentTime.getMinutes() + sessionDuration);
 
                 if (sessionEnd <= endTime) {
+                    // This is a valid session slot
                     availableSlots.push(currentTime.toTimeString().slice(0, 5));
+                    
+                    // Move to next potential session (current session + break)
+                    currentTime.setMinutes(
+                        currentTime.getMinutes() + sessionDuration + breakDuration
+                    );
+                } else {
+                    // Check if we can fit one more session without a trailing break
+                    const finalSessionEnd = new Date(currentTime.getTime() + sessionDuration * 60 * 1000);
+                    if (finalSessionEnd <= endTime) {
+                        availableSlots.push(currentTime.toTimeString().slice(0, 5));
+                    }
+                    break;
                 }
-
-                currentTime.setMinutes(currentTime.getMinutes() + totalSlotDuration);
             }
         });
 
@@ -156,15 +160,15 @@ export async function GET(req: NextRequest) {
             }
         });
 
-        // Filter out slots that conflict with existing sessions
+        // Remove conflicting slots with buffer
         const conflictingSlots = new Set<string>();
         existingSessions.forEach(session => {
             const sessionStart = session.scheduledAt;
             const sessionEnd = new Date(sessionStart.getTime() + session.duration * 60 * 1000);
 
-            // Check for conflicts with 30-minute buffer
-            const bufferStart = new Date(sessionStart.getTime() - 30 * 60 * 1000);
-            const bufferEnd = new Date(sessionEnd.getTime() + 30 * 60 * 1000);
+            // 15-minute buffer before and after
+            const bufferStart = new Date(sessionStart.getTime() - 15 * 60 * 1000);
+            const bufferEnd = new Date(sessionEnd.getTime() + 15 * 60 * 1000);
 
             availableSlots.forEach(slot => {
                 const slotTime = new Date(`1970-01-01T${slot}:00`);
@@ -176,12 +180,9 @@ export async function GET(req: NextRequest) {
             });
         });
 
-        // Remove conflicting slots
         const finalSlots = availableSlots.filter(slot => !conflictingSlots.has(slot));
 
-        return NextResponse.json({
-            slots: finalSlots
-        });
+        return NextResponse.json({ slots: finalSlots });
 
     } catch (error) {
         if (error instanceof NextResponse) {
@@ -193,4 +194,4 @@ export async function GET(req: NextRequest) {
             { status: 500 }
         );
     }
-} 
+}
