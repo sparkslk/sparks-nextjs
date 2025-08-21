@@ -21,22 +21,23 @@ import {
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { WeeklyCalendarView } from "@/components/therapist/availability/WeeklyCalendarView";
 import { AddAvailabilityModal } from "@/components/therapist/availability/AddAvailabilityModal";
+import { QuickScheduleActions } from "@/components/therapist/availability/QuickScheduleActions";
 
 interface TimeSlot {
   id: string;
   startTime: string;
   endTime: string;
-  dayOfWeek: number; // 0 = Sunday, 1 = Monday, etc.
+  dayOfWeek: number;
   isRecurring: boolean;
   recurrencePattern?: {
     type: "daily" | "weekly" | "custom";
-    days?: number[]; // For custom patterns
+    days?: number[];
     endDate?: string;
   };
-  maxSessions?: number;
-  sessionDuration: number; // in minutes
-  breakBetweenSessions: number; // in minutes
+  sessionDuration: number;
+  breakBetweenSessions: number;
   isActive: boolean;
+  rate?: number;
 }
 
 interface SessionSlot {
@@ -66,7 +67,9 @@ function SetAvailabilityPage(): React.JSX.Element {
   const [selectedWeekStart, setSelectedWeekStart] = useState(new Date());
   const [prefilledData, setPrefilledData] = useState<{
     dayOfWeek: number;
-    startHour: number;
+    startHour?: number;
+    startTime?: string;
+    endTime?: string;
     selectedWeekStart: Date;
   } | null>(null);
 
@@ -298,6 +301,37 @@ function SetAvailabilityPage(): React.JSX.Element {
     setPrefilledData(null);
   };
 
+  const handleDragSelect = (dayOfWeek: number, startTime: string, endTime: string) => {
+    setPrefilledData({ 
+      dayOfWeek, 
+      startTime, 
+      endTime, 
+      selectedWeekStart 
+    });
+    setShowAddModal(true);
+  };
+
+  const handleBulkAction = (action: 'copy-week' | 'clear-week' | 'import-calendar') => {
+    switch (action) {
+      case 'copy-week':
+        // Copy current week's schedule to next week
+        const nextWeek = new Date(selectedWeekStart);
+        nextWeek.setDate(selectedWeekStart.getDate() + 7);
+        // Implementation would depend on your backend
+        console.log('Copy week to:', nextWeek);
+        break;
+      case 'clear-week':
+        if (confirm('Are you sure you want to clear all availability for this week?')) {
+          setTimeSlots([]);
+        }
+        break;
+      case 'import-calendar':
+        // Open calendar import dialog
+        console.log('Import from calendar');
+        break;
+    }
+  };
+
   if (authStatus === "loading" || loading) {
     return <LoadingSpinner message="Loading availability settings..." />;
   }
@@ -433,6 +467,7 @@ function SetAvailabilityPage(): React.JSX.Element {
             onDeleteSlot={handleDeleteTimeSlot}
             onToggleSlot={handleToggleSlot}
             onCreateSlot={handleOpenModalWithPrefill}
+            onDragSelect={handleDragSelect}
           />
         </TabsContent>
 

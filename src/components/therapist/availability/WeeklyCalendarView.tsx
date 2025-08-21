@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +28,7 @@ interface TimeSlot {
   sessionDuration: number;
   breakBetweenSessions: number;
   isActive: boolean;
+  rate?: number; // New field for session rate
 }
 
 interface SessionSlot {
@@ -48,6 +49,7 @@ interface WeeklyCalendarViewProps {
   onDeleteSlot: (slotId: string) => void;
   onToggleSlot: (slotId: string) => void;
   onCreateSlot: (dayOfWeek: number, startHour: number) => void;
+  onDragSelect?: (dayOfWeek: number, startTime: string, endTime: string) => void; // New prop
 }
 
 export function WeeklyCalendarView({
@@ -59,12 +61,13 @@ export function WeeklyCalendarView({
   onDeleteSlot,
   onToggleSlot,
   onCreateSlot,
+  onDragSelect,
 }: WeeklyCalendarViewProps) {
   const [hoveredSlot, setHoveredSlot] = useState<string | null>(null);
-  const [hoveredCell, setHoveredCell] = useState<{
-    day: number;
-    hour: number;
-  } | null>(null);
+  const [hoveredCell, setHoveredCell] = useState<{ day: number; hour: number } | null>(null);
+  const [dragStart, setDragStart] = useState<{day: number; timeSlot: number} | null>(null);
+  const [dragEnd, setDragEnd] = useState<{day: number; timeSlot: number} | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   const days = [
     "Sunday",
@@ -76,7 +79,25 @@ export function WeeklyCalendarView({
     "Saturday",
   ];
 
-  const hours = Array.from({ length: 24 }, (_, i) => i);
+  // Updated time slots for 15-minute increments from 7 AM to 10 PM
+  const timeSlots15Min = Array.from({ length: (22 - 7) * 4 }, (_, i) => {
+    const totalMinutes = 7 * 60 + i * 30; // Start from 7 AM
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return {
+      hour: hours,
+      minute: minutes,
+      timeString: `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`,
+      displayTime: formatTimeDisplay(hours, minutes)
+    };
+  });
+
+  function formatTimeDisplay(hours: number, minutes: number): string {
+    const hour12 = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+    const ampm = hours >= 12 ? "PM" : "AM";
+    const minuteStr = minutes === 0 ? "" : `:${minutes.toString().padStart(2, "0")}`;
+    return `${hour12}${minuteStr} ${ampm}`;
+  }
 
   const getWeekDates = (startDate: Date) => {
     const dates = [];
@@ -155,6 +176,59 @@ export function WeeklyCalendarView({
     setHoveredCell(null);
   };
 
+  const handleMouseDown = (dayIndex: number, timeSlotIndex: number) => {
+    const hasSlot = getSessionSlotsForDay(dayIndex).some((slot) => {
+      const slotStartMinutes = timeStringToMinutes(slot.startTime);
+      const slotEndMinutes = timeStringToMinutes(slot.endTime);
+      const currentMinutes = timeSlots15Min[timeSlotIndex].hour * 60 + timeSlots15Min[timeSlotIndex].minute;
+      return currentMinutes >= slotStartMinutes && currentMinutes < slotEndMinutes;
+    });
+
+    if (!hasSlot) {
+      setDragStart({ day: dayIndex, timeSlot: timeSlotIndex });
+      setDragEnd({ day: dayIndex, timeSlot: timeSlotIndex });
+      setIsDragging(true);
+    }
+  };
+
+  const handleMouseMove = (dayIndex: number, timeSlotIndex: number) => {
+    if (isDragging && dragStart && dragStart.day === dayIndex) {
+      setDragEnd({ day: dayIndex, timeSlot: timeSlotIndex });
+    }
+  };
+
+  const handleMouseUp = () => {
+    if (isDragging && dragStart && dragEnd && onDragSelect) {
+      const startSlot = Math.min(dragStart.timeSlot, dragEnd.timeSlot);
+      const endSlot = Math.max(dragStart.timeSlot, dragEnd.timeSlot) + 1;
+      
+      const startTime = timeSlots15Min[startSlot].timeString;
+      const endTime = timeSlots15Min[endSlot]?.timeString || "22:00";
+      
+      onDragSelect(dragStart.day, startTime, endTime);
+    }
+    
+    setDragStart(null);
+    setDragEnd(null);
+    setIsDragging(false);
+  };
+
+  const timeStringToMinutes = (timeString: string): number => {
+    const [hours, minutes] = timeString.split(':').map(Number);
+    return hours * 60 + minutes;
+  };
+
+  const getDragSelection = () => {
+    if (!isDragging || !dragStart || !dragEnd) return null;
+    
+    const startSlot = Math.min(dragStart.timeSlot, dragEnd.timeSlot);
+    const endSlot = Math.max(dragStart.timeSlot, dragEnd.timeSlot);
+    
+    return { day: dragStart.day, startSlot, endSlot };
+  };
+
+  const dragSelection = getDragSelection();
+
   return (
     <Card className="shadow-sm">
       <CardHeader>
@@ -183,6 +257,9 @@ export function WeeklyCalendarView({
             </Button>
           </div>
         </div>
+        <p className="text-sm text-gray-600">
+          Click and drag to select time ranges. Each cell represents 30 minutes.
+        </p>
       </CardHeader>
       <CardContent className="p-0">
         <div className="grid grid-cols-8 border-b">
@@ -206,23 +283,21 @@ export function WeeklyCalendarView({
 
         {/* Calendar Grid */}
         <div
-          className="grid grid-cols-8 relative"
-          style={{ minHeight: "600px" }}
+          className="grid grid-cols-8 relative select-none"
+          style={{ minHeight: "900px" }}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
         >
           {/* Time labels */}
           <div className="border-r bg-gray-50">
-            {hours.map((hour) => (
+            {timeSlots15Min.map((timeSlot, index) => (
               <div
-                key={hour}
-                className="h-12 border-b border-gray-100 text-xs text-gray-500 p-2"
+                key={index}
+                className={`h-4 border-b border-gray-100 text-xs text-gray-500 p-1 ${
+                  timeSlot.minute === 0 ? 'font-medium border-b-2 border-gray-200' : ''
+                }`}
               >
-                {hour === 0
-                  ? "12 AM"
-                  : hour < 12
-                  ? `${hour} AM`
-                  : hour === 12
-                  ? "12 PM"
-                  : `${hour - 12} PM`}
+                {timeSlot.minute === 0 ? timeSlot.displayTime : ''}
               </div>
             ))}
           </div>
@@ -230,33 +305,36 @@ export function WeeklyCalendarView({
           {/* Days */}
           {days.map((day, dayIndex) => (
             <div key={dayIndex} className="border-r relative">
-              {/* Hour grid cells */}
-              {hours.map((hour) => {
-                const isHovered =
-                  hoveredCell?.day === dayIndex && hoveredCell?.hour === hour;
+              {/* 15-minute grid cells */}
+              {timeSlots15Min.map((timeSlot, timeSlotIndex) => {
                 const hasSlot = getSessionSlotsForDay(dayIndex).some((slot) => {
-                  const slotStart = parseInt(slot.startTime.split(":")[0]);
-                  const slotEnd = parseInt(slot.endTime.split(":")[0]);
-                  return hour >= slotStart && hour < slotEnd;
+                  const slotStartMinutes = timeStringToMinutes(slot.startTime);
+                  const slotEndMinutes = timeStringToMinutes(slot.endTime);
+                  const currentMinutes = timeSlot.hour * 60 + timeSlot.minute;
+                  return currentMinutes >= slotStartMinutes && currentMinutes < slotEndMinutes;
                 });
+
+                const isDragSelected = dragSelection && 
+                  dragSelection.day === dayIndex && 
+                  timeSlotIndex >= dragSelection.startSlot && 
+                  timeSlotIndex <= dragSelection.endSlot;
 
                 return (
                   <div
-                    key={hour}
-                    className={`h-12 border-b border-gray-100 cursor-pointer transition-colors group ${
-                      isHovered && !hasSlot
-                        ? "bg-[#8159A8]/10 hover:bg-[#8159A8]/20"
+                    key={timeSlotIndex}
+                    className={`h-4 border-b border-gray-100 cursor-pointer transition-colors group ${
+                      isDragSelected
+                        ? "bg-[#8159A8]/30"
                         : hasSlot
                         ? "cursor-default"
-                        : "hover:bg-gray-50"
-                    }`}
-                    onClick={() => handleCellClick(dayIndex, hour)}
-                    onMouseEnter={() => handleCellMouseEnter(dayIndex, hour)}
-                    onMouseLeave={handleCellMouseLeave}
+                        : "hover:bg-[#8159A8]/10"
+                    } ${timeSlot.minute === 0 ? 'border-b-2 border-gray-200' : ''}`}
+                    onMouseDown={() => handleMouseDown(dayIndex, timeSlotIndex)}
+                    onMouseMove={() => handleMouseMove(dayIndex, timeSlotIndex)}
                   >
-                    {!hasSlot && (
+                    {!hasSlot && !isDragging && (
                       <div className="flex items-center justify-center h-full opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Plus className="h-4 w-4 text-[#8159A8]" />
+                        {timeSlot.minute === 0 && <Plus className="h-3 w-3 text-[#8159A8]" />}
                       </div>
                     )}
                   </div>
@@ -280,10 +358,6 @@ export function WeeklyCalendarView({
                       sessionSlot.isActive
                         ? "bg-[#8159A8] text-white hover:bg-[#6D4C93] border-[#6D4C93]"
                         : "bg-gray-300 text-gray-600 hover:bg-gray-400 border-gray-400"
-                    } ${
-                      hoveredSlot === sessionSlot.id
-                        ? "z-10 shadow-lg scale-105"
-                        : "z-0"
                     }`}
                     style={position}
                     onMouseEnter={() => setHoveredSlot(sessionSlot.id)}
@@ -378,9 +452,9 @@ export function WeeklyCalendarView({
           ))}
         </div>
 
-        {/* Legend */}
+        {/* Updated Legend */}
         <div className="p-4 bg-gray-50 border-t">
-          <div className="flex items-center gap-6 text-sm">
+          <div className="flex items-center gap-6 text-sm flex-wrap">
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 bg-[#8159A8] rounded border border-[#6D4C93]"></div>
               <span>Available Session Slots</span>
@@ -390,8 +464,12 @@ export function WeeklyCalendarView({
               <span>Inactive Session Slots</span>
             </div>
             <div className="flex items-center gap-2">
-              <Plus className="h-4 w-4 text-[#8159A8]" />
-              <span>Click empty cells to add availability</span>
+              <div className="w-4 h-4 bg-[#8159A8]/30 rounded"></div>
+              <span>Drag Selection</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span>⚫</span>
+              <span>Each row = 15 minutes (7 AM - 10 PM)</span>
             </div>
           </div>
         </div>

@@ -20,6 +20,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { Save, X, Calendar as CalendarIcon } from "lucide-react";
 
 interface TimeSlot {
@@ -36,6 +37,7 @@ interface TimeSlot {
   sessionDuration: number;
   breakBetweenSessions: number;
   isActive: boolean;
+  rate?: number;
 }
 
 interface AddAvailabilityModalProps {
@@ -45,7 +47,8 @@ interface AddAvailabilityModalProps {
   editingSlot?: TimeSlot | null;
   prefilledData?: {
     dayOfWeek: number;
-    startHour: number;
+    startTime?: string;
+    endTime?: string;
     selectedWeekStart: Date;
   } | null;
 }
@@ -68,6 +71,8 @@ export function AddAvailabilityModal({
     sessionDuration: 60,
     breakBetweenSessions: 15,
     isActive: true,
+    rate: 120,
+    overrideDefaultRate: false,
   });
 
   const days = [
@@ -80,11 +85,33 @@ export function AddAvailabilityModal({
     { value: 6, label: "Saturday" },
   ];
 
-  const timeSlots = Array.from({ length: 24 * 2 }, (_, i) => {
-    const hour = Math.floor(i / 2);
-    const minute = i % 2 === 0 ? "00" : "30";
-    return `${hour.toString().padStart(2, "0")}:${minute}`;
+  // Enhanced time slots with 15-minute increments
+  const timeSlots = Array.from({ length: (22 - 7) * 4 }, (_, i) => {
+    const totalMinutes = 7 * 60 + i * 15; // Start from 7 AM
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return `${hours.toString().padStart(2, "0")}:${minutes
+      .toString()
+      .padStart(2, "0")}`;
   });
+
+  // Session duration presets
+  const sessionDurationPresets = [
+    { value: 30, label: "30 minutes", recommended: false },
+    { value: 45, label: "45 minutes", recommended: false },
+    { value: 60, label: "60 minutes", recommended: true },
+    { value: 90, label: "90 minutes", recommended: false },
+    { value: 120, label: "120 minutes", recommended: false },
+  ];
+
+  // Break duration presets
+  const breakDurationPresets = [
+    { value: 0, label: "No break" },
+    { value: 15, label: "15 minutes" },
+    { value: 30, label: "30 minutes" },
+    { value: 45, label: "45 minutes" },
+    { value: 60, label: "60 minutes" },
+  ];
 
   const getExactDate = () => {
     if (!prefilledData) return null;
@@ -123,18 +150,13 @@ export function AddAvailabilityModal({
         sessionDuration: editingSlot.sessionDuration,
         breakBetweenSessions: editingSlot.breakBetweenSessions,
         isActive: editingSlot.isActive,
+        rate: editingSlot.rate || 120,
+        overrideDefaultRate: Boolean(editingSlot.rate),
       });
     } else if (prefilledData) {
-      const startTime = `${prefilledData.startHour
-        .toString()
-        .padStart(2, "0")}:00`;
-      const endTime = `${(prefilledData.startHour + 1)
-        .toString()
-        .padStart(2, "0")}:00`;
-
       setFormData({
-        startTime,
-        endTime,
+        startTime: prefilledData.startTime || "09:00",
+        endTime: prefilledData.endTime || "10:00",
         dayOfWeek: prefilledData.dayOfWeek,
         isRecurring: false,
         recurrenceType: "weekly",
@@ -143,19 +165,8 @@ export function AddAvailabilityModal({
         sessionDuration: 60,
         breakBetweenSessions: 15,
         isActive: true,
-      });
-    } else {
-      setFormData({
-        startTime: "09:00",
-        endTime: "17:00",
-        dayOfWeek: 1,
-        isRecurring: false,
-        recurrenceType: "weekly",
-        selectedDays: [1],
-        endDate: "",
-        sessionDuration: 60,
-        breakBetweenSessions: 15,
-        isActive: true,
+        rate: 120,
+        overrideDefaultRate: false,
       });
     }
   }, [editingSlot, isOpen, prefilledData]);
@@ -176,6 +187,7 @@ export function AddAvailabilityModal({
       sessionDuration: formData.sessionDuration,
       breakBetweenSessions: formData.breakBetweenSessions,
       isActive: formData.isActive,
+      rate: formData.overrideDefaultRate ? formData.rate : undefined,
     };
 
     if (editingSlot) {
@@ -234,6 +246,11 @@ export function AddAvailabilityModal({
     return sessionsPerDay * daysPerWeek;
   };
 
+  const calculatePotentialRevenue = () => {
+    const totalSessions = calculateTotalSessions();
+    return totalSessions * formData.rate;
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -247,17 +264,22 @@ export function AddAvailabilityModal({
           {prefilledData && !editingSlot && (
             <p className="text-sm text-gray-600 mt-2">
               Creating availability for {getExactDate()} at{" "}
-              {formatHour(prefilledData.startHour)}
+              {formatHour(
+                prefilledData.startTime
+                  ? parseInt(prefilledData.startTime.split(":")[0])
+                  : 9
+              )}
             </p>
           )}
         </DialogHeader>
 
         <div className="space-y-6">
           <Tabs defaultValue="basic" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="basic">Basic Settings</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="basic">Time & Day</TabsTrigger>
               <TabsTrigger value="recurrence">Recurrence</TabsTrigger>
-              <TabsTrigger value="sessions">Session Settings</TabsTrigger>
+              <TabsTrigger value="sessions">Sessions</TabsTrigger>
+              <TabsTrigger value="pricing">Pricing</TabsTrigger>
             </TabsList>
 
             <TabsContent value="basic" className="space-y-4">
@@ -476,62 +498,69 @@ export function AddAvailabilityModal({
             <TabsContent value="sessions" className="space-y-4">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">
-                    Session Configuration
-                  </CardTitle>
+                  <CardTitle className="text-lg">Session Configuration</CardTitle>
+                  <p className="text-sm text-gray-600">
+                    Configure session length and breaks to optimize your schedule
+                  </p>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="sessionDuration">
-                        Session Duration (minutes)
-                      </Label>
-                      <Select
-                        value={formData.sessionDuration.toString()}
-                        onValueChange={(value) =>
-                          setFormData({
-                            ...formData,
-                            sessionDuration: parseInt(value),
-                          })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="30">30 minutes</SelectItem>
-                          <SelectItem value="45">45 minutes</SelectItem>
-                          <SelectItem value="60">60 minutes</SelectItem>
-                          <SelectItem value="90">90 minutes</SelectItem>
-                          <SelectItem value="120">120 minutes</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <Label htmlFor="sessionDuration">Session Duration</Label>
+                      <div className="grid grid-cols-2 gap-2 mt-2">
+                        {sessionDurationPresets.map((preset) => (
+                          <Button
+                            key={preset.value}
+                            type="button"
+                            variant={
+                              formData.sessionDuration === preset.value
+                                ? "default"
+                                : "outline"
+                            }
+                            size="sm"
+                            onClick={() =>
+                              setFormData({ ...formData, sessionDuration: preset.value })
+                            }
+                            className={
+                              preset.recommended
+                                ? "border-[#8159A8] bg-[#8159A8]/10"
+                                : ""
+                            }
+                          >
+                            {preset.label}
+                            {preset.recommended && (
+                              <Badge className="ml-1">
+                                Rec
+                              </Badge>
+                            )}
+                          </Button>
+                        ))}
+                      </div>
                     </div>
 
                     <div>
                       <Label htmlFor="breakBetweenSessions">
-                        Break Between Sessions (minutes)
+                        Break Between Sessions
                       </Label>
-                      <Select
-                        value={formData.breakBetweenSessions.toString()}
-                        onValueChange={(value) =>
-                          setFormData({
-                            ...formData,
-                            breakBetweenSessions: parseInt(value),
-                          })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="0">No break</SelectItem>
-                          <SelectItem value="15">15 minutes</SelectItem>
-                          <SelectItem value="30">30 minutes</SelectItem>
-                          <SelectItem value="45">45 minutes</SelectItem>
-                          <SelectItem value="60">60 minutes</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <div className="grid grid-cols-2 gap-2 mt-2">
+                        {breakDurationPresets.map((preset) => (
+                          <Button
+                            key={preset.value}
+                            type="button"
+                            variant={
+                              formData.breakBetweenSessions === preset.value
+                                ? "default"
+                                : "outline"
+                            }
+                            size="sm"
+                            onClick={() =>
+                              setFormData({ ...formData, breakBetweenSessions: preset.value })
+                            }
+                          >
+                            {preset.label}
+                          </Button>
+                        ))}
+                      </div>
                     </div>
                   </div>
 
@@ -569,6 +598,76 @@ export function AddAvailabilityModal({
                               : days.find(
                                   (day) => day.value === formData.dayOfWeek
                                 )?.label}
+                          </span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="pricing" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Pricing Configuration</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="overrideDefaultRate"
+                      checked={formData.overrideDefaultRate}
+                      onCheckedChange={(checked) =>
+                        setFormData({
+                          ...formData,
+                          overrideDefaultRate: checked === true,
+                        })
+                      }
+                    />
+                    <Label htmlFor="overrideDefaultRate">
+                      Override default rate for this availability slot
+                    </Label>
+                  </div>
+
+                  {formData.overrideDefaultRate && (
+                    <div>
+                      <Label htmlFor="rate">Session Rate ($)</Label>
+                      <Input
+                        id="rate"
+                        type="number"
+                        value={formData.rate}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            rate: parseInt(e.target.value) || 120,
+                          })
+                        }
+                        min="0"
+                        step="5"
+                      />
+                    </div>
+                  )}
+
+                  <Card className="bg-[#F5F3FB] border-[#8159A8]/20">
+                    <CardContent className="p-4">
+                      <h4 className="font-semibold text-[#8159A8] mb-2">
+                        Revenue Projection
+                      </h4>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span>Sessions per week:</span>
+                          <span className="font-medium">
+                            {calculateTotalSessions()}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Rate per session:</span>
+                          <span className="font-medium">${formData.rate}</span>
+                        </div>
+                        <div className="flex justify-between border-t pt-2">
+                          <span className="font-semibold">Weekly potential:</span>
+                          <span className="font-bold text-[#8159A8]">
+                            ${calculatePotentialRevenue()}
                           </span>
                         </div>
                       </div>
