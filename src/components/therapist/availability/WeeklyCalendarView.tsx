@@ -114,9 +114,22 @@ export function WeeklyCalendarView({
 
   const getAvailabilityBlocksForDay = (dayOfWeek: number) => {
     return timeSlots.filter((slot) => {
-      if (slot.recurrencePattern?.days) {
+      // If slot has recurrence pattern with specific days
+      if (slot.recurrencePattern?.days && slot.recurrencePattern.days.length > 0) {
         return slot.recurrencePattern.days.includes(dayOfWeek);
       }
+      // If slot is recurring but no specific days set, use the original dayOfWeek
+      if (slot.isRecurring && slot.recurrencePattern?.type) {
+        if (slot.recurrencePattern.type === "daily") {
+          return true; // Show on all days for daily recurrence
+        }
+        if (slot.recurrencePattern.type === "weekly") {
+          return slot.dayOfWeek === dayOfWeek;
+        }
+        // For custom type, fall back to dayOfWeek if no days specified
+        return slot.dayOfWeek === dayOfWeek;
+      }
+      // For non-recurring slots, match the exact day
       return slot.dayOfWeek === dayOfWeek;
     });
   };
@@ -264,6 +277,17 @@ export function WeeklyCalendarView({
           availabilityBlock.breakBetweenSessions
         );
       } else {
+        // Check if we can fit one more session without trailing break
+        const finalSessionEnd = new Date(currentTime.getTime() + availabilityBlock.sessionDuration * 60 * 1000);
+        if (finalSessionEnd <= end) {
+          sessionCount++;
+          sessions.push({
+            sessionNumber: sessionCount,
+            startTime: currentTime.toTimeString().slice(0, 5),
+            endTime: finalSessionEnd.toTimeString().slice(0, 5),
+            parentId: availabilityBlock.id
+          });
+        }
         break;
       }
     }

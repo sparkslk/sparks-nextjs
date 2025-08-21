@@ -49,11 +49,11 @@ export function QuickScheduleActions({
         {
           startTime: "09:00",
           endTime: "12:00",
-          dayOfWeek: 1,
+          dayOfWeek: 1, // This will be overridden by recurrence pattern
           isRecurring: true,
           recurrencePattern: {
             type: "custom",
-            days: [1, 2, 3, 4, 5],
+            days: [1, 2, 3, 4, 5], // Monday to Friday
           },
           sessionDuration: 60,
           breakBetweenSessions: 15,
@@ -62,11 +62,11 @@ export function QuickScheduleActions({
         {
           startTime: "13:00",
           endTime: "17:00",
-          dayOfWeek: 1,
+          dayOfWeek: 1, // This will be overridden by recurrence pattern
           isRecurring: true,
           recurrencePattern: {
             type: "custom",
-            days: [1, 2, 3, 4, 5],
+            days: [1, 2, 3, 4, 5], // Monday to Friday
           },
           sessionDuration: 60,
           breakBetweenSessions: 15,
@@ -84,11 +84,11 @@ export function QuickScheduleActions({
         {
           startTime: "09:00",
           endTime: "15:00",
-          dayOfWeek: 6,
+          dayOfWeek: 0, // This will be overridden by recurrence pattern
           isRecurring: true,
           recurrencePattern: {
             type: "custom",
-            days: [0, 6],
+            days: [0, 6], // Sunday and Saturday
           },
           sessionDuration: 90,
           breakBetweenSessions: 30,
@@ -106,11 +106,11 @@ export function QuickScheduleActions({
         {
           startTime: "18:00",
           endTime: "21:00",
-          dayOfWeek: 1,
+          dayOfWeek: 1, // This will be overridden by recurrence pattern
           isRecurring: true,
           recurrencePattern: {
             type: "custom",
-            days: [1, 2, 3, 4],
+            days: [1, 2, 3, 4], // Monday to Thursday
           },
           sessionDuration: 60,
           breakBetweenSessions: 15,
@@ -127,17 +127,26 @@ export function QuickScheduleActions({
   };
 
   const calculateTemplateStats = (template: QuickTemplate) => {
-    const totalDays = new Set(
-      template.slots.flatMap(
-        (slot) => slot.recurrencePattern?.days || [slot.dayOfWeek]
-      )
-    ).size;
+    // Get unique days from all slots in the template
+    const allDays = new Set<number>();
+    template.slots.forEach((slot) => {
+      if (slot.recurrencePattern?.days) {
+        slot.recurrencePattern.days.forEach((day) => allDays.add(day));
+      } else {
+        allDays.add(slot.dayOfWeek);
+      }
+    });
+
+    const totalDays = allDays.size;
 
     const totalHours = template.slots.reduce((total, slot) => {
       const start = new Date(`1970-01-01T${slot.startTime}:00`);
       const end = new Date(`1970-01-01T${slot.endTime}:00`);
       const hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
-      return total + hours;
+
+      // Multiply by number of days this slot applies to
+      const daysForSlot = slot.recurrencePattern?.days?.length || 1;
+      return total + hours * daysForSlot;
     }, 0);
 
     return { totalDays, totalHours };

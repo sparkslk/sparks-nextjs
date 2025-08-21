@@ -87,7 +87,6 @@ model Therapist {
   specialization     String[]
   experience         Int?
   bio                String?
-  availability       Json?
   organizationId     String?
   createdAt          DateTime                     @default(now())
   updatedAt          DateTime                     @updatedAt
@@ -101,6 +100,53 @@ model Therapist {
   therapySessions    TherapySession[]
   treatments         Treatment[]
   treatmentPlans     TreatmentPlan[]
+  availability       TherapistAvailability[]
+}
+
+model TherapistAvailability {
+  id                    String                  @id @default(cuid())
+  therapistId           String
+  title                 String?                 // Optional name for the availability block
+  startTime             String                  // Format: "HH:MM" (e.g., "09:00")
+  endTime               String                  // Format: "HH:MM" (e.g., "17:00")
+  dayOfWeek             Int?                    // 0-6 (Sunday-Saturday), null for recurring patterns
+  isRecurring           Boolean                 @default(false)
+  recurrenceType        RecurrenceType?         // DAILY, WEEKLY, CUSTOM
+  recurrenceDays        Int[]                   // Array of days (0-6) for custom patterns
+  recurrenceEndDate     DateTime?               // When the recurring pattern ends
+  sessionDuration       Int                     @default(60)           // Minutes
+  breakBetweenSessions  Int                     @default(15)           // Minutes
+  maxSessions           Int?                    // Optional limit on concurrent sessions
+  sessionRate           Decimal?                @db.Decimal(10, 2)     // Optional custom rate
+  isActive              Boolean                 @default(true)
+  notes                 String?                 // Internal notes
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+  
+  // Relations
+  therapist             Therapist               @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+  exceptions            AvailabilityException[]
+  
+  @@index([therapistId])
+  @@index([isActive])
+  @@index([dayOfWeek])
+  @@index([isRecurring])
+}
+
+model AvailabilityException {
+  id                    String                @id @default(cuid())
+  availabilityId        String
+  exceptionDate         DateTime              // Specific date for the exception
+  isUnavailable         Boolean               @default(true)     // True = unavailable, False = override with custom times
+  customStartTime       String?               // If overriding, new start time
+  customEndTime         String?               // If overriding, new end time
+  reason                String?               // Reason for exception
+  createdAt             DateTime              @default(now())
+  
+  availability          TherapistAvailability @relation(fields: [availabilityId], references: [id], onDelete: Cascade)
+  
+  @@index([availabilityId])
+  @@index([exceptionDate])
 }
 
 model Patient {
@@ -201,7 +247,7 @@ model Treatment {
   endDate         DateTime?
   isActive        Boolean       @default(true)
   createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  updatedAt       DateTime      @default(now())
   patient         Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
   therapist       Therapist     @relation(fields: [therapistId], references: [id], onDelete: Cascade)
   treatmentPlan   TreatmentPlan @relation(fields: [treatmentPlanId], references: [id], onDelete: Cascade)
@@ -487,4 +533,10 @@ enum QuizStatus {
   IN_PROGRESS
   COMPLETED
   ABANDONED
+}
+
+enum RecurrenceType {
+  DAILY
+  WEEKLY
+  CUSTOM
 }

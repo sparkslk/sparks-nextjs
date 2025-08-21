@@ -207,9 +207,21 @@ function SetAvailabilityPage(): React.JSX.Element {
     timeSlots.forEach((slot) => {
       if (!slot.isActive) return;
 
-      const days = slot.recurrencePattern?.days || [slot.dayOfWeek];
+      // Get the days this slot applies to
+      let applicableDays: number[] = [];
+      
+      if (slot.recurrencePattern?.days && slot.recurrencePattern.days.length > 0) {
+        // Use the specified days from recurrence pattern
+        applicableDays = slot.recurrencePattern.days;
+      } else if (slot.isRecurring && slot.recurrencePattern?.type === "daily") {
+        // Daily recurrence applies to all days
+        applicableDays = [0, 1, 2, 3, 4, 5, 6];
+      } else {
+        // Single day or weekly recurrence
+        applicableDays = [slot.dayOfWeek];
+      }
 
-      days.forEach((dayOfWeek) => {
+      applicableDays.forEach((dayOfWeek) => {
         const startTime = new Date(`1970-01-01T${slot.startTime}:00`);
         const endTime = new Date(`1970-01-01T${slot.endTime}:00`);
 
@@ -252,6 +264,30 @@ function SetAvailabilityPage(): React.JSX.Element {
             );
             sessionCount++;
           } else {
+            // Check if we can fit one more session without trailing break
+            const finalSessionEnd = new Date(currentTime.getTime() + slot.sessionDuration * 60 * 1000);
+            if (finalSessionEnd <= endTime) {
+              sessionSlots.push({
+                id: `${slot.id}-${dayOfWeek}-${sessionCount}`,
+                startTime: `${currentTime
+                  .getHours()
+                  .toString()
+                  .padStart(2, "0")}:${currentTime
+                  .getMinutes()
+                  .toString()
+                  .padStart(2, "0")}`,
+                endTime: `${finalSessionEnd
+                  .getHours()
+                  .toString()
+                  .padStart(2, "0")}:${finalSessionEnd
+                  .getMinutes()
+                  .toString()
+                  .padStart(2, "0")}`,
+                dayOfWeek,
+                isActive: slot.isActive,
+                parentAvailabilityId: slot.id,
+              });
+            }
             break;
           }
         }
