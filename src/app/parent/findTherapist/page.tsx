@@ -89,6 +89,12 @@ export default function FindTherapistPage() {
     const [notification, setNotification] = useState<string | null>(null);
     const [requestMessage, setRequestMessage] = useState<string>("");
     const [requestedTherapists, setRequestedTherapists] = useState<TherapistRequest[]>([]);
+    const [disconnectModalOpen, setDisconnectModalOpen] = useState(false);
+    const [therapistToDisconnect, setTherapistToDisconnect] = useState<{
+        therapistId: string;
+        therapistName: string;
+        childName: string;
+    } | null>(null);
 
     // Fetch requested therapists
     const fetchRequestedTherapists = async () => {
@@ -398,6 +404,56 @@ export default function FindTherapistPage() {
         }
     };
 
+    // Handler for disconnecting therapist
+    const handleDisconnectTherapist = (therapistId: string, therapistName: string, childName: string) => {
+        setTherapistToDisconnect({ therapistId, therapistName, childName });
+        setDisconnectModalOpen(true);
+    };
+
+    // Handler for confirming disconnection
+    const confirmDisconnectTherapist = async () => {
+        if (!therapistToDisconnect) return;
+        
+        try {
+            // Get the parent's session to send as senderId
+            const sessionResponse = await fetch("/api/auth/session");
+            let parentId = null;
+            if (sessionResponse.ok) {
+                const session = await sessionResponse.json();
+                parentId = session?.user?.id;
+            }
+
+            const response = await fetch("/api/parent/disconnect-therapist", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    therapistId: therapistToDisconnect.therapistId,
+                    childName: therapistToDisconnect.childName,
+                    parentId: parentId  // Include the parent ID as sender
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error("Failed to disconnect therapist");
+            }
+            
+            // Remove the connection from local state
+            setChildTherapistConnections(prev => 
+                prev.filter(conn => !(conn.therapist.id === therapistToDisconnect.therapistId && conn.childName === therapistToDisconnect.childName))
+            );
+            
+            setNotification(`${therapistToDisconnect.therapistName} has been disconnected from ${therapistToDisconnect.childName}. They have been notified of this change.`);
+            setTimeout(() => setNotification(null), 5000);
+        } catch (error) {
+            console.error("Error disconnecting therapist:", error);
+            setNotification("Failed to disconnect therapist. Please try again.");
+            setTimeout(() => setNotification(null), 5000);
+        } finally {
+            setDisconnectModalOpen(false);
+            setTherapistToDisconnect(null);
+        }
+    };
+
     const clearAllFilters = () => {
         setSearchQuery("");
         setSelectedSpecialty("all");
@@ -630,6 +686,65 @@ export default function FindTherapistPage() {
                 </Dialog>
             </Transition.Root>
 
+            {/* Disconnect Confirmation Modal */}
+            <Transition.Root show={disconnectModalOpen} as={Fragment}>
+                <Dialog as="div" className="relative z-50" onClose={setDisconnectModalOpen}>
+                    <Transition.Child
+                        as={Fragment}
+                        enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100"
+                        leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0"
+                    >
+                        <div className="fixed inset-0 bg-black/40 transition-opacity" />
+                    </Transition.Child>
+                    <div className="fixed inset-0 z-50 overflow-y-auto">
+                        <div className="flex min-h-full items-center justify-center p-4 text-center">
+                            <Transition.Child
+                                as={Fragment}
+                                enter="ease-out duration-300" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100"
+                                leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95"
+                            >
+                                <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white border border-[#e0d7ed] p-0 text-left align-middle shadow-2xl transition-all">
+                                    <div className="p-6">
+                                        <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-red-100 rounded-full">
+                                            <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                                            </svg>
+                                        </div>
+                                        <Dialog.Title as="h3" className="text-lg font-semibold text-gray-900 text-center mb-2">
+                                            Disconnect Therapist
+                                        </Dialog.Title>
+                                        <p className="text-sm text-gray-600 text-center mb-6">
+                                            Are you sure you want to disconnect{' '}
+                                            <span className="font-semibold">{therapistToDisconnect?.therapistName}</span>{' '}
+                                            from{' '}
+                                            <span className="font-semibold">{therapistToDisconnect?.childName}</span>?
+                                            <br /><br />
+                                            This action cannot be undone and the therapist will be notified of this change.
+                                        </p>
+                                        <div className="flex gap-3">
+                                            <Button
+                                                variant="outline"
+                                                className="flex-1"
+                                                onClick={() => setDisconnectModalOpen(false)}
+                                            >
+                                                Cancel
+                                            </Button>
+                                            <Button
+                                                variant="default"
+                                                className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                                                onClick={confirmDisconnectTherapist}
+                                            >
+                                                Confirm
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </Dialog.Panel>
+                            </Transition.Child>
+                        </div>
+                    </div>
+                </Dialog>
+            </Transition.Root>
+
             <div className="max-w-5xl mx-auto px-4 py-8">
                 {/* Header Section */}
                 <div className="mb-6">
@@ -691,6 +806,16 @@ export default function FindTherapistPage() {
                                             bookingStatus={'idle'}
                                             onViewProfile={() => handleViewProfile(conn.therapist, true)}
                                             viewDetailsText="View Details"
+                                            additionalActions={
+                                                <Button 
+                                                    variant="outline" 
+                                                    size="lg"
+                                                    className="w-full text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300 font-semibold rounded-xl py-2"
+                                                    onClick={() => handleDisconnectTherapist(conn.therapist.id, conn.therapist.name, conn.childName)}
+                                                >
+                                                    Disconnect
+                                                </Button>
+                                            }
                                         />
                                         <div className="absolute top-2 right-2 bg-primary/90 text-white text-xs px-3 py-1 rounded-full shadow">
                                             Connected to: <span className="font-semibold">{conn.childName}</span>

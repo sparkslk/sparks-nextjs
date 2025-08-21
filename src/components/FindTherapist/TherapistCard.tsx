@@ -38,9 +38,10 @@ interface TherapistCardProps {
   bookingStatus: 'idle' | 'booking' | 'success' | 'error';
   onViewProfile: () => void;
   viewDetailsText: string;
+  additionalActions?: React.ReactNode; // Add support for additional buttons
 }
 
-export function TherapistCard({ therapist, bookingStatus, onViewProfile, viewDetailsText }: TherapistCardProps) {
+export function TherapistCard({ therapist, bookingStatus, onViewProfile, viewDetailsText, additionalActions }: TherapistCardProps) {
 
   console.log("Therapist Card Rendered:", therapist.name, bookingStatus);
 
@@ -80,11 +81,18 @@ export function TherapistCard({ therapist, bookingStatus, onViewProfile, viewDet
       <Button 
         variant="outline" 
         size="lg"
-        className="w-full text-base border-2 border-[#a084e8] text-[#a084e8] hover:bg-[#ede7fa] font-semibold rounded-xl mt-auto py-2"
+        className="w-full text-base border-2 border-[#a084e8] text-[#a084e8] hover:bg-[#ede7fa] font-semibold rounded-xl mt-auto py-2 mb-2"
         onClick={onViewProfile}
       >
         {viewDetailsText}
       </Button>
+      
+      {/* Additional Actions */}
+      {additionalActions && (
+        <div className="w-full">
+          {additionalActions}
+        </div>
+      )}
     </Card>
   );
 }
