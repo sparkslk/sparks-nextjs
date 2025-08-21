@@ -373,7 +373,7 @@ export function AddAvailabilityModal({
             </DialogTitle>
           </div>
           <p className="text-sm text-gray-600 mt-1">
-            Set up a time block and we'll automatically generate bookable session slots
+            Set up a time block and we&apos;ll automatically generate bookable session slots
           </p>
         </DialogHeader>
 
@@ -415,7 +415,7 @@ export function AddAvailabilityModal({
               <CardHeader>
                 <CardTitle className="text-lg">Time Block</CardTitle>
                 <p className="text-sm text-gray-600">
-                  Define the overall time period when you're available
+                  Define the overall time period when you&apos;re available
                 </p>
               </CardHeader>
               <CardContent className="space-y-4">

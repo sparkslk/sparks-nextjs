@@ -21,7 +21,6 @@ import {
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { WeeklyCalendarView } from "@/components/therapist/availability/WeeklyCalendarView";
 import { AddAvailabilityModal } from "@/components/therapist/availability/AddAvailabilityModal";
-import { QuickScheduleActions } from "@/components/therapist/availability/QuickScheduleActions";
 
 interface TimeSlot {
   id: string;
@@ -326,11 +325,6 @@ function SetAvailabilityPage(): React.JSX.Element {
 
   const stats = getStats();
 
-  const handleOpenModalWithPrefill = (dayOfWeek: number, startHour: number) => {
-    setPrefilledData({ dayOfWeek, startHour, selectedWeekStart });
-    setShowAddModal(true);
-  };
-
   const handleCloseModal = () => {
     setShowAddModal(false);
     setEditingSlot(null);
@@ -345,27 +339,6 @@ function SetAvailabilityPage(): React.JSX.Element {
       selectedWeekStart 
     });
     setShowAddModal(true);
-  };
-
-  const handleBulkAction = (action: 'copy-week' | 'clear-week' | 'import-calendar') => {
-    switch (action) {
-      case 'copy-week':
-        // Copy current week's schedule to next week
-        const nextWeek = new Date(selectedWeekStart);
-        nextWeek.setDate(selectedWeekStart.getDate() + 7);
-        // Implementation would depend on your backend
-        console.log('Copy week to:', nextWeek);
-        break;
-      case 'clear-week':
-        if (confirm('Are you sure you want to clear all availability for this week?')) {
-          setTimeSlots([]);
-        }
-        break;
-      case 'import-calendar':
-        // Open calendar import dialog
-        console.log('Import from calendar');
-        break;
-    }
   };
 
   if (authStatus === "loading" || loading) {
@@ -502,7 +475,6 @@ function SetAvailabilityPage(): React.JSX.Element {
             onEditSlot={setEditingSlot}
             onDeleteSlot={handleDeleteTimeSlot}
             onToggleSlot={handleToggleSlot}
-            onCreateSlot={handleOpenModalWithPrefill}
             onDragSelect={handleDragSelect}
           />
         </TabsContent>
@@ -660,6 +632,9 @@ function SetAvailabilityPage(): React.JSX.Element {
         editingSlot={editingSlot}
         prefilledData={prefilledData}
       />
+  );
+
+export default SetAvailabilityPage;
     </div>
   );
 }

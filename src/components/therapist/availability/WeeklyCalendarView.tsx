@@ -50,7 +50,6 @@ interface WeeklyCalendarViewProps {
   onEditSlot: (slot: TimeSlot) => void;
   onDeleteSlot: (slotId: string) => void;
   onToggleSlot: (slotId: string) => void;
-  onCreateSlot: (dayOfWeek: number, startHour: number) => void;
   onDragSelect?: (dayOfWeek: number, startTime: string, endTime: string) => void; // New prop
 }
 
@@ -62,7 +61,6 @@ export function WeeklyCalendarView({
   onEditSlot,
   onDeleteSlot,
   onToggleSlot,
-  onCreateSlot,
   onDragSelect,
 }: WeeklyCalendarViewProps) {
   const [hoveredSlot, setHoveredSlot] = useState<string | null>(null);
@@ -138,9 +136,9 @@ export function WeeklyCalendarView({
     return sessionSlots.filter((slot) => slot.dayOfWeek === dayOfWeek);
   };
 
-  const getAvailabilitySlotById = (parentId: string) => {
-    return timeSlots.find((slot) => slot.id === parentId);
-  };
+  // const getAvailabilitySlotById = (parentId: string) => {
+  //   return timeSlots.find((slot) => slot.id === parentId);
+  // };
 
   const formatTime = (time: string) => {
     const [hours, minutes] = time.split(":");
@@ -169,33 +167,33 @@ export function WeeklyCalendarView({
     };
   };
 
-  const handleCellClick = (dayOfWeek: number, hour: number) => {
-    const existingSlot = getSessionSlotsForDay(dayOfWeek).find((slot) => {
-      const slotStart = parseInt(slot.startTime.split(":")[0]);
-      const slotEnd = parseInt(slot.endTime.split(":")[0]);
-      return hour >= slotStart && hour < slotEnd;
-    });
+  // const handleCellClick = (dayOfWeek: number, hour: number) => {
+  //   const existingSlot = getSessionSlotsForDay(dayOfWeek).find((slot) => {
+  //     const slotStart = parseInt(slot.startTime.split(":")[0]);
+  //     const slotEnd = parseInt(slot.endTime.split(":")[0]);
+  //     return hour >= slotStart && hour < slotEnd;
+  //   });
 
-    if (!existingSlot) {
-      onCreateSlot(dayOfWeek, hour);
-    }
-  };
+  //   if (!existingSlot) {
+  //     onCreateSlot(dayOfWeek, hour);
+  //   }
+  // };
 
-  const handleCellMouseEnter = (dayOfWeek: number, hour: number) => {
-    const existingSlot = getSessionSlotsForDay(dayOfWeek).find((slot) => {
-      const slotStart = parseInt(slot.startTime.split(":")[0]);
-      const slotEnd = parseInt(slot.endTime.split(":")[0]);
-      return hour >= slotStart && hour < slotEnd;
-    });
+  // const handleCellMouseEnter = (dayOfWeek: number, hour: number) => {
+  //   const existingSlot = getSessionSlotsForDay(dayOfWeek).find((slot) => {
+  //     const slotStart = parseInt(slot.startTime.split(":")[0]);
+  //     const slotEnd = parseInt(slot.endTime.split(":")[0]);
+  //     return hour >= slotStart && hour < slotEnd;
+  //   });
 
-    if (!existingSlot) {
-      setHoveredAvailability(`${dayOfWeek}-${hour}`);
-    }
-  };
+  //   if (!existingSlot) {
+  //     setHoveredAvailability(`${dayOfWeek}-${hour}`);
+  //   }
+  // };
 
-  const handleCellMouseLeave = () => {
-    setHoveredAvailability(null);
-  };
+  // const handleCellMouseLeave = () => {
+  //   setHoveredAvailability(null);
+  // };
 
   const handleMouseDown = (dayIndex: number, timeSlotIndex: number) => {
     const hasSlot = getSessionSlotsForDay(dayIndex).some((slot) => {
@@ -254,7 +252,7 @@ export function WeeklyCalendarView({
     const end = new Date(`1970-01-01T${availabilityBlock.endTime}:00`);
     const sessions = [];
     
-    let currentTime = new Date(start);
+    const currentTime = new Date(start); // Changed from let to const
     let sessionCount = 0;
     
     while (currentTime < end) {

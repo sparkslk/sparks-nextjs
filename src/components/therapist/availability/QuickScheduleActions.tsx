@@ -36,7 +36,6 @@ interface QuickTemplate {
 
 export function QuickScheduleActions({
   onAddTimeSlot,
-  timeSlots = [],
 }: QuickScheduleActionsProps) {
   const quickTemplates: QuickTemplate[] = [
     {
