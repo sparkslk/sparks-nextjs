@@ -555,11 +555,36 @@ export default function FindTherapistPage() {
                                                         <svg className="w-5 h-5 text-gray-400 ml-2 pointer-events-none" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
                                                     </Listbox.Button>
                                                     <Listbox.Options className="absolute z-50 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-72 overflow-auto">
-                                                        {patients.map((patient) => (
-                                                            <Listbox.Option key={patient.id} value={patient.name} className={({ active }) => `cursor-pointer select-none px-4 py-2 ${active ? 'bg-primary/10' : ''}` }>
-                                                                {patient.name}
-                                                            </Listbox.Option>
-                                                        ))}
+                                                        {patients.map((patient) => {
+                                                            const hasPendingRequest = requestedTherapists.some(req => 
+                                                                req.childName === patient.name && req.status === 'PENDING'
+                                                            );
+                                                            const hasAssignedTherapist = patientTherapistMap[patient.name] !== null;
+                                                            const isDisabled = hasPendingRequest || hasAssignedTherapist;
+                                                            
+                                                            return (
+                                                                <Listbox.Option 
+                                                                    key={patient.id} 
+                                                                    value={patient.name} 
+                                                                    disabled={isDisabled}
+                                                                    className={({ active }) => `select-none px-4 py-2 ${
+                                                                        isDisabled 
+                                                                            ? 'text-gray-400 cursor-not-allowed bg-gray-50' 
+                                                                            : `cursor-pointer ${active ? 'bg-primary/10' : ''}`
+                                                                    }`}
+                                                                >
+                                                                    <span>
+                                                                        {patient.name}
+                                                                    </span>
+                                                                    {hasPendingRequest && (
+                                                                        <span className="text-xs text-gray-500 ml-2">(Request pending)</span>
+                                                                    )}
+                                                                    {hasAssignedTherapist && !hasPendingRequest && (
+                                                                        <span className="text-xs text-gray-500 ml-2">(Already has therapist)</span>
+                                                                    )}
+                                                                </Listbox.Option>
+                                                            );
+                                                        })}
                                                     </Listbox.Options>
                                                 </div>
                                             </Listbox>
@@ -579,7 +604,18 @@ export default function FindTherapistPage() {
                                             />
                                         </div>
                                         <div className="flex gap-2 mt-6">
-                                            <Button variant="default" className="flex-1 rounded-lg h-12 text-base font-semibold" disabled={!selectedPatient} onClick={confirmChooseTherapist}>
+                                            <Button 
+                                                variant="default" 
+                                                className="flex-1 rounded-lg h-12 text-base font-semibold" 
+                                                disabled={
+                                                    !selectedPatient ||
+                                                    requestedTherapists.some(req =>
+                                                        req.childName === selectedPatient && req.status === 'PENDING'
+                                                    ) ||
+                                                    (!!selectedPatient && patientTherapistMap[selectedPatient] !== null)
+                                                }
+                                                onClick={confirmChooseTherapist}
+                                            >
                                                 Confirm
                                             </Button>
                                             <Button variant="outline" className="flex-1 rounded-lg h-12 text-base font-semibold" onClick={() => setChooseModalOpen(false)}>
