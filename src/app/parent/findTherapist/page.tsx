@@ -419,6 +419,9 @@ export default function FindTherapistPage() {
     const confirmCancelRequest = async () => {
         if (!requestToCancel) return;
         
+        // Close modal immediately for better UX
+        setCancelRequestModalOpen(false);
+        
         try {
             const response = await fetch(`/api/parent/cancel-therapist-request?requestId=${requestToCancel.requestId}`, {
                 method: 'DELETE',
@@ -440,10 +443,13 @@ export default function FindTherapistPage() {
             setTimeout(() => setNotification(null), 3000);
         } catch (error) {
             console.error("Error canceling request:", error);
+            // If there's an error, we might want to refresh the data to show current state
             setNotification("Failed to cancel request. Please try again.");
             setTimeout(() => setNotification(null), 5000);
+            // Optionally refresh the requested therapists list
+            await fetchRequestedTherapists();
         } finally {
-            setCancelRequestModalOpen(false);
+            // Clean up state
             setRequestToCancel(null);
         }
     };
@@ -457,6 +463,9 @@ export default function FindTherapistPage() {
     // Handler for confirming disconnection
     const confirmDisconnectTherapist = async () => {
         if (!therapistToDisconnect) return;
+        
+        // Close modal immediately for better UX
+        setDisconnectModalOpen(false);
         
         try {
             // Get the parent's session to send as senderId
@@ -493,7 +502,6 @@ export default function FindTherapistPage() {
             setNotification("Failed to disconnect therapist. Please try again.");
             setTimeout(() => setNotification(null), 5000);
         } finally {
-            setDisconnectModalOpen(false);
             setTherapistToDisconnect(null);
         }
     };
