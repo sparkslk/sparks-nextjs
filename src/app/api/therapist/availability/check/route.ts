@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireApiAuth } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
+import { RecurrenceType } from "@prisma/client";
 
 /**
  * @swagger
@@ -190,7 +191,7 @@ function getSuggestedSlotsFromDB(availability: Array<{
     endTime: string;
     dayOfWeek: number | null;
     isRecurring: boolean;
-    recurrenceType: any;
+    recurrenceType: RecurrenceType | null;
     recurrenceDays: number[];
     sessionDuration: number;
     breakBetweenSessions: number;
@@ -231,40 +232,4 @@ function getSuggestedSlotsFromDB(availability: Array<{
     return suggestions.slice(0, 5); // Return up to 5 suggestions
 }
 
-// Helper function to get suggested time slots (legacy function for compatibility)
-function getSuggestedSlots(availability: Array<{isActive?: boolean; recurrencePattern?: {days?: number[]}; dayOfWeek?: number; startTime: string; endTime: string; sessionDuration?: number; breakBetweenSessions?: number}>, dayOfWeek: number): string[] {
-    const suggestions: string[] = [];
-
-    availability.forEach((slot) => {
-        if (!slot.isActive) return;
-
-        // Check if this slot applies to the requested day
-        const appliesToDay = slot.recurrencePattern?.days
-            ? slot.recurrencePattern.days.includes(dayOfWeek)
-            : slot.dayOfWeek === dayOfWeek;
-
-        if (!appliesToDay) return;
-
-        // Generate suggestions within this slot
-        const startTime = new Date(`1970-01-01T${slot.startTime}:00`);
-        const endTime = new Date(`1970-01-01T${slot.endTime}:00`);
-
-        const currentTime = new Date(startTime);
-        const sessionDuration = slot.sessionDuration || 60;
-        const breakDuration = slot.breakBetweenSessions || 15;
-        const totalSlotDuration = sessionDuration + breakDuration;
-
-        while (currentTime < endTime) {
-            const sessionEnd = new Date(currentTime);
-            sessionEnd.setMinutes(currentTime.getMinutes() + sessionDuration);
-
-            if (sessionEnd <= endTime) {
-                suggestions.push(currentTime.toTimeString().slice(0, 5));
-            }
-
-            currentTime.setMinutes(currentTime.getMinutes() + totalSlotDuration);
-        }
-    });
-
-    return suggestions.slice(0, 5); // Return up to 5 suggestions
-} 
+ 

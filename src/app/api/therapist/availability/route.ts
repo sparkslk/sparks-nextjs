@@ -109,9 +109,9 @@ export async function GET(req: NextRequest) {
             endTime: slot.endTime,
             dayOfWeek: slot.dayOfWeek,
             isRecurring: slot.isRecurring,
-            recurrencePattern: slot.isRecurring ? {
-                type: slot.recurrenceType?.toLowerCase() as "daily" | "weekly" | "custom",
-                days: slot.recurrenceDays || undefined,
+            recurrencePattern: slot.isRecurring && slot.recurrenceType ? {
+                type: slot.recurrenceType.toLowerCase() as "daily" | "weekly" | "custom",
+                days: slot.recurrenceDays.length > 0 ? slot.recurrenceDays : undefined,
                 endDate: slot.recurrenceEndDate?.toISOString() || undefined
             } : undefined,
             sessionDuration: slot.sessionDuration,

@@ -111,25 +111,34 @@ export function WeeklyCalendarView({
   };
 
   const getAvailabilityBlocksForDay = (dayOfWeek: number) => {
-    return timeSlots.filter((slot) => {
+    console.log(`DEBUG: getAvailabilityBlocksForDay(${dayOfWeek}) called`);
+    
+    const filtered = timeSlots.filter((slot) => {
       // If slot has recurrence pattern with specific days
       if (slot.recurrencePattern?.days && slot.recurrencePattern.days.length > 0) {
         return slot.recurrencePattern.days.includes(dayOfWeek);
       }
+      
       // If slot is recurring but no specific days set, use the original dayOfWeek
       if (slot.isRecurring && slot.recurrencePattern?.type) {
         if (slot.recurrencePattern.type === "daily") {
           return true; // Show on all days for daily recurrence
         }
+        
         if (slot.recurrencePattern.type === "weekly") {
           return slot.dayOfWeek === dayOfWeek;
         }
+        
         // For custom type, fall back to dayOfWeek if no days specified
         return slot.dayOfWeek === dayOfWeek;
       }
+      
       // For non-recurring slots, match the exact day
       return slot.dayOfWeek === dayOfWeek;
     });
+    
+    console.log(`DEBUG: getAvailabilityBlocksForDay(${dayOfWeek}) - Total slots: ${timeSlots.length}, Filtered: ${filtered.length}`, { filtered });
+    return filtered;
   };
 
   const getSessionSlotsForDay = (dayOfWeek: number) => {
@@ -196,7 +205,7 @@ export function WeeklyCalendarView({
   // };
 
   const handleMouseDown = (dayIndex: number, timeSlotIndex: number) => {
-    const hasSlot = getSessionSlotsForDay(dayIndex).some((slot) => {
+    const hasSlot = getSessionSlotsForDay(weekDates[dayIndex].getDay()).some((slot) => {
       const slotStartMinutes = timeStringToMinutes(slot.startTime);
       const slotEndMinutes = timeStringToMinutes(slot.endTime);
       const currentMinutes = timeSlots30Min[timeSlotIndex].hour * 60 + timeSlots30Min[timeSlotIndex].minute;
@@ -359,7 +368,7 @@ export function WeeklyCalendarView({
             <div key={dayIndex} className="border-r relative">
               {/* 30-minute grid cells */}
               {timeSlots30Min.map((timeSlot, timeSlotIndex) => {
-                const hasSlot = getSessionSlotsForDay(dayIndex).some((slot) => {
+                const hasSlot = getSessionSlotsForDay(weekDates[dayIndex].getDay()).some((slot) => {
                   const slotStartMinutes = timeStringToMinutes(slot.startTime);
                   const slotEndMinutes = timeStringToMinutes(slot.endTime);
                   const currentMinutes = timeSlot.hour * 60 + timeSlot.minute;
@@ -394,7 +403,7 @@ export function WeeklyCalendarView({
               })}
 
               {/* Availability Blocks */}
-              {getAvailabilityBlocksForDay(dayIndex).map((availabilityBlock) => {
+              {getAvailabilityBlocksForDay(weekDates[dayIndex].getDay()).map((availabilityBlock) => {
                 const position = getSlotPosition(availabilityBlock.startTime, availabilityBlock.endTime);
                 const generatedSessions = generateSessionSlotsForBlock(availabilityBlock);
 

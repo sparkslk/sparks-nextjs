@@ -113,10 +113,14 @@ interface UpdateAvailabilitySlotData {
  *         description: Internal server error
  */
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(
+    req: NextRequest, 
+    context: { params: Promise<{ id: string }> }
+) {
     try {
         const session = await requireApiAuth(req, ['THERAPIST']);
         const data: UpdateAvailabilitySlotData = await req.json();
+        const params = await context.params;
         const slotId = params.id;
 
         // Get therapist profile
@@ -172,7 +176,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         }
 
         // Prepare update data
-        const updateData: any = {};
+        const updateData: Record<string, unknown> = {};
         
         if (data.startTime !== undefined) updateData.startTime = data.startTime;
         if (data.endTime !== undefined) updateData.endTime = data.endTime;
@@ -230,9 +234,13 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(
+    req: NextRequest, 
+    context: { params: Promise<{ id: string }> }
+) {
     try {
         const session = await requireApiAuth(req, ['THERAPIST']);
+        const params = await context.params;
         const slotId = params.id;
 
         // Get therapist profile
