@@ -5,6 +5,7 @@ import { Child, Appointment } from "@/types/appointments";
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import RescheduleModal from "./RescheduleModal";
 
 interface AppointmentCardProps {
   child: Child;
@@ -41,6 +42,8 @@ export default function AppointmentCard({
   const [cancelReason, setCancelReason] = useState("");
   const [canceling, setCanceling] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [showRescheduleModal, setShowRescheduleModal] = useState(false);
+  const [selectedSessionToReschedule, setSelectedSessionToReschedule] = useState<Appointment | null>(null);
     
   // Filtering logic for appointments
   let filteredUpcoming = upcomingAppointments;
@@ -59,9 +62,9 @@ export default function AppointmentCard({
     setShowCancelDialog(true);
   };
 
-  const handleRescheduleSession = () => {
-    // TODO: Implement reschedule modal
-    alert('Reschedule functionality will be implemented in a future update.');
+  const handleRescheduleSession = (appointment: Appointment) => {
+    setSelectedSessionToReschedule(appointment);
+    setShowRescheduleModal(true);
   };
 
   const confirmCancelSession = async () => {
@@ -128,7 +131,7 @@ export default function AppointmentCard({
                 <button
                   className="flex items-center justify-center gap-2 w-36 h-11 px-4 py-2 rounded-lg border bg-green-100 border-green-300 shadow-sm text-base font-semibold text-green-700 hover:bg-green-200 transition-all duration-150 text-center"
                   style={{ fontWeight: 600 }}
-                  onClick={handleRescheduleSession}
+                  onClick={() => handleRescheduleSession(appointment)}
                 >
                   Reschedule
                 </button>
@@ -559,6 +562,21 @@ export default function AppointmentCard({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Reschedule Modal */}
+      <RescheduleModal
+        open={showRescheduleModal}
+        onOpenChange={setShowRescheduleModal}
+        appointment={selectedSessionToReschedule}
+        onRescheduleSuccess={() => {
+          setSelectedSessionToReschedule(null);
+          if (onSessionCancelled) {
+            onSessionCancelled();
+          } else {
+            window.location.reload();
+          }
+        }}
+      />
     </Card>
   );
 }
