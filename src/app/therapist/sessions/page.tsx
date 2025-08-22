@@ -5,10 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Clock, User, FileText, Edit, Eye, CheckCircle, Plus, Activity, RotateCcw, Video, ArrowRight } from "lucide-react";
+import { Calendar, Clock, User, FileText, Edit, Eye, CheckCircle, Plus, Hourglass , RotateCcw, Video, ArrowRight } from "lucide-react";
 import { SessionUpdateModal } from "@/components/therapist/SessionUpdateModal";
 import { RescheduleModal } from "@/components/therapist/RescheduleModal";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import MedicationManagement from "@/components/therapist/MedicationManagement";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Medication } from "@/types/medications";
 
 interface Session {
   id: string;
@@ -35,34 +37,11 @@ export default function TherapistSessionsPage() {
   const [activeTab, setActiveTab] = useState("scheduled");
   const [showMedications, setShowMedications] = useState(false);
   const [showTasks, setShowTasks] = useState(false);
-
-  // Hardcoded data for medications and tasks
-  const hardcodedMedications = [
-    {
-      id: "1",
-      name: "Methylphenidate",
-      dosage: "7",
-      frequency: "Twice daily",
-      mealTiming: "Before meals",
-      startDate: "2025-07-07",
-      endDate: "2025-07-12",
-      prescribedBy: "Ravindi Fernando",
-      instructions: "Take with a full glass of water. Do not exceed recommended dose.",
-      isActive: true,
-    },
-    {
-      id: "2",
-      name: "Amoxicillin",
-      dosage: "500mg",
-      frequency: "Three times daily",
-      mealTiming: "After meals",
-      startDate: "2025-07-01",
-      endDate: "2025-07-10",
-      prescribedBy: "Dr. Nimal Perera",
-      instructions: "Complete the full course even if you feel better.",
-      isActive: true,
-    }
-  ];
+  
+  // Add medication management state
+  const [medications, setMedications] = useState<Medication[]>([]);
+  const [medicationPatientId, setMedicationPatientId] = useState<string | null>(null);
+  const [isLoadingMedications, setIsLoadingMedications] = useState(false);
 
   const hardcodedTasks = [
     {
@@ -143,6 +122,40 @@ export default function TherapistSessionsPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Add function to fetch medications
+  const fetchMedications = async (patientId: string) => {
+    try {
+      setIsLoadingMedications(true);
+      const response = await fetch(`/api/therapist/patients/${patientId}/medications`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setMedications(data);
+      } else {
+        console.error("Failed to fetch medications:", response.statusText);
+        setMedications([]);
+      }
+    } catch (error) {
+      console.error("Error fetching medications:", error);
+      setMedications([]);
+    } finally {
+      setIsLoadingMedications(false);
+    }
+  };
+
+  // Add handler for opening medications modal with patient context
+  const handleOpenMedicationsModal = (patientId: string) => {
+    setMedicationPatientId(patientId);
+    setMedications([]); // Clear previous medications immediately
+    setShowMedications(true);
+    fetchMedications(patientId); // Then fetch new ones
   };
 
   const getStatusColor = (status: string) => {
@@ -368,7 +381,7 @@ export default function TherapistSessionsPage() {
             </div>
             
             <div className="flex items-center gap-2">
-              <Activity className="w-6 h-6 text-primary" />
+              <Hourglass  className="w-6 h-6 text-primary" />
               <div>
                 <p className="text-xs text-gray-500">Duration</p>
                 <p className="text-sm font-medium">{session.duration} min</p>
@@ -472,20 +485,26 @@ export default function TherapistSessionsPage() {
         </CardContent>
       </Card>
     );
+
   };
 
   useEffect(() => {
-    const openMedicationsModal = () => setShowMedications(true);
+    const openMedicationsModal = (event: CustomEvent) => {
+      const patientId = event.detail?.patientId || medicationPatientId;
+      if (patientId) {
+        handleOpenMedicationsModal(patientId);
+      }
+    };
     const openTasksModal = () => setShowTasks(true);
 
-    window.addEventListener("openMedicationsModal", openMedicationsModal);
+    window.addEventListener("openMedicationsModal", openMedicationsModal as EventListener);
     window.addEventListener("openTasksModal", openTasksModal);
 
     return () => {
-      window.removeEventListener("openMedicationsModal", openMedicationsModal);
+      window.removeEventListener("openMedicationsModal", openMedicationsModal as EventListener);
       window.removeEventListener("openTasksModal", openTasksModal);
     };
-  }, []);
+  }, [medicationPatientId]);
 
   if (loading) {
     return (
@@ -768,175 +787,111 @@ export default function TherapistSessionsPage() {
           onRescheduleConfirmed={handleRescheduleConfirmed}
         />
 
+        {/* Updated Medications Modal with MedicationManagement component */}
         <Dialog open={showMedications} onOpenChange={setShowMedications}>
-          <DialogContent className="max-w-3xl">
-  <div className="flex items-center justify-between mb-4">
-    <Button
-      style={{ backgroundColor: "#8159A8", color: "#fff" }}
-      className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 shadow hover:brightness-110"
-      // onClick={() => setShowAddMedication(true)}
-    >
-      <Plus className="w-5 h-5" />
-      Add Medication
-    </Button>
-    <Badge variant="outline" className="text-sm">
-      {hardcodedMedications.filter(t => t.isActive).length} Active
-    </Badge>
-  </div>
-  {hardcodedMedications.length === 0 ? (
-    <Card>
-      <CardContent className="p-8 text-center">
-        <p className="text-muted-foreground">No medications on record.</p>
-      </CardContent>
-    </Card>
-  ) : (
-    hardcodedMedications.map((med) => (
-      <Card
-        key={med.id}
-        className="mb-4 shadow-md bg-[#F8F6FB] border-0"
-      >
-        <div className="p-4 flex flex-col gap-3">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <span className="text-base font-semibold text-[#8159A8]">{med.name}</span>
-              {med.isActive ? (
-                <Badge className="ml-2 bg-green-100 text-green-700 text-xs font-semibold">
-                  Active
-                </Badge>
-              ) : (
-                <Badge className="ml-2 bg-gray-100 text-gray-500 text-xs font-semibold">
-                  Inactive
-                </Badge>
-              )}
+          <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden">
+            <div className="overflow-y-auto max-h-[calc(90vh-8rem)] pr-2">
+              {isLoadingMedications ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#8159A8]"></div>
+                  <span className="ml-2">Loading medications...</span>
+                </div>
+              ) : medicationPatientId ? (
+                <MedicationManagement 
+                  patientId={medicationPatientId}
+                  medications={medications}
+                  onMedicationUpdate={() => fetchMedications(medicationPatientId)}
+                />
+              ) : null}
             </div>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-2">
-            <div>
-              <p className="text-[10px] font-medium text-muted-foreground uppercase">Dosage</p>
-              <p className="text-sm font-semibold">{med.dosage}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-medium text-muted-foreground uppercase">Frequency</p>
-              <p className="text-sm font-semibold">{med.frequency}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-medium text-muted-foreground uppercase">Meal Timing</p>
-              <p className="text-sm font-semibold">{med.mealTiming}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-medium text-muted-foreground uppercase">Start Date</p>
-              <p className="text-sm font-semibold">
-                {med.startDate}
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] font-medium text-muted-foreground uppercase">End Date</p>
-              <p className="text-sm font-semibold">
-                {med.endDate}
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] font-medium text-muted-foreground uppercase">Prescribed By</p>
-              <p className="text-sm font-semibold">{med.prescribedBy}</p>
-            </div>
-          </div>
-          <div className="bg-[#EDE9F7] mt-3 p-3 rounded flex flex-col gap-1">
-            <div className="flex items-center gap-1 text-[#8159A8] font-medium text-xs">
-              Instructions
-            </div>
-            <div className="text-[#4B3869] text-xs">{med.instructions}</div>
-          </div>
-        </div>
-      </Card>
-    ))
-  )}
-</DialogContent>
+          </DialogContent>
         </Dialog>
 
         <Dialog open={showTasks} onOpenChange={setShowTasks}>
           <DialogContent className="max-w-3xl">
-  <div className="flex items-center justify-between mb-4">
-    <Button
-      style={{ backgroundColor: "#8159A8", color: "#fff" }}
-      className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 shadow hover:brightness-110"
-      // onClick={() => setShowAssignTask(true)}
-    >
-      <Plus className="w-5 h-5" />
-      Assign a new Task
-    </Button>
-    <div className="flex gap-2">
-      <Badge variant="outline" className="text-sm">
-        {hardcodedTasks.filter(t => t.status === "Pending").length} Pending
-      </Badge>
-      <Badge variant="outline" className="text-sm bg-green-50 text-green-700">
-        {hardcodedTasks.filter(t => t.status === "Completed").length} Completed
-      </Badge>
-    </div>
-  </div>
-  <div className="space-y-6">
-    {hardcodedTasks.length === 0 ? (
-      <Card>
-        <CardContent className="p-8 text-center">
-          <p className="text-muted-foreground">No tasks assigned.</p>
-        </CardContent>
-      </Card>
-    ) : (
-      hardcodedTasks.map((task, idx) => (
-        <div
-          key={task.id}
-          className="flex flex-col md:flex-row items-start md:items-center justify-between bg-[#fcfafd] rounded-xl shadow-sm px-6 py-4"
-          style={{ borderBottom: idx !== hardcodedTasks.length - 1 ? "1px solid #f0eef5" : undefined }}
-        >
-          <div>
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <span className="text-base md:text-xl font-semibold text-[#8159A8]">{task.title}</span>
-              {task.status === "Completed" && (
-                <span className="bg-green-100 text-green-700 text-xs font-semibold px-2 py-0.5 rounded-full">
-                  Completed
-                </span>
-              )}
-              {task.status === "Pending" && (
-                <span className="bg-yellow-100 text-yellow-700 text-xs font-semibold px-2 py-0.5 rounded-full">
-                  Pending
-                </span>
-              )}
-              {"score" in task && (
-                <span className="bg-blue-100 text-blue-700 text-xs font-semibold px-2 py-0.5 rounded-full">
-                  Score: {task.score}
-                </span>
+            <div className="flex items-center justify-between mb-4">
+              <Button
+                style={{ backgroundColor: "#8159A8", color: "#fff" }}
+                className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 shadow hover:brightness-110"
+                // onClick={() => setShowAssignTask(true)}
+              >
+                <Plus className="w-5 h-5" />
+                Assign a new Task
+              </Button>
+              <div className="flex gap-2">
+                <Badge variant="outline" className="text-sm">
+                  {hardcodedTasks.filter(t => t.status === "Pending").length} Pending
+                </Badge>
+                <Badge variant="outline" className="text-sm bg-green-50 text-green-700">
+                  {hardcodedTasks.filter(t => t.status === "Completed").length} Completed
+                </Badge>
+              </div>
+            </div>
+            <div className="space-y-6">
+              {hardcodedTasks.length === 0 ? (
+                <Card>
+                  <CardContent className="p-8 text-center">
+                    <p className="text-muted-foreground">No tasks assigned.</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                hardcodedTasks.map((task, idx) => (
+                  <div
+                    key={task.id}
+                    className="flex flex-col md:flex-row items-start md:items-center justify-between bg-[#fcfafd] rounded-xl shadow-sm px-6 py-4"
+                    style={{ borderBottom: idx !== hardcodedTasks.length - 1 ? "1px solid #f0eef5" : undefined }}
+                  >
+                    <div>
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <span className="text-base md:text-xl font-semibold text-[#8159A8]">{task.title}</span>
+                        {task.status === "Completed" && (
+                          <span className="bg-green-100 text-green-700 text-xs font-semibold px-2 py-0.5 rounded-full">
+                            Completed
+                          </span>
+                        )}
+                        {task.status === "Pending" && (
+                          <span className="bg-yellow-100 text-yellow-700 text-xs font-semibold px-2 py-0.5 rounded-full">
+                            Pending
+                          </span>
+                        )}
+                        {"score" in task && (
+                          <span className="bg-blue-100 text-blue-700 text-xs font-semibold px-2 py-0.5 rounded-full">
+                            Score: {task.score}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-[#8159A8] font-medium">
+                        Assigned: {task.assignedDate}
+                        {task.completedDate && (
+                          <span className="ml-3">
+                            Completed: {task.completedDate}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex gap-2 mt-3 md:mt-0">
+                      <Button
+                        variant="outline"
+                        className="border-red-400 text-red-700 hover:bg-red-50 px-3 py-1 text-xs font-semibold"
+                        style={{ borderColor: "#EF4444" }}
+                      >
+                        Unassign
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="border-primary text-primary hover:bg-primary/10 px-3 py-1 text-xs font-semibold"
+                      >
+                        View Assessment
+                      </Button>
+                    </div>
+                  </div>
+                ))
               )}
             </div>
-            <div className="text-xs text-[#8159A8] font-medium">
-              Assigned: {task.assignedDate}
-              {task.completedDate && (
-                <span className="ml-3">
-                  Completed: {task.completedDate}
-                </span>
-              )}
-            </div>
-          </div>
-          <div className="flex gap-2 mt-3 md:mt-0">
-            <Button
-              variant="outline"
-              className="border-red-400 text-red-700 hover:bg-red-50 px-3 py-1 text-xs font-semibold"
-              style={{ borderColor: "#EF4444" }}
-            >
-              Unassign
-            </Button>
-            <Button
-              variant="outline"
-              className="border-primary text-primary hover:bg-primary/10 px-3 py-1 text-xs font-semibold"
-            >
-              View Assessment
-            </Button>
-          </div>
-        </div>
-      ))
-    )}
-  </div>
-</DialogContent>
+          </DialogContent>
         </Dialog>
       </div>
     </div>
   );
 }
+

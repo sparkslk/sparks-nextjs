@@ -215,18 +215,15 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
 
       if (response.ok) {
         setSubmitSuccess(true);
-        onSessionUpdated();
-        // Close modal after a brief delay to show success message, only if marking as completed
-        if (!saveOnly) {
+        
+        // Close modal after a brief delay to show success message
+        setTimeout(() => {
+          onClose();
+          // Call onSessionUpdated after modal is closed to prevent reopening
           setTimeout(() => {
-            onClose();
-          }, 1500);
-        } else {
-          // For save only, close after shorter delay or let user manually close
-          setTimeout(() => {
-            setSubmitSuccess(false);
-          }, 2000);
-        }
+            onSessionUpdated();
+          }, 100);
+        }, 1500);
       } else {
         const errorData = await response.json();
         console.error("Server error response:", errorData);
@@ -472,9 +469,11 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
                   className="font-semibold px-4 py-2 rounded-lg transition-colors duration-150 hover:bg-[#E9E3F2] hover:text-[#6B399A] hover:shadow-md hover:scale-103"
                   type="button"
                   onClick={() => {
-                    // Open the medications modal from parent
-                    if (typeof window !== "undefined") {
-                      const event = new CustomEvent("openMedicationsModal");
+                    // Open the medications modal from parent with patient context
+                    if (typeof window !== "undefined" && currentSession.patientId) {
+                      const event = new CustomEvent("openMedicationsModal", {
+                        detail: { patientId: currentSession.patientId }
+                      });
                       window.dispatchEvent(event);
                     }
                   }}
