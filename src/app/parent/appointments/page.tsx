@@ -195,7 +195,10 @@ export default function AppointmentsPage() {
                       }
                     : null,
                 }}
-                onConfirmBooking={() => {}}
+                onConfirmBooking={() => {
+                  // Refresh the data after booking
+                  fetchData();
+                }}
               />
             </div>
           ))}
