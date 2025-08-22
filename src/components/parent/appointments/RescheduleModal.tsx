@@ -21,7 +21,7 @@ export default function RescheduleModal({ open, onOpenChange, appointment, onRes
   const [rescheduleReason, setRescheduleReason] = useState("");
   const [rescheduling, setRescheduling] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
-  const [availableSlots, setAvailableSlots] = useState<Array<{slot: string, isAvailable: boolean}>>([]);
+  const [availableSlots, setAvailableSlots] = useState<Array<{slot: string, isAvailable: boolean, isBooked?: boolean, isBlocked?: boolean}>>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [therapistInfo, setTherapistInfo] = useState<{
     name: string;
@@ -280,7 +280,7 @@ export default function RescheduleModal({ open, onOpenChange, appointment, onRes
                       onClick={() => slotData.isAvailable && handleSlotClick(slotData.slot)}
                       disabled={!slotData.isAvailable}
                     >
-                      {slotData.slot} {!slotData.isAvailable && "(Booked)"}
+                      {slotData.slot} {!slotData.isAvailable && (slotData.isBooked ? "(Booked)" : "(Blocked)")}
                     </Button>
                   ))}
                 </div>

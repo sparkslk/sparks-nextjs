@@ -30,7 +30,7 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [showCalendar, setShowCalendar] = useState(false);
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
-  const [availableSlots, setAvailableSlots] = useState<Array<{slot: string, isAvailable: boolean}>>([]);
+  const [availableSlots, setAvailableSlots] = useState<Array<{slot: string, isAvailable: boolean, isBooked?: boolean, isBlocked?: boolean}>>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [therapistInfo, setTherapistInfo] = useState<{
     name: string;
@@ -245,7 +245,7 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
                     onClick={() => slotData.isAvailable && handleSlotClick(slotData.slot)}
                     disabled={!slotData.isAvailable}
                   >
-                    {slotData.slot} {!slotData.isAvailable && "(Booked)"}
+                    {slotData.slot} {!slotData.isAvailable && (slotData.isBooked ? "(Booked)" : "(Blocked)")}
                   </Button>
                 ))}
               </div>

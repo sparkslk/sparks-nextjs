@@ -162,7 +162,7 @@ export async function GET(request: NextRequest) {
     })));
 
     // Generate time slots based on availability
-    const timeSlots: Array<{slot: string, isAvailable: boolean}> = [];
+    const timeSlots: Array<{slot: string, isAvailable: boolean, isBooked: boolean, isBlocked: boolean}> = [];
     
     availableSlots.forEach((availability: TherapistAvailability) => {
       const [startHour, startMinute] = availability.startTime.split(':').map(Number);
@@ -201,6 +201,11 @@ export async function GET(request: NextRequest) {
           
           return isConflict;
         });
+
+        // Check if slot is in the past or within 5 hours of current time
+        const now = new Date();
+        const fiveHoursFromNow = new Date(now.getTime() + (5 * 60 * 60 * 1000));
+        const isTooSoon = slotDateTime <= fiveHoursFromNow;
         
         const formatTime = (hour: number, minute: number) => {
           const period = hour >= 12 ? 'PM' : 'AM';
@@ -212,13 +217,17 @@ export async function GET(request: NextRequest) {
         
         timeSlots.push({
           slot: timeSlot,
-          isAvailable: !hasConflict
+          isAvailable: !hasConflict && !isTooSoon,
+          isBooked: hasConflict,
+          isBlocked: isTooSoon
         });
         
-        if (!hasConflict) {
+        if (!hasConflict && !isTooSoon) {
           console.log(`Added available slot: ${timeSlot}`);
-        } else {
+        } else if (hasConflict) {
           console.log(`Added booked slot: ${timeSlot}`);
+        } else {
+          console.log(`Added blocked slot (too soon): ${timeSlot}`);
         }
         
         currentTime += sessionDuration + bufferTime;
