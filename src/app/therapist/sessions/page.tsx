@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Calendar, Clock, User, FileText, Edit, Eye, CheckCircle, Plus, Hourglas
 import { SessionUpdateModal } from "@/components/therapist/SessionUpdateModal";
 import { RescheduleModal } from "@/components/therapist/RescheduleModal";
 import MedicationManagement from "@/components/therapist/MedicationManagement";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent} from "@/components/ui/dialog";
 import { Medication } from "@/types/medications";
 
 interface Session {
@@ -151,12 +151,12 @@ export default function TherapistSessionsPage() {
   };
 
   // Add handler for opening medications modal with patient context
-  const handleOpenMedicationsModal = (patientId: string) => {
+  const handleOpenMedicationsModal = useCallback((patientId: string) => {
     setMedicationPatientId(patientId);
     setMedications([]); // Clear previous medications immediately
     setShowMedications(true);
     fetchMedications(patientId); // Then fetch new ones
-  };
+  }, []);
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -504,7 +504,7 @@ export default function TherapistSessionsPage() {
       window.removeEventListener("openMedicationsModal", openMedicationsModal as EventListener);
       window.removeEventListener("openTasksModal", openTasksModal);
     };
-  }, [medicationPatientId]);
+  }, [medicationPatientId, handleOpenMedicationsModal]);
 
   if (loading) {
     return (
