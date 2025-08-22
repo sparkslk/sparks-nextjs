@@ -81,55 +81,56 @@ model Organization {
 }
 
 model Therapist {
-  id              String           @id @default(cuid())
-  userId          String           @unique
-  licenseNumber   String?          @unique
-  specialization  String[]
-  experience      Int?
-  bio             String?
-  availability    Json?
-  organizationId  String?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  rating          Decimal?         @db.Decimal(3, 2)
-  assessments     Assessment[]
-  Medication      Medication[]
-  patients        Patient[]
-  organization    Organization?    @relation(fields: [organizationId], references: [id])
-  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  therapySessions TherapySession[]
-  treatments      Treatment[]
-  treatmentPlans  TreatmentPlan[]
-  assignmentRequests TherapistAssignmentRequest[] @relation("TherapistRequests")
-}
-
-model Patient {
-  id                 String           @id @default(cuid())
-  userId             String?          @unique
-  firstName          String
-  lastName           String
-  dateOfBirth        DateTime
-  gender             Gender
-  phone              String?
-  email              String?
-  address            String?
-  emergencyContact   Json?
-  medicalHistory     String?
+  id                 String                       @id @default(cuid())
+  userId             String                       @unique
+  licenseNumber      String?                      @unique
+  specialization     String[]
+  experience         Int?
+  bio                String?
+  availability       Json?
   organizationId     String?
-  primaryTherapistId String?
-  createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @updatedAt
+  createdAt          DateTime                     @default(now())
+  updatedAt          DateTime                     @updatedAt
+  rating             Decimal?                     @db.Decimal(3, 2)
   assessments        Assessment[]
   Medication         Medication[]
-  parentGuardians    ParentGuardian[]
-  organization       Organization?    @relation(fields: [organizationId], references: [id])
-  primaryTherapist   Therapist?       @relation(fields: [primaryTherapistId], references: [id])
-  user               User?            @relation(fields: [userId], references: [id])
-  tasks              Task[]
+  patients           Patient[]
+  organization       Organization?                @relation(fields: [organizationId], references: [id])
+  user               User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignmentRequests TherapistAssignmentRequest[] @relation("TherapistRequests")
   therapySessions    TherapySession[]
   treatments         Treatment[]
   treatmentPlans     TreatmentPlan[]
-  therapistRequests  TherapistAssignmentRequest[] @relation("PatientRequests")
+}
+
+model Patient {
+  id                     String                       @id @default(cuid())
+  userId                 String?                      @unique
+  firstName              String
+  lastName               String
+  dateOfBirth            DateTime
+  gender                 Gender
+  phone                  String?
+  email                  String?
+  address                String?
+  emergencyContact       Json?
+  medicalHistory         String?
+  organizationId         String?
+  primaryTherapistId     String?
+  createdAt              DateTime                     @default(now())
+  updatedAt              DateTime                     @updatedAt
+  parentConnectionStatus Boolean                      @default(true)
+  assessments            Assessment[]
+  Medication             Medication[]
+  parentGuardians        ParentGuardian[]
+  organization           Organization?                @relation(fields: [organizationId], references: [id])
+  primaryTherapist       Therapist?                   @relation(fields: [primaryTherapistId], references: [id])
+  user                   User?                        @relation(fields: [userId], references: [id])
+  tasks                  Task[]
+  therapistRequests      TherapistAssignmentRequest[] @relation("PatientRequests")
+  therapySessions        TherapySession[]
+  treatments             Treatment[]
+  treatmentPlans         TreatmentPlan[]
 }
 
 model ParentGuardian {
@@ -337,6 +338,38 @@ model blogs {
   User         User      @relation(fields: [therapist_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
+model TherapistAssignmentRequest {
+  id              String           @id @default(cuid())
+  patientId       String
+  therapistId     String
+  status          AssignmentStatus @default(PENDING)
+  requestMessage  String?
+  responseMessage String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  patient         Patient          @relation("PatientRequests", fields: [patientId], references: [id], onDelete: Cascade)
+  therapist       Therapist        @relation("TherapistRequests", fields: [therapistId], references: [id], onDelete: Cascade)
+
+  @@unique([patientId, therapistId])
+  @@index([status])
+}
+
+model QuizSubmission {
+  id               String     @id @default(cuid())
+  userId           String?
+  sessionId        String
+  responses        Json
+  currentStep      Int        @default(1)
+  completionStatus QuizStatus @default(IN_PROGRESS)
+  startedAt        DateTime   @default(now())
+  completedAt      DateTime?
+  updatedAt        DateTime   @updatedAt
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([completionStatus])
+}
+
 enum UserRole {
   NORMAL_USER
   PARENT_GUARDIAN
@@ -442,45 +475,12 @@ enum MedicationHistoryAction {
   FREQUENCY_CHANGED
   INSTRUCTIONS_UPDATED
 }
-model TherapistAssignmentRequest {
-  id              String           @id @default(cuid())
-  patientId       String
-  therapistId     String
-  status          AssignmentStatus @default(PENDING)
-  requestMessage  String?
-  responseMessage String?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  patient         Patient          @relation("PatientRequests", fields: [patientId], references: [id], onDelete: Cascade)
-  therapist       Therapist        @relation("TherapistRequests", fields: [therapistId], references: [id], onDelete: Cascade)
-
-  @@unique([patientId, therapistId])
-  @@index([status])
-}
 
 enum AssignmentStatus {
   PENDING
   ACCEPTED
   REJECTED
   CANCELLED
-}
-
-// Quiz-related models for SPARKS well-being assessment
-model QuizSubmission {
-  id               String     @id @default(cuid())
-  userId           String?    // Optional - can be null for anonymous users
-  sessionId        String     // For tracking anonymous sessions
-  responses        Json       // Stores all quiz answers as a JSON object
-  currentStep      Int        @default(1) // Track current quiz step (1-26)
-  completionStatus QuizStatus @default(IN_PROGRESS)
-  startedAt        DateTime   @default(now())
-  completedAt      DateTime?
-  updatedAt        DateTime   @updatedAt
-
-  // Index for better query performance
-  @@index([userId])
-  @@index([sessionId])
-  @@index([completionStatus])
 }
 
 enum QuizStatus {

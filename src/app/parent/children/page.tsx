@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import SessionDetailsModal from "@/components/parent/SessionDetailsModal";
 import { AddChildForm } from "@/components/parent/AddChildForm";
+import { ConnectChildForm } from "@/components/parent/ConnectChildForm";
 import {
   Dialog,
   DialogContent,
@@ -34,6 +35,7 @@ interface Child {
   nextSessionType: string | null; // e.g., 'individual', 'group'
   nextSessionStatus: string,
   nextSessionId?: string | null;
+  connectionStatus: boolean;
   therapist: {
     name: string;
     email: string;
@@ -56,6 +58,12 @@ export default function MyChildrenPage() {
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
   const [removeLoading, setRemoveLoading] = useState(false);
   const [removeError, setRemoveError] = useState<string | null>(null);
+  const [reconnectingChildId, setReconnectingChildId] = useState<string | null>(null);
+  const [showReconnectConfirm, setShowReconnectConfirm] = useState(false);
+  const [reconnectLoading, setReconnectLoading] = useState(false);
+  const [reconnectError, setReconnectError] = useState<string | null>(null);
+  const [showDisconnected, setShowDisconnected] = useState(false);
+  const [showConnectChild, setShowConnectChild] = useState(false);
 
   useEffect(() => {
     fetchChildren();
@@ -66,7 +74,7 @@ export default function MyChildrenPage() {
     try {
       const response = await fetch("/api/parent/children");
       if (!response.ok) {
-        throw new Error("Failed to fetch children data");
+        throw new Error("Failed to fetch patient data");
       }
       const data = await response.json();
       setChildren(data.children || []);
@@ -87,8 +95,8 @@ export default function MyChildrenPage() {
         });
       }, 100);
     } catch (error) {
-      console.error("Error fetching children:", error);
-      setError("Failed to load children data");
+      console.error("Error fetching patient data:", error);
+      setError("Failed to load patient data");
     } finally {
       setLoading(false);
     }
@@ -110,6 +118,33 @@ export default function MyChildrenPage() {
     }, 20); // 20ms interval for smooth animation
   };
 
+  const handleReconnect = async (patientId: string) => {
+    setReconnectLoading(true);
+    setReconnectError(null);
+    try {
+      const res = await fetch("/api/parent/children/reconnect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ patientId }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to reconnect with patient");
+      }
+      setShowReconnectConfirm(false);
+      setReconnectingChildId(null);
+      fetchChildren();
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setReconnectError(err.message || "Failed to reconnect with patient");
+      } else {
+        setReconnectError("Failed to reconnect with patient");
+      }
+    } finally {
+      setReconnectLoading(false);
+    }
+  };
+
   const handleRemoveChild = async (patientId: string) => {
     setRemoveLoading(true);
     setRemoveError(null);
@@ -121,16 +156,16 @@ export default function MyChildrenPage() {
       });
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Failed to remove child");
+        throw new Error(data.error || "Failed to remove patient");
       }
       setShowRemoveConfirm(false);
       setRemovingChildId(null);
       fetchChildren();
     } catch (err: unknown) {
       if (err instanceof Error) {
-        setRemoveError(err.message || "Failed to remove child");
+        setRemoveError(err.message || "Failed to remove patient");
       } else {
-        setRemoveError("Failed to remove child");
+        setRemoveError("Failed to remove patient");
       }
     } finally {
       setRemoveLoading(false);
@@ -142,7 +177,7 @@ export default function MyChildrenPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: '#8159A8' }}></div>
-          <p className="mt-2 text-gray-600">Loading children...</p>
+          <p className="mt-2 text-gray-600">Loading Patients...</p>
         </div>
       </div>
     );
@@ -152,7 +187,7 @@ export default function MyChildrenPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <h3 className="text-lg font-semibold mb-2">Unable to load children</h3>
+          <h3 className="text-lg font-semibold mb-2">Unable to load patients</h3>
           <p className="text-gray-600 mb-4">{error}</p>
           <Button onClick={fetchChildren}>
             Try Again
@@ -166,8 +201,8 @@ export default function MyChildrenPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <h3 className="text-lg font-semibold mb-2">No Children Found</h3>
-          <p className="text-gray-600 mb-4">You haven&apos;t added any children yet.</p>
+          <h3 className="text-lg font-semibold mb-2">No Patients Found</h3>
+          <p className="text-gray-600 mb-4">You haven&apos;t added any patients yet.</p>
           <Button onClick={() => window.location.href = '/parent/dashboard'}>
             Go to Dashboard
           </Button>
@@ -210,25 +245,59 @@ export default function MyChildrenPage() {
         <div className="mb-10 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
           <div>
             <h1 className="text-4xl font-extrabold bg-gradient-to-r from-primary to-foreground bg-clip-text text-transparent tracking-tight mb-1">
-              My Children
+              My Patients
             </h1>
             <p className="text-muted-foreground text-base font-medium">
-              Monitor your children&apos;s therapy progress and communicate with their therapists
+              Monitor your patient&apos;s therapy progress and communicate with their therapists
             </p>
           </div>
-          <Button
-            className="bg-primary text-primary-foreground font-semibold px-6 py-2 rounded-xl shadow-sm hover:opacity-90 transition"
-            onClick={() => setShowAddChild(true)}
-          >
-            + Add Child
-          </Button>
+          <div className="flex gap-2">
+            {children.some(child => !child.connectionStatus) && (
+              <Button
+                variant="outline"
+                className="font-semibold px-6 py-2 rounded-lg border border-border shadow-sm transition"
+                onClick={() => setShowDisconnected(!showDisconnected)}
+              >
+                {showDisconnected ? 'Hide Disconnected' : 'Show Disconnected'}
+              </Button>
+            )}
+            <Dialog open={showConnectChild} onOpenChange={setShowConnectChild}>
+              <DialogTrigger asChild>
+                <Button 
+                  variant="outline"
+                  className="transition-all duration-200 shadow-sm hover:shadow-md rounded-lg border border-border"
+                >
+                  Connect Patient
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Connect to Existing Patient</DialogTitle>
+                  <DialogDescription>
+                    Use your Patient&apos;s ID to connect to their account
+                  </DialogDescription>
+                </DialogHeader>
+                <ConnectChildForm onSuccess={() => {
+                  setShowConnectChild(false);
+                  fetchChildren();
+                }} />
+              </DialogContent>
+            </Dialog>
+
+            <Button
+              className="bg-primary text-primary-foreground font-semibold px-6 py-2 rounded-lg border border-primary shadow-sm hover:opacity-90 transition"
+              onClick={() => setShowAddChild(true)}
+            >
+              + Add Child
+            </Button>
+          </div>
           <Dialog open={showAddChild} onOpenChange={setShowAddChild}>
             <DialogTrigger asChild></DialogTrigger>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
-                <DialogTitle>Add New Child</DialogTitle>
+                <DialogTitle>Add New Patient</DialogTitle>
                 <DialogDescription>
-                  Create a new patient profile for your child
+                  Create a new patient profile for your patient
                 </DialogDescription>
               </DialogHeader>
               <AddChildForm onSuccess={() => {
@@ -240,8 +309,9 @@ export default function MyChildrenPage() {
           </Dialog>
         </div>
 
+        {/* Connected Patients */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {children.map((child) => (
+          {children.filter(child => child.connectionStatus).map((child) => (
             <Card key={child.id} className="shadow-lg border border-border rounded-2xl bg-card hover:shadow-xl transition-shadow">
               <CardContent className="p-7 flex flex-col min-h-[520px]">
                 <div className="flex items-center space-x-5 mb-7">
@@ -276,24 +346,43 @@ export default function MyChildrenPage() {
                   <div className="flex flex-col items-end gap-2">
                     <Badge
                       variant="default"
-                      className="bg-green-100 text-green-800 border border-green-200 rounded-lg text-xs font-semibold shadow-sm h-auto min-h-0 flex items-center justify-center"
+                      className={`${
+                        child.connectionStatus
+                          ? 'bg-green-100 text-green-800 border-green-200' 
+                          : 'bg-gray-100 text-gray-800 border-gray-200'
+                      } rounded-lg text-xs font-semibold shadow-sm h-auto min-h-0 flex items-center justify-center border`}
                       style={{ width: 90, padding: '0.5rem 0', height: 25 }}
                     >
-                      Active
+                      {child.connectionStatus ? 'Connected' : 'Not Connected'}
                     </Badge>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      className="bg-red-100 text-red-700 border border-red-200 rounded-lg text-xs font-semibold shadow-sm h-auto min-h-0 flex items-center justify-center"
-                      style={{ width: 90, padding: '0.5rem 0', height: 25 }}
-                      onClick={() => {
-                        setRemovingChildId(child.id);
-                        setShowRemoveConfirm(true);
-                        setRemoveError(null);
-                      }}
-                    >
-                      Remove
-                    </Button>
+                    {child.connectionStatus ? (
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="bg-red-100 text-red-700 border border-red-200 rounded-lg text-xs font-semibold shadow-sm h-auto min-h-0 flex items-center justify-center"
+                        style={{ width: 90, padding: '0.5rem 0', height: 25 }}
+                        onClick={() => {
+                          setRemovingChildId(child.id);
+                          setShowRemoveConfirm(true);
+                          setRemoveError(null);
+                        }}
+                      >
+                        Remove
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        className="bg-primary text-white border border-primary rounded-lg text-xs font-semibold shadow-sm h-auto min-h-0 flex items-center justify-center"
+                        style={{ width: 90, padding: '0.5rem 0', height: 25 }}
+                        onClick={() => {
+                          setReconnectingChildId(child.id);
+                          setShowReconnectConfirm(true);
+                          setReconnectError(null);
+                        }}
+                      >
+                        Reconnect
+                      </Button>
+                    )}
                   </div>
                 </div>
 
@@ -355,7 +444,7 @@ export default function MyChildrenPage() {
 
                     <div className="mb-4">
                       <p className="text-xs text-muted-foreground mb-2">
-                        {child.isPrimary ? <span className="font-semibold text-primary">You are the primary guardian for this child.</span> : 'You are connected as a guardian.'}
+                        {child.isPrimary ? <span className="font-semibold text-primary">You are the primary guardian for this patient.</span> : 'You are connected as a guardian.'}
                       </p>
                     </div>
                   </div>
@@ -413,17 +502,59 @@ export default function MyChildrenPage() {
           ))}
         </div>
 
+        {/* Disconnected Patients */}
+        {showDisconnected && children.some(child => !child.connectionStatus) && (
+          <>
+            <h2 className="text-xl font-bold text-foreground mt-12 mb-6">Disconnected Patients</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {children.filter(child => !child.connectionStatus).map((child) => (
+                <Card key={child.id} className="shadow-lg border border-border rounded-2xl bg-card/50 hover:shadow-xl transition-shadow">
+                  <CardContent className="p-7">
+                    <div className="flex items-center space-x-5">
+                      <div className="w-14 h-14 rounded-full flex items-center justify-center shadow-md border-2 border-gray-200 bg-gray-50 overflow-hidden">
+                        <span className="font-bold text-xl text-gray-400">
+                          {child.firstName[0]}{child.lastName[0]}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-bold text-lg text-foreground/70 truncate">
+                          {child.firstName} {child.lastName}
+                        </h4>
+                        <p className="text-sm text-muted-foreground">
+                          Previous Relationship: <span className="font-medium text-foreground/70">{child.relationship}</span>
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        className="bg-primary text-white border border-primary rounded-lg text-xs font-semibold shadow-sm h-auto min-h-0 flex items-center justify-center"
+                        style={{ width: 90, padding: '0.5rem 0', height: 25 }}
+                        onClick={() => {
+                          setReconnectingChildId(child.id);
+                          setShowReconnectConfirm(true);
+                          setReconnectError(null);
+                        }}
+                      >
+                        Reconnect
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </>
+        )}
+
         {/* Remove Child Confirmation Dialog */}
         {showRemoveConfirm && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(0,0,0,0.3)]">
             <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
-              <h2 className="text-xl font-bold mb-4 text-red-700">Remove Child?</h2>
-              <p className="mb-4 text-gray-700">Are you sure you want to remove this child from your account? This action cannot be undone.</p>
+              <h2 className="text-xl font-bold mb-4 text-red-700">Remove Patient?</h2>
+              <p className="mb-4 text-gray-700">Are you sure you want to remove this patient from your account? This action cannot be undone.</p>
               {removeError && <div className="text-red-600 text-sm mb-2">{removeError}</div>}
               <div className="flex justify-center gap-4 mt-4">
                 <Button
                   variant="outline"
-                  className="rounded px-6"
+                  className="rounded-lg border border-border px-6"
                   onClick={() => {
                     setShowRemoveConfirm(false);
                     setRemovingChildId(null);
@@ -434,7 +565,7 @@ export default function MyChildrenPage() {
                 </Button>
                 <Button
                   variant="destructive"
-                  className="rounded px-6 bg-red-600 text-white hover:bg-red-700"
+                  className="rounded-lg border border-red-600 px-6 bg-red-600 text-white hover:bg-red-700"
                   onClick={() => removingChildId && handleRemoveChild(removingChildId)}
                   disabled={removeLoading}
                 >
@@ -445,6 +576,37 @@ export default function MyChildrenPage() {
           </div>
         )}
       </div>
+
+      {/* Reconnect Child Confirmation Dialog */}
+      {showReconnectConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(0,0,0,0.3)]">
+          <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
+            <h2 className="text-xl font-bold mb-4 text-primary">Reconnect with Patient?</h2>
+            <p className="mb-4 text-gray-700">Are you sure you want to reconnect with this patient?</p>
+            {reconnectError && <div className="text-red-600 text-sm mb-2">{reconnectError}</div>}
+            <div className="flex justify-center gap-4 mt-4">
+              <Button
+                variant="outline"
+                className="rounded px-6"
+                onClick={() => {
+                  setShowReconnectConfirm(false);
+                  setReconnectingChildId(null);
+                }}
+                disabled={reconnectLoading}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="rounded-lg border border-primary px-6 bg-primary text-white hover:bg-primary/90"
+                onClick={() => reconnectingChildId && handleReconnect(reconnectingChildId)}
+                disabled={reconnectLoading}
+              >
+                {reconnectLoading ? "Reconnecting..." : "Reconnect"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Session Details Modal */}
       {selectedChild && (

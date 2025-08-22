@@ -13,12 +13,14 @@ export async function POST(req: NextRequest) {
     if (!patientId) {
       return NextResponse.json({ error: "Missing patientId" }, { status: 400 });
     }
-    // Remove the ParentGuardian record for this parent and patient
-    await prisma.parentGuardian.deleteMany({
+    // Update the parent connection status to false in the Patient model
+    await prisma.patient.update({
       where: {
-        userId: session.user.id,
-        patientId,
+        id: patientId
       },
+      data: {
+        parentConnectionStatus: false
+      }
     });
     return NextResponse.json({ success: true });
   } catch (error) {

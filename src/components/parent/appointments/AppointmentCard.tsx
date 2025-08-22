@@ -382,7 +382,7 @@ export default function AppointmentCard({
               </CardTitle>
             </div>
           </div>
-          {child.therapist && (
+          {/* {child.therapist && (
             <Button
               size="sm"
               className="text-white hover:opacity-90 transition-all duration-300 shadow-md text-xs px-3 py-1"
@@ -391,7 +391,7 @@ export default function AppointmentCard({
             >
               Book Session
             </Button>
-          )}
+          )} */}
         </div>
       </CardHeader>
 
