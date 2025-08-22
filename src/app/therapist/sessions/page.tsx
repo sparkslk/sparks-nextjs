@@ -122,7 +122,9 @@ export default function TherapistSessionsPage() {
       const response = await fetch("/api/therapist/sessions");
       if (response.ok) {
         const data = await response.json();
-        setSessions(data.sessions);
+        console.log("Fetched sessions data:", data); // Debug log
+        console.log("First session:", data.sessions?.[0]); // Debug log
+        setSessions(data.sessions || []);
       } else {
         console.error("Failed to fetch sessions");
       }
@@ -354,6 +356,9 @@ export default function TherapistSessionsPage() {
   };
 
   const SessionCard = ({ session }: { session: Session }) => {
+    // Add debug logging for session data
+    console.log("Session data in card:", session);
+    
     const isPast = isSessionPast(session);
     const isOngoing = isSessionOngoing(session);
     const isCompleted = isSessionCompleted(session);
@@ -380,7 +385,9 @@ export default function TherapistSessionsPage() {
               </div>
               <div>
                 <CardTitle className="text-lg font-bold text-gray-900">{session.patientName}</CardTitle>
-                <p className="text-sm text-gray-500">Patient ID: {session.patientId}</p>
+                <p className="text-sm text-gray-500">
+                  Patient ID: {session.patientId || 'Not available'}
+                </p>
                 {isOngoing && (
                   <div className="flex items-center gap-2 mt-1">
                     <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
