@@ -75,9 +75,9 @@ export async function POST(request: NextRequest) {
     let startTime: string;
     
     try {
-      // Create the date without timezone conversion
-      const dateOnly = new Date(date);
-      if (isNaN(dateOnly.getTime())) {
+      // Parse the incoming date string (should be in ISO format from frontend)
+      const inputDate = new Date(date);
+      if (isNaN(inputDate.getTime())) {
         throw new Error("Invalid date");
       }
       
@@ -110,19 +110,18 @@ export async function POST(request: NextRequest) {
       adjustedHours = period === "AM" ? (hours === 12 ? 0 : hours) : (hours === 12 ? 12 : hours + 12);
       
       // Create the session date directly without timezone conversion
-      // Store exactly what the user selects: 2:00 PM should be stored as 14:00
-      const year = dateOnly.getFullYear();
-      const month = dateOnly.getMonth();
-      const day = dateOnly.getDate();
+      // Store exactly what the user selects: 9:00 AM should be stored as 09:00
+      const year = inputDate.getFullYear();
+      const month = inputDate.getMonth();
+      const day = inputDate.getDate();
       
-      // Create the date directly - this will store the exact time the user selected
-      sessionDate = new Date(year, month, day, adjustedHours, minutes, 0, 0);
+      // Create a date string in local format to avoid timezone issues
+      const dateString = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}T${adjustedHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00.000Z`;
+      sessionDate = new Date(dateString);
       
       console.log("Original selected time:", `${hours}:${minutes.toString().padStart(2, '0')} ${period}`);
       console.log("Adjusted hours (24h format):", adjustedHours);
-      console.log("Session date created:", sessionDate);
-      console.log("Hours in session date:", sessionDate.getHours());
-      console.log("Minutes in session date:", sessionDate.getMinutes());
+      console.log("Final session date:", sessionDate);
       console.log("Selected time slot:", timeSlot);
       
     } catch (error) {
