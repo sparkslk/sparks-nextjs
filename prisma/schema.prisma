@@ -81,26 +81,27 @@ model Organization {
 }
 
 model Therapist {
-  id                 String                       @id @default(cuid())
-  userId             String                       @unique
-  licenseNumber      String?                      @unique
-  specialization     String[]
-  experience         Int?
-  bio                String?
-  availability       Json?
-  organizationId     String?
-  createdAt          DateTime                     @default(now())
-  updatedAt          DateTime                     @updatedAt
-  rating             Decimal?                     @db.Decimal(3, 2)
-  assessments        Assessment[]
-  Medication         Medication[]
-  patients           Patient[]
-  organization       Organization?                @relation(fields: [organizationId], references: [id])
-  user               User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  assignmentRequests TherapistAssignmentRequest[] @relation("TherapistRequests")
-  therapySessions    TherapySession[]
-  treatments         Treatment[]
-  treatmentPlans     TreatmentPlan[]
+  id                    String                       @id @default(cuid())
+  userId                String                       @unique
+  licenseNumber         String?                      @unique
+  specialization        String[]
+  experience            Int?
+  bio                   String?
+  organizationId        String?
+  createdAt             DateTime                     @default(now())
+  updatedAt             DateTime                     @updatedAt
+  rating                Decimal?                     @db.Decimal(3, 2)
+  availability          Json?
+  assessments           Assessment[]
+  Medication            Medication[]
+  patients              Patient[]
+  organization          Organization?                @relation(fields: [organizationId], references: [id])
+  user                  User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignmentRequests    TherapistAssignmentRequest[] @relation("TherapistRequests")
+  TherapistAvailability TherapistAvailability[]
+  therapySessions       TherapySession[]
+  treatments            Treatment[]
+  treatmentPlans        TreatmentPlan[]
 }
 
 model Patient {
@@ -370,6 +371,30 @@ model QuizSubmission {
   @@index([completionStatus])
 }
 
+model TherapistAvailability {
+  id                   String          @id
+  therapistId          String
+  startTime            String
+  endTime              String
+  dayOfWeek            Int
+  isRecurring          Boolean         @default(false)
+  recurrenceType       RecurrenceType?
+  recurrenceDays       Int[]
+  recurrenceEndDate    DateTime?
+  sessionDuration      Int             @default(60)
+  breakBetweenSessions Int             @default(15)
+  isActive             Boolean         @default(true)
+  rate                 Decimal?        @db.Decimal(10, 2)
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime
+  Therapist            Therapist       @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+
+  @@index([dayOfWeek])
+  @@index([isActive])
+  @@index([therapistId, dayOfWeek, isActive])
+  @@index([therapistId])
+}
+
 enum UserRole {
   NORMAL_USER
   PARENT_GUARDIAN
@@ -487,4 +512,10 @@ enum QuizStatus {
   IN_PROGRESS
   COMPLETED
   ABANDONED
+}
+
+enum RecurrenceType {
+  DAILY
+  WEEKLY
+  CUSTOM
 }

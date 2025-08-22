@@ -1,12 +1,11 @@
-"use client";
-
 import { Card,  CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar, Clock, User, CalendarDays, Video, CheckCircle } from "lucide-react";
 import { Child, Appointment } from "@/types/appointments";
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-// import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import RescheduleModal from "./RescheduleModal";
 
 interface AppointmentCardProps {
   child: Child;
@@ -16,6 +15,7 @@ interface AppointmentCardProps {
   onTherapistClick: (therapist: Child['therapist']) => void;
   formatDate: (dateString: string) => string;
   isHighlighted?: boolean;
+  onSessionCancelled?: () => void;
 }
 
 function formatSriLankaDateTime(dateString: string, options: Intl.DateTimeFormatOptions = { dateStyle: 'medium', timeStyle: 'short' }) {
@@ -33,35 +33,18 @@ export default function AppointmentCard({
   cancelledAppointments,
   onTherapistClick, 
   formatDate,
-  isHighlighted = false
+  isHighlighted = false,
+  onSessionCancelled
 }: AppointmentCardProps) {
   const [activeTab, setActiveTab] = useState<'upcoming' | 'completed' | 'cancelled' | 'all'>('all');
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [selectedSessionToCancel, setSelectedSessionToCancel] = useState<Appointment | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
+  const [canceling, setCanceling] = useState(false);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [showRescheduleModal, setShowRescheduleModal] = useState(false);
+  const [selectedSessionToReschedule, setSelectedSessionToReschedule] = useState<Appointment | null>(null);
     
-  // const [therapySessions, setTherapySessions] = useState<any[]>([]);
-  // const [sessionsLoading, setSessionsLoading] = useState(false);
-  // const [sessionsError, setSessionsError] = useState<string | null>(null);
-  // const [showSessionModal, setShowSessionModal] = useState(false);
-  // const [selectedSession, setSelectedSession] = useState<any>(null);
-
-  // useEffect(() => {
-  //   if (!child?.id || child.id === "all") return;
-  //   setSessionsLoading(true);
-  //   setSessionsError(null);
-  //   fetch(`/api/parent/sessions?childId=${child.id}`)
-  //     .then(async (res) => {
-  //       if (!res.ok) throw new Error("Failed to fetch session details");
-  //       return res.json();
-  //     })
-  //     .then((data) => {
-  //       setTherapySessions(data.sessions || []);
-  //       setSessionsLoading(false);
-  //     })
-  //     .catch((err) => {
-  //       setSessionsError(err.message || "Unknown error");
-  //       setSessionsLoading(false);
-  //     });
-  // }, [child?.id]);
-
   // Filtering logic for appointments
   let filteredUpcoming = upcomingAppointments;
   let filteredPast = pastAppointments;
@@ -74,16 +57,61 @@ export default function AppointmentCard({
   }
   // console.log(therapySessions);
 
-  // const handleViewDetails = (appointment: Appointment) => {
-  //   console.log(appointment);
-  //   // Find the session by appointmentId and childId
-  //   // const session = therapySessions.find(
-  //   //   (s) => s.id === appointment.id && s.childId === appointment.childId
-  //   // );
-  //   // console.log("This is the selected session" ,session);
-  //   setSelectedSession(appointment || null);
-  //   setShowSessionModal(true);
-  // };
+  const handleCancelSession = (appointment: Appointment) => {
+    setSelectedSessionToCancel(appointment);
+    setShowCancelDialog(true);
+  };
+
+  const handleRescheduleSession = (appointment: Appointment) => {
+    setSelectedSessionToReschedule(appointment);
+    setShowRescheduleModal(true);
+  };
+
+  const confirmCancelSession = async () => {
+    if (!selectedSessionToCancel) return;
+    
+    setCanceling(true);
+    try {
+      const response = await fetch('/api/parent/sessions/cancel', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sessionId: selectedSessionToCancel.id,
+          cancelReason: cancelReason.trim()
+        }),
+      });
+
+      if (response.ok) {
+        // Show success dialog instead of alert
+        setShowSuccessDialog(true);
+        
+        // Reset cancel dialog states
+        setShowCancelDialog(false);
+        setSelectedSessionToCancel(null);
+        setCancelReason("");
+        
+        // Auto-close success dialog after 3 seconds and refresh data
+        setTimeout(() => {
+          setShowSuccessDialog(false);
+          if (onSessionCancelled) {
+            onSessionCancelled();
+          } else {
+            window.location.reload();
+          }
+        }, 5000);
+      } else {
+        const error = await response.json();
+        alert(`Failed to cancel session: ${error.error}`);
+      }
+    } catch (error) {
+      console.error("Error cancelling session:", error);
+      alert("An error occurred while cancelling the session");
+    } finally {
+      setCanceling(false);
+    }
+  };
 
   const renderUpcomingSessions = () => (
     <div>
@@ -103,14 +131,14 @@ export default function AppointmentCard({
                 <button
                   className="flex items-center justify-center gap-2 w-36 h-11 px-4 py-2 rounded-lg border bg-green-100 border-green-300 shadow-sm text-base font-semibold text-green-700 hover:bg-green-200 transition-all duration-150 text-center"
                   style={{ fontWeight: 600 }}
-                  onClick={() => {/* reschedule logic here */}}
+                  onClick={() => handleRescheduleSession(appointment)}
                 >
                   Reschedule
                 </button>
                 <button
                   className="flex items-center justify-center gap-2 w-36 h-11 px-4 py-2 rounded-lg border bg-red-100 border-red-300 shadow-sm text-base font-semibold text-red-700 hover:bg-red-200 transition-all duration-150 text-center"
                   style={{ fontWeight: 600 }}
-                  onClick={() => {/* cancel logic here */}}
+                  onClick={() => handleCancelSession(appointment)}
                 >
                   Cancel
                 </button>
@@ -449,6 +477,106 @@ export default function AppointmentCard({
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Cancel Session Dialog */}
+      <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Cancel Session</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to cancel this session? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {selectedSessionToCancel && (
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <div className="text-sm text-gray-600">Session Details:</div>
+                <div className="font-medium">
+                  {new Date(selectedSessionToCancel.date).toLocaleDateString()} at {selectedSessionToCancel.time}
+                </div>
+                <div className="text-sm text-gray-600">
+                  Type: {selectedSessionToCancel.type}
+                </div>
+              </div>
+            )}
+            
+            <div className="space-y-2">
+              <label htmlFor="cancelReason" className="text-sm font-medium text-gray-700">
+                Reason for cancellation (optional):
+              </label>
+              <textarea
+                id="cancelReason"
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                className="w-full p-2 border rounded-lg resize-none"
+                rows={3}
+                placeholder="Please let us know why you're cancelling..."
+              />
+            </div>
+            
+            <div className="flex gap-3 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowCancelDialog(false);
+                  setSelectedSessionToCancel(null);
+                  setCancelReason("");
+                }}
+                disabled={canceling}
+              >
+                Keep Session
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={confirmCancelSession}
+                disabled={canceling}
+              >
+                {canceling ? "Cancelling..." : "Cancel Session"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Success Dialog */}
+      <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-green-600">Session Cancelled Successfully!</DialogTitle>
+            <DialogDescription>
+              Your therapy session has been cancelled and the therapist has been notified.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex items-center justify-center py-4">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+              <CheckCircle className="w-8 h-8 text-green-600" />
+            </div>
+          </div>
+          
+          <div className="text-center space-y-2">
+            <p className="text-sm text-gray-600">
+              The page will refresh automatically in a moment...
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reschedule Modal */}
+      <RescheduleModal
+        open={showRescheduleModal}
+        onOpenChange={setShowRescheduleModal}
+        appointment={selectedSessionToReschedule}
+        onRescheduleSuccess={() => {
+          setSelectedSessionToReschedule(null);
+          if (onSessionCancelled) {
+            onSessionCancelled();
+          } else {
+            window.location.reload();
+          }
+        }}
+      />
     </Card>
   );
 }
