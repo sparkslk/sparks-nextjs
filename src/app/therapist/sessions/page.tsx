@@ -213,8 +213,8 @@ export default function TherapistSessionsPage() {
     // Apply search filter
     if (searchTerm) {
       filteredSessions = filteredSessions.filter(session =>
-        session.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        session.patientId.toLowerCase().includes(searchTerm.toLowerCase())
+        (session.patientName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+        (session.patientId?.toLowerCase() || '').includes(searchTerm.toLowerCase())
       );
     }
 
@@ -233,9 +233,9 @@ export default function TherapistSessionsPage() {
     }
 
     // Apply type filter
-    if (selectedType) {
+    if (selectedType && selectedType !== "all") {
       filteredSessions = filteredSessions.filter(session =>
-        session.type.toLowerCase() === selectedType.toLowerCase()
+        session.type?.toLowerCase() === selectedType.toLowerCase()
       );
     }
 
@@ -247,14 +247,14 @@ export default function TherapistSessionsPage() {
     setSearchTerm("");
     setDateFrom("");
     setDateTo("");
-    setSelectedType("");
+    setSelectedType("all");
   };
 
   // Check if any filters are active
-  const hasActiveFilters = searchTerm || dateFrom || dateTo || selectedType;
+  const hasActiveFilters = searchTerm || dateFrom || dateTo || (selectedType && selectedType !== "all");
 
   // Get unique session types for filter dropdown
-  const sessionTypes = [...new Set(sessions.map(session => session.type))];
+  const sessionTypes = [...new Set(sessions.map(session => session.type).filter(type => type != null))];
 
   const isSessionPast = (session: Session) => {
     // Parse the session time but treat it as local time instead of UTC
@@ -780,12 +780,12 @@ export default function TherapistSessionsPage() {
                   {/* Session Type Filter */}
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-700">Session Type</label>
-                    <Select value={selectedType} onValueChange={setSelectedType}>
+                    <Select value={selectedType || "all"} onValueChange={(value) => setSelectedType(value === "all" ? "" : value)}>
                       <SelectTrigger>
                         <SelectValue placeholder="All types" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">All types</SelectItem>
+                        <SelectItem value="all">All types</SelectItem>
                         {sessionTypes.map((type) => (
                           <SelectItem key={type} value={type}>
                             {type.charAt(0).toUpperCase() + type.slice(1)}
