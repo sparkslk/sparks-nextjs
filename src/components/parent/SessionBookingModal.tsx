@@ -32,6 +32,8 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
+  const [sessionType, setSessionType] = useState<"Individual" | "Family">("Individual");
+  const [calendarDate, setCalendarDate] = useState<Date>(new Date());
   const [therapistInfo, setTherapistInfo] = useState<{
     name: string;
     cost: number;
@@ -43,11 +45,19 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
   });
   const [booking, setBooking] = useState(false);
 
-  const year = selectedDate.getFullYear();
-  const month = selectedDate.getMonth();
+  const year = calendarDate.getFullYear();
+  const month = calendarDate.getMonth();
   const today = new Date();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const firstDay = new Date(year, month, 1).getDay();
+
+  const navigateToPreviousMonth = () => {
+    setCalendarDate(new Date(year, month - 1, 1));
+  };
+
+  const navigateToNextMonth = () => {
+    setCalendarDate(new Date(year, month + 1, 1));
+  };
 
   // Fetch available slots when date changes
   useEffect(() => {
@@ -105,7 +115,7 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
           childId: child.id,
           date: selectedDate.toISOString(),
           timeSlot: selectedSlot,
-          sessionType: "Individual"
+          sessionType: sessionType
         }),
       });
 
@@ -154,6 +164,28 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
               </div>
             </div>
           </div>
+          {/* Session Type Selection */}
+          <div className="px-8 pt-4 pb-2">
+            <div className="font-semibold text-sm text-muted-foreground mb-2">Session Type</div>
+            <div className="flex gap-3 mb-2">
+              <Button
+                type="button"
+                variant={sessionType === "Individual" ? "default" : "outline"}
+                className={`rounded-xl px-6 py-2 text-base font-semibold shadow-sm ${sessionType === "Individual" ? "bg-primary text-white" : ""}`}
+                onClick={() => setSessionType("Individual")}
+              >
+                Individual Session
+              </Button>
+              <Button
+                type="button"
+                variant={sessionType === "Family" ? "default" : "outline"}
+                className={`rounded-xl px-6 py-2 text-base font-semibold shadow-sm ${sessionType === "Family" ? "bg-primary text-white" : ""}`}
+                onClick={() => setSessionType("Family")}
+              >
+                Family Session
+              </Button>
+            </div>
+          </div>
           {/* Select Date & Calendar */}
           <div className="px-8 pt-4 pb-2">
             <div className="font-semibold text-sm text-muted-foreground mb-2">Select Date</div>
@@ -186,7 +218,21 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
             {showCalendar && (
               <div className="bg-gradient-to-br from-muted/40 to-background rounded-2xl p-6 border border-border mb-2 shadow-md w-full max-w-lg mx-auto">
                 <div className="flex justify-between items-center mb-4">
-                  <span className="font-semibold text-2xl text-primary">{selectedDate.toLocaleString('default', { month: 'long' })} {year}</span>
+                  <button
+                    onClick={navigateToPreviousMonth}
+                    className="p-2 rounded-lg hover:bg-muted/30 transition-colors"
+                    type="button"
+                  >
+                    ←
+                  </button>
+                  <span className="font-semibold text-2xl text-primary">{calendarDate.toLocaleString('default', { month: 'long' })} {year}</span>
+                  <button
+                    onClick={navigateToNextMonth}
+                    className="p-2 rounded-lg hover:bg-muted/30 transition-colors"
+                    type="button"
+                  >
+                    →
+                  </button>
                 </div>
                 <div className="grid grid-cols-7 gap-2 mb-3">
                   {weekdays.map((w) => (
@@ -201,7 +247,7 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
                     const day = i + 1;
                     const cellDate = new Date(year, month, day);
                     const isPast = cellDate < new Date(today.getFullYear(), today.getMonth(), today.getDate());
-                    const isSelected = selectedDate.getDate() === day && selectedDate.getMonth() === month;
+                    const isSelected = selectedDate.getDate() === day && selectedDate.getMonth() === month && selectedDate.getFullYear() === year;
                     return (
                       <button
                         key={day}
@@ -254,6 +300,9 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
               </div>
               <div className="flex justify-between text-sm mb-2 text-muted-foreground">
                 <span>Time:</span> <span className="font-medium text-foreground">{selectedSlot || "--"}</span>
+              </div>
+              <div className="flex justify-between text-sm mb-2 text-muted-foreground">
+                <span>Session Type:</span> <span className="font-medium text-foreground">{sessionType}</span>
               </div>
               <div className="flex justify-between text-sm mb-2 text-muted-foreground">
                 <span>Therapist:</span> <span className="font-medium text-foreground">Dr. {child.therapist?.name}</span>
