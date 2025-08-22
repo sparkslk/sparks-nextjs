@@ -1,22 +1,13 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
-import {
-    Search,
     User,
     Check,
     X,
@@ -96,204 +87,134 @@ export default function PatientRequestsPage() {
     const { status } = useSession();
     const router = useRouter();
     const [patientRequests, setPatientRequests] = useState<PatientRequest[]>([]);
-    const [searchTerm, setSearchTerm] = useState("");
-    const [statusFilter, setStatusFilter] = useState("all");
-    const [urgencyFilter, setUrgencyFilter] = useState("all");
-    const [sessionTypeFilter, setSessionTypeFilter] = useState("all");
     const [loading, setLoading] = useState(false);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
-    // Mock data for demonstration
-    useEffect(() => {
-        if (status === "authenticated") {
-            // Simulate loading
+    const fetchPatientRequests = useCallback(async () => {
+        try {
             setLoading(true);
-            setTimeout(() => {
-                setPatientRequests([
-                    {
-                        id: "req001",
-                        patientId: "pat001",
-                        firstName: "Emma",
-                        lastName: "Johnson",
-                        dateOfBirth: "2010-05-15",
-                        gender: "female",
-                        phone: "+1234567890",
-                        email: "emma.parent@email.com",
-                        image: null,
-                        requestedAt: "2024-01-15T10:30:00Z",
-                        status: "pending",
-                        age: 14,
-                        message: "My daughter needs help with anxiety and focus issues. She's been struggling at school lately.",
-                        preferredSessionType: "online",
-                        urgencyLevel: "high"
-                    },
-                    {
-                        id: "req002",
-                        patientId: "pat002",
-                        firstName: "Alex",
-                        lastName: "Chen",
-                        dateOfBirth: "2008-09-22",
-                        gender: "male",
-                        phone: "+1234567891",
-                        email: "alex.chen@email.com",
-                        image: null,
-                        requestedAt: "2024-01-14T14:20:00Z",
-                        status: "pending",
-                        age: 16,
-                        message: "Looking for therapy sessions to help with ADHD management and study techniques.",
-                        preferredSessionType: "in-person",
-                        urgencyLevel: "medium"
-                    },
-                    {
-                        id: "req003",
-                        patientId: "pat003",
-                        firstName: "Sophia",
-                        lastName: "Williams",
-                        dateOfBirth: "2012-03-08",
-                        gender: "female",
-                        phone: "+1234567892",
-                        email: "sophia.parent@email.com",
-                        image: null,
-                        requestedAt: "2024-01-13T09:15:00Z",
-                        status: "accepted",
-                        age: 12,
-                        message: "Need support for behavioral issues and emotional regulation.",
-                        preferredSessionType: "both",
-                        urgencyLevel: "medium"
-                    },
-                    {
-                        id: "req004",
-                        patientId: "pat004",
-                        firstName: "Michael",
-                        lastName: "Brown",
-                        dateOfBirth: "2009-11-30",
-                        gender: "male",
-                        phone: "+1234567893",
-                        email: "michael.parent@email.com",
-                        image: null,
-                        requestedAt: "2024-01-12T16:45:00Z",
-                        status: "rejected",
-                        age: 15,
-                        message: "Seeking help with social anxiety and communication skills.",
-                        preferredSessionType: "online",
-                        urgencyLevel: "low"
-                    },
-                    {
-                        id: "req005",
-                        patientId: "pat005",
-                        firstName: "Isabella",
-                        lastName: "Davis",
-                        dateOfBirth: "2011-07-18",
-                        gender: "female",
-                        phone: "+1234567894",
-                        email: "isabella.parent@email.com",
-                        image: null,
-                        requestedAt: "2024-01-11T11:30:00Z",
-                        status: "pending",
-                        age: 13,
-                        message: "My daughter needs help dealing with stress and perfectionism.",
-                        preferredSessionType: "in-person",
-                        urgencyLevel: "high"
-                    }
-                ]);
-                setLoading(false);
-            }, 1000);
+            setError(null);
+
+            const response = await fetch("/api/therapist/patient-requests", {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            });
+
+            if (!response.ok) {
+                if (response.status === 404) {
+                    throw new Error("Therapist profile not found. Please contact support.");
+                }
+                throw new Error(`Failed to fetch patient requests: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            console.log("Fetched patient requests:", data);
+
+            setPatientRequests(data.requests || []);
+        } catch (error) {
+            console.error("Error fetching patient requests:", error);
+            setError(error instanceof Error ? error.message : "Failed to fetch patient requests");
+            setPatientRequests([]);
+        } finally {
+            setLoading(false);
         }
-    }, [status]);
+    }, []);
 
     useEffect(() => {
         if (status === "unauthenticated") {
             router.push("/login");
             return;
         }
-    }, [status, router]);
 
-    // Filter patient requests based on search and filters
-    const filteredRequests = patientRequests.filter(request => {
-        // Search filter
-        const matchesSearch = `${request.firstName} ${request.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            request.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            request.id.toLowerCase().includes(searchTerm.toLowerCase());
+        if (status === "authenticated") {
+            fetchPatientRequests();
+        }
+    }, [status, router, fetchPatientRequests]);
 
-        // Status filter
-        const matchesStatus = statusFilter === "all" || request.status === statusFilter;
-
-        // Urgency filter
-        const matchesUrgency = urgencyFilter === "all" || request.urgencyLevel === urgencyFilter;
-
-        // Session type filter
-        const matchesSessionType = sessionTypeFilter === "all" || request.preferredSessionType === sessionTypeFilter;
-
-        return matchesSearch && matchesStatus && matchesUrgency && matchesSessionType;
-    });
-
-    const getStatusBadge = (status: string) => {
-        const config = {
-            pending: { variant: "secondary" as const, className: "bg-yellow-100 text-yellow-800" },
-            accepted: { variant: "default" as const, className: "bg-green-100 text-green-800" },
-            rejected: { variant: "outline" as const, className: "bg-red-100 text-red-800" }
-        };
-
-        const statusConfig = config[status as keyof typeof config] || config.pending;
-
-        return (
-            <Badge variant={statusConfig.variant} className={statusConfig.className}>
-                {status.charAt(0).toUpperCase() + status.slice(1)}
-            </Badge>
-        );
-    };
-
-    const getUrgencyBadge = (urgency: string) => {
-        const config = {
-            low: { className: "bg-blue-100 text-blue-800" },
-            medium: { className: "bg-orange-100 text-orange-800" },
-            high: { className: "bg-red-100 text-red-800" }
-        };
-
-        const urgencyConfig = config[urgency as keyof typeof config] || config.low;
-
-        return (
-            <Badge variant="outline" className={urgencyConfig.className}>
-                {urgency.charAt(0).toUpperCase() + urgency.slice(1)} Priority
-            </Badge>
-        );
-    };
+    // Filter to show only pending requests
+    const pendingRequests = patientRequests.filter(request => request.status === "pending");
 
     const handleAcceptRequest = async (requestId: string) => {
-        setActionLoading(requestId);
-        // Simulate API call
-        setTimeout(() => {
+        try {
+            setActionLoading(requestId);
+
+            const response = await fetch("/api/therapist/patient-requests", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    requestId: requestId,
+                    action: "accept"
+                }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || "Failed to accept request");
+            }
+
+            const data = await response.json();
+            console.log("Request accepted:", data);
+
+            // Remove the accepted request from the list since we only show pending
             setPatientRequests(prev => 
-                prev.map(req => 
-                    req.id === requestId 
-                        ? { ...req, status: "accepted" as const }
-                        : req
-                )
+                prev.filter(req => req.id !== requestId)
             );
+
+            // Optionally, show a success message
+            // You can add a toast notification here if you have one set up
+
+        } catch (error) {
+            console.error("Error accepting request:", error);
+            // Optionally, show an error message
+            // You can add an error toast notification here
+        } finally {
             setActionLoading(null);
-        }, 1000);
+        }
     };
 
     const handleRejectRequest = async (requestId: string) => {
-        setActionLoading(requestId);
-        // Simulate API call
-        setTimeout(() => {
-            setPatientRequests(prev => 
-                prev.map(req => 
-                    req.id === requestId 
-                        ? { ...req, status: "rejected" as const }
-                        : req
-                )
-            );
-            setActionLoading(null);
-        }, 1000);
-    };
+        try {
+            setActionLoading(requestId);
 
-    const clearAllFilters = () => {
-        setSearchTerm("");
-        setStatusFilter("all");
-        setUrgencyFilter("all");
-        setSessionTypeFilter("all");
+            const response = await fetch("/api/therapist/patient-requests", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    requestId: requestId,
+                    action: "reject"
+                }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || "Failed to reject request");
+            }
+
+            const data = await response.json();
+            console.log("Request rejected:", data);
+
+            // Remove the rejected request from the list since we only show pending
+            setPatientRequests(prev => 
+                prev.filter(req => req.id !== requestId)
+            );
+
+            // Optionally, show a success message
+            // You can add a toast notification here if you have one set up
+
+        } catch (error) {
+            console.error("Error rejecting request:", error);
+            // Optionally, show an error message
+            // You can add an error toast notification here
+        } finally {
+            setActionLoading(null);
+        }
     };
 
     if (status === "loading" || loading) {
@@ -307,6 +228,21 @@ export default function PatientRequestsPage() {
         );
     }
 
+    if (error) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="text-center">
+                    <div className="text-red-500 mb-4">
+                        <User className="h-12 w-12 mx-auto mb-2" />
+                        <p className="text-lg font-semibold">Error Loading Patient Requests</p>
+                        <p className="text-sm">{error}</p>
+                    </div>
+                    <Button onClick={fetchPatientRequests}>Try Again</Button>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-purple-50/30">
             <div className="container mx-auto p-6 space-y-6">
@@ -315,7 +251,7 @@ export default function PatientRequestsPage() {
                     <div>
                         <h1 className="text-3xl font-bold text-primary">Patient Requests</h1>
                         <p className="text-muted-foreground mt-1">
-                            Manage incoming requests from patients who want you as their therapist
+                            Review and respond to pending requests from patients who want you as their therapist
                         </p>
                     </div>
                     <Button
@@ -323,93 +259,33 @@ export default function PatientRequestsPage() {
                         variant="default"
                         className="text-white"
                     >
-                        View All Patients
+                        View Your Patients
                     </Button>
                 </div>
 
-                {/* Filters */}
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-                    <div className="relative">
-                        <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            type="text"
-                            placeholder="Search by name or ID"
-                            className="pl-10"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                    </div>
-
-                    <Select value={statusFilter} onValueChange={setStatusFilter}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Request Status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Statuses</SelectItem>
-                            <SelectItem value="pending">Pending</SelectItem>
-                            <SelectItem value="accepted">Accepted</SelectItem>
-                            <SelectItem value="rejected">Rejected</SelectItem>
-                        </SelectContent>
-                    </Select>
-
-                    <Select value={urgencyFilter} onValueChange={setUrgencyFilter}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Urgency Level" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Priorities</SelectItem>
-                            <SelectItem value="high">High Priority</SelectItem>
-                            <SelectItem value="medium">Medium Priority</SelectItem>
-                            <SelectItem value="low">Low Priority</SelectItem>
-                        </SelectContent>
-                    </Select>
-
-                    <Select value={sessionTypeFilter} onValueChange={setSessionTypeFilter}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Session Type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Types</SelectItem>
-                            <SelectItem value="in-person">In-Person</SelectItem>
-                            <SelectItem value="online">Online</SelectItem>
-                            <SelectItem value="both">Both</SelectItem>
-                        </SelectContent>
-                    </Select>
-
-                    <div className="flex justify-end">
-                        <Button
-                            onClick={clearAllFilters}
-                            variant="outline"
-                            className="text-primary px-4 py-2 h-auto w-auto"
-                            style={{ minWidth: "unset" }}
-                        >
-                            Clear all
-                        </Button>
-                    </div>
-                </div>
 
                 {/* Patient Requests List */}
                 <div>
-                    <h2 className="text-xl font-semibold mb-4">
-                        Patient Requests ({filteredRequests.length})
-                    </h2>
+                    <div className="flex items-center mb-4">
+                        
+                        <Badge variant="secondary" className="text-base px-3 py-1">
+                            {pendingRequests.length} Pending
+                        </Badge>
+                    </div>
 
                     <div className="space-y-3">
-                        {filteredRequests.length === 0 ? (
+                        {pendingRequests.length === 0 ? (
                             <Card>
                                 <CardContent className="flex flex-col items-center justify-center py-12">
                                     <User className="h-12 w-12 text-muted-foreground mb-4" />
                                     <h3 className="text-lg font-semibold mb-2">No patient requests found</h3>
                                     <p className="text-muted-foreground text-center mb-4">
-                                        {patientRequests.length === 0
-                                            ? "You don't have any patient requests yet."
-                                            : "No requests match your current filters."
-                                        }
+                                        You don't have any pending patient requests yet.
                                     </p>
                                 </CardContent>
                             </Card>
                         ) : (
-                            filteredRequests.map((request) => (
+                            pendingRequests.map((request) => (
                                 <Card key={request.id} className="hover:shadow-md transition-shadow">
                                     <CardContent className="p-4 sm:p-6 lg:p-8">
                                         {/* Mobile Layout */}
@@ -422,26 +298,17 @@ export default function PatientRequestsPage() {
                                                             {request.firstName} {request.lastName}
                                                         </h3>
                                                         <p className="text-xs text-muted-foreground">
-                                                            Age: {request.age}
+                                                            Age: {request.age} • {request.gender} • {request.phone}
                                                         </p>
                                                     </div>
                                                 </div>
-                                                {getStatusBadge(request.status)}
                                             </div>
 
-                                            <div className="flex justify-between items-center">
-                                                {getUrgencyBadge(request.urgencyLevel)}
+                                            <div className="flex justify-end items-center">
                                                 <div className="flex items-center text-xs text-muted-foreground">
                                                     <Calendar className="h-3 w-3 mr-1" />
                                                     {new Date(request.requestedAt).toLocaleDateString()}
                                                 </div>
-                                            </div>
-
-                                            <div className="text-xs">
-                                                <p className="font-medium">Preferred Session:</p>
-                                                <p className="text-muted-foreground capitalize">
-                                                    {request.preferredSessionType}
-                                                </p>
                                             </div>
 
                                             {request.message && (
@@ -500,7 +367,7 @@ export default function PatientRequestsPage() {
                                                         {request.firstName} {request.lastName}
                                                     </h3>
                                                     <p className="text-xs lg:text-sm text-muted-foreground">
-                                                        Age: {request.age} • {request.email}
+                                                        Age: {request.age} • {request.gender} • {request.phone} • {request.email}
                                                     </p>
                                                     <div className="flex items-center space-x-2 mt-1">
                                                         <Calendar className="h-3 w-3 text-muted-foreground" />
@@ -512,19 +379,6 @@ export default function PatientRequestsPage() {
                                             </div>
 
                                             <div className="flex items-center space-x-4 lg:space-x-8">
-                                                <div className="text-xs lg:text-sm hidden md:block">
-                                                    <p className="font-medium">Session Type:</p>
-                                                    <p className="text-muted-foreground capitalize">
-                                                        {request.preferredSessionType}
-                                                    </p>
-                                                </div>
-
-                                                <div className="hidden lg:block">
-                                                    {getUrgencyBadge(request.urgencyLevel)}
-                                                </div>
-
-                                                {getStatusBadge(request.status)}
-
                                                 <div className="flex items-center space-x-1 lg:space-x-2">
                                                     {request.status === "pending" ? (
                                                         <>
