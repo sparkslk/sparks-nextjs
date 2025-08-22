@@ -257,6 +257,7 @@ export default function AppointmentsPage() {
             onTherapistClick={() => {}}
             formatDate={formatDate}
             isHighlighted={false}
+            onSessionCancelled={fetchData}
           />
         ) : (
           (() => {
@@ -278,6 +279,7 @@ export default function AppointmentsPage() {
                 }}
                 formatDate={formatDate}
                 isHighlighted={false}
+                onSessionCancelled={fetchData}
               />
             );
           })()

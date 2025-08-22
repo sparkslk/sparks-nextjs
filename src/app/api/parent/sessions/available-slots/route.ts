@@ -140,6 +140,8 @@ export async function GET(request: NextRequest) {
     const endOfDay = new Date(selectedDate);
     endOfDay.setHours(23, 59, 59, 999);
 
+    console.log("Checking existing sessions from:", startOfDay, "to:", endOfDay);
+
     const existingSessions = await prisma.therapySession.findMany({
       where: {
         therapistId: child.primaryTherapistId!,
@@ -153,14 +155,22 @@ export async function GET(request: NextRequest) {
       }
     });
 
+    console.log("Found existing sessions:", existingSessions.length);
+    console.log("Existing sessions details:", existingSessions.map(s => ({
+      scheduledAt: s.scheduledAt,
+      status: s.status
+    })));
+
     // Generate time slots based on availability
-    const timeSlots: string[] = [];
+    const timeSlots: Array<{slot: string, isAvailable: boolean}> = [];
     
     availableSlots.forEach((availability: TherapistAvailability) => {
       const [startHour, startMinute] = availability.startTime.split(':').map(Number);
       const [endHour, endMinute] = availability.endTime.split(':').map(Number);
       const sessionDuration = availability.sessionDuration;
       const bufferTime = availability.breakBetweenSessions;
+      
+      console.log(`Processing availability: ${availability.startTime} - ${availability.endTime}, duration: ${sessionDuration}min`);
       
       let currentTime = startHour * 60 + startMinute; // Convert to minutes
       const endTime = endHour * 60 + endMinute;
@@ -171,32 +181,54 @@ export async function GET(request: NextRequest) {
         const slotEndHour = Math.floor((currentTime + sessionDuration) / 60);
         const slotEndMinute = (currentTime + sessionDuration) % 60;
         
-        // Check if this slot conflicts with existing sessions
-        const slotDateTime = new Date(selectedDate);
-        slotDateTime.setHours(slotStartHour, slotStartMinute, 0, 0);
+        // Create the exact slot date time using the same format as booking
+        const year = selectedDate.getFullYear();
+        const month = selectedDate.getMonth();
+        const day = selectedDate.getDate();
         
+        const slotDateString = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}T${slotStartHour.toString().padStart(2, '0')}:${slotStartMinute.toString().padStart(2, '0')}:00.000Z`;
+        const slotDateTime = new Date(slotDateString);
+        
+        // Check if this slot conflicts with existing sessions
         const hasConflict = existingSessions.some(session => {
           const sessionTime = new Date(session.scheduledAt);
-          return Math.abs(sessionTime.getTime() - slotDateTime.getTime()) < sessionDuration * 60 * 1000;
+          const timeDiff = Math.abs(sessionTime.getTime() - slotDateTime.getTime());
+          const isConflict = timeDiff < 60 * 1000; // Less than 1 minute difference means same slot
+          
+          if (isConflict) {
+            console.log(`Conflict found: slot ${slotDateTime.toISOString()} conflicts with session at ${sessionTime.toISOString()}`);
+          }
+          
+          return isConflict;
+        });
+        
+        const formatTime = (hour: number, minute: number) => {
+          const period = hour >= 12 ? 'PM' : 'AM';
+          const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+          return `${displayHour}:${minute.toString().padStart(2, '0')} ${period}`;
+        };
+        
+        const timeSlot = `${formatTime(slotStartHour, slotStartMinute)} - ${formatTime(slotEndHour, slotEndMinute)}`;
+        
+        timeSlots.push({
+          slot: timeSlot,
+          isAvailable: !hasConflict
         });
         
         if (!hasConflict) {
-          const formatTime = (hour: number, minute: number) => {
-            const period = hour >= 12 ? 'PM' : 'AM';
-            const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-            return `${displayHour}:${minute.toString().padStart(2, '0')} ${period}`;
-          };
-          
-          const timeSlot = `${formatTime(slotStartHour, slotStartMinute)} - ${formatTime(slotEndHour, slotEndMinute)}`;
-          timeSlots.push(timeSlot);
+          console.log(`Added available slot: ${timeSlot}`);
+        } else {
+          console.log(`Added booked slot: ${timeSlot}`);
         }
         
         currentTime += sessionDuration + bufferTime;
       }
     });
 
+    console.log("Final slots with availability:", timeSlots);
+
     return NextResponse.json({
-      availableSlots: timeSlots,
+      slots: timeSlots,
       therapistName: child.primaryTherapist.user?.name || "Therapist",
       sessionDuration: availableSlots[0]?.sessionDuration || 60,
       cost: availableSlots[0]?.rate || 0
