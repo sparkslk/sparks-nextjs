@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
@@ -23,21 +23,25 @@ interface SessionBookingModalProps {
   onConfirmBooking: (date: Date, slot: string) => void;
 }
 
-const weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-const timeSlots = [
-  "9:00 AM - 10:00 AM",
-  "10:00 AM - 11:00 AM",
-  "11:00 AM - 12:00 AM",
-  "12:00 AM - 1:00 PM",
-  "1:00 PM - 2:00 PM",
-  "2:00 PM - 3:00 PM"
-];
+const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, onOpenChange, child, onConfirmBooking }) => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [showCalendar, setShowCalendar] = useState(false);
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
+  const [availableSlots, setAvailableSlots] = useState<Array<{slot: string, isAvailable: boolean, isBooked?: boolean, isBlocked?: boolean}>>([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [therapistInfo, setTherapistInfo] = useState<{
+    name: string;
+    cost: number;
+    duration: number;
+  }>({
+    name: child.therapist?.name || "Therapist",
+    cost: 3000,
+    duration: 60
+  });
+  const [booking, setBooking] = useState(false);
 
   const year = selectedDate.getFullYear();
   const month = selectedDate.getMonth();
@@ -45,20 +49,86 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const firstDay = new Date(year, month, 1).getDay();
 
+  // Fetch available slots when date changes
+  useEffect(() => {
+    const fetchAvailableSlots = async () => {
+      setLoadingSlots(true);
+      try {
+        const response = await fetch(
+          `/api/parent/sessions/available-slots?childId=${child.id}&date=${selectedDate.toISOString()}`
+        );
+        
+        if (response.ok) {
+          const data = await response.json();
+          setAvailableSlots(data.slots || []);
+          setTherapistInfo(prev => ({
+            ...prev,
+            cost: data.cost || prev.cost,
+            duration: data.sessionDuration || prev.duration
+          }));
+        } else {
+          setAvailableSlots([]);
+        }
+      } catch (error) {
+        console.error("Error fetching available slots:", error);
+        setAvailableSlots([]);
+      } finally {
+        setLoadingSlots(false);
+      }
+    };
+
+    if (open && child.id) {
+      fetchAvailableSlots();
+    }
+  }, [selectedDate, open, child.id]);
+
   const handleDateClick = (day: number) => {
     setSelectedDate(new Date(year, month, day));
     setSelectedSlot(null);
   };
+
   const handleSlotClick = (slot: string) => {
     setSelectedSlot(slot);
   };
-  const handleConfirm = () => {
-    setBookingConfirmed(true);
-    onConfirmBooking(selectedDate, selectedSlot!);
-    setTimeout(() => {
-      setBookingConfirmed(false);
-      onOpenChange(false);
-    }, 2000);
+
+  const handleConfirm = async () => {
+    if (!selectedSlot) return;
+    
+    setBooking(true);
+    try {
+      const response = await fetch('/api/parent/sessions/book', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          childId: child.id,
+          date: selectedDate.toISOString(),
+          timeSlot: selectedSlot,
+          sessionType: "Individual"
+        }),
+      });
+
+      if (response.ok) {
+        setBookingConfirmed(true);
+        onConfirmBooking(selectedDate, selectedSlot);
+        setTimeout(() => {
+          setBookingConfirmed(false);
+          onOpenChange(false);
+          // Reset form
+          setSelectedSlot(null);
+          setSelectedDate(new Date());
+        }, 2000);
+      } else {
+        const error = await response.json();
+        alert(`Booking failed: ${error.error}`);
+      }
+    } catch (error) {
+      console.error("Error booking session:", error);
+      alert("An error occurred while booking the session");
+    } finally {
+      setBooking(false);
+    }
   };
 
   return (
@@ -79,7 +149,7 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
                 <div className="text-xs text-muted-foreground mb-1">Cognitive Behavioral Therapy</div>
                 <div className="flex items-center gap-2">
                   <span className="text-yellow-500 font-semibold text-xs">★ 4.9</span>
-                  <span className="text-xs text-muted-foreground">Rs.3000 per session</span>
+                  <span className="text-xs text-muted-foreground">Rs.{therapistInfo.cost} per session</span>
                 </div>
               </div>
             </div>
@@ -151,18 +221,35 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
           {/* Time Slots */}
           <div className="px-8 pt-4 pb-2">
             <div className="font-semibold text-sm text-muted-foreground mb-2">Available Time Slots <span className="text-primary">{selectedDate && selectedDate.toLocaleString('default', { month: 'short', day: 'numeric' })}</span></div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2">
-              {timeSlots.map(slot => (
-                <Button
-                  key={slot}
-                  variant={selectedSlot === slot ? "default" : "outline"}
-                  className={`rounded-xl px-4 py-2 text-base font-semibold shadow-sm ${selectedSlot === slot ? "bg-primary text-white" : ""}`}
-                  onClick={() => handleSlotClick(slot)}
-                >
-                  {slot}
-                </Button>
-              ))}
-            </div>
+            {loadingSlots ? (
+              <div className="text-center py-4">
+                <div className="text-sm text-muted-foreground">Loading available slots...</div>
+              </div>
+            ) : availableSlots.length === 0 ? (
+              <div className="text-center py-4">
+                <div className="text-sm text-muted-foreground">No available time slots for this date</div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2">
+                {availableSlots.map((slotData) => (
+                  <Button
+                    key={slotData.slot}
+                    variant={selectedSlot === slotData.slot ? "default" : "outline"}
+                    className={`rounded-xl px-4 py-2 text-base font-semibold shadow-sm ${
+                      selectedSlot === slotData.slot 
+                        ? "bg-primary text-white" 
+                        : slotData.isAvailable 
+                        ? "hover:bg-primary/10" 
+                        : "opacity-50 cursor-not-allowed bg-muted text-muted-foreground"
+                    }`}
+                    onClick={() => slotData.isAvailable && handleSlotClick(slotData.slot)}
+                    disabled={!slotData.isAvailable}
+                  >
+                    {slotData.slot} {!slotData.isAvailable && (slotData.isBooked ? "(Booked)" : "(Blocked)")}
+                  </Button>
+                ))}
+              </div>
+            )}
           </div>
           {/* Booking Summary */}
           <div className="px-8 pt-4 pb-8">
@@ -179,10 +266,14 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
                 <span>Therapist:</span> <span className="font-medium text-foreground">Dr. {child.therapist?.name}</span>
               </div>
               <div className="flex justify-between text-sm mb-4 text-muted-foreground">
-                <span>Total Cost:</span> <span className="font-bold text-primary">Rs.3000</span>
+                <span>Total Cost:</span> <span className="font-bold text-primary">Rs.{therapistInfo.cost}</span>
               </div>
-              <Button className="w-full bg-primary text-white text-base py-3 rounded-xl font-semibold shadow" disabled={!selectedSlot || bookingConfirmed} onClick={handleConfirm}>
-                {bookingConfirmed ? "Booking Confirmed!" : "Confirm Booking"}
+              <Button 
+                className="w-full bg-primary text-white text-base py-3 rounded-xl font-semibold shadow" 
+                disabled={!selectedSlot || bookingConfirmed || booking} 
+                onClick={handleConfirm}
+              >
+                {booking ? "Booking..." : bookingConfirmed ? "Booking Confirmed!" : "Confirm Booking"}
               </Button>
               {bookingConfirmed && (
                 <div className="mt-3 text-center text-success font-semibold animate-fade-in">Your session has been booked!</div>

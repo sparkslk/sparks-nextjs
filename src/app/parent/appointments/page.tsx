@@ -195,7 +195,10 @@ export default function AppointmentsPage() {
                       }
                     : null,
                 }}
-                onConfirmBooking={() => {}}
+                onConfirmBooking={() => {
+                  // Refresh the data after booking
+                  fetchData();
+                }}
               />
             </div>
           ))}
@@ -254,6 +257,7 @@ export default function AppointmentsPage() {
             onTherapistClick={() => {}}
             formatDate={formatDate}
             isHighlighted={false}
+            onSessionCancelled={fetchData}
           />
         ) : (
           (() => {
@@ -275,6 +279,7 @@ export default function AppointmentsPage() {
                 }}
                 formatDate={formatDate}
                 isHighlighted={false}
+                onSessionCancelled={fetchData}
               />
             );
           })()
