@@ -73,6 +73,34 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Cannot reschedule a completed session" }, { status: 400 });
     }
 
+    // Get the current therapist rate and the rate at time of booking
+    const currentTherapistRate = therapySession.therapist.session_rate || 0;
+    const bookedRate = therapySession.bookedRate || 0;
+    
+    console.log('Current therapist rate:', currentTherapistRate);
+    console.log('Original booked rate:', bookedRate);
+
+    // Check if therapist rate has changed since booking
+    // Only compare if we have a booked rate stored (for existing sessions that might not have this field)
+    const hasRateChanged =
+      (typeof bookedRate === "object" && "gt" in bookedRate
+        ? bookedRate.gt(0)
+        : bookedRate > 0) &&
+      bookedRate.toString() !== currentTherapistRate.toString();
+
+    if (hasRateChanged) {
+      // Rate has changed - parent cannot reschedule, must cancel and book new session
+      return NextResponse.json({ 
+        error: "RATE_CHANGED",
+        message: "The therapist's rate has changed since your original booking. You cannot reschedule this session. Please cancel this session and book a new one at the current rate.",
+        originalRate: bookedRate,
+        currentRate: currentTherapistRate,
+        canReschedule: false
+      }, { status: 409 }); // 409 Conflict
+    }
+
+    // Rate is the same or this is a free session - proceed with rescheduling
+
     // Parse the new date and time
     let newDateTime: Date;
     let adjustedHours: number;

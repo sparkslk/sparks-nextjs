@@ -53,7 +53,9 @@ export async function GET(request: NextRequest) {
       },
       include: {
         primaryTherapist: {
-          include: {
+          select: {
+            id: true,
+            session_rate: true, // Include session_rate from therapist table
             user: {
               select: {
                 name: true
@@ -240,7 +242,7 @@ export async function GET(request: NextRequest) {
       slots: timeSlots,
       therapistName: child.primaryTherapist.user?.name || "Therapist",
       sessionDuration: availableSlots[0]?.sessionDuration || 60,
-      cost: availableSlots[0]?.rate || 0
+      cost: child.primaryTherapist.session_rate || 0 // Use therapist's session_rate, not availability rate
     });
 
   } catch (error) {

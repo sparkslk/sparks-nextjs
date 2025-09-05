@@ -250,6 +250,7 @@ export async function POST(request: NextRequest) {
         duration: availability.sessionDuration,
         status: "SCHEDULED",
         type: sessionType,
+        bookedRate: child.primaryTherapist.session_rate || 0, // Store the rate at time of booking
         createdAt: new Date(),
         updatedAt: new Date()
       },

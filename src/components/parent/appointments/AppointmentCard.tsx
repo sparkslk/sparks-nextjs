@@ -44,6 +44,14 @@ export default function AppointmentCard({
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
   const [selectedSessionToReschedule, setSelectedSessionToReschedule] = useState<Appointment | null>(null);
+  const [showRateChangeDialog, setShowRateChangeDialog] = useState(false);
+  const [rateChangeInfo, setRateChangeInfo] = useState<{
+    therapistName: string;
+    patientName: string;
+    originalRate: number;
+    currentRate: number;
+  } | null>(null);
+  const [checkingReschedule, setCheckingReschedule] = useState(false);
     
   // Filtering logic for appointments
   let filteredUpcoming = upcomingAppointments;
@@ -62,9 +70,51 @@ export default function AppointmentCard({
     setShowCancelDialog(true);
   };
 
-  const handleRescheduleSession = (appointment: Appointment) => {
-    setSelectedSessionToReschedule(appointment);
-    setShowRescheduleModal(true);
+  const handleRescheduleSession = async (appointment: Appointment) => {
+    setCheckingReschedule(true);
+    
+    try {
+      // Check if rescheduling is allowed before opening the modal
+      const response = await fetch('/api/parent/sessions/check-reschedule', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sessionId: appointment.id,
+        }),
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        alert(`Error: ${result.error}`);
+        return;
+      }
+      
+      if (result.canReschedule) {
+        // Rate hasn't changed - proceed with reschedule modal
+        setSelectedSessionToReschedule(appointment);
+        setShowRescheduleModal(true);
+      } else if (result.reason === 'RATE_CHANGED') {
+        // Rate has changed - show notice dialog
+        setRateChangeInfo({
+          therapistName: result.therapistName,
+          patientName: result.patientName,
+          originalRate: result.originalRate,
+          currentRate: result.currentRate,
+        });
+        setShowRateChangeDialog(true);
+      } else {
+        // Other reasons (cancelled, completed, etc.)
+        alert(result.message);
+      }
+    } catch (error) {
+      console.error('Error checking reschedule eligibility:', error);
+      alert('An error occurred while checking if the session can be rescheduled');
+    } finally {
+      setCheckingReschedule(false);
+    }
   };
 
   const confirmCancelSession = async () => {
@@ -129,11 +179,12 @@ export default function AppointmentCard({
               {/* Action buttons at bottom right */}
               <div className="absolute bottom-4 right-4 flex gap-2 z-20">
                 <button
-                  className="flex items-center justify-center gap-2 w-36 h-11 px-4 py-2 rounded-lg border bg-green-100 border-green-300 shadow-sm text-base font-semibold text-green-700 hover:bg-green-200 transition-all duration-150 text-center"
+                  className="flex items-center justify-center gap-2 w-36 h-11 px-4 py-2 rounded-lg border bg-green-100 border-green-300 shadow-sm text-base font-semibold text-green-700 hover:bg-green-200 transition-all duration-150 text-center disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ fontWeight: 600 }}
                   onClick={() => handleRescheduleSession(appointment)}
+                  disabled={checkingReschedule}
                 >
-                  Reschedule
+                  {checkingReschedule ? 'Checking...' : 'Reschedule'}
                 </button>
                 <button
                   className="flex items-center justify-center gap-2 w-36 h-11 px-4 py-2 rounded-lg border bg-red-100 border-red-300 shadow-sm text-base font-semibold text-red-700 hover:bg-red-200 transition-all duration-150 text-center"
@@ -559,6 +610,57 @@ export default function AppointmentCard({
             <p className="text-sm text-gray-600">
               The page will refresh automatically in a moment...
             </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Rate Change Notice Dialog */}
+      <Dialog open={showRateChangeDialog} onOpenChange={setShowRateChangeDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-amber-600">Rate Change Notice</DialogTitle>
+            <DialogDescription>
+              The therapist has updated their session rates since your original booking.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {rateChangeInfo && (
+            <div className="space-y-4">
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <div className="space-y-2">
+                  <p className="text-sm"><strong>Patient:</strong> {rateChangeInfo.patientName}</p>
+                  <p className="text-sm"><strong>Therapist:</strong> {rateChangeInfo.therapistName}</p>
+                  <div className="grid grid-cols-2 gap-4 mt-3">
+                    <div>
+                      <p className="text-xs text-gray-600">Original Rate:</p>
+                      <p className="font-semibold text-green-600">LKR {rateChangeInfo.originalRate}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-600">Current Rate:</p>
+                      <p className="font-semibold text-amber-600">LKR {rateChangeInfo.currentRate}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 className="font-semibold text-blue-800 mb-2">What you can do:</h4>
+                <ul className="text-sm text-blue-700 space-y-1">
+                  <li>• If you can&apos;t attend the scheduled session, please cancel this appointment</li>
+                  <li>• Make a new booking at the current rate of LKR {rateChangeInfo.currentRate}</li>
+                  <li>• Contact the therapist directly to discuss the rate change</li>
+                </ul>
+              </div>
+            </div>
+          )}
+          
+          <div className="flex justify-end gap-2 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setShowRateChangeDialog(false)}
+            >
+              I Understand
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

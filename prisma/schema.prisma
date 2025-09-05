@@ -92,6 +92,7 @@ model Therapist {
   updatedAt             DateTime                     @updatedAt
   rating                Decimal?                     @db.Decimal(3, 2)
   availability          Json?
+  session_rate          Decimal?                     @default(0) @db.Decimal(10, 2)
   assessments           Assessment[]
   Medication            Medication[]
   patients              Patient[]
@@ -167,6 +168,7 @@ model TherapySession {
   primaryFocusAreas String[]
   sessionNotes      String?
   nextSessionGoals  String?
+  bookedRate        Decimal?          @db.Decimal(10, 2) // Rate at time of booking
   patient           Patient           @relation(fields: [patientId], references: [id], onDelete: Cascade)
   therapist         Therapist         @relation(fields: [therapistId], references: [id], onDelete: Cascade)
 }
@@ -408,9 +410,7 @@ enum SessionStatus {
   COMPLETED
   CANCELLED
   NO_SHOW
-  REQUESTED
-  APPROVED
-  DECLINED
+  RESCHEDULED
 }
 
 enum AttendanceStatus {
