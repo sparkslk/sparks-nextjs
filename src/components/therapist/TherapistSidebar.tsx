@@ -10,6 +10,7 @@ import {
   Users,
   BarChart3,
   User,
+  UserPlus,
   ClipboardList,
   MessageSquare,
   Home,
@@ -69,12 +70,17 @@ const getMenuItems = () => ({
       icon: User,
       badge: pendingRequests > 0 ? pendingRequests.toString() : null,
     }, */
-  ],
-  clinical: [
+    ],
+    clinical: [
     {
       title: "Patients",
       url: "/therapist/patients",
       icon: Users,
+    },
+    {
+      title: "Patient Requests",
+      url: "/therapist/patientRequests",
+      icon: UserPlus, // Use UserPlus for a "user plus" or "add patient/request" feel
     },
     {
       title: "Sessions",

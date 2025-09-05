@@ -231,20 +231,20 @@ export default function PatientsPage() {
                     </div>
                     <Button
                         onClick={clearAllFilters}
-                        variant="outline"
-                        className="text-purple-600"
+                        variant="default"
+                        className="text-white"
                     >
-                        Clear all
+                        View Patient Requests
                     </Button>
                 </div>
 
                 {/* Filters */}
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
                     <div className="relative">
                         <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                         <Input
                             type="text"
-                            placeholder="Search patients by name or ID"
+                            placeholder="Search by name or ID"
                             className="pl-10"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
@@ -296,6 +296,16 @@ export default function PatientsPage() {
                             <SelectItem value="old">Older than 30 days</SelectItem>
                         </SelectContent>
                     </Select>
+                    <div className="flex justify-end">
+                        <Button
+                            onClick={clearAllFilters}
+                            variant="outline"
+                            className="text-primary px-4 py-2 h-auto w-auto"
+                            style={{ minWidth: "unset" }}
+                        >
+                            Clear all
+                        </Button>
+                    </div>
                 </div>
 
                 {/* Patients List */}

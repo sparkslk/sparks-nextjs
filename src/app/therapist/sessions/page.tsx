@@ -1,14 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Clock, User, FileText, Edit, Eye, CheckCircle, Plus, Activity, RotateCcw, Video, ArrowRight } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar, Clock, User, FileText, Edit, Eye, CheckCircle, Plus, Hourglass , RotateCcw, Video, ArrowRight, Search, Filter, X } from "lucide-react";
 import { SessionUpdateModal } from "@/components/therapist/SessionUpdateModal";
 import { RescheduleModal } from "@/components/therapist/RescheduleModal";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import MedicationManagement from "@/components/therapist/MedicationManagement";
+import { Dialog, DialogContent} from "@/components/ui/dialog";
+import { Medication } from "@/types/medications";
 
 interface Session {
   id: string;
@@ -35,34 +39,18 @@ export default function TherapistSessionsPage() {
   const [activeTab, setActiveTab] = useState("scheduled");
   const [showMedications, setShowMedications] = useState(false);
   const [showTasks, setShowTasks] = useState(false);
-
-  // Hardcoded data for medications and tasks
-  const hardcodedMedications = [
-    {
-      id: "1",
-      name: "Methylphenidate",
-      dosage: "7",
-      frequency: "Twice daily",
-      mealTiming: "Before meals",
-      startDate: "2025-07-07",
-      endDate: "2025-07-12",
-      prescribedBy: "Ravindi Fernando",
-      instructions: "Take with a full glass of water. Do not exceed recommended dose.",
-      isActive: true,
-    },
-    {
-      id: "2",
-      name: "Amoxicillin",
-      dosage: "500mg",
-      frequency: "Three times daily",
-      mealTiming: "After meals",
-      startDate: "2025-07-01",
-      endDate: "2025-07-10",
-      prescribedBy: "Dr. Nimal Perera",
-      instructions: "Complete the full course even if you feel better.",
-      isActive: true,
-    }
-  ];
+  
+  // Add filter state variables
+  const [searchTerm, setSearchTerm] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [selectedType, setSelectedType] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  
+  // Add medication management state
+  const [medications, setMedications] = useState<Medication[]>([]);
+  const [medicationPatientId, setMedicationPatientId] = useState<string | null>(null);
+  const [isLoadingMedications, setIsLoadingMedications] = useState(false);
 
   const hardcodedTasks = [
     {
@@ -134,7 +122,9 @@ export default function TherapistSessionsPage() {
       const response = await fetch("/api/therapist/sessions");
       if (response.ok) {
         const data = await response.json();
-        setSessions(data.sessions);
+        console.log("Fetched sessions data:", data); // Debug log
+        console.log("First session:", data.sessions?.[0]); // Debug log
+        setSessions(data.sessions || []);
       } else {
         console.error("Failed to fetch sessions");
       }
@@ -144,6 +134,40 @@ export default function TherapistSessionsPage() {
       setLoading(false);
     }
   };
+
+  // Add function to fetch medications
+  const fetchMedications = async (patientId: string) => {
+    try {
+      setIsLoadingMedications(true);
+      const response = await fetch(`/api/therapist/patients/${patientId}/medications`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setMedications(data);
+      } else {
+        console.error("Failed to fetch medications:", response.statusText);
+        setMedications([]);
+      }
+    } catch (error) {
+      console.error("Error fetching medications:", error);
+      setMedications([]);
+    } finally {
+      setIsLoadingMedications(false);
+    }
+  };
+
+  // Add handler for opening medications modal with patient context
+  const handleOpenMedicationsModal = useCallback((patientId: string) => {
+    setMedicationPatientId(patientId);
+    setMedications([]); // Clear previous medications immediately
+    setShowMedications(true);
+    fetchMedications(patientId); // Then fetch new ones
+  }, []);
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -164,25 +188,75 @@ export default function TherapistSessionsPage() {
   };
 
   const filterSessionsByTab = (tab: string) => {
+    let filteredSessions;
     switch (tab) {
       case 'scheduled':
-        return sessions.filter(session => 
+        filteredSessions = sessions.filter(session => 
           ['SCHEDULED', 'APPROVED', 'CONFIRMED'].includes(session.status)
         );
+        break;
       case 'completed':
-        return sessions.filter(session => 
+        filteredSessions = sessions.filter(session => 
           session.status === 'COMPLETED'
         );
+        break;
       case 'cancelled':
-        return sessions.filter(session => 
+        filteredSessions = sessions.filter(session => 
           ['CANCELLED', 'DECLINED', 'NO_SHOW'].includes(session.status)
         );
+        break;
       case 'all':
-        return sessions;
+        filteredSessions = sessions;
+        break;
       default:
-        return sessions;
+        filteredSessions = sessions;
     }
+
+    // Apply search filter
+    if (searchTerm) {
+      filteredSessions = filteredSessions.filter(session =>
+        (session.patientName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+        (session.patientId?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Apply date range filter
+    if (dateFrom) {
+      filteredSessions = filteredSessions.filter(session => {
+        const sessionDate = new Date(session.scheduledAt).toISOString().split('T')[0];
+        return sessionDate >= dateFrom;
+      });
+    }
+    if (dateTo) {
+      filteredSessions = filteredSessions.filter(session => {
+        const sessionDate = new Date(session.scheduledAt).toISOString().split('T')[0];
+        return sessionDate <= dateTo;
+      });
+    }
+
+    // Apply type filter
+    if (selectedType && selectedType !== "all") {
+      filteredSessions = filteredSessions.filter(session =>
+        session.type?.toLowerCase() === selectedType.toLowerCase()
+      );
+    }
+
+    return filteredSessions;
   };
+
+  // Clear all filters
+  const clearFilters = () => {
+    setSearchTerm("");
+    setDateFrom("");
+    setDateTo("");
+    setSelectedType("all");
+  };
+
+  // Check if any filters are active
+  const hasActiveFilters = searchTerm || dateFrom || dateTo || (selectedType && selectedType !== "all");
+
+  // Get unique session types for filter dropdown
+  const sessionTypes = [...new Set(sessions.map(session => session.type).filter(type => type != null))];
 
   const isSessionPast = (session: Session) => {
     // Parse the session time but treat it as local time instead of UTC
@@ -282,6 +356,9 @@ export default function TherapistSessionsPage() {
   };
 
   const SessionCard = ({ session }: { session: Session }) => {
+    // Add debug logging for session data
+    console.log("Session data in card:", session);
+    
     const isPast = isSessionPast(session);
     const isOngoing = isSessionOngoing(session);
     const isCompleted = isSessionCompleted(session);
@@ -308,7 +385,9 @@ export default function TherapistSessionsPage() {
               </div>
               <div>
                 <CardTitle className="text-lg font-bold text-gray-900">{session.patientName}</CardTitle>
-                <p className="text-sm text-gray-500">Patient ID: {session.patientId}</p>
+                <p className="text-sm text-gray-500">
+                  Patient ID: {session.patientId || 'Not available'}
+                </p>
                 {isOngoing && (
                   <div className="flex items-center gap-2 mt-1">
                     <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
@@ -368,7 +447,7 @@ export default function TherapistSessionsPage() {
             </div>
             
             <div className="flex items-center gap-2">
-              <Activity className="w-6 h-6 text-primary" />
+              <Hourglass  className="w-6 h-6 text-primary" />
               <div>
                 <p className="text-xs text-gray-500">Duration</p>
                 <p className="text-sm font-medium">{session.duration} min</p>
@@ -472,20 +551,26 @@ export default function TherapistSessionsPage() {
         </CardContent>
       </Card>
     );
+
   };
 
   useEffect(() => {
-    const openMedicationsModal = () => setShowMedications(true);
+    const openMedicationsModal = (event: CustomEvent) => {
+      const patientId = event.detail?.patientId || medicationPatientId;
+      if (patientId) {
+        handleOpenMedicationsModal(patientId);
+      }
+    };
     const openTasksModal = () => setShowTasks(true);
 
-    window.addEventListener("openMedicationsModal", openMedicationsModal);
+    window.addEventListener("openMedicationsModal", openMedicationsModal as EventListener);
     window.addEventListener("openTasksModal", openTasksModal);
 
     return () => {
-      window.removeEventListener("openMedicationsModal", openMedicationsModal);
+      window.removeEventListener("openMedicationsModal", openMedicationsModal as EventListener);
       window.removeEventListener("openTasksModal", openTasksModal);
     };
-  }, []);
+  }, [medicationPatientId, handleOpenMedicationsModal]);
 
   if (loading) {
     return (
@@ -625,9 +710,101 @@ export default function TherapistSessionsPage() {
               Cancelled ({filterSessionsByTab("cancelled").length})
             </TabsTrigger>
             <TabsTrigger value="all">
-              All Sessions ({sessions.length})
+              All Sessions ({filterSessionsByTab("all").length})
             </TabsTrigger>
           </TabsList>
+
+          {/* Filters Section */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowFilters(!showFilters)}
+                  className="flex items-center gap-2"
+                >
+                  <Filter className="w-4 h-4" />
+                  Filters
+                  {hasActiveFilters && (
+                    <Badge variant="secondary" className="ml-1 px-1.5 py-0.5 text-xs">
+                      {[searchTerm, dateFrom, dateTo, selectedType].filter(Boolean).length}
+                    </Badge>
+                  )}
+                </Button>
+                {hasActiveFilters && (
+                  <Button
+                    variant="ghost"
+                    onClick={clearFilters}
+                    className="text-sm text-gray-500 hover:text-gray-700"
+                  >
+                    <X className="w-4 h-4 mr-1" />
+                    Clear all
+                  </Button>
+                )}
+              </div>
+              <div className="text-sm text-gray-500">
+                Showing {filterSessionsByTab(activeTab).length} of {sessions.length} sessions
+              </div>
+            </div>
+
+            {showFilters && (
+              <Card className="p-4 mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Search Filter */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">Search</label>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                      <Input
+                        placeholder="Patient name or ID..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Date From Filter */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">From Date</label>
+                    <Input
+                      type="date"
+                      value={dateFrom}
+                      onChange={(e) => setDateFrom(e.target.value)}
+                    />
+                  </div>
+
+                  {/* Date To Filter */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">To Date</label>
+                    <Input
+                      type="date"
+                      value={dateTo}
+                      onChange={(e) => setDateTo(e.target.value)}
+                    />
+                  </div>
+
+                  {/* Session Type Filter */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">Session Type</label>
+                    <Select value={selectedType || "all"} onValueChange={(value) => setSelectedType(value === "all" ? "" : value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="All types" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All types</SelectItem>
+                        {sessionTypes.map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {type.charAt(0).toUpperCase() + type.slice(1)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </Card>
+            )}
+          </div>
 
           <TabsContent value="scheduled">
             <div className="space-y-6">
@@ -637,16 +814,25 @@ export default function TherapistSessionsPage() {
                     <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                       <Calendar className="w-8 h-8 text-gray-400" />
                     </div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No scheduled sessions</h3>
-                    <p className="text-gray-500 mb-6">Your scheduled therapy sessions will appear here.</p>
-                    <Button 
-                      style={{ backgroundColor: '#8159A8' }}
-                      className="text-white hover:opacity-90"
-                      onClick={() => window.location.href = '/therapist/appointments/new'}
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Schedule Your First Session
-                    </Button>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      {hasActiveFilters ? "No sessions match your filters" : "No scheduled sessions"}
+                    </h3>
+                    <p className="text-gray-500 mb-6">
+                      {hasActiveFilters 
+                        ? "Try adjusting your search criteria or clearing the filters." 
+                        : "Your scheduled therapy sessions will appear here."
+                      }
+                    </p>
+                    {!hasActiveFilters && (
+                      <Button 
+                        style={{ backgroundColor: '#8159A8' }}
+                        className="text-white hover:opacity-90"
+                        onClick={() => window.location.href = '/therapist/appointments/new'}
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Schedule Your First Session
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               ) : (
@@ -670,8 +856,15 @@ export default function TherapistSessionsPage() {
                     <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                       <CheckCircle className="w-8 h-8 text-gray-400" />
                     </div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No completed sessions yet</h3>
-                    <p className="text-gray-500">Completed sessions will appear here after you finish and document them.</p>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      {hasActiveFilters ? "No sessions match your filters" : "No completed sessions yet"}
+                    </h3>
+                    <p className="text-gray-500">
+                      {hasActiveFilters 
+                        ? "Try adjusting your search criteria or clearing the filters." 
+                        : "Completed sessions will appear here after you finish and document them."
+                      }
+                    </p>
                   </CardContent>
                 </Card>
               ) : (
@@ -695,8 +888,15 @@ export default function TherapistSessionsPage() {
                     <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                       <Clock className="w-8 h-8 text-gray-400" />
                     </div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No cancelled sessions</h3>
-                    <p className="text-gray-500">Great! You haven&apos;t had any cancelled sessions.</p>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      {hasActiveFilters ? "No sessions match your filters" : "No cancelled sessions"}
+                    </h3>
+                    <p className="text-gray-500">
+                      {hasActiveFilters 
+                        ? "Try adjusting your search criteria or clearing the filters." 
+                        : "Great! You haven't had any cancelled sessions."
+                      }
+                    </p>
                   </CardContent>
                 </Card>
               ) : (
@@ -714,27 +914,36 @@ export default function TherapistSessionsPage() {
 
           <TabsContent value="all">
             <div className="space-y-6">
-              {sessions.length === 0 ? (
+              {filterSessionsByTab("all").length === 0 ? (
                 <Card className="shadow-sm border border-gray-200">
                   <CardContent className="p-12 text-center">
                     <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                       <Calendar className="w-8 h-8 text-gray-400" />
                     </div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No sessions found</h3>
-                    <p className="text-gray-500 mb-6">Start by scheduling your first therapy session.</p>
-                    <Button 
-                      style={{ backgroundColor: '#8159A8' }}
-                      className="text-white hover:opacity-90"
-                      onClick={() => window.location.href = '/therapist/appointments/new'}
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Schedule Your First Session
-                    </Button>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      {hasActiveFilters ? "No sessions match your filters" : "No sessions found"}
+                    </h3>
+                    <p className="text-gray-500 mb-6">
+                      {hasActiveFilters 
+                        ? "Try adjusting your search criteria or clearing the filters." 
+                        : "Start by scheduling your first therapy session."
+                      }
+                    </p>
+                    {!hasActiveFilters && (
+                      <Button 
+                        style={{ backgroundColor: '#8159A8' }}
+                        className="text-white hover:opacity-90"
+                        onClick={() => window.location.href = '/therapist/appointments/new'}
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Schedule Your First Session
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               ) : (
                 <div className="space-y-6">
-                  {sessions
+                  {filterSessionsByTab("all")
                     .sort((a, b) => new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime())
                     .map((session) => (
                       <SessionCard key={session.id} session={session} />
@@ -768,175 +977,111 @@ export default function TherapistSessionsPage() {
           onRescheduleConfirmed={handleRescheduleConfirmed}
         />
 
+        {/* Updated Medications Modal with MedicationManagement component */}
         <Dialog open={showMedications} onOpenChange={setShowMedications}>
-          <DialogContent className="max-w-3xl">
-  <div className="flex items-center justify-between mb-4">
-    <Button
-      style={{ backgroundColor: "#8159A8", color: "#fff" }}
-      className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 shadow hover:brightness-110"
-      // onClick={() => setShowAddMedication(true)}
-    >
-      <Plus className="w-5 h-5" />
-      Add Medication
-    </Button>
-    <Badge variant="outline" className="text-sm">
-      {hardcodedMedications.filter(t => t.isActive).length} Active
-    </Badge>
-  </div>
-  {hardcodedMedications.length === 0 ? (
-    <Card>
-      <CardContent className="p-8 text-center">
-        <p className="text-muted-foreground">No medications on record.</p>
-      </CardContent>
-    </Card>
-  ) : (
-    hardcodedMedications.map((med) => (
-      <Card
-        key={med.id}
-        className="mb-4 shadow-md bg-[#F8F6FB] border-0"
-      >
-        <div className="p-4 flex flex-col gap-3">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <span className="text-base font-semibold text-[#8159A8]">{med.name}</span>
-              {med.isActive ? (
-                <Badge className="ml-2 bg-green-100 text-green-700 text-xs font-semibold">
-                  Active
-                </Badge>
-              ) : (
-                <Badge className="ml-2 bg-gray-100 text-gray-500 text-xs font-semibold">
-                  Inactive
-                </Badge>
-              )}
+          <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden">
+            <div className="overflow-y-auto max-h-[calc(90vh-8rem)] pr-2">
+              {isLoadingMedications ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#8159A8]"></div>
+                  <span className="ml-2">Loading medications...</span>
+                </div>
+              ) : medicationPatientId ? (
+                <MedicationManagement 
+                  patientId={medicationPatientId}
+                  medications={medications}
+                  onMedicationUpdate={() => fetchMedications(medicationPatientId)}
+                />
+              ) : null}
             </div>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-2">
-            <div>
-              <p className="text-[10px] font-medium text-muted-foreground uppercase">Dosage</p>
-              <p className="text-sm font-semibold">{med.dosage}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-medium text-muted-foreground uppercase">Frequency</p>
-              <p className="text-sm font-semibold">{med.frequency}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-medium text-muted-foreground uppercase">Meal Timing</p>
-              <p className="text-sm font-semibold">{med.mealTiming}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-medium text-muted-foreground uppercase">Start Date</p>
-              <p className="text-sm font-semibold">
-                {med.startDate}
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] font-medium text-muted-foreground uppercase">End Date</p>
-              <p className="text-sm font-semibold">
-                {med.endDate}
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] font-medium text-muted-foreground uppercase">Prescribed By</p>
-              <p className="text-sm font-semibold">{med.prescribedBy}</p>
-            </div>
-          </div>
-          <div className="bg-[#EDE9F7] mt-3 p-3 rounded flex flex-col gap-1">
-            <div className="flex items-center gap-1 text-[#8159A8] font-medium text-xs">
-              Instructions
-            </div>
-            <div className="text-[#4B3869] text-xs">{med.instructions}</div>
-          </div>
-        </div>
-      </Card>
-    ))
-  )}
-</DialogContent>
+          </DialogContent>
         </Dialog>
 
         <Dialog open={showTasks} onOpenChange={setShowTasks}>
           <DialogContent className="max-w-3xl">
-  <div className="flex items-center justify-between mb-4">
-    <Button
-      style={{ backgroundColor: "#8159A8", color: "#fff" }}
-      className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 shadow hover:brightness-110"
-      // onClick={() => setShowAssignTask(true)}
-    >
-      <Plus className="w-5 h-5" />
-      Assign a new Task
-    </Button>
-    <div className="flex gap-2">
-      <Badge variant="outline" className="text-sm">
-        {hardcodedTasks.filter(t => t.status === "Pending").length} Pending
-      </Badge>
-      <Badge variant="outline" className="text-sm bg-green-50 text-green-700">
-        {hardcodedTasks.filter(t => t.status === "Completed").length} Completed
-      </Badge>
-    </div>
-  </div>
-  <div className="space-y-6">
-    {hardcodedTasks.length === 0 ? (
-      <Card>
-        <CardContent className="p-8 text-center">
-          <p className="text-muted-foreground">No tasks assigned.</p>
-        </CardContent>
-      </Card>
-    ) : (
-      hardcodedTasks.map((task, idx) => (
-        <div
-          key={task.id}
-          className="flex flex-col md:flex-row items-start md:items-center justify-between bg-[#fcfafd] rounded-xl shadow-sm px-6 py-4"
-          style={{ borderBottom: idx !== hardcodedTasks.length - 1 ? "1px solid #f0eef5" : undefined }}
-        >
-          <div>
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <span className="text-base md:text-xl font-semibold text-[#8159A8]">{task.title}</span>
-              {task.status === "Completed" && (
-                <span className="bg-green-100 text-green-700 text-xs font-semibold px-2 py-0.5 rounded-full">
-                  Completed
-                </span>
-              )}
-              {task.status === "Pending" && (
-                <span className="bg-yellow-100 text-yellow-700 text-xs font-semibold px-2 py-0.5 rounded-full">
-                  Pending
-                </span>
-              )}
-              {"score" in task && (
-                <span className="bg-blue-100 text-blue-700 text-xs font-semibold px-2 py-0.5 rounded-full">
-                  Score: {task.score}
-                </span>
-              )}
+            <div className="flex items-center justify-between mb-4">
+              <Button
+                style={{ backgroundColor: "#8159A8", color: "#fff" }}
+                className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 shadow hover:brightness-110"
+                // onClick={() => setShowAssignTask(true)}
+              >
+                <Plus className="w-5 h-5" />
+                Assign a new Task
+              </Button>
+              <div className="flex gap-2">
+                <Badge variant="outline" className="text-sm">
+                  {hardcodedTasks.filter(t => t.status === "Pending").length} Pending
+                </Badge>
+                <Badge variant="outline" className="text-sm bg-green-50 text-green-700">
+                  {hardcodedTasks.filter(t => t.status === "Completed").length} Completed
+                </Badge>
+              </div>
             </div>
-            <div className="text-xs text-[#8159A8] font-medium">
-              Assigned: {task.assignedDate}
-              {task.completedDate && (
-                <span className="ml-3">
-                  Completed: {task.completedDate}
-                </span>
-              )}
+            <div className="space-y-6">
+              {hardcodedTasks.length === 0 ? (
+                <Card>
+                  <CardContent className="p-8 text-center">
+                    <p className="text-muted-foreground">No tasks assigned.</p>
+                  </CardContent>
+                </Card>
+              ) : 
+                hardcodedTasks.map((task, idx) => (
+                  <div
+                    key={task.id}
+                    className="flex flex-col md:flex-row items-start md:items-center justify-between bg-[#fcfafd] rounded-xl shadow-sm px-6 py-4"
+                    style={{ borderBottom: idx !== hardcodedTasks.length - 1 ? "1px solid #f0eef5" : undefined }}
+                  >
+                    <div>
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <span className="text-base md:text-xl font-semibold text-[#8159A8]">{task.title}</span>
+                        {task.status === "Completed" && (
+                          <span className="bg-green-100 text-green-700 text-xs font-semibold px-2 py-0.5 rounded-full">
+                            Completed
+                          </span>
+                        )}
+                        {task.status === "Pending" && (
+                          <span className="bg-yellow-100 text-yellow-700 text-xs font-semibold px-2 py-0.5 rounded-full">
+                            Pending
+                          </span>
+                        )}
+                        {"score" in task && (
+                          <span className="bg-blue-100 text-blue-700 text-xs font-semibold px-2 py-0.5 rounded-full">
+                            Score: {task.score}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-[#8159A8] font-medium">
+                        Assigned: {task.assignedDate}
+                        {task.completedDate && (
+                          <span className="ml-3">
+                            Completed: {task.completedDate}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex gap-2 mt-3 md:mt-0">
+                      <Button
+                        variant="outline"
+                        className="border-red-400 text-red-700 hover:bg-red-50 px-3 py-1 text-xs font-semibold"
+                        style={{ borderColor: "#EF4444" }}
+                      >
+                        Unassign
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="border-primary text-primary hover:bg-primary/10 px-3 py-1 text-xs font-semibold"
+                      >
+                        View Assessment
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              }
             </div>
-          </div>
-          <div className="flex gap-2 mt-3 md:mt-0">
-            <Button
-              variant="outline"
-              className="border-red-400 text-red-700 hover:bg-red-50 px-3 py-1 text-xs font-semibold"
-              style={{ borderColor: "#EF4444" }}
-            >
-              Unassign
-            </Button>
-            <Button
-              variant="outline"
-              className="border-primary text-primary hover:bg-primary/10 px-3 py-1 text-xs font-semibold"
-            >
-              View Assessment
-            </Button>
-          </div>
-        </div>
-      ))
-    )}
-  </div>
-</DialogContent>
+          </DialogContent>
         </Dialog>
       </div>
     </div>
   );
 }
+

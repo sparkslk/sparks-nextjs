@@ -157,6 +157,7 @@ export async function GET(request: NextRequest) {
 
         const formattedSessions = sessions.map(session => ({
             id: session.id,
+            patientId: session.patientId,
             patientName: `${session.patient.firstName} ${session.patient.lastName}`,
             scheduledAt: session.scheduledAt,
             duration: session.duration,
