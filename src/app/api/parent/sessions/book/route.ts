@@ -229,7 +229,7 @@ export async function POST(request: NextRequest) {
         therapistId: child.primaryTherapistId!,
         scheduledAt: sessionDate,
         status: {
-          in: ["SCHEDULED", "APPROVED", "REQUESTED"]
+          in: ["SCHEDULED", "APPROVED", "REQUESTED", "RESCHEDULED"]
         }
       }
     });

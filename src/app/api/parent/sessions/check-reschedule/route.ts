@@ -73,6 +73,14 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    if (therapySession.status === "RESCHEDULED") {
+      return NextResponse.json({ 
+        canReschedule: false,
+        reason: "ALREADY_RESCHEDULED",
+        message: "This session has already been rescheduled. Please check the updated session time."
+      });
+    }
+
     if (therapySession.status === "COMPLETED") {
       return NextResponse.json({ 
         canReschedule: false,
@@ -80,8 +88,6 @@ export async function POST(request: NextRequest) {
         message: "Cannot reschedule a completed session"
       });
     }
-
-    // Get the current therapist rate and the rate at time of booking
     const currentTherapistRate = therapySession.therapist.session_rate || 0;
     // Use type assertion to access bookedRate until Prisma types are updated
     const bookedRate = (therapySession as typeof therapySession & { bookedRate?: number }).bookedRate || 0;

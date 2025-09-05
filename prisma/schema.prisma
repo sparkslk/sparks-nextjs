@@ -35,23 +35,24 @@ model Session {
 }
 
 model User {
-  id                    String           @id @default(cuid())
-  email                 String?          @unique
+  id                    String              @id @default(cuid())
+  email                 String?             @unique
   name                  String?
-  createdAt             DateTime         @default(now())
-  updatedAt             DateTime         @updatedAt
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
   emailVerified         DateTime?
   image                 String?
   metadata              Json?
   password              String?
-  role                  UserRole         @default(NORMAL_USER)
+  role                  UserRole            @default(NORMAL_USER)
   accounts              Account[]
-  receivedNotifications Notification[]   @relation("NotificationReceiver")
-  sentNotifications     Notification[]   @relation("NotificationSender")
-  managedOrganization   Organization?    @relation("OrganizationManager")
+  receivedNotifications Notification[]      @relation("NotificationReceiver")
+  sentNotifications     Notification[]      @relation("NotificationSender")
+  managedOrganization   Organization?       @relation("OrganizationManager")
   parentGuardianRel     ParentGuardian[]
   patientProfile        Patient?
   sessions              Session[]
+  SessionReschedule     SessionReschedule[]
   therapistProfile      Therapist?
   blogs                 blogs[]
 }
@@ -87,11 +88,11 @@ model Therapist {
   specialization        String[]
   experience            Int?
   bio                   String?
+  availability          Json?
   organizationId        String?
   createdAt             DateTime                     @default(now())
   updatedAt             DateTime                     @updatedAt
   rating                Decimal?                     @db.Decimal(3, 2)
-  availability          Json?
   session_rate          Decimal?                     @default(0) @db.Decimal(10, 2)
   assessments           Assessment[]
   Medication            Medication[]
@@ -152,25 +153,26 @@ model ParentGuardian {
 }
 
 model TherapySession {
-  id                String            @id @default(cuid())
+  id                String              @id @default(cuid())
   patientId         String
   therapistId       String
   scheduledAt       DateTime
   duration          Int
-  status            SessionStatus     @default(SCHEDULED)
+  status            SessionStatus       @default(SCHEDULED)
   type              String
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
   attendanceStatus  AttendanceStatus?
+  bookedRate        Decimal?            @db.Decimal(10, 2)
+  nextSessionGoals  String?
   overallProgress   ProgressLevel?
   patientEngagement EngagementLevel?
-  riskAssessment    RiskLevel?
   primaryFocusAreas String[]
+  riskAssessment    RiskLevel?
   sessionNotes      String?
-  nextSessionGoals  String?
-  bookedRate        Decimal?          @db.Decimal(10, 2) // Rate at time of booking
-  patient           Patient           @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  therapist         Therapist         @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+  SessionReschedule SessionReschedule[]
+  patient           Patient             @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  therapist         Therapist           @relation(fields: [therapistId], references: [id], onDelete: Cascade)
 }
 
 model TreatmentPlan {
@@ -397,6 +399,21 @@ model TherapistAvailability {
   @@index([therapistId])
 }
 
+model SessionReschedule {
+  id                  String         @id
+  sessionId           String
+  previousScheduledAt DateTime
+  newScheduledAt      DateTime
+  rescheduledAt       DateTime       @default(now())
+  rescheduledBy       String
+  rescheduledByRole   String
+  rescheduleReason    String?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime
+  User                User           @relation(fields: [rescheduledBy], references: [id], onDelete: Cascade)
+  TherapySession      TherapySession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+}
+
 enum UserRole {
   NORMAL_USER
   PARENT_GUARDIAN
@@ -411,6 +428,8 @@ enum SessionStatus {
   CANCELLED
   NO_SHOW
   RESCHEDULED
+  APPROVED
+  REQUESTED
 }
 
 enum AttendanceStatus {

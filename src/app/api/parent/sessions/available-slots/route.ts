@@ -152,7 +152,7 @@ export async function GET(request: NextRequest) {
           lte: endOfDay
         },
         status: {
-          in: ["SCHEDULED", "APPROVED", "REQUESTED"]
+          in: ["SCHEDULED", "APPROVED", "REQUESTED", "RESCHEDULED"]
         }
       }
     });
