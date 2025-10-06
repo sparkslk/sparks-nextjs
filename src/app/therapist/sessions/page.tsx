@@ -353,12 +353,7 @@ export default function TherapistSessionsPage() {
     alert(`Joining session with ${session.patientName}...`);
   };
 
-  const handleMoveToCompleted = (session: Session) => {
-    // For now, just show an alert - will implement move to completed functionality later
-    if (confirm(`Mark session with ${session.patientName} as completed?`)) {
-      alert(`Session with ${session.patientName} has been marked as completed`);
-    }
-  };
+  
 
   const SessionCard = ({ session }: { session: Session }) => {
     // Add debug logging for session data
@@ -477,21 +472,10 @@ export default function TherapistSessionsPage() {
                 </>
               )}
 
-              {/* Ongoing Sessions: Show Join Session, Move to Completed, and Document buttons */}
+              {/* Ongoing Sessions: Show Join Session, and Document buttons */}
               {isOngoing && isScheduledStatus && (
                 <>
-                  
-                  
-                  <Button
-                    onClick={() => handleMoveToCompleted(session)}
-                    variant="outline"
-                    className="text-sm border-green-300 text-green-700 hover:bg-green-50"
-                    size="sm"
-                  >
-                    <ArrowRight className="w-4 h-4 mr-2" />
-                    Move to Completed
-                  </Button>
-                  
+                                    
                   <Button
                     variant="outline"
                     onClick={() => handleUpdateSession(session)}
@@ -514,18 +498,9 @@ export default function TherapistSessionsPage() {
                 </>
               )}
 
-              {/* Completed Sessions (not yet documented): Show Move to Completed and Document buttons */}
+              {/* Completed Sessions (not yet documented): Show and Document buttons */}
               {isCompleted && isScheduledStatus && (
                 <>
-                  <Button
-                    onClick={() => handleMoveToCompleted(session)}
-                    variant="outline"
-                    className="text-sm border-green-300 text-green-700 hover:bg-green-50"
-                    size="sm"
-                  >
-                    <ArrowRight className="w-4 h-4 mr-2" />
-                    Move to Completed
-                  </Button>
                   
                   <Button
                     variant="outline"
