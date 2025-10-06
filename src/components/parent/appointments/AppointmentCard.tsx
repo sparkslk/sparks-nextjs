@@ -453,7 +453,7 @@ export default function AppointmentCard({
               Upcoming ({upcomingAppointments.length})
             </TabsTrigger>
             <TabsTrigger value="completed" className="flex-1 text-xs sm:text-sm">
-              Completed ({pastAppointments.length})
+              Past ({pastAppointments.length})
             </TabsTrigger>
             <TabsTrigger value="cancelled" className="flex-1 text-xs sm:text-sm">
               Cancelled ({cancelledAppointments.length})
