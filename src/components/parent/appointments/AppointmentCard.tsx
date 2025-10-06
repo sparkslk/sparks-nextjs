@@ -1,4 +1,4 @@
-import { Card,  CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar, Clock, User, CalendarDays, Video, CheckCircle } from "lucide-react";
 import { Child, Appointment } from "@/types/appointments";
@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import RescheduleModal from "./RescheduleModal";
+import SessionCancellationDialog from "../SessionCancellationDialog";
 
 interface AppointmentCardProps {
   child: Child;
@@ -26,12 +27,12 @@ function formatSriLankaDateTime(dateString: string, options: Intl.DateTimeFormat
   }).format(date);
 }
 
-export default function AppointmentCard({ 
-  child, 
-  upcomingAppointments, 
-  pastAppointments, 
+export default function AppointmentCard({
+  child,
+  upcomingAppointments,
+  pastAppointments,
   cancelledAppointments,
-  onTherapistClick, 
+  onTherapistClick,
   formatDate,
   isHighlighted = false,
   onSessionCancelled
@@ -39,8 +40,6 @@ export default function AppointmentCard({
   const [activeTab, setActiveTab] = useState<'upcoming' | 'completed' | 'cancelled' | 'all'>('all');
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [selectedSessionToCancel, setSelectedSessionToCancel] = useState<Appointment | null>(null);
-  const [cancelReason, setCancelReason] = useState("");
-  const [canceling, setCanceling] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
   const [selectedSessionToReschedule, setSelectedSessionToReschedule] = useState<Appointment | null>(null);
@@ -52,7 +51,7 @@ export default function AppointmentCard({
     currentRate: number;
   } | null>(null);
   const [checkingReschedule, setCheckingReschedule] = useState(false);
-    
+
   // Filtering logic for appointments
   let filteredUpcoming = upcomingAppointments;
   let filteredPast = pastAppointments;
@@ -72,7 +71,7 @@ export default function AppointmentCard({
 
   const handleRescheduleSession = async (appointment: Appointment) => {
     setCheckingReschedule(true);
-    
+
     try {
       // Check if rescheduling is allowed before opening the modal
       const response = await fetch('/api/parent/sessions/check-reschedule', {
@@ -84,14 +83,14 @@ export default function AppointmentCard({
           sessionId: appointment.id,
         }),
       });
-      
+
       const result = await response.json();
-      
+
       if (!response.ok) {
         alert(`Error: ${result.error}`);
         return;
       }
-      
+
       if (result.canReschedule) {
         // Rate hasn't changed - proceed with reschedule modal
         setSelectedSessionToReschedule(appointment);
@@ -114,52 +113,6 @@ export default function AppointmentCard({
       alert('An error occurred while checking if the session can be rescheduled');
     } finally {
       setCheckingReschedule(false);
-    }
-  };
-
-  const confirmCancelSession = async () => {
-    if (!selectedSessionToCancel) return;
-    
-    setCanceling(true);
-    try {
-      const response = await fetch('/api/parent/sessions/cancel', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          sessionId: selectedSessionToCancel.id,
-          cancelReason: cancelReason.trim()
-        }),
-      });
-
-      if (response.ok) {
-        // Show success dialog instead of alert
-        setShowSuccessDialog(true);
-        
-        // Reset cancel dialog states
-        setShowCancelDialog(false);
-        setSelectedSessionToCancel(null);
-        setCancelReason("");
-        
-        // Auto-close success dialog after 3 seconds and refresh data
-        setTimeout(() => {
-          setShowSuccessDialog(false);
-          if (onSessionCancelled) {
-            onSessionCancelled();
-          } else {
-            window.location.reload();
-          }
-        }, 5000);
-      } else {
-        const error = await response.json();
-        alert(`Failed to cancel session: ${error.error}`);
-      }
-    } catch (error) {
-      console.error("Error cancelling session:", error);
-      alert("An error occurred while cancelling the session");
-    } finally {
-      setCanceling(false);
     }
   };
 
@@ -415,7 +368,7 @@ export default function AppointmentCard({
           No Sessions Found
         </h3>
         <p className="text-gray-600 mb-4 text-sm">
-          {child.therapist 
+          {child.therapist
             ? "No sessions have been scheduled yet."
             : "To schedule appointments, you need to connect with a therapist first."
           }
@@ -432,11 +385,10 @@ export default function AppointmentCard({
   );
 
   return (
-    <Card className={`appointments-card bg-[var(--color-card)]/80 backdrop-blur-sm shadow-lg border hover:shadow-xl transition-all duration-300 ${
-      isHighlighted 
-        ? 'border-[var(--color-primary)] ring-2 ring-[var(--color-primary)]/20 shadow-[var(--color-primary)]/20' 
+    <Card className={`appointments-card bg-[var(--color-card)]/80 backdrop-blur-sm shadow-lg border hover:shadow-xl transition-all duration-300 ${isHighlighted
+        ? 'border-[var(--color-primary)] ring-2 ring-[var(--color-primary)]/20 shadow-[var(--color-primary)]/20'
         : 'border-[var(--color-border)]'
-    }`}>
+      }`}>
       <CardHeader className="pb-3 px-3 sm:px-6">
         <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-0">
           <div className="flex items-center space-x-3">
@@ -476,8 +428,8 @@ export default function AppointmentCard({
 
       {/* Therapist Information */}
       {child.therapist && (upcomingAppointments.length > 0 || pastAppointments.length > 0) && (
-        <div 
-          className="therapist-info p-2 sm:p-3 bg-gradient-to-r from-[var(--color-primary-foreground)] to-[var(--color-secondary)] rounded-lg border cursor-pointer shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 transform mx-2 sm:mx-6 mt-2 mb-2" 
+        <div
+          className="therapist-info p-2 sm:p-3 bg-gradient-to-r from-[var(--color-primary-foreground)] to-[var(--color-secondary)] rounded-lg border cursor-pointer shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 transform mx-2 sm:mx-6 mt-2 mb-2"
           style={{ borderColor: 'var(--color-primary)' }}
           onClick={() => onTherapistClick(child.therapist)}
         >
@@ -530,65 +482,25 @@ export default function AppointmentCard({
       </div>
 
       {/* Cancel Session Dialog */}
-      <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Cancel Session</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to cancel this session? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4">
-            {selectedSessionToCancel && (
-              <div className="p-3 bg-gray-50 rounded-lg">
-                <div className="text-sm text-gray-600">Session Details:</div>
-                <div className="font-medium">
-                  {new Date(selectedSessionToCancel.date).toLocaleDateString()} at {selectedSessionToCancel.time}
-                </div>
-                <div className="text-sm text-gray-600">
-                  Type: {selectedSessionToCancel.type}
-                </div>
-              </div>
-            )}
-            
-            <div className="space-y-2">
-              <label htmlFor="cancelReason" className="text-sm font-medium text-gray-700">
-                Reason for cancellation (optional):
-              </label>
-              <textarea
-                id="cancelReason"
-                value={cancelReason}
-                onChange={(e) => setCancelReason(e.target.value)}
-                className="w-full p-2 border rounded-lg resize-none"
-                rows={3}
-                placeholder="Please let us know why you're cancelling..."
-              />
-            </div>
-            
-            <div className="flex gap-3 justify-end">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowCancelDialog(false);
-                  setSelectedSessionToCancel(null);
-                  setCancelReason("");
-                }}
-                disabled={canceling}
-              >
-                Keep Session
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={confirmCancelSession}
-                disabled={canceling}
-              >
-                {canceling ? "Cancelling..." : "Cancel Session"}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <SessionCancellationDialog
+        isOpen={showCancelDialog}
+        onClose={() => {
+          setShowCancelDialog(false);
+          setSelectedSessionToCancel(null);
+        }}
+        session={selectedSessionToCancel ? {
+          id: selectedSessionToCancel.id,
+          scheduledAt: selectedSessionToCancel.date,
+          patientName: `${child.firstName} ${child.lastName}`,
+          therapistName: child.therapist?.name || 'Therapist'
+        } : null}
+        onSessionCancelled={() => {
+          setShowCancelDialog(false);
+          setSelectedSessionToCancel(null);
+          setShowSuccessDialog(true);
+          onSessionCancelled?.();
+        }}
+      />
 
       {/* Success Dialog */}
       <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
@@ -599,13 +511,13 @@ export default function AppointmentCard({
               Your therapy session has been cancelled and the therapist has been notified.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="flex items-center justify-center py-4">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
               <CheckCircle className="w-8 h-8 text-green-600" />
             </div>
           </div>
-          
+
           <div className="text-center space-y-2">
             <p className="text-sm text-gray-600">
               The page will refresh automatically in a moment...
@@ -623,7 +535,7 @@ export default function AppointmentCard({
               The therapist has updated their session rates since your original booking.
             </DialogDescription>
           </DialogHeader>
-          
+
           {rateChangeInfo && (
             <div className="space-y-4">
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
@@ -642,7 +554,7 @@ export default function AppointmentCard({
                   </div>
                 </div>
               </div>
-              
+
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <h4 className="font-semibold text-blue-800 mb-2">What you can do:</h4>
                 <ul className="text-sm text-blue-700 space-y-1">
@@ -653,7 +565,7 @@ export default function AppointmentCard({
               </div>
             </div>
           )}
-          
+
           <div className="flex justify-end gap-2 pt-4">
             <Button
               variant="outline"
