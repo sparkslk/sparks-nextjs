@@ -202,7 +202,12 @@ export default function TherapistSessionsPage() {
         break;
       case 'cancelled':
         filteredSessions = sessions.filter(session => 
-          ['CANCELLED', 'DECLINED', 'NO_SHOW'].includes(session.status)
+          ['CANCELLED', 'DECLINED'].includes(session.status)
+        );
+        break;
+      case 'no-show':
+        filteredSessions = sessions.filter(session => 
+          session.status === 'NO_SHOW'
         );
         break;
       case 'all':
@@ -699,7 +704,7 @@ export default function TherapistSessionsPage() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-8">
+          <TabsList className="grid w-full grid-cols-5 mb-8">
             <TabsTrigger value="scheduled">
               Scheduled ({filterSessionsByTab("scheduled").length})
             </TabsTrigger>
@@ -708,6 +713,9 @@ export default function TherapistSessionsPage() {
             </TabsTrigger>
             <TabsTrigger value="cancelled">
               Cancelled ({filterSessionsByTab("cancelled").length})
+            </TabsTrigger>
+            <TabsTrigger value="no-show">
+              No-Show ({filterSessionsByTab("no-show").length})
             </TabsTrigger>
             <TabsTrigger value="all">
               All Sessions ({filterSessionsByTab("all").length})
@@ -902,6 +910,38 @@ export default function TherapistSessionsPage() {
               ) : (
                 <div className="space-y-6">
                   {filterSessionsByTab("cancelled")
+                    .sort((a, b) => new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime())
+                    .map((session) => (
+                      <SessionCard key={session.id} session={session} />
+                    ))
+                  }
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="no-show">
+            <div className="space-y-6">
+              {filterSessionsByTab("no-show").length === 0 ? (
+                <Card className="shadow-sm border border-gray-200">
+                  <CardContent className="p-12 text-center">
+                    <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                      <User className="w-8 h-8 text-gray-400" />
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      {hasActiveFilters ? "No sessions match your filters" : "No no-show sessions"}
+                    </h3>
+                    <p className="text-gray-500">
+                      {hasActiveFilters 
+                        ? "Try adjusting your search criteria or clearing the filters." 
+                        : "Great! You haven't had any no-show sessions."
+                      }
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-6">
+                  {filterSessionsByTab("no-show")
                     .sort((a, b) => new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime())
                     .map((session) => (
                       <SessionCard key={session.id} session={session} />
