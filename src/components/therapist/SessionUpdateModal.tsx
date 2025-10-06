@@ -13,6 +13,7 @@ import { Calendar, Clock, User, FileText, CheckSquare, Save, AlertTriangle } fro
 import { format } from "date-fns";
 import { CompletionConfirmationModal } from "@/components/therapist/CompletionConfirmationModal";
 import { NoShowConfirmationDialog } from "@/components/therapist/NoShowConfirmationDialog";
+import { MoveToNoShowConfirmationDialog } from "@/components/therapist/MoveToNoShowConfirmationDialog";
 
 interface Session {
   id: string;
@@ -68,6 +69,10 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
   // No Show confirmation state
   const [showNoShowConfirmation, setShowNoShowConfirmation] = useState(false);
   const [pendingAttendanceStatus, setPendingAttendanceStatus] = useState<string>("");
+
+  // Add Move to No-Show confirmation state
+  const [showMoveNoShowConfirmation, setShowMoveNoShowConfirmation] = useState(false);
+  const [moveNoShowSuccess, setMoveNoShowSuccess] = useState(false);
 
   // Focus areas options
   const focusAreaOptions = [
@@ -308,6 +313,19 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
   const handleMoveSession = async () => {
     if (!session || !attendanceStatus) return;
 
+    // Show confirmation for No-Show moves
+    if (attendanceStatus === "NO_SHOW") {
+      setShowMoveNoShowConfirmation(true);
+      return;
+    }
+
+    // Proceed directly for other attendance statuses
+    await performMoveSession();
+  };
+
+  const performMoveSession = async () => {
+    if (!session || !attendanceStatus) return;
+
     setIsSubmitting(true);
     setSubmitError(null);
     
@@ -340,13 +358,21 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
       });
 
       if (response.ok) {
-        setSubmitSuccess(true);
-        
-        // Close modal after a brief delay to show success message
-        setTimeout(() => {
-          onClose();
-          onSessionUpdated();
-        }, 1500);
+        if (attendanceStatus === "NO_SHOW") {
+          setMoveNoShowSuccess(true);
+          // Close modal after a brief delay to show success message
+          setTimeout(() => {
+            onClose();
+            onSessionUpdated();
+          }, 2000);
+        } else {
+          setSubmitSuccess(true);
+          // Close modal after a brief delay to show success message
+          setTimeout(() => {
+            onClose();
+            onSessionUpdated();
+          }, 1500);
+        }
       } else {
         const errorData = await response.json();
         setSubmitError(errorData.error || 'Failed to update session');
@@ -356,6 +382,13 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
       setSubmitError('Network error occurred. Please try again.');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleMoveNoShowConfirmation = (confirmed: boolean) => {
+    setShowMoveNoShowConfirmation(false);
+    if (confirmed) {
+      performMoveSession();
     }
   };
 
@@ -474,7 +507,7 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
                       <p className="text-xs text-red-500 mt-1">This field is required</p>
                     )}
                   </div>
-                  {attendanceStatus === "NO_SHOW" && (
+                  {attendanceStatus === "NO_SHOW" && !moveNoShowSuccess && (
                     <Button 
                       onClick={handleMoveSession}
                       disabled={isSubmitting}
@@ -495,7 +528,18 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
                     </Button>
                   )}
                 </div>
-                {attendanceStatus === "NO_SHOW" && (
+                
+                {/* Move to No-Show Success Message */}
+                {moveNoShowSuccess && (
+                  <div className="bg-green-50 border border-green-200 rounded-md p-3">
+                    <div className="flex items-center">
+                      <CheckSquare className="w-5 h-5 text-green-600 mr-2" />
+                      <p className="text-green-800 font-medium">Session successfully moved to No-Show tab!</p>
+                    </div>
+                  </div>
+                )}
+                
+                {attendanceStatus === "NO_SHOW" && !moveNoShowSuccess && (
                   <div className="p-2 bg-orange-50 border border-orange-200 rounded-md">
                     <p className="text-xs text-orange-700">
                       No Show selected - Clinical documentation is not required for this session.
@@ -808,6 +852,14 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
           isOpen={showNoShowConfirmation}
           onConfirm={() => handleNoShowConfirmation(true)}
           onCancel={() => handleNoShowConfirmation(false)}
+        />
+
+        {/* Move to No-Show Confirmation Dialog */}
+        <MoveToNoShowConfirmationDialog
+          isOpen={showMoveNoShowConfirmation}
+          onConfirm={() => handleMoveNoShowConfirmation(true)}
+          onCancel={() => handleMoveNoShowConfirmation(false)}
+          patientName={currentSession.patientName}
         />
 
         {/* Completion Confirmation Modal */}
