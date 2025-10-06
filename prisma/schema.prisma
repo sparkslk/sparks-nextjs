@@ -38,6 +38,7 @@ model User {
   id                    String              @id @default(cuid())
   email                 String?             @unique
   name                  String?
+  phone                 String?
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
   emailVerified         DateTime?
@@ -46,6 +47,7 @@ model User {
   password              String?
   role                  UserRole            @default(NORMAL_USER)
   accounts              Account[]
+  payments              Payment[]
   refundRequests        CancelRefund[]      @relation("RefundRequests")
   processedRefunds      CancelRefund[]      @relation("ProcessedRefunds")
   receivedNotifications Notification[]      @relation("NotificationReceiver")
@@ -128,6 +130,7 @@ model Patient {
   assessments            Assessment[]
   Medication             Medication[]
   parentGuardians        ParentGuardian[]
+  payments               Payment[]
   organization           Organization?                @relation(fields: [organizationId], references: [id])
   primaryTherapist       Therapist?                   @relation(fields: [primaryTherapistId], references: [id])
   user                   User?                        @relation(fields: [userId], references: [id])
@@ -162,6 +165,7 @@ model TherapySession {
   duration          Int
   status            SessionStatus       @default(SCHEDULED)
   type              String
+  paymentid         String?
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
   attendanceStatus  AttendanceStatus?
@@ -450,28 +454,25 @@ model CancelRefund {
 }
 
 model Payment {
-  id                String          @id @default(dbgenerated("gen_random_uuid()"))
-  orderId           String          @unique
-  paymentId         String?         @unique
-  sessionId         String?
-  amount            Decimal         @db.Decimal(10, 2)
-  currency          String          @default("LKR")
-  status            PaymentStatus   @default(PENDING)
-  paymentMethod     String?
-  statusMessage     String?
-  payhereStatusCode String?
-  cardHolderName    String?
-  maskedCardNumber  String?
-  cardExpiry        String?
-  metadata          Json?
-  createdAt         DateTime?       @default(now()) @db.Timestamp(6)
-  updatedAt         DateTime?       @default(now()) @db.Timestamp(6)
-  TherapySession    TherapySession? @relation(fields: [sessionId], references: [id], map: "fk_payment_session")
-
-  @@index([orderId], map: "idx_orderId")
-  @@index([paymentId], map: "idx_paymentId")
-  @@index([sessionId], map: "idx_sessionId")
-  @@index([status], map: "idx_status")
+  id            String        @id @default(cuid())
+  orderId       String        @unique
+  userId        String
+  patientId     String?       // Add this field
+  amount        Decimal       @db.Decimal(10, 2)
+  currency      String        @default("LKR")
+  status        PaymentStatus @default(PENDING)
+  paymentId     String?       // PayHere payment ID
+  sessionDate   DateTime?     // Add this field
+  timeSlot      String?       // Add this field
+  sessionType   String?       // Add this field
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  paidAt        DateTime?
+  
+  // Relations
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  patient       Patient?      @relation(fields: [patientId], references: [id])
+  therapySessions TherapySession[]
 }
 
 enum UserRole {
