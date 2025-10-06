@@ -305,6 +305,85 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
     }
   };
 
+  const handleMoveSession = async () => {
+    if (!session || !attendanceStatus) return;
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+    
+    try {
+      let newStatus;
+      if (attendanceStatus === "NO_SHOW") {
+        newStatus = "NO_SHOW";
+      } else {
+        newStatus = "COMPLETED";
+      }
+
+      const updateData = {
+        sessionId: session.id,
+        attendanceStatus,
+        overallProgress: overallProgress || null,
+        patientEngagement: patientEngagement || null,
+        riskAssessment: riskAssessment || null,
+        focusAreas,
+        sessionNotes: sessionNotes.trim() || null,
+        nextSessionGoals: nextSessionGoals.trim() || null,
+        moveToStatus: newStatus // Indicate we want to move the session
+      };
+
+      const response = await fetch(`/api/therapist/sessions/${session.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updateData),
+      });
+
+      if (response.ok) {
+        setSubmitSuccess(true);
+        
+        // Close modal after a brief delay to show success message
+        setTimeout(() => {
+          onClose();
+          onSessionUpdated();
+        }, 1500);
+      } else {
+        const errorData = await response.json();
+        setSubmitError(errorData.error || 'Failed to update session');
+      }
+    } catch (error) {
+      console.error('Error updating session:', error);
+      setSubmitError('Network error occurred. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Get button text and action based on attendance status
+  const getMoveButtonConfig = () => {
+    if (attendanceStatus === "NO_SHOW") {
+      return {
+        text: "Move to No-Show",
+        disabled: false,
+        className: "bg-orange-500 hover:bg-orange-600 text-white"
+      };
+    } else if (attendanceStatus === "PRESENT" || attendanceStatus === "LATE") {
+      return {
+        text: "Move to Completed",
+        disabled: false,
+        className: "bg-green-500 hover:bg-green-600 text-white"
+      };
+    } else {
+      return {
+        text: "Select Attendance",
+        disabled: true,
+        className: "bg-gray-300 text-gray-500 cursor-not-allowed"
+      };
+    }
+  };
+
+  const moveButtonConfig = getMoveButtonConfig();
+
   useEffect(() => {
     const handleSessionSaved = (event: CustomEvent) => {
       const { sessionId, attendanceStatus, patientName } = event.detail;
@@ -378,22 +457,46 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
               <CardTitle className="text-lg">Attendance Status</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="max-w-md">                
-                <Select value={attendanceStatus} onValueChange={handleAttendanceStatusChange}>
-                  <SelectTrigger className={`mt-1 ${!attendanceStatus ? 'border-red-200' : ''}`}>
-                    <SelectValue placeholder="Select attendance status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="PRESENT">Present</SelectItem>
-                    <SelectItem value="LATE">Late</SelectItem>
-                    <SelectItem value="NO_SHOW">No Show</SelectItem>
-                  </SelectContent>
-                </Select>
-                {!attendanceStatus && (
-                  <p className="text-xs text-red-500 mt-1">This field is required</p>
-                )}
+              <div className="space-y-3">
+                <div className="flex gap-3 items-start justify-between">
+                  <div className="flex-1 max-w-xs">
+                    <Select value={attendanceStatus} onValueChange={handleAttendanceStatusChange}>
+                      <SelectTrigger className={`mt-1 ${!attendanceStatus ? 'border-red-200' : ''}`}>
+                        <SelectValue placeholder="Select attendance status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="PRESENT">Present</SelectItem>
+                        <SelectItem value="LATE">Late</SelectItem>
+                        <SelectItem value="NO_SHOW">No Show</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {!attendanceStatus && (
+                      <p className="text-xs text-red-500 mt-1">This field is required</p>
+                    )}
+                  </div>
+                  {attendanceStatus === "NO_SHOW" && (
+                    <Button 
+                      onClick={handleMoveSession}
+                      disabled={isSubmitting}
+                      style={{ backgroundColor: '#8159A8' }}
+                      className="text-white hover:opacity-90 mt-1"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <AlertTriangle className="w-4 h-4 mr-2" />
+                          Move to No-Show
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
                 {attendanceStatus === "NO_SHOW" && (
-                  <div className="mt-2 p-2 bg-orange-50 border border-orange-200 rounded-md">
+                  <div className="p-2 bg-orange-50 border border-orange-200 rounded-md">
                     <p className="text-xs text-orange-700">
                       No Show selected - Clinical documentation is not required for this session.
                     </p>
@@ -655,22 +758,45 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
             <Button variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button 
-              onClick={() => handleSubmit(true)} 
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4 mr-2" />
-                  Save
-                </>
-              )}
-            </Button>
+            {/* Only show Save button when not No-Show */}
+            {attendanceStatus !== "NO_SHOW" && (
+              <Button 
+                onClick={() => handleSubmit(true)} 
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    Save
+                  </>
+                )}
+              </Button>
+            )}
+            {/* Only show Move to Completed button for Present/Late */}
+            {(attendanceStatus === "PRESENT" || attendanceStatus === "LATE") && (
+              <Button 
+                onClick={handleMoveSession}
+                disabled={isSubmitting}
+                className="bg-green-500 hover:bg-green-600 text-white"
+              >
+                {isSubmitting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <CheckSquare className="w-4 h-4 mr-2" />
+                    Move to Completed
+                  </>
+                )}
+              </Button>
+            )}
           </div>
 
           
@@ -698,4 +824,4 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
     </Dialog>
   );
 }
-               
+
