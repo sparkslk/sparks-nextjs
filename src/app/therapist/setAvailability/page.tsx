@@ -11,8 +11,6 @@ import {
   Clock,
   Plus,
   Save,
-  Trash2,
-  Copy,
   CalendarDays,
   ListChecks,
   Timer,
@@ -26,17 +24,15 @@ interface TimeSlot {
   id: string;
   startTime: string;
   endTime: string;
-  dayOfWeek: number; // 0 = Sunday, 1 = Monday, etc.
+  dayOfWeek: number;
   isRecurring: boolean;
   recurrencePattern?: {
     type: "daily" | "weekly" | "custom";
-    days?: number[]; // For custom patterns
+    days?: number[];
     endDate?: string;
   };
-  maxSessions?: number;
-  sessionDuration: number; // in minutes
-  breakBetweenSessions: number; // in minutes
   isActive: boolean;
+  isFreeSession?: boolean;
 }
 
 interface SessionSlot {
@@ -46,6 +42,7 @@ interface SessionSlot {
   dayOfWeek: number;
   isActive: boolean;
   parentAvailabilityId: string;
+  isFreeSession: boolean;
 }
 
 // interface AvailabilityStats {
@@ -66,7 +63,9 @@ function SetAvailabilityPage(): React.JSX.Element {
   const [selectedWeekStart, setSelectedWeekStart] = useState(new Date());
   const [prefilledData, setPrefilledData] = useState<{
     dayOfWeek: number;
-    startHour: number;
+    startHour?: number;
+    startTime?: string;
+    endTime?: string;
     selectedWeekStart: Date;
   } | null>(null);
 
@@ -126,14 +125,6 @@ function SetAvailabilityPage(): React.JSX.Element {
         slot.id === slotId ? { ...slot, isActive: !slot.isActive } : slot
       )
     );
-  };
-
-  const handleDuplicateSlot = (slot: TimeSlot) => {
-    const duplicatedSlot: TimeSlot = {
-      ...slot,
-      id: Date.now().toString(),
-    };
-    setTimeSlots([...timeSlots, duplicatedSlot]);
   };
 
   const handleSaveAvailability = async () => {
@@ -200,13 +191,27 @@ function SetAvailabilityPage(): React.JSX.Element {
 
   const generateSessionSlots = (timeSlots: TimeSlot[]): SessionSlot[] => {
     const sessionSlots: SessionSlot[] = [];
+    const SESSION_DURATION = 45; // Fixed 45-minute sessions
+    const BREAK_DURATION = 15; // Fixed 15-minute breaks
 
     timeSlots.forEach((slot) => {
       if (!slot.isActive) return;
 
-      const days = slot.recurrencePattern?.days || [slot.dayOfWeek];
+      // Get the days this slot applies to
+      let applicableDays: number[] = [];
+      
+      if (slot.recurrencePattern?.days && slot.recurrencePattern.days.length > 0) {
+        // Use the specified days from recurrence pattern
+        applicableDays = slot.recurrencePattern.days;
+      } else if (slot.isRecurring && slot.recurrencePattern?.type === "daily") {
+        // Daily recurrence applies to all days
+        applicableDays = [0, 1, 2, 3, 4, 5, 6];
+      } else {
+        // Single day or weekly recurrence
+        applicableDays = [slot.dayOfWeek];
+      }
 
-      days.forEach((dayOfWeek) => {
+      applicableDays.forEach((dayOfWeek) => {
         const startTime = new Date(`1970-01-01T${slot.startTime}:00`);
         const endTime = new Date(`1970-01-01T${slot.endTime}:00`);
 
@@ -216,7 +221,7 @@ function SetAvailabilityPage(): React.JSX.Element {
         while (currentTime < endTime) {
           const sessionEnd = new Date(currentTime);
           sessionEnd.setMinutes(
-            currentTime.getMinutes() + slot.sessionDuration
+            currentTime.getMinutes() + SESSION_DURATION
           );
 
           if (sessionEnd <= endTime) {
@@ -239,13 +244,12 @@ function SetAvailabilityPage(): React.JSX.Element {
               dayOfWeek,
               isActive: slot.isActive,
               parentAvailabilityId: slot.id,
+              isFreeSession: slot.isFreeSession || false,
             });
 
-            // Move to next session (session duration + break)
+            // Move to next session (45 minutes + 15 minute break)
             currentTime.setMinutes(
-              currentTime.getMinutes() +
-                slot.sessionDuration +
-                slot.breakBetweenSessions
+              currentTime.getMinutes() + SESSION_DURATION + BREAK_DURATION
             );
             sessionCount++;
           } else {
@@ -287,15 +291,20 @@ function SetAvailabilityPage(): React.JSX.Element {
 
   const stats = getStats();
 
-  const handleOpenModalWithPrefill = (dayOfWeek: number, startHour: number) => {
-    setPrefilledData({ dayOfWeek, startHour, selectedWeekStart });
-    setShowAddModal(true);
-  };
-
   const handleCloseModal = () => {
     setShowAddModal(false);
     setEditingSlot(null);
     setPrefilledData(null);
+  };
+
+  const handleDragSelect = (dayOfWeek: number, startTime: string, endTime: string) => {
+    setPrefilledData({ 
+      dayOfWeek, 
+      startTime, 
+      endTime, 
+      selectedWeekStart 
+    });
+    setShowAddModal(true);
   };
 
   if (authStatus === "loading" || loading) {
@@ -432,7 +441,7 @@ function SetAvailabilityPage(): React.JSX.Element {
             onEditSlot={setEditingSlot}
             onDeleteSlot={handleDeleteTimeSlot}
             onToggleSlot={handleToggleSlot}
-            onCreateSlot={handleOpenModalWithPrefill}
+            onDragSelect={handleDragSelect}
           />
         </TabsContent>
 
@@ -440,17 +449,17 @@ function SetAvailabilityPage(): React.JSX.Element {
           <Card className="shadow-sm">
             <CardHeader>
               <CardTitle className="text-xl text-[#8159A8]">
-                Availability Slots
+                Session Slots
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {timeSlots.length === 0 ? (
+              {sessionSlots.length === 0 ? (
                 <div className="text-center py-12">
                   <div className="w-16 h-16 bg-[#F5F3FB] rounded-full flex items-center justify-center mx-auto mb-4">
                     <Clock className="h-8 w-8 text-[#8159A8]" />
                   </div>
                   <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    No availability set
+                    No session slots available
                   </h3>
                   <p className="text-gray-600 mb-4">
                     Add your first availability slot to start accepting
@@ -466,108 +475,61 @@ function SetAvailabilityPage(): React.JSX.Element {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {timeSlots.map((slot) => (
-                    <div
-                      key={slot.id}
-                      className={`p-4 border rounded-lg ${
-                        slot.isActive
-                          ? "bg-white border-gray-200"
-                          : "bg-gray-50 border-gray-300 opacity-60"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <h4 className="font-semibold text-gray-900">
-                              {
-                                [
-                                  "Sunday",
-                                  "Monday",
-                                  "Tuesday",
-                                  "Wednesday",
-                                  "Thursday",
-                                  "Friday",
-                                  "Saturday",
-                                ][slot.dayOfWeek]
-                              }
-                            </h4>
-                            <Badge
-                              className={
-                                slot.isActive
-                                  ? "bg-green-100 text-green-800"
-                                  : "bg-gray-100 text-gray-800"
-                              }
+                  {/* Group session slots by day */}
+                  {[0, 1, 2, 3, 4, 5, 6].map((dayOfWeek) => {
+                    const daySlots = sessionSlots.filter(slot => slot.dayOfWeek === dayOfWeek && slot.isActive);
+                    if (daySlots.length === 0) return null;
+                    
+                    const dayName = [
+                      "Sunday",
+                      "Monday", 
+                      "Tuesday",
+                      "Wednesday",
+                      "Thursday",
+                      "Friday",
+                      "Saturday"
+                    ][dayOfWeek];
+
+                    return (
+                      <div key={dayOfWeek} className="border rounded-lg p-4">
+                        <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                          {dayName}
+                          <Badge variant="outline" className="text-xs">
+                            {daySlots.length} session{daySlots.length !== 1 ? 's' : ''}
+                          </Badge>
+                        </h4>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                          {daySlots.map((sessionSlot) => (
+                            <div
+                              key={sessionSlot.id}
+                              className="p-3 border rounded bg-white hover:bg-gray-50 transition-colors"
                             >
-                              {slot.isActive ? "Active" : "Inactive"}
-                            </Badge>
-                            {slot.isRecurring && (
-                              <Badge variant="outline">Recurring</Badge>
-                            )}
-                          </div>
-
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-600">
-                            <div>
-                              <span className="font-medium">Time:</span>
-                              <p>
-                                {slot.startTime} - {slot.endTime}
-                              </p>
-                            </div>
-                            <div>
-                              <span className="font-medium">
-                                Session Duration:
-                              </span>
-                              <p>{slot.sessionDuration} minutes</p>
-                            </div>
-                            <div>
-                              <span className="font-medium">Break:</span>
-                              <p>{slot.breakBetweenSessions} minutes</p>
-                            </div>
-                            {slot.recurrencePattern && (
-                              <div>
-                                <span className="font-medium">Pattern:</span>
-                                <p>{slot.recurrencePattern.type}</p>
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <div className="font-medium text-sm text-gray-900">
+                                    {sessionSlot.startTime} - {sessionSlot.endTime}
+                                  </div>
+                                  <div className="text-xs text-gray-500 mt-1">
+                                    Individual Session Slot
+                                  </div>
+                                </div>
+                                <Badge
+                                  className={
+                                    sessionSlot.isActive
+                                      ? "bg-green-100 text-green-800"
+                                      : "bg-gray-100 text-gray-800"
+                                  }
+                                >
+                                  {sessionSlot.isActive ? "Available" : "Inactive"}
+                                </Badge>
                               </div>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleToggleSlot(slot.id)}
-                            className="text-gray-600 hover:text-[#8159A8]"
-                          >
-                            {slot.isActive ? "Disable" : "Enable"}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDuplicateSlot(slot)}
-                            className="text-gray-600 hover:text-[#8159A8]"
-                          >
-                            <Copy className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setEditingSlot(slot)}
-                            className="text-gray-600 hover:text-[#8159A8]"
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteTimeSlot(slot.id)}
-                            className="text-red-600 hover:text-red-800"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                            </div>
+                          ))}
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </CardContent>
@@ -589,6 +551,9 @@ function SetAvailabilityPage(): React.JSX.Element {
         editingSlot={editingSlot}
         prefilledData={prefilledData}
       />
+  );
+
+export default SetAvailabilityPage;
     </div>
   );
 }

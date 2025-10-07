@@ -620,4 +620,3 @@ enum PaymentStatus {
   CHARGEDBACK
   UNKNOWN
 }
-

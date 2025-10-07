@@ -2,6 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireApiAuth } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
 
+interface TimeSlotData {
+  id: string;
+  startTime: string;
+  endTime: string;
+  dayOfWeek: number;
+  isRecurring: boolean;
+  recurrencePattern?: {
+    type: "daily" | "weekly" | "custom";
+    days?: number[];
+    endDate?: string;
+  };
+  isActive: boolean;
+  isFreeSession?: boolean;
+}
+
 /**
  * @swagger
  * /api/therapist/availability:
@@ -66,8 +81,7 @@ export async function GET(req: NextRequest) {
 
         // Get therapist profile
         const therapist = await prisma.therapist.findUnique({
-            where: { userId: session.user.id },
-            select: { availability: true }
+            where: { userId: session.user.id }
         });
 
         if (!therapist) {
@@ -77,8 +91,33 @@ export async function GET(req: NextRequest) {
             );
         }
 
+        // Get availability slots from the new table
+        const availabilitySlots = await prisma.therapistAvailability.findMany({
+            where: { therapistId: therapist.id },
+            orderBy: [
+                { dayOfWeek: 'asc' },
+                { startTime: 'asc' }
+            ]
+        });
+
+        // Convert database records to frontend format
+        const availability = availabilitySlots.map((slot) => ({
+            id: slot.id,
+            startTime: slot.startTime,
+            endTime: slot.endTime,
+            dayOfWeek: slot.dayOfWeek,
+            isRecurring: slot.isRecurring,
+            recurrencePattern: slot.isRecurring && slot.recurrenceType ? {
+                type: slot.recurrenceType.toLowerCase() as "daily" | "weekly" | "custom",
+                days: slot.recurrenceDays.length > 0 ? slot.recurrenceDays : undefined,
+                endDate: slot.recurrenceEndDate?.toISOString() || undefined
+            } : undefined,
+            isActive: slot.isActive,
+            isFreeSession: slot.rate !== null && slot.rate.toNumber() === 0
+        }));
+
         return NextResponse.json({
-            availability: therapist.availability || []
+            availability: availability
         });
 
     } catch (error) {
@@ -99,9 +138,9 @@ export async function PUT(req: NextRequest) {
         const session = await requireApiAuth(req, ['THERAPIST']);
         const { availability } = await req.json();
 
-        if (!availability) {
+        if (!availability || !Array.isArray(availability)) {
             return NextResponse.json(
-                { error: "Availability data is required" },
+                { error: "Availability data must be an array" },
                 { status: 400 }
             );
         }
@@ -118,16 +157,66 @@ export async function PUT(req: NextRequest) {
             );
         }
 
-        // Update availability
-        const updatedTherapist = await prisma.therapist.update({
-            where: { userId: session.user.id },
-            data: { availability },
-            select: { availability: true }
+        // Use transaction to update availability slots
+        const result = await prisma.$transaction(async (tx) => {
+            // Delete existing availability slots for this therapist
+            await tx.therapistAvailability.deleteMany({
+                where: { therapistId: therapist.id }
+            });
+
+            // Create new availability slots with fixed 45-minute sessions and 15-minute breaks
+            const createdSlots = await Promise.all(
+                availability.map(async (slot: TimeSlotData) => {
+                    const recurrenceType = slot.recurrencePattern?.type?.toUpperCase() as "DAILY" | "WEEKLY" | "CUSTOM" | undefined;
+                    
+                    const createData: any = {
+                        therapistId: therapist.id,
+                        startTime: slot.startTime,
+                        endTime: slot.endTime,
+                        dayOfWeek: slot.dayOfWeek,
+                        isRecurring: slot.isRecurring,
+                        recurrenceType: recurrenceType,
+                        recurrenceDays: slot.recurrencePattern?.days || [],
+                        recurrenceEndDate: slot.recurrencePattern?.endDate 
+                            ? new Date(slot.recurrencePattern.endDate) 
+                            : null,
+                        sessionDuration: 45, // Fixed 45-minute sessions
+                        breakBetweenSessions: 15, // Fixed 15-minute breaks
+                        isActive: slot.isActive
+                    };
+                    
+                    if (slot.isFreeSession) {
+                        createData.rate = 0;
+                    }
+                    
+                    return tx.therapistAvailability.create({
+                        data: createData
+                    });
+                })
+            );
+
+            return createdSlots;
         });
+
+        // Convert created slots back to frontend format
+        const formattedAvailability = result.map((slot) => ({
+            id: slot.id,
+            startTime: slot.startTime,
+            endTime: slot.endTime,
+            dayOfWeek: slot.dayOfWeek,
+            isRecurring: slot.isRecurring,
+            recurrencePattern: slot.isRecurring ? {
+                type: slot.recurrenceType?.toLowerCase() as "daily" | "weekly" | "custom",
+                days: slot.recurrenceDays || undefined,
+                endDate: slot.recurrenceEndDate?.toISOString() || undefined
+            } : undefined,
+            isActive: slot.isActive,
+            isFreeSession: slot.rate !== null && slot.rate.toNumber() === 0
+        }));
 
         return NextResponse.json({
             message: "Availability updated successfully",
-            availability: updatedTherapist.availability
+            availability: formattedAvailability
         });
 
     } catch (error) {
