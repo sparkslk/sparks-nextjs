@@ -187,7 +187,7 @@ export async function GET() {
     };
 
     // Format the requests for the frontend
-    const formattedRequests = assignmentRequests.map(request => ({
+    const formattedRequests = assignmentRequests.map((request: typeof assignmentRequests[number]) => ({
       id: request.id,
       patientId: request.patientId,
       firstName: request.patient.firstName,
@@ -357,7 +357,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Update the request status
-    const updatedRequest = await prisma.therapistAssignmentRequest.update({
+    await prisma.therapistAssignmentRequest.update({
       where: { id: requestId },
       data: {
         status: action === "accept" ? "ACCEPTED" : "REJECTED",

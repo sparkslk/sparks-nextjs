@@ -392,31 +392,6 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
     }
   };
 
-  // Get button text and action based on attendance status
-  const getMoveButtonConfig = () => {
-    if (attendanceStatus === "NO_SHOW") {
-      return {
-        text: "Move to No-Show",
-        disabled: false,
-        className: "bg-orange-500 hover:bg-orange-600 text-white"
-      };
-    } else if (attendanceStatus === "PRESENT" || attendanceStatus === "LATE") {
-      return {
-        text: "Move to Completed",
-        disabled: false,
-        className: "bg-green-500 hover:bg-green-600 text-white"
-      };
-    } else {
-      return {
-        text: "Select Attendance",
-        disabled: true,
-        className: "bg-gray-300 text-gray-500 cursor-not-allowed"
-      };
-    }
-  };
-
-  const moveButtonConfig = getMoveButtonConfig();
-
   useEffect(() => {
     const handleSessionSaved = (event: CustomEvent) => {
       const { sessionId, attendanceStatus, patientName } = event.detail;
@@ -876,4 +851,3 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
     </Dialog>
   );
 }
-
