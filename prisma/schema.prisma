@@ -46,6 +46,8 @@ model User {
   password              String?
   role                  UserRole            @default(NORMAL_USER)
   accounts              Account[]
+  refundRequests        CancelRefund[]      @relation("RefundRequests")
+  processedRefunds      CancelRefund[]      @relation("ProcessedRefunds")
   receivedNotifications Notification[]      @relation("NotificationReceiver")
   sentNotifications     Notification[]      @relation("NotificationSender")
   managedOrganization   Organization?       @relation("OrganizationManager")
@@ -170,6 +172,8 @@ model TherapySession {
   primaryFocusAreas String[]
   riskAssessment    RiskLevel?
   sessionNotes      String?
+  cancelRefund      CancelRefund?
+  Payment           Payment[]
   SessionReschedule SessionReschedule[]
   patient           Patient             @relation(fields: [patientId], references: [id], onDelete: Cascade)
   therapist         Therapist           @relation(fields: [therapistId], references: [id], onDelete: Cascade)
@@ -414,6 +418,62 @@ model SessionReschedule {
   TherapySession      TherapySession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 }
 
+model CancelRefund {
+  id                 String         @id @default(cuid())
+  sessionId          String         @unique
+  parentUserId       String
+  originalAmount     Decimal        @db.Decimal(10, 2)
+  refundAmount       Decimal        @db.Decimal(10, 2)
+  refundPercentage   Decimal        @db.Decimal(5, 2)
+  cancellationTime   DateTime
+  sessionTime        DateTime
+  hoursBeforeSession Decimal        @db.Decimal(5, 2)
+  cancelReason       String?
+  bankAccountName    String
+  bankName           String
+  accountNumber      String
+  branchCode         String?
+  swiftCode          String?
+  refundStatus       RefundStatus   @default(PENDING)
+  processedAt        DateTime?
+  processedBy        String?
+  adminNotes         String?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  parentUser         User           @relation("RefundRequests", fields: [parentUserId], references: [id], onDelete: Cascade)
+  processor          User?          @relation("ProcessedRefunds", fields: [processedBy], references: [id])
+  session            TherapySession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([parentUserId])
+  @@index([refundStatus])
+  @@index([createdAt])
+}
+
+model Payment {
+  id                String          @id @default(dbgenerated("gen_random_uuid()"))
+  orderId           String          @unique
+  paymentId         String?         @unique
+  sessionId         String?
+  amount            Decimal         @db.Decimal(10, 2)
+  currency          String          @default("LKR")
+  status            PaymentStatus   @default(PENDING)
+  paymentMethod     String?
+  statusMessage     String?
+  payhereStatusCode String?
+  cardHolderName    String?
+  maskedCardNumber  String?
+  cardExpiry        String?
+  metadata          Json?
+  createdAt         DateTime?       @default(now()) @db.Timestamp(6)
+  updatedAt         DateTime?       @default(now()) @db.Timestamp(6)
+  TherapySession    TherapySession? @relation(fields: [sessionId], references: [id], map: "fk_payment_session")
+
+  @@index([orderId], map: "idx_orderId")
+  @@index([paymentId], map: "idx_paymentId")
+  @@index([sessionId], map: "idx_sessionId")
+  @@index([status], map: "idx_status")
+}
+
 enum UserRole {
   NORMAL_USER
   PARENT_GUARDIAN
@@ -481,6 +541,7 @@ enum NotificationType {
   TASK
   SYSTEM
   EMERGENCY
+  PAYMENT
 }
 
 enum Gender {
@@ -537,4 +598,22 @@ enum RecurrenceType {
   DAILY
   WEEKLY
   CUSTOM
+}
+
+enum RefundStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+  CHARGEDBACK
+  UNKNOWN
+}
 }
