@@ -12,8 +12,7 @@ import {
     Check,
     X,
     MessageCircle,
-    Calendar,
-    Clock
+    Calendar
 } from "lucide-react";
 
 interface PatientRequest {
@@ -280,7 +279,7 @@ export default function PatientRequestsPage() {
                                     <User className="h-12 w-12 text-muted-foreground mb-4" />
                                     <h3 className="text-lg font-semibold mb-2">No patient requests found</h3>
                                     <p className="text-muted-foreground text-center mb-4">
-                                        You don't have any pending patient requests yet.
+                                        You don&apos;t have any pending patient requests yet.
                                     </p>
                                 </CardContent>
                             </Card>
