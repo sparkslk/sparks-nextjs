@@ -187,7 +187,7 @@ export async function GET() {
     };
 
     // Format the requests for the frontend
-    const formattedRequests = assignmentRequests.map(request => ({
+    const formattedRequests = assignmentRequests.map((request: typeof assignmentRequests[number]) => ({
       id: request.id,
       patientId: request.patientId,
       firstName: request.patient.firstName,
