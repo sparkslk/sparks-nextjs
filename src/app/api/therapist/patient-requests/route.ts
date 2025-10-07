@@ -406,7 +406,13 @@ export async function POST(request: NextRequest) {
         ? "Therapist Assignment Approved" 
         : "Therapist Assignment Declined";
       
-      const notificationMessage = action === "accept"
+      // Message for patient (without patient name)
+      const patientNotificationMessage = action === "accept"
+        ? `Good news! ${therapistName} has accepted your therapist assignment request. You can now schedule sessions and begin therapy.${message ? ` Therapist message: ${message}` : ''}`
+        : `${therapistName} has declined your therapist assignment request.${message ? ` Therapist message: ${message}` : ''}`;
+
+      // Message for parent (with patient name)
+      const parentNotificationMessage = action === "accept"
         ? `Good news! ${therapistName} has accepted your therapist assignment request for ${patientFullName}. You can now schedule sessions and begin therapy.${message ? ` Therapist message: ${message}` : ''}`
         : `${therapistName} has declined your therapist assignment request for ${patientFullName}.${message ? ` Therapist message: ${message}` : ''}`;
 
@@ -419,7 +425,7 @@ export async function POST(request: NextRequest) {
               receiverId: patientUser.id, // Patient's user ID
               type: "SYSTEM",
               title: notificationTitle,
-              message: notificationMessage,
+              message: patientNotificationMessage,
               isRead: false,
               isUrgent: action === "accept" // Acceptance is more urgent than rejection
             }
@@ -439,7 +445,7 @@ export async function POST(request: NextRequest) {
               receiverId: parentGuardian.user.id, // Parent's user ID
               type: "SYSTEM",
               title: notificationTitle,
-              message: notificationMessage,
+              message: parentNotificationMessage,
               isRead: false,
               isUrgent: action === "accept" // Acceptance is more urgent than rejection
             }

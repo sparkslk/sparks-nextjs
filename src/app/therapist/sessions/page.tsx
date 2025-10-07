@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, Clock, User, FileText, Edit, Eye, CheckCircle, Plus, Hourglass , RotateCcw, Video, Search, Filter, X } from "lucide-react";
+import { Calendar, Clock, User, FileText, Edit, Eye, CheckCircle, Plus, Hourglass , RotateCcw, Video, Search, Filter, X, ChevronDown, ChevronRight } from "lucide-react";
 import { SessionUpdateModal } from "@/components/therapist/SessionUpdateModal";
 import { RescheduleModal } from "@/components/therapist/RescheduleModal";
 import MedicationManagement from "@/components/therapist/MedicationManagement";
@@ -51,6 +51,11 @@ export default function TherapistSessionsPage() {
   const [medications, setMedications] = useState<Medication[]>([]);
   const [medicationPatientId, setMedicationPatientId] = useState<string | null>(null);
   const [isLoadingMedications, setIsLoadingMedications] = useState(false);
+
+  // Add state for reschedule section collapse
+  const [isRescheduleSectionsOpen, setIsRescheduleSectionsOpen] = useState(false);
+  // Add state for scheduled section collapse
+  const [isScheduledSectionsOpen, setIsScheduledSectionsOpen] = useState(true);
 
   const hardcodedTasks = [
     {
@@ -174,6 +179,8 @@ export default function TherapistSessionsPage() {
       case 'scheduled':
       case 'approved':
         return 'bg-blue-100 text-blue-800';
+      case 'rescheduled':
+        return 'bg-yellow-100 text-yellow-800';
       case 'completed':
         return 'bg-green-100 text-green-800';
       case 'cancelled':
@@ -192,7 +199,7 @@ export default function TherapistSessionsPage() {
     switch (tab) {
       case 'scheduled':
         filteredSessions = sessions.filter(session => 
-          ['SCHEDULED', 'APPROVED', 'CONFIRMED'].includes(session.status)
+          ['SCHEDULED', 'APPROVED', 'CONFIRMED', 'RESCHEDULED'].includes(session.status)
         );
         break;
       case 'completed':
@@ -365,13 +372,16 @@ export default function TherapistSessionsPage() {
     const needsDocumentation = isCompleted && ['SCHEDULED', 'APPROVED', 'CONFIRMED'].includes(session.status);
     const isFutureSession = !isPast;
     const isScheduledStatus = ['SCHEDULED', 'APPROVED', 'CONFIRMED'].includes(session.status);
+    const isRescheduleRequested = session.status === 'RESCHEDULED';
     
     // Determine card styling based on session state
-    let cardStyling = 'border-gray-100 bg-primary-foreground'; // Default for future sessions
+    let cardStyling = 'border-primary-100 bg-primary-foreground'; // Default for future sessions
     if (isOngoing) {
       cardStyling = 'border-green-200 bg-green-50/30'; // Green for ongoing sessions
     } else if (needsDocumentation) {
       cardStyling = 'border-orange-200 bg-orange-50/30'; // Orange for sessions needing documentation
+    } else if (isRescheduleRequested) {
+      cardStyling = 'border-yellow-200 bg-yellow-50/30'; // Yellow for reschedule requests
     }
     
     return (
@@ -400,11 +410,17 @@ export default function TherapistSessionsPage() {
                     <p className="text-xs text-orange-700 font-medium">Session completed - Documentation required</p>
                   </div>
                 )}
+                {isRescheduleRequested && (
+                  <div className="flex items-center gap-2 mt-1">
+                    <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
+                    <p className="text-xs text-yellow-700 font-medium">Reschedule request sent - Awaiting patient response</p>
+                  </div>
+                )}
               </div>
             </div>
             <div className="flex flex-col items-end gap-2">
               <Badge className={`${getStatusColor(session.status)} font-medium`}>
-                {session.status.replace('_', ' ')}
+                {session.status === 'RESCHEDULED' ? 'Reschedule Requested' : session.status.replace('_', ' ')}
               </Badge>
               {isOngoing && (
                 <Badge className="bg-green-100 text-green-800 font-medium text-xs">
@@ -416,6 +432,7 @@ export default function TherapistSessionsPage() {
                   Needs Documentation
                 </Badge>
               )}
+              
             </div>
           </div>
         </CardHeader>
@@ -457,8 +474,8 @@ export default function TherapistSessionsPage() {
           
           <div className="flex justify-end mt-4">
             <div className="flex flex-wrap gap-2">
-              {/* Future Sessions: Show Reschedule and Cancel buttons */}
-              {isFutureSession && isScheduledStatus && (
+              {/* Future Sessions: Show Reschedule and Cancel buttons (only if not already requested) */}
+              {isFutureSession && isScheduledStatus && !isRescheduleRequested && (
                 <>
                   <Button
                     onClick={() => handleRescheduleSession(session)}
@@ -472,8 +489,11 @@ export default function TherapistSessionsPage() {
                 </>
               )}
 
+              {/* Reschedule Requested Sessions: No buttons - just show status */}
+              {/* Removed Cancel Request and View Details buttons */}
+
               {/* Ongoing Sessions: Show Join Session, and Document buttons */}
-              {isOngoing && isScheduledStatus && (
+              {isOngoing && isScheduledStatus && !isRescheduleRequested && (
                 <>
                                     
                   <Button
@@ -499,7 +519,7 @@ export default function TherapistSessionsPage() {
               )}
 
               {/* Completed Sessions (not yet documented): Show and Document buttons */}
-              {isCompleted && isScheduledStatus && (
+              {isCompleted && isScheduledStatus && !isRescheduleRequested && (
                 <>
                   
                   <Button
@@ -514,7 +534,7 @@ export default function TherapistSessionsPage() {
                 </>
               )}
 
-              {!isScheduledStatus &&
+              {!isScheduledStatus && !isRescheduleRequested &&
                 !['CANCELLED', 'DECLINED', 'NO_SHOW'].includes(session.status) && (
                   <Button
                     variant="outline"
@@ -590,29 +610,27 @@ export default function TherapistSessionsPage() {
               <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <p className="text-sm font-medium text-gray-600">Next Session</p>
-                  {filterSessionsByTab("scheduled").length > 0 ? (
-                    <>
-                      <p className="text-lg font-bold text-gray-900 mt-1">
-                        {(() => {
-                          const nextSession = filterSessionsByTab("scheduled")
-                            .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())[0];
-                          return formatDateTime(nextSession.scheduledAt);
-                        })()}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {(() => {
-                          const nextSession = filterSessionsByTab("scheduled")
-                            .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())[0];
-                          return nextSession.patientName;
-                        })()}
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-lg font-bold text-gray-900 mt-1">No sessions</p>
-                      <p className="text-xs text-gray-500 mt-1">scheduled</p>
-                    </>
-                  )}
+                  {(() => {
+                    const upcomingNonReschedule = filterSessionsByTab("scheduled")
+                      .filter(s => s.status !== 'RESCHEDULED')
+                      .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
+                    
+                    return upcomingNonReschedule.length > 0 ? (
+                      <>
+                        <p className="text-lg font-bold text-gray-900 mt-1">
+                          {formatDateTime(upcomingNonReschedule[0].scheduledAt)}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {upcomingNonReschedule[0].patientName}
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-lg font-bold text-gray-900 mt-1">No sessions</p>
+                        <p className="text-xs text-gray-500 mt-1">scheduled</p>
+                      </>
+                    );
+                  })()}
                 </div>
                 <div className="flex-shrink-0 ml-4">
                   <Calendar 
@@ -681,7 +699,13 @@ export default function TherapistSessionsPage() {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-5 mb-8">
             <TabsTrigger value="scheduled">
-              Scheduled ({filterSessionsByTab("scheduled").length})
+              Scheduled ({(() => {
+                const scheduledSessions = filterSessionsByTab("scheduled");
+                const rescheduleRequests = scheduledSessions.filter(s => s.status === 'RESCHEDULED').length;
+                return rescheduleRequests > 0 ? 
+                  `${scheduledSessions.length} • ${rescheduleRequests} pending` : 
+                  scheduledSessions.length.toString();
+              })()})
             </TabsTrigger>
             <TabsTrigger value="completed">
               Completed ({filterSessionsByTab("completed").length})
@@ -791,43 +815,116 @@ export default function TherapistSessionsPage() {
 
           <TabsContent value="scheduled">
             <div className="space-y-6">
-              {filterSessionsByTab("scheduled").length === 0 ? (
-                <Card className="shadow-sm border border-gray-200">
-                  <CardContent className="p-12 text-center">
-                    <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                      <Calendar className="w-8 h-8 text-gray-400" />
-                    </div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
-                      {hasActiveFilters ? "No sessions match your filters" : "No scheduled sessions"}
-                    </h3>
-                    <p className="text-gray-500 mb-6">
-                      {hasActiveFilters 
-                        ? "Try adjusting your search criteria or clearing the filters." 
-                        : "Your scheduled therapy sessions will appear here."
-                      }
-                    </p>
-                    {!hasActiveFilters && (
-                      <Button 
-                        style={{ backgroundColor: '#8159A8' }}
-                        className="text-white hover:opacity-90"
-                        onClick={() => window.location.href = '/therapist/appointments/new'}
-                      >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Schedule Your First Session
-                      </Button>
+              {(() => {
+                const scheduledSessions = filterSessionsByTab("scheduled");
+                const rescheduleRequests = scheduledSessions.filter(s => s.status === 'RESCHEDULED');
+                const regularScheduled = scheduledSessions.filter(s => s.status !== 'RESCHEDULED');
+                
+                if (scheduledSessions.length === 0) {
+                  return (
+                    <Card className="shadow-sm border border-gray-200">
+                      <CardContent className="p-12 text-center">
+                        <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                          <Calendar className="w-8 h-8 text-gray-400" />
+                        </div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">
+                          {hasActiveFilters ? "No sessions match your filters" : "No scheduled sessions"}
+                        </h3>
+                        <p className="text-gray-500 mb-6">
+                          {hasActiveFilters 
+                            ? "Try adjusting your search criteria or clearing the filters." 
+                            : "Your scheduled therapy sessions will appear here."
+                          }
+                        </p>
+                        {!hasActiveFilters && (
+                          <Button 
+                            style={{ backgroundColor: '#8159A8' }}
+                            className="text-white hover:opacity-90"
+                            onClick={() => window.location.href = '/therapist/appointments/new'}
+                          >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Schedule Your First Session
+                          </Button>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                }
+
+                return (
+                  <div className="space-y-6">
+                    {/* Reschedule Requests Section - Collapsible */}
+                    {rescheduleRequests.length > 0 && (
+                      <Card className="shadow-sm border border-yellow-200">
+                        <CardHeader 
+                          className="cursor-pointer hover:bg-yellow-50/50 transition-colors"
+                          onClick={() => setIsRescheduleSectionsOpen(!isRescheduleSectionsOpen)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              {isRescheduleSectionsOpen ? (
+                                <ChevronDown className="w-5 h-5 text-gray-600" />
+                              ) : (
+                                <ChevronRight className="w-5 h-5 text-gray-600" />
+                              )}
+                              <h3 className="text-lg font-semibold text-gray-900">Pending Reschedule Requests</h3>
+                              <Badge className="bg-yellow-100 text-yellow-800">
+                                {rescheduleRequests.length} pending
+                              </Badge>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        {isRescheduleSectionsOpen && (
+                          <CardContent className="pt-0">
+                            <div className="space-y-4">
+                              {rescheduleRequests
+                                .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())
+                                .map((session) => (
+                                  <SessionCard key={session.id} session={session} />
+                                ))}
+                            </div>
+                          </CardContent>
+                        )}
+                      </Card>
                     )}
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="space-y-6">
-                  {filterSessionsByTab("scheduled")
-                    .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())
-                    .map((session) => (
-                      <SessionCard key={session.id} session={session} />
-                    ))
-                  }
-                </div>
-              )}
+
+                    {/* Regular Scheduled Sessions - Collapsible */}
+                    {regularScheduled.length > 0 && (
+                      <Card className="shadow-sm border border-blue-200">
+                        <CardHeader 
+                          className="cursor-pointer hover:bg-blue-50/50 transition-colors"
+                          onClick={() => setIsScheduledSectionsOpen(!isScheduledSectionsOpen)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              {isScheduledSectionsOpen ? (
+                                <ChevronDown className="w-5 h-5 text-gray-600" />
+                              ) : (
+                                <ChevronRight className="w-5 h-5 text-gray-600" />
+                              )}
+                              <h3 className="text-lg font-semibold text-gray-900">Scheduled Sessions</h3>
+                              <Badge className="bg-blue-100 text-blue-800">
+                                {regularScheduled.length} sessions
+                              </Badge>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        {isScheduledSectionsOpen && (
+                          <CardContent className="pt-0">
+                            <div className="space-y-4">
+                              {regularScheduled
+                                .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())
+                                .map((session) => (
+                                  <SessionCard key={session.id} session={session} />
+                                ))}
+                            </div>
+                          </CardContent>
+                        )}
+                      </Card>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           </TabsContent>
 
