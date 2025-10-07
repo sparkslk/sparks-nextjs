@@ -20,10 +20,8 @@ interface TimeSlot {
     days?: number[];
     endDate?: string;
   };
-  sessionDuration: number;
-  breakBetweenSessions: number;
   isActive: boolean;
-  rate?: number;
+  isFreeSession?: boolean;
 }
 
 interface SessionSlot {
@@ -33,6 +31,7 @@ interface SessionSlot {
   dayOfWeek: number;
   isActive: boolean;
   parentAvailabilityId: string;
+  isFreeSession: boolean;
 }
 
 interface WeeklyCalendarViewProps {
@@ -61,15 +60,18 @@ export function WeeklyCalendarView({
     "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday",
   ];
 
-  const timeSlots30Min = Array.from({ length: (22 - 7) * 2 }, (_, i) => {
-    const totalMinutes = 7 * 60 + i * 30;
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
+  const sessionTimeSlots = Array.from({ length: (22 - 7) }, (_, i) => {
+    const startHours = 7 + i;
+    const endHours = startHours + 1;
     return {
-      hour: hours,
-      minute: minutes,
-      timeString: `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`,
-      displayTime: formatTimeDisplay(hours, minutes)
+      startHour: startHours,
+      endHour: endHours,
+      startTimeString: `${startHours.toString().padStart(2, "0")}:00`,
+      endTimeString: `${endHours.toString().padStart(2, "0")}:00`,
+      displayTime: formatTimeDisplay(startHours, 0),
+      sessionStartTime: `${startHours.toString().padStart(2, "0")}:00`,
+      sessionEndTime: `${startHours.toString().padStart(2, "0")}:45`, // 45-minute session
+      breakEndTime: `${endHours.toString().padStart(2, "0")}:00` // 15-minute break until next hour
     };
   });
 
@@ -111,8 +113,8 @@ export function WeeklyCalendarView({
     
     // Calculate position relative to 7:00 AM (420 minutes)
     const calendarStartMinutes = 7 * 60;
-    const top = ((startTotalMinutes - calendarStartMinutes) / 30) * 32; // 32px per 30-min slot
-    const height = ((endTotalMinutes - startTotalMinutes) / 30) * 32;
+    const top = ((startTotalMinutes - calendarStartMinutes) / 60) * 64; // 64px per 60-min slot
+    const height = ((endTotalMinutes - startTotalMinutes) / 60) * 64;
     
     return { top: `${top}px`, height: `${height}px` };
   };
@@ -130,9 +132,8 @@ export function WeeklyCalendarView({
   const handleMouseDown = (dayIndex: number, timeSlotIndex: number) => {
     const hasSlot = getSessionSlotsForDay(weekDates[dayIndex].getDay()).some((slot) => {
       const slotStartMinutes = timeStringToMinutes(slot.startTime);
-      const slotEndMinutes = timeStringToMinutes(slot.endTime);
-      const currentMinutes = timeSlots30Min[timeSlotIndex].hour * 60 + timeSlots30Min[timeSlotIndex].minute;
-      return currentMinutes >= slotStartMinutes && currentMinutes < slotEndMinutes;
+      const currentSlotStart = sessionTimeSlots[timeSlotIndex].startHour * 60;
+      return slotStartMinutes >= currentSlotStart && slotStartMinutes < (currentSlotStart + 60);
     });
 
     if (!hasSlot) {
@@ -153,8 +154,8 @@ export function WeeklyCalendarView({
       const startTimeIndex = Math.min(dragStart.timeIndex, dragEnd.timeIndex);
       const endTimeIndex = Math.max(dragStart.timeIndex, dragEnd.timeIndex) + 1;
       
-      const startTime = timeSlots30Min[startTimeIndex].timeString;
-      const endTime = timeSlots30Min[endTimeIndex]?.timeString || "22:00";
+      const startTime = sessionTimeSlots[startTimeIndex].startTimeString;
+      const endTime = sessionTimeSlots[endTimeIndex]?.startTimeString || "22:00";
       
       onDragSelect(weekDates[dragStart.dayIndex].getDay(), startTime, endTime);
     }
@@ -245,16 +246,19 @@ export function WeeklyCalendarView({
         >
           {/* Time Labels */}
           <div className="border-r bg-gray-50">
-            {timeSlots30Min.map((timeSlot) => (
+            {sessionTimeSlots.map((timeSlot) => (
               <div
-                key={timeSlot.timeString}
-                className="h-8 border-b border-gray-100 flex items-center justify-end pr-2"
+                key={timeSlot.startTimeString}
+                className="h-16 border-b border-gray-100 flex items-start justify-end pr-2 pt-1"
               >
-                {timeSlot.minute === 0 && (
-                  <span className="text-sm font-medium px-4">
+                <div className="text-right">
+                  <div className="text-sm font-medium">
                     {timeSlot.displayTime}
-                  </span>
-                )}
+                  </div>
+                  <div className="text-xs text-gray-400">
+                    45min slot
+                  </div>
+                </div>
               </div>
             ))}
           </div>
@@ -262,19 +266,18 @@ export function WeeklyCalendarView({
           {/* Days */}
           {days.map((day, dayIndex) => (
             <div key={dayIndex} className="border-r relative">
-              {/* 30-minute grid cells */}
-              {timeSlots30Min.map((timeSlot, timeSlotIndex) => {
+              {/* 60-minute session slots */}
+              {sessionTimeSlots.map((timeSlot, timeSlotIndex) => {
                 const hasSlot = getSessionSlotsForDay(weekDates[dayIndex].getDay()).some((slot) => {
                   const slotStartMinutes = timeStringToMinutes(slot.startTime);
-                  const slotEndMinutes = timeStringToMinutes(slot.endTime);
-                  const currentMinutes = timeSlot.hour * 60 + timeSlot.minute;
-                  return currentMinutes >= slotStartMinutes && currentMinutes < slotEndMinutes;
+                  const currentSlotStart = timeSlot.startHour * 60;
+                  return slotStartMinutes >= currentSlotStart && slotStartMinutes < (currentSlotStart + 60);
                 });
 
                 return (
                   <div
                     key={timeSlotIndex}
-                    className={`h-8 border-b border-gray-100 transition-colors cursor-pointer group relative ${
+                    className={`h-16 border-b border-gray-100 transition-colors cursor-pointer group relative ${
                       hasSlot
                         ? "bg-[#8159A8]/10"
                         : isDragSelected(dayIndex, timeSlotIndex)
@@ -283,10 +286,25 @@ export function WeeklyCalendarView({
                     }`}
                     onMouseDown={() => handleMouseDown(dayIndex, timeSlotIndex)}
                     onMouseEnter={() => handleMouseEnter(dayIndex, timeSlotIndex)}
+                    onClick={() => {
+                      if (!hasSlot && onDragSelect) {
+                        onDragSelect(
+                          weekDates[dayIndex].getDay(),
+                          timeSlot.startTimeString,
+                          timeSlot.endTimeString
+                        );
+                      }
+                    }}
                   >
-                    {!hasSlot && !isDragging && (
-                      <div className="flex items-center justify-center h-full opacity-0 group-hover:opacity-100 transition-opacity">
-                        {timeSlot.minute === 0 && <Plus className="h-3 w-3 text-[#8159A8]" />}
+                    {!hasSlot && (
+                      <div className="flex flex-col items-center justify-center h-full opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Plus className="h-4 w-4 text-[#8159A8] mb-1" />
+                        <div className="text-xs text-[#8159A8] font-medium">
+                          {timeSlot.displayTime}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          45min session
+                        </div>
                       </div>
                     )}
                   </div>
@@ -301,9 +319,11 @@ export function WeeklyCalendarView({
                   <div
                     key={sessionSlot.id}
                     className={`absolute left-2 right-2 rounded border transition-all cursor-pointer z-10 ${
-                      sessionSlot.isActive
-                        ? "bg-[#8159A8] text-white border-[#6D4C93] hover:bg-[#6D4C93]"
-                        : "bg-gray-400 text-gray-100 border-gray-500"
+                      !sessionSlot.isActive
+                        ? "bg-gray-400 text-gray-100 border-gray-500"
+                        : sessionSlot.isFreeSession
+                        ? "bg-green-500 text-white border-green-600 hover:bg-green-600"
+                        : "bg-[#8159A8] text-white border-[#6D4C93] hover:bg-[#6D4C93]"
                     }`}
                     style={position}
                     onMouseEnter={() => setHoveredSlot(sessionSlot.id)}
@@ -314,7 +334,7 @@ export function WeeklyCalendarView({
                         {formatTime(sessionSlot.startTime)}
                       </div>
                       <div className="text-xs opacity-90">
-                        Available
+                        {sessionSlot.isFreeSession ? "Free" : "Available"}
                       </div>
                     </div>
 
@@ -322,13 +342,23 @@ export function WeeklyCalendarView({
                     {hoveredSlot === sessionSlot.id && (
                       <div className="absolute top-full left-0 mt-1 bg-white border rounded-lg shadow-lg p-3 min-w-48 z-20">
                         <div className="text-gray-900">
-                          <div className="font-medium text-sm mb-2">Session Slot</div>
+                          <div className="font-medium text-sm mb-2">45-Minute Session</div>
                           <div className="space-y-1 text-xs">
                             <div><strong>Time:</strong> {formatTime(sessionSlot.startTime)} - {formatTime(sessionSlot.endTime)}</div>
+                            <div><strong>Duration:</strong> 45 minutes</div>
+                            <div><strong>Type:</strong> 
+                              <span className={`ml-1 px-2 py-1 rounded text-xs ${
+                                sessionSlot.isFreeSession
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-[#F5F3FB] text-[#8159A8]"
+                              }`}>
+                                {sessionSlot.isFreeSession ? "Free Session" : "Paid Session"}
+                              </span>
+                            </div>
                             <div><strong>Status:</strong> 
                               <span className={`ml-1 px-2 py-1 rounded text-xs ${
                                 sessionSlot.isActive
-                                  ? "bg-green-100 text-green-800"
+                                  ? "bg-blue-100 text-blue-800"
                                   : "bg-gray-100 text-gray-800"
                               }`}>
                                 {sessionSlot.isActive ? "Available for booking" : "Inactive"}
@@ -350,11 +380,15 @@ export function WeeklyCalendarView({
           <div className="flex items-center gap-6 text-sm flex-wrap">
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 bg-[#8159A8] rounded border border-[#6D4C93]"></div>
-              <span>Available Session Slot</span>
+              <span>Paid Sessions (45 min)</span>
             </div>
             <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-green-500 rounded border border-green-600"></div>
+              <span>Free Sessions (45 min)</span>
+            </div>
+                        <div className="flex items-center gap-2">
               <div className="w-4 h-4 bg-gray-400 rounded border border-gray-500"></div>
-              <span>Inactive Session Slot</span>
+              <span>Inactive Sessions</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 bg-[#8159A8]/30 rounded"></div>
@@ -362,7 +396,7 @@ export function WeeklyCalendarView({
             </div>
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4" />
-              <span>Each cell = 30 minutes</span>
+              <span>Each row = 1 hour (45min session + 15min break)</span>
             </div>
           </div>
         </div>

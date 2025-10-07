@@ -13,10 +13,8 @@ interface TimeSlotData {
     days?: number[];
     endDate?: string;
   };
-  sessionDuration: number;
-  breakBetweenSessions: number;
   isActive: boolean;
-  rate?: number;
+  isFreeSession?: boolean;
 }
 
 /**
@@ -114,9 +112,8 @@ export async function GET(req: NextRequest) {
                 days: slot.recurrenceDays.length > 0 ? slot.recurrenceDays : undefined,
                 endDate: slot.recurrenceEndDate?.toISOString() || undefined
             } : undefined,
-            sessionDuration: slot.sessionDuration,
-            breakBetweenSessions: slot.breakBetweenSessions,
-            isActive: slot.isActive
+            isActive: slot.isActive,
+            isFreeSession: slot.rate !== null && slot.rate.toNumber() === 0
         }));
 
         return NextResponse.json({
@@ -167,28 +164,33 @@ export async function PUT(req: NextRequest) {
                 where: { therapistId: therapist.id }
             });
 
-            // Create new availability slots
+            // Create new availability slots with fixed 45-minute sessions and 15-minute breaks
             const createdSlots = await Promise.all(
                 availability.map(async (slot: TimeSlotData) => {
                     const recurrenceType = slot.recurrencePattern?.type?.toUpperCase() as "DAILY" | "WEEKLY" | "CUSTOM" | undefined;
                     
+                    const createData: any = {
+                        therapistId: therapist.id,
+                        startTime: slot.startTime,
+                        endTime: slot.endTime,
+                        dayOfWeek: slot.dayOfWeek,
+                        isRecurring: slot.isRecurring,
+                        recurrenceType: recurrenceType,
+                        recurrenceDays: slot.recurrencePattern?.days || [],
+                        recurrenceEndDate: slot.recurrencePattern?.endDate 
+                            ? new Date(slot.recurrencePattern.endDate) 
+                            : null,
+                        sessionDuration: 45, // Fixed 45-minute sessions
+                        breakBetweenSessions: 15, // Fixed 15-minute breaks
+                        isActive: slot.isActive
+                    };
+                    
+                    if (slot.isFreeSession) {
+                        createData.rate = 0;
+                    }
+                    
                     return tx.therapistAvailability.create({
-                        data: {
-                            id: slot.id,
-                            therapistId: therapist.id,
-                            startTime: slot.startTime,
-                            endTime: slot.endTime,
-                            dayOfWeek: slot.dayOfWeek,
-                            isRecurring: slot.isRecurring,
-                            recurrenceType: recurrenceType,
-                            recurrenceDays: slot.recurrencePattern?.days || [],
-                            recurrenceEndDate: slot.recurrencePattern?.endDate 
-                                ? new Date(slot.recurrencePattern.endDate) 
-                                : null,
-                            sessionDuration: slot.sessionDuration,
-                            breakBetweenSessions: slot.breakBetweenSessions,
-                            isActive: slot.isActive
-                        }
+                        data: createData
                     });
                 })
             );
@@ -208,9 +210,8 @@ export async function PUT(req: NextRequest) {
                 days: slot.recurrenceDays || undefined,
                 endDate: slot.recurrenceEndDate?.toISOString() || undefined
             } : undefined,
-            sessionDuration: slot.sessionDuration,
-            breakBetweenSessions: slot.breakBetweenSessions,
-            isActive: slot.isActive
+            isActive: slot.isActive,
+            isFreeSession: slot.rate !== null && slot.rate.toNumber() === 0
         }));
 
         return NextResponse.json({

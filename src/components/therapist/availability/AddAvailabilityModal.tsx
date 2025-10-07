@@ -33,10 +33,8 @@ interface TimeSlot {
     days?: number[];
     endDate?: string;
   };
-  sessionDuration: number;
-  breakBetweenSessions: number;
   isActive: boolean;
-  rate?: number;
+  isFreeSession?: boolean;
 }
 
 interface AddAvailabilityModalProps {
@@ -66,8 +64,6 @@ interface SchedulePreset {
   description: string;
   startTime: string;
   endTime: string;
-  sessionDuration: number;
-  breakBetweenSessions: number;
   color: string;
 }
 
@@ -86,11 +82,8 @@ export function AddAvailabilityModal({
     recurrenceType: "weekly" as "daily" | "weekly" | "custom",
     selectedDays: [1] as number[],
     endDate: "",
-    sessionDuration: 60,
-    breakBetweenSessions: 15,
     isActive: true,
-    rate: 120,
-    overrideDefaultRate: false,
+    isFreeSession: false,
   });
 
   const days = [
@@ -116,11 +109,9 @@ export function AddAvailabilityModal({
     {
       id: "business-hours",
       name: "Business Hours",
-      description: "Standard 9-5 with lunch break",
+      description: "Standard 9-5 schedule",
       startTime: "09:00",
       endTime: "17:00",
-      sessionDuration: 60,
-      breakBetweenSessions: 15,
       color: "bg-blue-100 text-blue-800"
     },
     {
@@ -129,8 +120,6 @@ export function AddAvailabilityModal({
       description: "Early bird appointments",
       startTime: "08:00",
       endTime: "12:00",
-      sessionDuration: 90,
-      breakBetweenSessions: 30,
       color: "bg-green-100 text-green-800"
     },
     {
@@ -139,18 +128,14 @@ export function AddAvailabilityModal({
       description: "After-work appointments",
       startTime: "17:00",
       endTime: "21:00",
-      sessionDuration: 60,
-      breakBetweenSessions: 15,
       color: "bg-purple-100 text-purple-800"
     },
     {
-      id: "intensive-day",
-      name: "Intensive Day",
-      description: "Longer sessions, fewer breaks",
+      id: "weekend-schedule",
+      name: "Weekend Schedule",
+      description: "Flexible weekend hours",
       startTime: "10:00",
       endTime: "16:00",
-      sessionDuration: 120,
-      breakBetweenSessions: 30,
       color: "bg-orange-100 text-orange-800"
     }
   ];
@@ -171,8 +156,8 @@ export function AddAvailabilityModal({
       return { sessions: [], unusedMinutes: 0, warnings: ["End time must be after start time"] };
     }
 
-    const sessionMinutes = formData.sessionDuration;
-    const breakMinutes = formData.breakBetweenSessions;
+    const sessionMinutes = 45; // Fixed 45-minute sessions
+    const breakMinutes = 15; // Fixed 15-minute breaks
     const slotDuration = sessionMinutes + breakMinutes;
     
     const sessions: SessionPreview[] = [];
@@ -225,21 +210,14 @@ export function AddAvailabilityModal({
       : start;
     const unusedMinutes = (end.getTime() - lastSessionEnd.getTime()) / (1000 * 60);
 
-    // Add warnings
-    if (unusedMinutes >= sessionMinutes) {
-      warnings.push(`${unusedMinutes} minutes unused - consider adjusting times or session length`);
-    }
-    
+    // Add warnings only for significant issues
     if (sessions.length === 0) {
       warnings.push("No sessions can fit in this time block");
     }
-
-    if (formData.sessionDuration < 30) {
-      warnings.push("Sessions shorter than 30 minutes may not be practical");
-    }
-
-    if (formData.breakBetweenSessions === 0 && sessions.length > 1) {
-      warnings.push("Consider adding breaks between sessions");
+    
+    // Only warn if there's enough unused time for a full session (60+ minutes)
+    if (unusedMinutes >= 60) {
+      warnings.push(`${unusedMinutes} minutes unused - consider extending or adding another session slot`);
     }
 
     return { sessions, unusedMinutes, warnings };
@@ -257,11 +235,8 @@ export function AddAvailabilityModal({
         recurrenceType: editingSlot.recurrencePattern?.type || "weekly",
         selectedDays: editingSlot.recurrencePattern?.days || [editingSlot.dayOfWeek],
         endDate: editingSlot.recurrencePattern?.endDate || "",
-        sessionDuration: editingSlot.sessionDuration,
-        breakBetweenSessions: editingSlot.breakBetweenSessions,
         isActive: editingSlot.isActive,
-        rate: editingSlot.rate || 120,
-        overrideDefaultRate: Boolean(editingSlot.rate),
+        isFreeSession: editingSlot.isFreeSession || false,
       });
     } else if (prefilledData) {
       setFormData({
@@ -272,11 +247,8 @@ export function AddAvailabilityModal({
         recurrenceType: "weekly",
         selectedDays: [prefilledData.dayOfWeek],
         endDate: "",
-        sessionDuration: 60,
-        breakBetweenSessions: 15,
         isActive: true,
-        rate: 120,
-        overrideDefaultRate: false,
+        isFreeSession: false,
       });
     }
   }, [editingSlot, isOpen, prefilledData]);
@@ -298,10 +270,8 @@ export function AddAvailabilityModal({
             endDate: formData.endDate || undefined,
           }
         : undefined,
-      sessionDuration: formData.sessionDuration,
-      breakBetweenSessions: formData.breakBetweenSessions,
       isActive: formData.isActive,
-      rate: formData.overrideDefaultRate ? formData.rate : undefined,
+      isFreeSession: formData.isFreeSession,
     };
 
     if (editingSlot) {
@@ -316,8 +286,6 @@ export function AddAvailabilityModal({
       ...formData,
       startTime: preset.startTime,
       endTime: preset.endTime,
-      sessionDuration: preset.sessionDuration,
-      breakBetweenSessions: preset.breakBetweenSessions,
     });
   };
 
@@ -349,7 +317,6 @@ export function AddAvailabilityModal({
     const daysPerWeek = formData.isRecurring ? formData.selectedDays.length : 1;
     const sessionsPerDay = sessions.length;
     const totalSessions = sessionsPerDay * daysPerWeek;
-    const revenue = totalSessions * formData.rate;
     const hoursPerDay = sessions.reduce((total, session) => {
       const start = new Date(`1970-01-01T${session.startTime}:00`);
       const end = new Date(`1970-01-01T${session.endTime}:00`);
@@ -357,7 +324,7 @@ export function AddAvailabilityModal({
     }, 0);
     const totalHours = hoursPerDay * daysPerWeek;
 
-    return { totalSessions, revenue, totalHours, sessionsPerDay };
+    return { totalSessions, totalHours, sessionsPerDay };
   };
 
   const stats = calculateWeeklyStats();
@@ -476,54 +443,43 @@ export function AddAvailabilityModal({
               </CardContent>
             </Card>
 
-            {/* Session Settings */}
+            {/* Session Info */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Session Settings</CardTitle>
+                <CardTitle className="text-lg">Session Information</CardTitle>
                 <p className="text-sm text-gray-600">
-                  Configure individual session duration and breaks
+                  All sessions are standardized to 45 minutes with 15-minute breaks
                 </p>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="sessionDuration">Session Duration (minutes)</Label>
-                    <Select
-                      value={formData.sessionDuration.toString()}
-                      onValueChange={(value) => setFormData({ ...formData, sessionDuration: parseInt(value) })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="30">30 minutes</SelectItem>
-                        <SelectItem value="45">45 minutes</SelectItem>
-                        <SelectItem value="60">60 minutes ⭐</SelectItem>
-                        <SelectItem value="90">90 minutes</SelectItem>
-                        <SelectItem value="120">120 minutes</SelectItem>
-                      </SelectContent>
-                    </Select>
+                <div className="bg-[#F5F3FB] p-4 rounded-lg border border-[#8159A8]/20">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium text-[#8159A8]">Session Duration:</span>
+                    <Badge className="bg-[#8159A8] text-white">45 minutes</Badge>
                   </div>
-
-                  <div>
-                    <Label htmlFor="breakBetweenSessions">Break Between Sessions (minutes)</Label>
-                    <Select
-                      value={formData.breakBetweenSessions.toString()}
-                      onValueChange={(value) => setFormData({ ...formData, breakBetweenSessions: parseInt(value) })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="0">No break</SelectItem>
-                        <SelectItem value="15">15 minutes ⭐</SelectItem>
-                        <SelectItem value="30">30 minutes</SelectItem>
-                        <SelectItem value="45">45 minutes</SelectItem>
-                        <SelectItem value="60">60 minutes</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-[#8159A8]">Break Between Sessions:</span>
+                    <Badge variant="outline">15 minutes</Badge>
                   </div>
                 </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="isFreeSession"
+                    checked={formData.isFreeSession}
+                    onCheckedChange={(checked) => setFormData({ ...formData, isFreeSession: checked === true })}
+                  />
+                  <Label htmlFor="isFreeSession" className="text-sm font-medium">
+                    Offer as free sessions
+                  </Label>
+                </div>
+                {formData.isFreeSession && (
+                  <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                    <p className="text-sm text-green-800">
+                      These sessions will be offered free of charge to patients. Your regular session rate will apply to other bookings.
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -581,36 +537,7 @@ export function AddAvailabilityModal({
               </CardContent>
             </Card>
 
-            {/* Pricing */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Pricing</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="overrideDefaultRate"
-                    checked={formData.overrideDefaultRate}
-                    onCheckedChange={(checked) => setFormData({ ...formData, overrideDefaultRate: checked === true })}
-                  />
-                  <Label htmlFor="overrideDefaultRate">Custom rate for this block</Label>
-                </div>
 
-                {formData.overrideDefaultRate && (
-                  <div>
-                    <Label htmlFor="rate">Session Rate ($)</Label>
-                    <Input
-                      id="rate"
-                      type="number"
-                      value={formData.rate}
-                      onChange={(e) => setFormData({ ...formData, rate: parseInt(e.target.value) || 120 })}
-                      min="0"
-                      step="5"
-                    />
-                  </div>
-                )}
-              </CardContent>
-            </Card>
           </div>
 
           {/* Right Column - Preview */}
@@ -640,9 +567,16 @@ export function AddAvailabilityModal({
                             {session.displayStart} - {session.displayEnd}
                           </div>
                         </div>
-                        <Badge className="bg-[#8159A8] text-white">
-                          {formData.sessionDuration}min
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge className="bg-[#8159A8] text-white">
+                            45min
+                          </Badge>
+                          {formData.isFreeSession && (
+                            <Badge className="bg-green-100 text-green-800">
+                              Free
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -654,16 +588,7 @@ export function AddAvailabilityModal({
                   </div>
                 )}
 
-                {unusedMinutes > 0 && (
-                  <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                    <div className="flex items-center gap-2 text-amber-800">
-                      <AlertTriangle className="h-4 w-4" />
-                      <span className="text-sm font-medium">
-                        {unusedMinutes} minutes unused at the end
-                      </span>
-                    </div>
-                  </div>
-                )}
+
               </CardContent>
             </Card>
 
@@ -707,10 +632,17 @@ export function AddAvailabilityModal({
                     <span className="text-gray-600">Total hours per week:</span>
                     <span className="font-medium">{stats.totalHours.toFixed(1)}h</span>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Weekly revenue potential:</span>
-                    <span className="font-bold text-[#8159A8]">${stats.revenue}</span>
-                  </div>
+                  {formData.isFreeSession ? (
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Session type:</span>
+                      <Badge className="bg-green-100 text-green-800">Free Sessions</Badge>
+                    </div>
+                  ) : (
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Session type:</span>
+                      <Badge className="bg-[#8159A8] text-white">Paid Sessions</Badge>
+                    </div>
+                  )}
                   {formData.isRecurring && (
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600">Active days:</span>

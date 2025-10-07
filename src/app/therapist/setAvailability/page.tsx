@@ -31,10 +31,8 @@ interface TimeSlot {
     days?: number[];
     endDate?: string;
   };
-  sessionDuration: number;
-  breakBetweenSessions: number;
   isActive: boolean;
-  rate?: number;
+  isFreeSession?: boolean;
 }
 
 interface SessionSlot {
@@ -44,6 +42,7 @@ interface SessionSlot {
   dayOfWeek: number;
   isActive: boolean;
   parentAvailabilityId: string;
+  isFreeSession: boolean;
 }
 
 // interface AvailabilityStats {
@@ -192,6 +191,8 @@ function SetAvailabilityPage(): React.JSX.Element {
 
   const generateSessionSlots = (timeSlots: TimeSlot[]): SessionSlot[] => {
     const sessionSlots: SessionSlot[] = [];
+    const SESSION_DURATION = 45; // Fixed 45-minute sessions
+    const BREAK_DURATION = 15; // Fixed 15-minute breaks
 
     timeSlots.forEach((slot) => {
       if (!slot.isActive) return;
@@ -220,7 +221,7 @@ function SetAvailabilityPage(): React.JSX.Element {
         while (currentTime < endTime) {
           const sessionEnd = new Date(currentTime);
           sessionEnd.setMinutes(
-            currentTime.getMinutes() + slot.sessionDuration
+            currentTime.getMinutes() + SESSION_DURATION
           );
 
           if (sessionEnd <= endTime) {
@@ -243,13 +244,12 @@ function SetAvailabilityPage(): React.JSX.Element {
               dayOfWeek,
               isActive: slot.isActive,
               parentAvailabilityId: slot.id,
+              isFreeSession: slot.isFreeSession || false,
             });
 
-            // Move to next session (session duration + break)
+            // Move to next session (45 minutes + 15 minute break)
             currentTime.setMinutes(
-              currentTime.getMinutes() +
-                slot.sessionDuration +
-                slot.breakBetweenSessions
+              currentTime.getMinutes() + SESSION_DURATION + BREAK_DURATION
             );
             sessionCount++;
           } else {
