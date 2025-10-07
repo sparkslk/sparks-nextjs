@@ -128,7 +128,7 @@ model Patient {
   assessments            Assessment[]
   Medication             Medication[]
   parentGuardians        ParentGuardian[]
-  payments               Payment[]
+  payments               Payment[]                    // Add this line
   organization           Organization?                @relation(fields: [organizationId], references: [id])
   primaryTherapist       Therapist?                   @relation(fields: [primaryTherapistId], references: [id])
   user                   User?                        @relation(fields: [userId], references: [id])
@@ -191,7 +191,7 @@ model TreatmentPlan {
   targetEndDate DateTime?
   isActive      Boolean     @default(true)
   createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  updatedAt     DateTime    @default(now())
   treatments    Treatment[]
   patient       Patient     @relation(fields: [patientId], references: [id], onDelete: Cascade)
   therapist     Therapist   @relation(fields: [therapistId], references: [id], onDelete: Cascade)
@@ -211,7 +211,7 @@ model Treatment {
   endDate         DateTime?
   isActive        Boolean       @default(true)
   createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  updatedAt       DateTime      @default(now())
   patient         Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
   therapist       Therapist     @relation(fields: [therapistId], references: [id], onDelete: Cascade)
   treatmentPlan   TreatmentPlan @relation(fields: [treatmentPlanId], references: [id], onDelete: Cascade)
@@ -231,7 +231,7 @@ model Assessment {
   recommendations String?
   assessmentDate  DateTime
   createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  updatedAt       DateTime       @default(now())
   patient         Patient        @relation(fields: [patientId], references: [id], onDelete: Cascade)
   therapist       Therapist      @relation(fields: [therapistId], references: [id], onDelete: Cascade)
 }
@@ -250,7 +250,7 @@ model Task {
   completedAt      DateTime?
   completionNotes  String?
   createdAt        DateTime   @default(now())
-  updatedAt        DateTime   @updatedAt
+  updatedAt        DateTime   @default(now())
   sessionid        String?
   patient          Patient    @relation(fields: [patientId], references: [id], onDelete: Cascade)
 }
@@ -267,7 +267,7 @@ model Notification {
   scheduledFor DateTime?
   sentAt       DateTime?
   createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
+  updatedAt    DateTime         @default(now())
   receiver     User             @relation("NotificationReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
   sender       User?            @relation("NotificationSender", fields: [senderId], references: [id])
 }
@@ -300,7 +300,7 @@ model Medication {
   discontinuedAt  DateTime?
   discontinuedBy  String?
   createdAt       DateTime            @default(now())
-  updatedAt       DateTime
+  updatedAt       DateTime            @default(now())
   Patient         Patient             @relation(fields: [patientId], references: [id], onDelete: Cascade)
   Therapist       Therapist           @relation(fields: [therapistId], references: [id], onDelete: Cascade)
   history         MedicationHistory[]
@@ -356,7 +356,7 @@ model TherapistAssignmentRequest {
   requestMessage  String?
   responseMessage String?
   createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  updatedAt       DateTime         @default(now())
   patient         Patient          @relation("PatientRequests", fields: [patientId], references: [id], onDelete: Cascade)
   therapist       Therapist        @relation("TherapistRequests", fields: [therapistId], references: [id], onDelete: Cascade)
 
@@ -440,7 +440,7 @@ model CancelRefund {
   processedBy        String?
   adminNotes         String?
   createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
+  updatedAt          DateTime       @default(now())
   parentUser         User           @relation("RefundRequests", fields: [parentUserId], references: [id], onDelete: Cascade)
   processor          User?          @relation("ProcessedRefunds", fields: [processedBy], references: [id])
   session            TherapySession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
@@ -455,6 +455,7 @@ model Payment {
   orderId           String          @unique
   paymentId         String?         @unique
   sessionId         String?
+  patientId         String?         // Add this field
   amount            Decimal         @db.Decimal(10, 2)
   currency          String          @default("LKR")
   status            PaymentStatus   @default(PENDING)
@@ -467,11 +468,13 @@ model Payment {
   metadata          Json?
   createdAt         DateTime?       @default(now()) @db.Timestamp(6)
   updatedAt         DateTime?       @default(now()) @db.Timestamp(6)
+  patient           Patient?        @relation(fields: [patientId], references: [id]) // Add this relation
   TherapySession    TherapySession? @relation(fields: [sessionId], references: [id], map: "fk_payment_session")
 
   @@index([orderId], map: "idx_orderId")
   @@index([paymentId], map: "idx_paymentId")
   @@index([sessionId], map: "idx_sessionId")
+  @@index([patientId], map: "idx_patientId") // Add this index
   @@index([status], map: "idx_status")
 }
 
@@ -617,4 +620,4 @@ enum PaymentStatus {
   CHARGEDBACK
   UNKNOWN
 }
-}
+
