@@ -89,6 +89,17 @@ export default function FindTherapistPage() {
     const [notification, setNotification] = useState<string | null>(null);
     const [requestMessage, setRequestMessage] = useState<string>("");
     const [requestedTherapists, setRequestedTherapists] = useState<TherapistRequest[]>([]);
+    const [disconnectModalOpen, setDisconnectModalOpen] = useState(false);
+    const [therapistToDisconnect, setTherapistToDisconnect] = useState<{
+        therapistId: string;
+        therapistName: string;
+        childName: string;
+    } | null>(null);
+    const [cancelRequestModalOpen, setCancelRequestModalOpen] = useState(false);
+    const [requestToCancel, setRequestToCancel] = useState<{
+        requestId: string;
+        therapistName: string;
+    } | null>(null);
 
     // Fetch requested therapists
     const fetchRequestedTherapists = async () => {
@@ -319,10 +330,17 @@ export default function FindTherapistPage() {
                     firstName: string;
                     lastName?: string;
                     therapist?: Therapist | null;
+                    connectionStatus?: boolean;
                 }
-                setPatients(data.children.map((p: ApiPatient) => ({ id: p.id, name: p.firstName + (p.lastName ? ' ' + p.lastName : '') })));
+                console.log("All patients:", data.children);
+
+                // Only include patients where parentConnectionStatus is true
+                const activePatients = data.children.filter((p: ApiPatient) => p.connectionStatus === true);
+                console.log("Active patients:",activePatients)
+                
+                setPatients(activePatients.map((p: ApiPatient) => ({ id: p.id, name: p.firstName + (p.lastName ? ' ' + p.lastName : '') })));
                 const map: { [patient: string]: Therapist | null } = {};
-                data.children.forEach((p: ApiPatient) => {
+                activePatients.forEach((p: ApiPatient) => {
                     const patientName = p.firstName + (p.lastName ? ' ' + p.lastName : '');
                     map[patientName] = p.therapist || null;
                 });
@@ -346,7 +364,16 @@ export default function FindTherapistPage() {
         if (!selectedPatient || !pendingTherapist) return;
         const patientObj = patients.find((p) => p.name === selectedPatient);
         if (!patientObj) return;
+        
         try {
+            // Get the parent's session to send as senderId
+            const sessionResponse = await fetch("/api/auth/session");
+            let parentId = null;
+            if (sessionResponse.ok) {
+                const session = await sessionResponse.json();
+                parentId = session?.user?.id;
+            }
+
             const response = await fetch("/api/parent/therapist-assignment-request", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -354,6 +381,7 @@ export default function FindTherapistPage() {
                     patientId: patientObj.id,
                     therapistId: pendingTherapist.id,
                     requestMessage: requestMessage || `Request to assign ${pendingTherapist.name} as therapist for patient ${selectedPatient}`,
+                    parentId: parentId  // Include the parent ID as sender
                 })
             });
             if (!response.ok) {
@@ -382,19 +410,99 @@ export default function FindTherapistPage() {
     };
 
     // Handler for canceling request
-    const handleCancelRequest = async (requestId: string, therapistName: string) => {
+    const handleCancelRequest = (requestId: string, therapistName: string) => {
+        setRequestToCancel({ requestId, therapistName });
+        setCancelRequestModalOpen(true);
+    };
+
+    // Handler for confirming request cancellation
+    const confirmCancelRequest = async () => {
+        if (!requestToCancel) return;
+        
+        // Close modal immediately for better UX
+        setCancelRequestModalOpen(false);
+        
         try {
-            // Here you would implement the cancel request API call
-            // For now, just remove from the local state using request ID
+            const response = await fetch(`/api/parent/cancel-therapist-request?requestId=${requestToCancel.requestId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to cancel request');
+            }
+
+            // Remove from local state after successful API call
             setRequestedTherapists(prev => 
-                prev.filter(req => req.id !== requestId)
+                prev.filter(req => req.id !== requestToCancel.requestId)
             );
-            setNotification(`Request for therapist ${therapistName} cancelled successfully.`);
+            setNotification(`Request for therapist ${requestToCancel.therapistName} cancelled successfully.`);
             setTimeout(() => setNotification(null), 3000);
         } catch (error) {
             console.error("Error canceling request:", error);
+            // If there's an error, we might want to refresh the data to show current state
             setNotification("Failed to cancel request. Please try again.");
             setTimeout(() => setNotification(null), 5000);
+            // Optionally refresh the requested therapists list
+            await fetchRequestedTherapists();
+        } finally {
+            // Clean up state
+            setRequestToCancel(null);
+        }
+    };
+
+    // Handler for disconnecting therapist
+    const handleDisconnectTherapist = (therapistId: string, therapistName: string, childName: string) => {
+        setTherapistToDisconnect({ therapistId, therapistName, childName });
+        setDisconnectModalOpen(true);
+    };
+
+    // Handler for confirming disconnection
+    const confirmDisconnectTherapist = async () => {
+        if (!therapistToDisconnect) return;
+        
+        // Close modal immediately for better UX
+        setDisconnectModalOpen(false);
+        
+        try {
+            // Get the parent's session to send as senderId
+            const sessionResponse = await fetch("/api/auth/session");
+            let parentId = null;
+            if (sessionResponse.ok) {
+                const session = await sessionResponse.json();
+                parentId = session?.user?.id;
+            }
+
+            const response = await fetch("/api/parent/disconnect-therapist", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    therapistId: therapistToDisconnect.therapistId,
+                    childName: therapistToDisconnect.childName,
+                    parentId: parentId  // Include the parent ID as sender
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error("Failed to disconnect therapist");
+            }
+            
+            // Remove the connection from local state
+            setChildTherapistConnections(prev => 
+                prev.filter(conn => !(conn.therapist.id === therapistToDisconnect.therapistId && conn.childName === therapistToDisconnect.childName))
+            );
+            
+            setNotification(`${therapistToDisconnect.therapistName} has been disconnected from ${therapistToDisconnect.childName}. They have been notified of this change.`);
+            setTimeout(() => setNotification(null), 5000);
+        } catch (error) {
+            console.error("Error disconnecting therapist:", error);
+            setNotification("Failed to disconnect therapist. Please try again.");
+            setTimeout(() => setNotification(null), 5000);
+        } finally {
+            setTherapistToDisconnect(null);
         }
     };
 
@@ -555,11 +663,36 @@ export default function FindTherapistPage() {
                                                         <svg className="w-5 h-5 text-gray-400 ml-2 pointer-events-none" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
                                                     </Listbox.Button>
                                                     <Listbox.Options className="absolute z-50 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-72 overflow-auto">
-                                                        {patients.map((patient) => (
-                                                            <Listbox.Option key={patient.id} value={patient.name} className={({ active }) => `cursor-pointer select-none px-4 py-2 ${active ? 'bg-primary/10' : ''}` }>
-                                                                {patient.name}
-                                                            </Listbox.Option>
-                                                        ))}
+                                                        {patients.map((patient) => {
+                                                            const hasPendingRequest = requestedTherapists.some(req => 
+                                                                req.childName === patient.name && req.status === 'PENDING'
+                                                            );
+                                                            const hasAssignedTherapist = patientTherapistMap[patient.name] !== null;
+                                                            const isDisabled = hasPendingRequest || hasAssignedTherapist;
+                                                            
+                                                            return (
+                                                                <Listbox.Option 
+                                                                    key={patient.id} 
+                                                                    value={patient.name} 
+                                                                    disabled={isDisabled}
+                                                                    className={({ active }) => `select-none px-4 py-2 ${
+                                                                        isDisabled 
+                                                                            ? 'text-gray-400 cursor-not-allowed bg-gray-50' 
+                                                                            : `cursor-pointer ${active ? 'bg-primary/10' : ''}`
+                                                                    }`}
+                                                                >
+                                                                    <span>
+                                                                        {patient.name}
+                                                                    </span>
+                                                                    {hasPendingRequest && (
+                                                                        <span className="text-xs text-gray-500 ml-2">(Request pending)</span>
+                                                                    )}
+                                                                    {hasAssignedTherapist && !hasPendingRequest && (
+                                                                        <span className="text-xs text-gray-500 ml-2">(Already has therapist)</span>
+                                                                    )}
+                                                                </Listbox.Option>
+                                                            );
+                                                        })}
                                                     </Listbox.Options>
                                                 </div>
                                             </Listbox>
@@ -579,11 +712,138 @@ export default function FindTherapistPage() {
                                             />
                                         </div>
                                         <div className="flex gap-2 mt-6">
-                                            <Button variant="default" className="flex-1 rounded-lg h-12 text-base font-semibold" disabled={!selectedPatient} onClick={confirmChooseTherapist}>
+                                            <Button 
+                                                variant="default" 
+                                                className="flex-1 rounded-lg h-12 text-base font-semibold" 
+                                                disabled={
+                                                    !selectedPatient ||
+                                                    requestedTherapists.some(req =>
+                                                        req.childName === selectedPatient && req.status === 'PENDING'
+                                                    ) ||
+                                                    (!!selectedPatient && patientTherapistMap[selectedPatient] !== null)
+                                                }
+                                                onClick={confirmChooseTherapist}
+                                            >
                                                 Confirm
                                             </Button>
                                             <Button variant="outline" className="flex-1 rounded-lg h-12 text-base font-semibold" onClick={() => setChooseModalOpen(false)}>
                                                 Cancel
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </Dialog.Panel>
+                            </Transition.Child>
+                        </div>
+                    </div>
+                </Dialog>
+            </Transition.Root>
+
+            {/* Disconnect Confirmation Modal */}
+            <Transition.Root show={disconnectModalOpen} as={Fragment}>
+                <Dialog as="div" className="relative z-50" onClose={setDisconnectModalOpen}>
+                    <Transition.Child
+                        as={Fragment}
+                        enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100"
+                        leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0"
+                    >
+                        <div className="fixed inset-0 bg-black/40 transition-opacity" />
+                    </Transition.Child>
+                    <div className="fixed inset-0 z-50 overflow-y-auto">
+                        <div className="flex min-h-full items-center justify-center p-4 text-center">
+                            <Transition.Child
+                                as={Fragment}
+                                enter="ease-out duration-300" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100"
+                                leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95"
+                            >
+                                <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white border border-[#e0d7ed] p-0 text-left align-middle shadow-2xl transition-all">
+                                    <div className="p-6">
+                                        <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-red-100 rounded-full">
+                                            <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                                            </svg>
+                                        </div>
+                                        <Dialog.Title as="h3" className="text-lg font-semibold text-gray-900 text-center mb-2">
+                                            Disconnect Therapist
+                                        </Dialog.Title>
+                                        <p className="text-sm text-gray-600 text-center mb-6">
+                                            Are you sure you want to disconnect{' '}
+                                            <span className="font-semibold">{therapistToDisconnect?.therapistName}</span>{' '}
+                                            from{' '}
+                                            <span className="font-semibold">{therapistToDisconnect?.childName}</span>?
+                                            <br /><br />
+                                            This action cannot be undone and the therapist will be notified of this change.
+                                        </p>
+                                        <div className="flex gap-3">
+                                            <Button
+                                                variant="outline"
+                                                className="flex-1"
+                                                onClick={() => setDisconnectModalOpen(false)}
+                                            >
+                                                Cancel
+                                            </Button>
+                                            <Button
+                                                variant="default"
+                                                className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                                                onClick={confirmDisconnectTherapist}
+                                            >
+                                                Confirm
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </Dialog.Panel>
+                            </Transition.Child>
+                        </div>
+                    </div>
+                </Dialog>
+            </Transition.Root>
+
+            {/* Cancel Request Confirmation Modal */}
+            <Transition.Root show={cancelRequestModalOpen} as={Fragment}>
+                <Dialog as="div" className="relative z-50" onClose={setCancelRequestModalOpen}>
+                    <Transition.Child
+                        as={Fragment}
+                        enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100"
+                        leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0"
+                    >
+                        <div className="fixed inset-0 bg-black/40 transition-opacity" />
+                    </Transition.Child>
+                    <div className="fixed inset-0 z-50 overflow-y-auto">
+                        <div className="flex min-h-full items-center justify-center p-4 text-center">
+                            <Transition.Child
+                                as={Fragment}
+                                enter="ease-out duration-300" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100"
+                                leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95"
+                            >
+                                <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white border border-[#e0d7ed] p-0 text-left align-middle shadow-2xl transition-all">
+                                    <div className="p-6">
+                                        <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-red-100 rounded-full">
+                                            <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                                            </svg>
+                                        </div>
+                                        <Dialog.Title as="h3" className="text-lg font-semibold text-gray-900 text-center mb-2">
+                                            Cancel Request
+                                        </Dialog.Title>
+                                        <p className="text-sm text-gray-600 text-center mb-6">
+                                            Are you sure you want to cancel the request for{' '}
+                                            <span className="font-semibold">{requestToCancel?.therapistName}</span>?
+                                            <br /><br />
+                                            This action cannot be undone and the therapist will be notified of this change.
+                                        </p>
+                                        <div className="flex gap-3">
+                                            <Button
+                                                variant="outline"
+                                                className="flex-1"
+                                                onClick={() => setCancelRequestModalOpen(false)}
+                                            >
+                                                Cancel
+                                            </Button>
+                                            <Button
+                                                variant="default"
+                                                className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                                                onClick={confirmCancelRequest}
+                                            >
+                                                Confirm
                                             </Button>
                                         </div>
                                     </div>
@@ -655,6 +915,16 @@ export default function FindTherapistPage() {
                                             bookingStatus={'idle'}
                                             onViewProfile={() => handleViewProfile(conn.therapist, true)}
                                             viewDetailsText="View Details"
+                                            additionalActions={
+                                                <Button 
+                                                    variant="outline" 
+                                                    size="lg"
+                                                    className="w-full text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300 font-semibold rounded-xl py-2"
+                                                    onClick={() => handleDisconnectTherapist(conn.therapist.id, conn.therapist.name, conn.childName)}
+                                                >
+                                                    Disconnect
+                                                </Button>
+                                            }
                                         />
                                         <div className="absolute top-2 right-2 bg-primary/90 text-white text-xs px-3 py-1 rounded-full shadow">
                                             Connected to: <span className="font-semibold">{conn.childName}</span>

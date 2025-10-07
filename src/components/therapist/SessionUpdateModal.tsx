@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar, Clock, User, FileText, CheckSquare, Save, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
+import { CompletionConfirmationModal } from "@/components/therapist/CompletionConfirmationModal";
 
 interface Session {
   id: string;
@@ -54,6 +55,14 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [loadingSessionDetails, setLoadingSessionDetails] = useState(false);
   const [detailedSession, setDetailedSession] = useState<Session | null>(null);
+
+  // Completion confirmation modal state
+  const [completionModalOpen, setCompletionModalOpen] = useState(false);
+  const [completionSessionData, setCompletionSessionData] = useState<{
+    sessionId: string;
+    patientName: string;
+    attendanceStatus: string;
+  } | null>(null);
 
   // Focus areas options
   const focusAreaOptions = [
@@ -215,18 +224,25 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
 
       if (response.ok) {
         setSubmitSuccess(true);
-        onSessionUpdated();
-        // Close modal after a brief delay to show success message, only if marking as completed
-        if (!saveOnly) {
+        
+        // Close modal after a brief delay to show success message
+        setTimeout(() => {
+          onClose();
+          // Emit completion confirmation event after modal is closed
           setTimeout(() => {
-            onClose();
-          }, 1500);
-        } else {
-          // For save only, close after shorter delay or let user manually close
-          setTimeout(() => {
-            setSubmitSuccess(false);
-          }, 2000);
-        }
+            if (typeof window !== "undefined") {
+              const event = new CustomEvent("sessionSaved", {
+                detail: { 
+                  sessionId: session.id,
+                  attendanceStatus,
+                  patientName: session.patientName
+                }
+              });
+              window.dispatchEvent(event);
+            }
+            onSessionUpdated();
+          }, 100);
+        }, 1500);
       } else {
         const errorData = await response.json();
         console.error("Server error response:", errorData);
@@ -244,6 +260,24 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
       setIsSubmitting(false);
     }
   };
+
+  useEffect(() => {
+    const handleSessionSaved = (event: CustomEvent) => {
+      const { sessionId, attendanceStatus, patientName } = event.detail;
+      setCompletionSessionData({
+        sessionId,
+        attendanceStatus,
+        patientName
+      });
+      setCompletionModalOpen(true);
+    };
+
+    window.addEventListener('sessionSaved', handleSessionSaved as EventListener);
+    
+    return () => {
+      window.removeEventListener('sessionSaved', handleSessionSaved as EventListener);
+    };
+  }, []);
 
   if (!session) return null;
 
@@ -472,9 +506,11 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
                   className="font-semibold px-4 py-2 rounded-lg transition-colors duration-150 hover:bg-[#E9E3F2] hover:text-[#6B399A] hover:shadow-md hover:scale-103"
                   type="button"
                   onClick={() => {
-                    // Open the medications modal from parent
-                    if (typeof window !== "undefined") {
-                      const event = new CustomEvent("openMedicationsModal");
+                    // Open the medications modal from parent with patient context
+                    if (typeof window !== "undefined" && currentSession.patientId) {
+                      const event = new CustomEvent("openMedicationsModal", {
+                        detail: { patientId: currentSession.patientId }
+                      });
                       window.dispatchEvent(event);
                     }
                   }}
@@ -548,6 +584,17 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
           
         </div>
         )}
+
+        {/* Completion Confirmation Modal */}
+        <CompletionConfirmationModal
+          isOpen={completionModalOpen}
+          onClose={() => {
+            setCompletionModalOpen(false);
+            setCompletionSessionData(null);
+          }}
+          sessionData={completionSessionData}
+          onSessionUpdated={onSessionUpdated}
+        />
       </DialogContent>
     </Dialog>
   );
