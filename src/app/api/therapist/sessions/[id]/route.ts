@@ -335,6 +335,67 @@ export async function PUT(
             }
         });
 
+        // After updating session status to COMPLETED:
+        if (newStatus === "COMPLETED") {
+            // Fetch patient and parent/guardian info
+            const completedSessionWithPatient = await prisma.therapySession.findUnique({
+                where: { id: sessionId },
+                include: {
+                    patient: {
+                        include: {
+                            user: { select: { id: true, name: true } }
+                        }
+                    }
+                }
+            });
+
+            const patientUserId = completedSessionWithPatient?.patient?.user?.id;
+            const patientName = completedSessionWithPatient?.patient?.user?.name || 
+                               `${completedSessionWithPatient?.patient?.firstName} ${completedSessionWithPatient?.patient?.lastName}`;
+            const therapistUserId = user.id;
+
+            // Find parent/guardian user
+            const parentGuardian = await prisma.parentGuardian.findFirst({
+                where: { patientId: completedSessionWithPatient?.patientId },
+                include: { user: { select: { id: true, name: true } } }
+            });
+
+            // Notification message
+            const notificationTitle = "Session Completed";
+            const patientNotificationMessage = `Your session with ${user.name || "your therapist"} has been marked as completed. You can now view the session summary and feedback.`;
+            const parentNotificationMessage = `Session for ${patientName} has been marked as completed by ${user.name || "the therapist"}. You can now view the session summary and feedback.`;
+
+            // Send notification to patient
+            if (patientUserId) {
+                await prisma.notification.create({
+                    data: {
+                        senderId: therapistUserId,
+                        receiverId: patientUserId,
+                        type: "SYSTEM",
+                        title: notificationTitle,
+                        message: patientNotificationMessage,
+                        isRead: false,
+                        isUrgent: false
+                    }
+                });
+            }
+
+            // Send notification to parent/guardian
+            if (parentGuardian?.user?.id) {
+                await prisma.notification.create({
+                    data: {
+                        senderId: therapistUserId,
+                        receiverId: parentGuardian.user.id,
+                        type: "SYSTEM",
+                        title: notificationTitle,
+                        message: parentNotificationMessage,
+                        isRead: false,
+                        isUrgent: false
+                    }
+                });
+            }
+        }
+
         // Get updated session with patient info for response
         const sessionWithPatient = await prisma.therapySession.findUnique({
             where: { id: sessionId },
@@ -398,3 +459,4 @@ export async function PUT(
         );
     }
 }
+            

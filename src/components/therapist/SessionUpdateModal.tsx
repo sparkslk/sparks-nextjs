@@ -370,19 +370,15 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
       if (response.ok) {
         if (attendanceStatus === "NO_SHOW") {
           setMoveNoShowSuccess(true);
-          // Close modal after a brief delay to show success message
-          setTimeout(() => {
-            onClose();
-            onSessionUpdated();
-          }, 2000);
         } else {
           setMoveCompletedSuccess(true);
-          // Close modal after a brief delay to show success message
-          setTimeout(() => {
-            onClose();
-            onSessionUpdated();
-          }, 2000);
         }
+        
+        // Close modal after showing success message
+        setTimeout(() => {
+          onClose();
+          onSessionUpdated();
+        }, 2000);
       } else {
         const errorData = await response.json();
         setSubmitError(errorData.error || 'Failed to update session');
@@ -788,6 +784,15 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
             </div>
           )}
 
+          {/* Move to Completed Success Message */}
+          {moveCompletedSuccess && (
+            <div className="bg-green-50 border border-green-200 rounded-md p-3">
+              <div className="flex items-center">
+                <CheckSquare className="w-5 h-5 text-green-600 mr-2" />
+                <p className="text-green-800 font-medium">Session successfully moved to Completed tab!</p>
+              </div>
+            </div>
+          )}
 
           {/* Action Buttons */}
           <div className="flex justify-end gap-3 pt-4 border-t">
@@ -835,16 +840,6 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
             )}
           </div>
 
-          {/* Move to Completed Success Message */}
-          {moveCompletedSuccess && (
-            <div className="bg-green-50 border border-green-200 rounded-md p-3">
-              <div className="flex items-center">
-                <CheckSquare className="w-5 h-5 text-green-600 mr-2" />
-                <p className="text-green-800 font-medium">Session successfully moved to Completed tab!</p>
-              </div>
-            </div>
-          )}
-
           
         </div>
         )}
@@ -877,3 +872,4 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
     </Dialog>
   );
 }
+
