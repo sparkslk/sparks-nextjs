@@ -28,7 +28,7 @@ export function NoShowConfirmationDialog({ isOpen, onConfirm, onCancel }: NoShow
             This action cannot be undone. Are you sure you want to proceed?
           </p>
           
-          <div className="flex justify-end gap-3 pt-4">
+          <div className="flex justify-between pt-4">
             <Button variant="outline" onClick={onCancel}>
               Cancel
             </Button>
