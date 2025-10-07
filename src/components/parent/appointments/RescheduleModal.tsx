@@ -127,7 +127,18 @@ export default function RescheduleModal({ open, onOpenChange, appointment, onRes
         }, 3000);
       } else {
         const error = await response.json();
-        alert(`Failed to reschedule session: ${error.error}`);
+        
+        // Handle rate change scenario specifically
+        if (error.error === "RATE_CHANGED") {
+          alert(
+            `Rate Change Notice: ${error.message}\n\n` +
+            `Original Rate: Rs.${error.originalRate}\n` +
+            `Current Rate: Rs.${error.currentRate}\n\n` +
+            `You'll need to cancel this session and book a new one.`
+          );
+        } else {
+          alert(`Failed to reschedule session: ${error.error || error.message}`);
+        }
       }
     } catch (error) {
       console.error("Error rescheduling session:", error);

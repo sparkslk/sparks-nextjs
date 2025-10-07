@@ -111,8 +111,8 @@ export default function AppointmentsPage() {
     }
   };
 
-  const getChildAppointments = (childId: string, statuses: Array<'SCHEDULED' | 'COMPLETED' | 'CANCELLED'>) => {
-    return appointments.filter(apt => apt.childId === childId && statuses.includes(apt.status as 'SCHEDULED' | 'COMPLETED' | 'CANCELLED'));
+  const getChildAppointments = (childId: string, statuses: Array<'SCHEDULED' | 'COMPLETED' | 'CANCELLED' | 'RESCHEDULED'>) => {
+    return appointments.filter(apt => apt.childId === childId && statuses.includes(apt.status as 'SCHEDULED' | 'COMPLETED' | 'CANCELLED' | 'RESCHEDULED'));
   };
 
   const formatDate = (dateString: string) => {
@@ -151,7 +151,7 @@ export default function AppointmentsPage() {
         {/* Enhanced Header */}
         <AppointmentsHeader 
           childrenCount={children.length}
-          upcomingSessionsCount={appointments.filter(apt => apt.status === 'SCHEDULED').length}
+          upcomingSessionsCount={appointments.filter(apt => apt.status === 'SCHEDULED' || apt.status === 'RESCHEDULED').length}
         />
 
         {/* Schedule Session Section */}
@@ -242,7 +242,7 @@ export default function AppointmentsPage() {
           <AppointmentCard
             key="all"
             child={{ id: "all", firstName: "All", lastName: "Children", therapist: null }}
-            upcomingAppointments={appointments.filter(apt => apt.status === 'SCHEDULED').map(apt => {
+            upcomingAppointments={appointments.filter(apt => apt.status === 'SCHEDULED' || apt.status === 'RESCHEDULED').map(apt => {
               const child = children.find(c => c.id === apt.childId);
               return { ...apt, childFirstName: child?.firstName, childLastName: child?.lastName };
             })}
@@ -263,7 +263,7 @@ export default function AppointmentsPage() {
           (() => {
             const child = children.find(c => c.id === selectedChildId);
             if (!child) return null;
-            const upcomingAppointments = getChildAppointments(child.id, ['SCHEDULED']);
+            const upcomingAppointments = getChildAppointments(child.id, ['SCHEDULED', 'RESCHEDULED']);
             const pastAppointments = getChildAppointments(child.id, ['COMPLETED']);
             const cancelledAppointments = getChildAppointments(child.id, ['CANCELLED']);
             return (
