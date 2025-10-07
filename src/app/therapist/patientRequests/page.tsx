@@ -8,11 +8,21 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import {
     User,
     Check,
     X,
     MessageCircle,
-    Calendar
+    Calendar,
+    CheckCircle,
+    XCircle
 } from "lucide-react";
 
 interface PatientRequest {
@@ -82,6 +92,14 @@ function PatientAvatar({ patient, size = "sm" }: PatientAvatarProps) {
     );
 }
 
+interface ConfirmationModalState {
+    isOpen: boolean;
+    action: 'accept' | 'reject' | null;
+    requestId: string | null;
+    patientName: string;
+    showSuccess: boolean;
+}
+
 export default function PatientRequestsPage() {
     const { status } = useSession();
     const router = useRouter();
@@ -89,6 +107,13 @@ export default function PatientRequestsPage() {
     const [loading, setLoading] = useState(false);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [confirmationModal, setConfirmationModal] = useState<ConfirmationModalState>({
+        isOpen: false,
+        action: null,
+        requestId: null,
+        patientName: '',
+        showSuccess: false
+    });
 
     const fetchPatientRequests = useCallback(async () => {
         try {
@@ -136,9 +161,31 @@ export default function PatientRequestsPage() {
     // Filter to show only pending requests
     const pendingRequests = patientRequests.filter(request => request.status === "pending");
 
-    const handleAcceptRequest = async (requestId: string) => {
+    const showConfirmationModal = (action: 'accept' | 'reject', requestId: string, patientName: string) => {
+        setConfirmationModal({
+            isOpen: true,
+            action,
+            requestId,
+            patientName,
+            showSuccess: false
+        });
+    };
+
+    const closeConfirmationModal = () => {
+        setConfirmationModal({
+            isOpen: false,
+            action: null,
+            requestId: null,
+            patientName: '',
+            showSuccess: false
+        });
+    };
+
+    const handleConfirmAction = async () => {
+        if (!confirmationModal.requestId || !confirmationModal.action) return;
+
         try {
-            setActionLoading(requestId);
+            setActionLoading(confirmationModal.requestId);
 
             const response = await fetch("/api/therapist/patient-requests", {
                 method: "POST",
@@ -146,74 +193,50 @@ export default function PatientRequestsPage() {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    requestId: requestId,
-                    action: "accept"
+                    requestId: confirmationModal.requestId,
+                    action: confirmationModal.action
                 }),
             });
 
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.error || "Failed to accept request");
+                throw new Error(errorData.error || `Failed to ${confirmationModal.action} request`);
             }
 
             const data = await response.json();
-            console.log("Request accepted:", data);
+            console.log(`Request ${confirmationModal.action}ed:`, data);
 
-            // Remove the accepted request from the list since we only show pending
+            // Remove the processed request from the list
             setPatientRequests(prev => 
-                prev.filter(req => req.id !== requestId)
+                prev.filter(req => req.id !== confirmationModal.requestId)
             );
 
-            // Optionally, show a success message
-            // You can add a toast notification here if you have one set up
+            // Show success message
+            setConfirmationModal(prev => ({
+                ...prev,
+                showSuccess: true
+            }));
+
+            // Auto close after 2 seconds
+            setTimeout(() => {
+                closeConfirmationModal();
+            }, 2000);
 
         } catch (error) {
-            console.error("Error accepting request:", error);
-            // Optionally, show an error message
-            // You can add an error toast notification here
+            console.error(`Error ${confirmationModal.action}ing request:`, error);
+            // Close modal and optionally show error
+            closeConfirmationModal();
         } finally {
             setActionLoading(null);
         }
     };
 
-    const handleRejectRequest = async (requestId: string) => {
-        try {
-            setActionLoading(requestId);
+    const handleAcceptRequest = (requestId: string, patientName: string) => {
+        showConfirmationModal('accept', requestId, patientName);
+    };
 
-            const response = await fetch("/api/therapist/patient-requests", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    requestId: requestId,
-                    action: "reject"
-                }),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || "Failed to reject request");
-            }
-
-            const data = await response.json();
-            console.log("Request rejected:", data);
-
-            // Remove the rejected request from the list since we only show pending
-            setPatientRequests(prev => 
-                prev.filter(req => req.id !== requestId)
-            );
-
-            // Optionally, show a success message
-            // You can add a toast notification here if you have one set up
-
-        } catch (error) {
-            console.error("Error rejecting request:", error);
-            // Optionally, show an error message
-            // You can add an error toast notification here
-        } finally {
-            setActionLoading(null);
-        }
+    const handleRejectRequest = (requestId: string, patientName: string) => {
+        showConfirmationModal('reject', requestId, patientName);
     };
 
     if (status === "loading" || loading) {
@@ -324,7 +347,7 @@ export default function PatientRequestsPage() {
                                                     <Button
                                                         variant="outline"
                                                         size="sm"
-                                                        onClick={() => handleRejectRequest(request.id)}
+                                                        onClick={() => handleRejectRequest(request.id, `${request.firstName} ${request.lastName}`)}
                                                         disabled={actionLoading === request.id}
                                                         className="px-3 py-2 hover:bg-red-50 text-red-600 border-red-200"
                                                     >
@@ -334,7 +357,7 @@ export default function PatientRequestsPage() {
                                                     <Button
                                                         variant="default"
                                                         size="sm"
-                                                        onClick={() => handleAcceptRequest(request.id)}
+                                                        onClick={() => handleAcceptRequest(request.id, `${request.firstName} ${request.lastName}`)}
                                                         disabled={actionLoading === request.id}
                                                         className="px-3 py-2"
                                                     >
@@ -384,7 +407,7 @@ export default function PatientRequestsPage() {
                                                             <Button
                                                                 variant="outline"
                                                                 size="sm"
-                                                                onClick={() => handleRejectRequest(request.id)}
+                                                                onClick={() => handleRejectRequest(request.id, `${request.firstName} ${request.lastName}`)}
                                                                 disabled={actionLoading === request.id}
                                                                 className="text-red-600 border-red-200 hover:bg-red-50"
                                                             >
@@ -394,7 +417,7 @@ export default function PatientRequestsPage() {
                                                             <Button
                                                                 variant="default"
                                                                 size="sm"
-                                                                onClick={() => handleAcceptRequest(request.id)}
+                                                                onClick={() => handleAcceptRequest(request.id, `${request.firstName} ${request.lastName}`)}
                                                                 disabled={actionLoading === request.id}
                                                             >
                                                                 <Check className="h-4 w-4 mr-1" />
@@ -431,6 +454,91 @@ export default function PatientRequestsPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Confirmation Modal */}
+            <Dialog open={confirmationModal.isOpen} onOpenChange={closeConfirmationModal}>
+                <DialogContent className="sm:max-w-md">
+                    {confirmationModal.showSuccess ? (
+                        // Success State
+                        <div className="text-center py-6">
+                            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+                                <CheckCircle className="h-6 w-6 text-green-600" />
+                            </div>
+                            <DialogTitle className="text-lg font-semibold text-green-800 mb-2">
+                                Request {confirmationModal.action === 'accept' ? 'Accepted' : 'Rejected'} Successfully!
+                            </DialogTitle>
+                            <DialogDescription className="text-green-600">
+                                {confirmationModal.action === 'accept' 
+                                    ? `${confirmationModal.patientName} has been added to your patient list.`
+                                    : `${confirmationModal.patientName}'s request has been declined.`
+                                }
+                            </DialogDescription>
+                        </div>
+                    ) : (
+                        // Confirmation State
+                        <>
+                            <DialogHeader>
+                                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-gray-100 mb-4">
+                                    {confirmationModal.action === 'accept' ? (
+                                        <Check className="h-6 w-6 text-green-600" />
+                                    ) : (
+                                        <XCircle className="h-6 w-6 text-red-600" />
+                                    )}
+                                </div>
+                                <DialogTitle className="text-center">
+                                    {confirmationModal.action === 'accept' ? 'Accept Patient Request' : 'Reject Patient Request'}
+                                </DialogTitle>
+                                <DialogDescription className="text-center">
+                                    Are you sure you want to {confirmationModal.action} the request from{' '}
+                                    <span className="font-semibold">{confirmationModal.patientName}</span>?
+                                    {confirmationModal.action === 'accept' && (
+                                        <span className="block mt-2 text-sm">
+                                            This patient will be added to your patient list and will be able to book sessions with you.
+                                        </span>
+                                    )}
+                                </DialogDescription>
+                            </DialogHeader>
+                            <DialogFooter className="flex flex-col sm:flex-row sm:justify-between gap-2 sm:gap-0">
+                                <Button
+                                    variant="outline"
+                                    onClick={closeConfirmationModal}
+                                    disabled={actionLoading !== null}
+                                    className="w-full sm:w-auto"
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    variant={confirmationModal.action === 'accept' ? 'default' : 'destructive'}
+                                    onClick={handleConfirmAction}
+                                    disabled={actionLoading !== null}
+                                    className="w-full sm:w-auto"
+                                >
+                                    {actionLoading !== null ? (
+                                        <div className="flex items-center">
+                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                            Processing...
+                                        </div>
+                                    ) : (
+                                        <>
+                                            {confirmationModal.action === 'accept' ? (
+                                                <>
+                                                    <Check className="h-4 w-4 mr-2" />
+                                                    Accept Request
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <X className="h-4 w-4 mr-2" />
+                                                    Reject Request
+                                                </>
+                                            )}
+                                        </>
+                                    )}
+                                </Button>
+                            </DialogFooter>
+                        </>
+                    )}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

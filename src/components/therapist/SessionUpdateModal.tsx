@@ -11,9 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar, Clock, User, FileText, CheckSquare, Save, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
-import { CompletionConfirmationModal } from "@/components/therapist/CompletionConfirmationModal";
 import { NoShowConfirmationDialog } from "@/components/therapist/NoShowConfirmationDialog";
 import { MoveToNoShowConfirmationDialog } from "@/components/therapist/MoveToNoShowConfirmationDialog";
+import { MoveToCompletedConfirmationDialog } from "@/components/therapist/MoveToCompletedConfirmationDialog";
 
 interface Session {
   id: string;
@@ -73,6 +73,10 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
   // Add Move to No-Show confirmation state
   const [showMoveNoShowConfirmation, setShowMoveNoShowConfirmation] = useState(false);
   const [moveNoShowSuccess, setMoveNoShowSuccess] = useState(false);
+
+  // Add Move to Completed confirmation state
+  const [showMoveCompletedConfirmation, setShowMoveCompletedConfirmation] = useState(false);
+  const [moveCompletedSuccess, setMoveCompletedSuccess] = useState(false);
 
   // Focus areas options
   const focusAreaOptions = [
@@ -319,7 +323,13 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
       return;
     }
 
-    // Proceed directly for other attendance statuses
+    // Show confirmation for Completed moves
+    if (attendanceStatus === "PRESENT" || attendanceStatus === "LATE") {
+      setShowMoveCompletedConfirmation(true);
+      return;
+    }
+
+    // Fallback for other statuses (shouldn't reach here with current logic)
     await performMoveSession();
   };
 
@@ -360,19 +370,15 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
       if (response.ok) {
         if (attendanceStatus === "NO_SHOW") {
           setMoveNoShowSuccess(true);
-          // Close modal after a brief delay to show success message
-          setTimeout(() => {
-            onClose();
-            onSessionUpdated();
-          }, 2000);
         } else {
-          setSubmitSuccess(true);
-          // Close modal after a brief delay to show success message
-          setTimeout(() => {
-            onClose();
-            onSessionUpdated();
-          }, 1500);
+          setMoveCompletedSuccess(true);
         }
+        
+        // Close modal after showing success message
+        setTimeout(() => {
+          onClose();
+          onSessionUpdated();
+        }, 2000);
       } else {
         const errorData = await response.json();
         setSubmitError(errorData.error || 'Failed to update session');
@@ -387,6 +393,13 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
 
   const handleMoveNoShowConfirmation = (confirmed: boolean) => {
     setShowMoveNoShowConfirmation(false);
+    if (confirmed) {
+      performMoveSession();
+    }
+  };
+
+  const handleMoveCompletedConfirmation = (confirmed: boolean) => {
+    setShowMoveCompletedConfirmation(false);
     if (confirmed) {
       performMoveSession();
     }
@@ -771,6 +784,15 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
             </div>
           )}
 
+          {/* Move to Completed Success Message */}
+          {moveCompletedSuccess && (
+            <div className="bg-green-50 border border-green-200 rounded-md p-3">
+              <div className="flex items-center">
+                <CheckSquare className="w-5 h-5 text-green-600 mr-2" />
+                <p className="text-green-800 font-medium">Session successfully moved to Completed tab!</p>
+              </div>
+            </div>
+          )}
 
           {/* Action Buttons */}
           <div className="flex justify-end gap-3 pt-4 border-t">
@@ -797,7 +819,7 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
               </Button>
             )}
             {/* Only show Move to Completed button for Present/Late */}
-            {(attendanceStatus === "PRESENT" || attendanceStatus === "LATE") && (
+            {(attendanceStatus === "PRESENT" || attendanceStatus === "LATE") && !moveCompletedSuccess && (
               <Button 
                 onClick={handleMoveSession}
                 disabled={isSubmitting}
@@ -837,17 +859,17 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
           patientName={currentSession.patientName}
         />
 
-        {/* Completion Confirmation Modal */}
-        <CompletionConfirmationModal
-          isOpen={completionModalOpen}
-          onClose={() => {
-            setCompletionModalOpen(false);
-            setCompletionSessionData(null);
-          }}
-          sessionData={completionSessionData}
-          onSessionUpdated={onSessionUpdated}
+        {/* Move to Completed Confirmation Dialog */}
+        <MoveToCompletedConfirmationDialog
+          isOpen={showMoveCompletedConfirmation}
+          onConfirm={() => handleMoveCompletedConfirmation(true)}
+          onCancel={() => handleMoveCompletedConfirmation(false)}
+          patientName={currentSession.patientName}
         />
+
+    
       </DialogContent>
     </Dialog>
   );
 }
+
