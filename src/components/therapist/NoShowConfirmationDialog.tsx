@@ -24,7 +24,7 @@ export function NoShowConfirmationDialog({ isOpen, onConfirm, onCancel }: NoShow
         
         <div className="space-y-4">
           <p className="text-gray-600">
-            Selecting "No Show" will clear all existing clinical documentation for this session. 
+            Selecting &quot;No Show&quot; will clear all existing clinical documentation for this session. 
             This action cannot be undone. Are you sure you want to proceed?
           </p>
           
