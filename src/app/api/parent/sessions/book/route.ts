@@ -53,19 +53,19 @@ export async function POST(request: NextRequest) {
     // Parse the date and time slot
     let sessionDate: Date;
     let startTime: string;
-    
+
     try {
       const inputDate = new Date(date);
       if (isNaN(inputDate.getTime())) {
         throw new Error("Invalid date");
       }
-      
+
       // Extract start time from slot (format: "HH:MM" or "HH:MM AM/PM")
       const [timeSlotStart] = timeSlot.split(" - ");
-      
+
       // Parse time (handle both 24h and 12h formats)
       let hours: number, minutes: number;
-      
+
       const time12Match = timeSlotStart.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
       if (time12Match) {
         // 12-hour format
@@ -82,21 +82,21 @@ export async function POST(request: NextRequest) {
         hours = parseInt(time24Match[1]);
         minutes = parseInt(time24Match[2]);
       }
-      
+
       // Validate time values
       if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
         throw new Error("Invalid time values");
       }
-      
+
       // Create session datetime
       const year = inputDate.getFullYear();
       const month = inputDate.getMonth();
       const day = inputDate.getDate();
-      
+
       const dateString = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}T${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00.000Z`;
       sessionDate = new Date(dateString);
       startTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-      
+
     } catch (error) {
       console.error("Failed to parse date/time:", error);
       return NextResponse.json(
@@ -191,7 +191,7 @@ export async function POST(request: NextRequest) {
 
     // Create notifications for both parent and therapist
     const notificationMessage = `New therapy session scheduled for ${child.firstName} ${child.lastName} on ${sessionDate.toLocaleDateString()} at ${startTime}`;
-    
+
     await prisma.notification.createMany({
       data: [
         {

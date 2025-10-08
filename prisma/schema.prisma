@@ -103,13 +103,13 @@ model Therapist {
   user                  User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
   assignmentRequests    TherapistAssignmentRequest[] @relation("TherapistRequests")
   TherapistAvailability TherapistAvailability[]
+  documents             TherapistDocument[]
+  profile               TherapistProfile?
+  references            TherapistReference?
+  verification          TherapistVerification?
   therapySessions       TherapySession[]
   treatments            Treatment[]
   treatmentPlans        TreatmentPlan[]
-  profile               TherapistProfile?
-  verification          TherapistVerification?
-  documents             TherapistDocument[]
-  references            TherapistReference[]
 }
 
 model Patient {
@@ -474,6 +474,83 @@ model Payment {
   @@index([status], map: "idx_status")
 }
 
+model TherapistProfile {
+  id                   String    @id @default(cuid())
+  therapistId          String    @unique
+  phone                String?
+  houseNumber          String?
+  streetName           String?
+  city                 String?
+  gender               Gender?
+  dateOfBirth          DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  accountHolderName    String?
+  accountNumber        String?
+  bankName             String?
+  branchName           String?
+  profileCompleted     Boolean   @default(false)
+  profileCompletedAt   DateTime?
+  profileImage         Bytes?
+  profileImageMimeType String?
+  profileImageName     String?
+  therapist            Therapist @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+}
+
+model TherapistVerification {
+  id                     String             @id @default(cuid())
+  therapistId            String             @unique
+  status                 VerificationStatus @default(PENDING)
+  licenseNumber          String?
+  primarySpecialty       String?
+  yearsOfExperience      String?
+  highestEducation       String?
+  institution            String?
+  adhdExperience         String?
+  backgroundCheckConsent Boolean            @default(false)
+  termsAccepted          Boolean            @default(false)
+  accurateInfoCertified  Boolean            @default(false)
+  submittedAt            DateTime?
+  reviewedAt             DateTime?
+  reviewedBy             String?
+  reviewNotes            String?
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+  approvalAcknowledgedAt DateTime?
+  therapist              Therapist          @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+}
+
+model TherapistDocument {
+  id           String       @id @default(cuid())
+  therapistId  String
+  category     DocumentType
+  fileName     String
+  originalName String
+  fileSize     Int
+  mimeType     String
+  uploadedAt   DateTime     @default(now())
+  fileData     Bytes
+  therapist    Therapist    @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+
+  @@index([therapistId, category])
+}
+
+model TherapistReference {
+  id                 String          @id @default(cuid())
+  therapistId        String          @unique
+  firstName          String
+  lastName           String
+  professionalTitle  String
+  phoneNumber        String
+  email              String?
+  contactedAt        DateTime?
+  verificationStatus ReferenceStatus @default(PENDING)
+  verificationNotes  String?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  therapist          Therapist       @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+}
+
 enum UserRole {
   NORMAL_USER
   PARENT_GUARDIAN
@@ -609,86 +686,6 @@ enum PaymentStatus {
   CANCELLED
   CHARGEDBACK
   UNKNOWN
-}
-
-// Therapist Verification Models
-model TherapistProfile {
-  id                    String     @id @default(cuid())
-  therapistId           String     @unique
-  phone                 String?
-  houseNumber           String?
-  streetName            String?
-  city                  String?
-  gender                Gender?
-  dateOfBirth           DateTime?
-  profileImage          Bytes?     // Store profile image as bytea
-  profileImageName      String?    // Store original filename
-  profileImageMimeType  String?    // Store MIME type
-  // Bank details for payments
-  accountHolderName     String?
-  accountNumber         String?
-  bankName              String?
-  branchName            String?
-  // Profile completion tracking
-  profileCompleted      Boolean    @default(false)
-  profileCompletedAt    DateTime?
-  createdAt             DateTime   @default(now())
-  updatedAt             DateTime   @updatedAt
-  therapist             Therapist  @relation(fields: [therapistId], references: [id], onDelete: Cascade)
-}
-
-model TherapistVerification {
-  id                      String                  @id @default(cuid())
-  therapistId             String                  @unique
-  status                  VerificationStatus      @default(PENDING)
-  licenseNumber           String?
-  primarySpecialty        String?
-  yearsOfExperience       String?
-  highestEducation        String?
-  institution             String?
-  adhdExperience          String?
-  backgroundCheckConsent  Boolean                 @default(false)
-  termsAccepted          Boolean                 @default(false)
-  accurateInfoCertified  Boolean                 @default(false)
-  submittedAt            DateTime?
-  reviewedAt             DateTime?
-  reviewedBy             String?
-  reviewNotes            String?
-  approvalAcknowledgedAt DateTime?               // Track when therapist saw the approval message
-  createdAt              DateTime                @default(now())
-  updatedAt              DateTime                @updatedAt
-  therapist              Therapist               @relation(fields: [therapistId], references: [id], onDelete: Cascade)
-}
-
-model TherapistDocument {
-  id           String        @id @default(cuid())
-  therapistId  String
-  category     DocumentType
-  fileName     String
-  originalName String
-  fileSize     Int
-  mimeType     String
-  fileData     Bytes         // Store file content directly in database
-  uploadedAt   DateTime      @default(now())
-  therapist    Therapist     @relation(fields: [therapistId], references: [id], onDelete: Cascade)
-
-  @@index([therapistId, category])
-}
-
-model TherapistReference {
-  id                      String    @id @default(cuid())
-  therapistId             String    @unique
-  firstName               String
-  lastName                String
-  professionalTitle       String
-  phoneNumber             String
-  email                   String?
-  contactedAt             DateTime?
-  verificationStatus      ReferenceStatus @default(PENDING)
-  verificationNotes       String?
-  createdAt               DateTime  @default(now())
-  updatedAt               DateTime  @updatedAt
-  therapist               Therapist @relation(fields: [therapistId], references: [id], onDelete: Cascade)
 }
 
 enum VerificationStatus {
