@@ -45,6 +45,7 @@ interface WeeklyCalendarViewProps {
   onDeleteSlot?: (slotId: string) => void;
   onToggleSlot?: (slotId: string) => void;
   onDragSelect?: (dayOfWeek: number, startTime: string, endTime: string) => void;
+  onSlotClick?: (slotId: string) => void;
 }
 
 export function WeeklyCalendarView({
@@ -53,6 +54,7 @@ export function WeeklyCalendarView({
   selectedWeekStart,
   onWeekChange,
   onDragSelect,
+  onSlotClick,
 }: WeeklyCalendarViewProps): React.JSX.Element {
   const [hoveredSlot, setHoveredSlot] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -469,18 +471,19 @@ export function WeeklyCalendarView({
                 return (
                   <div
                     key={sessionSlot.id}
-                    className={`absolute left-2 right-2 rounded border transition-all cursor-pointer z-10 ${
+                    className={`absolute left-2 right-2 rounded border transition-all z-10 ${
                       sessionSlot.isBooked
-                        ? "bg-blue-500 text-white border-blue-600 hover:bg-blue-600"
+                        ? "bg-blue-500 text-white border-blue-600 hover:bg-blue-600 cursor-not-allowed"
                         : !sessionSlot.isActive
                         ? "bg-gray-400 text-gray-100 border-gray-500"
                         : sessionSlot.isFreeSession
-                        ? "bg-green-500 text-white border-green-600 hover:bg-green-600"
-                        : "bg-[#8159A8] text-white border-[#6D4C93] hover:bg-[#6D4C93]"
+                        ? "bg-green-500 text-white border-green-600 hover:bg-green-600 cursor-pointer"
+                        : "bg-[#8159A8] text-white border-[#6D4C93] hover:bg-[#6D4C93] cursor-pointer"
                     }`}
                     style={position}
                     onMouseEnter={() => setHoveredSlot(sessionSlot.id)}
                     onMouseLeave={() => setHoveredSlot(null)}
+                    onClick={() => !sessionSlot.isBooked && onSlotClick && onSlotClick(sessionSlot.id)}
                   >
                     <div className="p-1 text-center">
                       <div className="text-xs font-medium">
@@ -528,6 +531,11 @@ export function WeeklyCalendarView({
                               </span>
                             </div>
                           </div>
+                          {!sessionSlot.isBooked && (
+                            <div className="mt-2 pt-2 border-t text-xs text-gray-500 italic">
+                              Click to edit or delete
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}

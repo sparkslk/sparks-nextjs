@@ -8,6 +8,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Clock,
   Plus,
   Calendar,
@@ -15,6 +23,9 @@ import {
   AlertCircle,
   CalendarDays,
   ListChecks,
+  Edit,
+  DollarSign,
+  Gift,
 } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { AddAvailabilityModal } from "@/components/therapist/availability/AddAvailabilityModal";
@@ -53,6 +64,8 @@ function SetAvailabilityPageNew(): React.JSX.Element {
     startTime?: string;
     endTime?: string;
   } | null>(null);
+  const [editingSlot, setEditingSlot] = useState<AvailabilitySlot | null>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
 
   useEffect(() => {
     if (authStatus === "unauthenticated") {
@@ -177,6 +190,70 @@ function SetAvailabilityPageNew(): React.JSX.Element {
     const hour12 = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
     const ampm = hours >= 12 ? "PM" : "AM";
     return `${hour12}:${minutes.toString().padStart(2, "0")} ${ampm}`;
+  };
+
+  // Handle editing a slot (toggle free/paid)
+  const handleEditSlot = (slot: AvailabilitySlot) => {
+    setEditingSlot(slot);
+    setShowEditDialog(true);
+  };
+
+  // Toggle free/paid status
+  const handleToggleFreeStatus = async () => {
+    if (!editingSlot) return;
+
+    try {
+      const response = await fetch(`/api/therapist/availability/${editingSlot.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          isFree: !editingSlot.isFree,
+        }),
+      });
+
+      if (response.ok) {
+        alert(`Slot updated to ${!editingSlot.isFree ? "Free" : "Paid"} successfully!`);
+        setShowEditDialog(false);
+        setEditingSlot(null);
+        fetchAvailability();
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to update slot: ${errorData.error}`);
+      }
+    } catch (error) {
+      console.error("Error updating slot:", error);
+      alert("Failed to update slot. Please try again.");
+    }
+  };
+
+  // Delete slot from edit dialog
+  const handleDeleteFromDialog = async () => {
+    if (!editingSlot) return;
+
+    if (!confirm("Are you sure you want to delete this slot?")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/therapist/availability/${editingSlot.id}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        alert("Slot deleted successfully!");
+        setShowEditDialog(false);
+        setEditingSlot(null);
+        fetchAvailability();
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to delete slot: ${errorData.error}`);
+      }
+    } catch (error) {
+      console.error("Error deleting slot:", error);
+      alert("Failed to delete slot. Please try again.");
+    }
   };
 
   // Handle calendar slot selection (when user clicks/drags on calendar)
@@ -472,6 +549,12 @@ function SetAvailabilityPageNew(): React.JSX.Element {
             selectedWeekStart={selectedWeekStart}
             onWeekChange={setSelectedWeekStart}
             onDragSelect={handleCalendarSlotSelect}
+            onSlotClick={(slotId) => {
+              const slot = slots.find(s => s.id === slotId);
+              if (slot && !slot.isBooked) {
+                handleEditSlot(slot);
+              }
+            }}
           />
         </TabsContent>
 
@@ -544,9 +627,10 @@ function SetAvailabilityPageNew(): React.JSX.Element {
                         .map((slot) => (
                           <div
                             key={slot.id}
-                            className={`p-4 rounded-lg border-2 ${
+                            onClick={() => !slot.isBooked && handleEditSlot(slot)}
+                            className={`p-4 rounded-lg border-2 cursor-pointer ${
                               slot.isBooked
-                                ? "border-blue-200 bg-blue-50"
+                                ? "border-blue-200 bg-blue-50 cursor-not-allowed"
                                 : "border-gray-200 bg-white hover:border-[#8159A8] transition-colors"
                             }`}
                           >
@@ -558,14 +642,7 @@ function SetAvailabilityPageNew(): React.JSX.Element {
                                 </span>
                               </div>
                               {!slot.isBooked && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleDeleteSlot(slot.id)}
-                                  className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
+                                <Edit className="h-4 w-4 text-gray-400" />
                               )}
                             </div>
                             <div className="flex gap-2 flex-wrap">
@@ -583,6 +660,11 @@ function SetAvailabilityPageNew(): React.JSX.Element {
                               {slot.isFree && (
                                 <Badge variant="outline" className="text-xs bg-green-100 text-green-800">
                                   Free
+                                </Badge>
+                              )}
+                              {!slot.isFree && !slot.isBooked && (
+                                <Badge variant="outline" className="text-xs bg-purple-100 text-purple-800">
+                                  Paid
                                 </Badge>
                               )}
                             </div>
@@ -621,6 +703,78 @@ function SetAvailabilityPageNew(): React.JSX.Element {
           </Card>
         </div>
       )}
+
+      {/* Edit Slot Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Availability Slot</DialogTitle>
+            <DialogDescription>
+              Change the pricing or delete this availability slot
+            </DialogDescription>
+          </DialogHeader>
+
+          {editingSlot && (
+            <div className="space-y-4">
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-gray-600">Date</p>
+                    <p className="font-semibold">{formatDate(editingSlot.date)}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-600">Time</p>
+                    <p className="font-semibold">{formatTime(editingSlot.startTime)}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-600">Duration</p>
+                    <p className="font-semibold">45 minutes</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-600">Current Status</p>
+                    <Badge variant="outline" className={`${
+                      editingSlot.isFree 
+                        ? "bg-green-100 text-green-800" 
+                        : "bg-purple-100 text-purple-800"
+                    }`}>
+                      {editingSlot.isFree ? "Free" : "Paid"}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <Button
+                  onClick={handleToggleFreeStatus}
+                  variant="outline"
+                  className="w-full"
+                >
+                  {editingSlot.isFree ? (
+                    <>
+                      <DollarSign className="mr-2 h-4 w-4" />
+                      Make Paid
+                    </>
+                  ) : (
+                    <>
+                      <Gift className="mr-2 h-4 w-4" />
+                      Make Free
+                    </>
+                  )}
+                </Button>
+
+                <Button
+                  onClick={handleDeleteFromDialog}
+                  variant="outline"
+                  className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

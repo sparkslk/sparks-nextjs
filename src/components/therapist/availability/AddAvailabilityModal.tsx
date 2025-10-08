@@ -96,6 +96,37 @@ export function AddAvailabilityModal({
     return `${hours.toString().padStart(2, "0")}:00`;
   });
 
+  // Filter time slots based on whether start date is today
+  const getAvailableTimeSlots = (isStartTime: boolean) => {
+    const selectedDate = new Date(formData.startDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    selectedDate.setHours(0, 0, 0, 0);
+
+    const isToday = selectedDate.getTime() === today.getTime();
+
+    if (!isToday) {
+      return timeSlots; // All time slots available if not today
+    }
+
+    // If today, filter out past time slots
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+
+    return timeSlots.filter(slot => {
+      const [slotHour] = slot.split(':').map(Number);
+      
+      if (isStartTime) {
+        // For start time, disable if slot hour has passed or is current hour
+        return slotHour > currentHour;
+      } else {
+        // For end time, same logic
+        return slotHour > currentHour;
+      }
+    });
+  };
+
   const formatTime = (timeString: string) => {
     const [hours, minutes] = timeString.split(':').map(Number);
     const hour12 = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
@@ -311,13 +342,23 @@ export function AddAvailabilityModal({
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {timeSlots.map((time) => (
+                        {getAvailableTimeSlots(true).map((time) => (
                           <SelectItem key={time} value={time}>
                             {formatTime(time)}
                           </SelectItem>
                         ))}
+                        {getAvailableTimeSlots(true).length === 0 && (
+                          <div className="px-2 py-1 text-sm text-gray-500">
+                            No available times for today
+                          </div>
+                        )}
                       </SelectContent>
                     </Select>
+                    {formData.startDate === new Date().toISOString().split('T')[0] && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Past times are hidden
+                      </p>
+                    )}
                   </div>
 
                   <div>
@@ -327,13 +368,23 @@ export function AddAvailabilityModal({
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {timeSlots.map((time) => (
+                        {getAvailableTimeSlots(false).map((time) => (
                           <SelectItem key={time} value={time}>
                             {formatTime(time)}
                           </SelectItem>
                         ))}
+                        {getAvailableTimeSlots(false).length === 0 && (
+                          <div className="px-2 py-1 text-sm text-gray-500">
+                            No available times for today
+                          </div>
+                        )}
                       </SelectContent>
                     </Select>
+                    {formData.startDate === new Date().toISOString().split('T')[0] && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Past times are hidden
+                      </p>
+                    )}
                   </div>
                 </div>
               </CardContent>
