@@ -3,33 +3,62 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getSession } from "next-auth/react";
-import { getRoleBasedDashboard } from "@/lib/role-redirect";
-import type { UserRole } from "@/lib/auth";
 
 export default function DashboardRedirectPage() {
     const router = useRouter();
 
     useEffect(() => {
         console.log("DashboardRedirect: Component mounted");
-        const getSessionWithRetry = async (retries = 10, delay = 200) => {
-            console.log("DashboardRedirect: Starting session retry");
-            for (let i = 0; i < retries; i++) {
-                const session = await getSession();
-                const userRole = (session?.user as { role?: UserRole })?.role;
-                console.log(`DashboardRedirect: Attempt ${i + 1}, role:`, userRole);
-                if (userRole) return userRole;
-                await new Promise(res => setTimeout(res, delay));
-            }
-            console.log("DashboardRedirect: No role found after retries");
-            return null;
-        };
+        
         const redirectToDashboard = async () => {
-            const userRole = await getSessionWithRetry();
-            const dashboardUrl = getRoleBasedDashboard(userRole ?? null);
-            console.log("DashboardRedirect: Redirecting to:", dashboardUrl);
-            router.replace(dashboardUrl);
+            try {
+                const session = await getSession();
+                
+                console.log("DashboardRedirect: Got session data:", { 
+                    hasSession: !!session,
+                    userRole: session?.user?.role,
+                    userId: session?.user?.id 
+                });
+                
+                if (!session) {
+                    console.log("DashboardRedirect: No session found, redirecting to login");
+                    router.replace("/login");
+                    return;
+                }
+                
+                // Call the API to get the dashboard redirect URL
+                const response = await fetch('/api/auth/dashboard-redirect');
+                
+                if (!response.ok) {
+                    throw new Error(`API request failed: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                const dashboardUrl = data.redirectUrl;
+                
+                console.log("DashboardRedirect: Redirecting to:", dashboardUrl);
+                router.replace(dashboardUrl);
+            } catch (error) {
+                console.error("DashboardRedirect: Error during redirect process:", error);
+                // Fallback redirect after 2 seconds
+                setTimeout(() => {
+                    console.log("DashboardRedirect: Falling back to login");
+                    router.replace("/login");
+                }, 2000);
+            }
         };
-        redirectToDashboard();
+        
+        // Add timeout to prevent infinite loading
+        const timeoutId = setTimeout(() => {
+            console.log("DashboardRedirect: Timeout reached, redirecting to login");
+            router.replace("/login");
+        }, 10000); // 10 second timeout
+        
+        redirectToDashboard().finally(() => {
+            clearTimeout(timeoutId);
+        });
+        
+        return () => clearTimeout(timeoutId);
     }, [router]);
 
     return (
