@@ -29,7 +29,7 @@ const profileUpdateSchema = z.object({
 /**
  * @swagger
  * /api/therapist/profile/complete:
- *   put:
+ *   post:
  *     summary: Update therapist profile completion data
  *     description: Updates therapist profile with completion data including bank details and profile image
  *     tags:
@@ -83,6 +83,10 @@ const profileUpdateSchema = z.object({
  *       500:
  *         description: Internal server error
  */
+export async function POST(req: NextRequest) {
+  return PUT(req); // Delegate to PUT handler
+}
+
 export async function PUT(req: NextRequest) {
   try {
     const session = await requireApiAuth(req, ['THERAPIST']);
@@ -102,7 +106,21 @@ export async function PUT(req: NextRequest) {
     // Get therapist
     const therapist = await prisma.therapist.findUnique({
       where: { userId: session.user.id },
-      include: { profile: true }
+      include: { 
+        profile: true,
+        verification: {
+          select: {
+            status: true,
+            licenseNumber: true,
+            primarySpecialty: true,
+            yearsOfExperience: true,
+            highestEducation: true,
+            institution: true,
+            adhdExperience: true,
+            reviewedAt: true
+          }
+        }
+      }
     });
 
     if (!therapist) {
@@ -133,7 +151,7 @@ export async function PUT(req: NextRequest) {
     if (data.streetName !== undefined) profileUpdates.streetName = data.streetName; 
     if (data.city !== undefined) profileUpdates.city = data.city;
     
-    // Bank details - these will be added when migration runs
+    // Bank details
     if (data.accountHolderName !== undefined) profileUpdates.accountHolderName = data.accountHolderName;
     if (data.accountNumber !== undefined) profileUpdates.accountNumber = data.accountNumber;
     if (data.bankName !== undefined) profileUpdates.bankName = data.bankName;
@@ -176,10 +194,42 @@ export async function PUT(req: NextRequest) {
       return updatedProfile;
     });
 
+    // Calculate completion percentage
+    const requiredFields = [
+      // Basic info
+      therapist.user?.name,
+      therapist.user?.email,
+      data.phone || therapist.profile?.phone,
+      data.dateOfBirth || therapist.profile?.dateOfBirth,
+      data.gender || therapist.profile?.gender,
+      data.city || therapist.profile?.city,
+      data.bio || therapist.bio,
+      // Professional info
+      therapist.verification?.licenseNumber,
+      therapist.verification?.primarySpecialty,
+      therapist.verification?.yearsOfExperience,
+      therapist.verification?.highestEducation,
+      therapist.verification?.institution,
+      // Business info
+      data.hourlyRate !== undefined ? parseFloat(data.hourlyRate) >= 0 : therapist.session_rate !== null,
+      data.accountHolderName || therapist.profile?.accountHolderName,
+      data.accountNumber || therapist.profile?.accountNumber,
+      data.bankName || therapist.profile?.bankName,
+      data.branchName || therapist.profile?.branchName,
+    ];
+
+    const completedFields = requiredFields.filter(field => {
+      if (typeof field === 'boolean') return field;
+      return field && field.toString().trim() !== '';
+    }).length;
+
+    const completionPercentage = Math.round((completedFields / requiredFields.length) * 100);
+
     return NextResponse.json({
       message: "Profile updated successfully",
       profileId: result.id,
-      completedAt: result.profileCompletedAt?.toISOString() || null
+      completedAt: result.profileCompletedAt?.toISOString() || null,
+      completionPercentage
     });
 
   } catch (error) {

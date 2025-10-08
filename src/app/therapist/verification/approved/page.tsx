@@ -10,8 +10,36 @@ import { CheckCircle, Star, Calendar, Users, ArrowRight } from "lucide-react";
 export default function VerificationApprovedPage() {
   const router = useRouter();
   const [countdown, setCountdown] = useState(10);
+  const [isCheckingProfile, setIsCheckingProfile] = useState(true);
 
   useEffect(() => {
+    // Check profile completion status first
+    const checkProfileCompletion = async () => {
+      try {
+        const response = await fetch('/api/therapist/profile');
+        if (response.ok) {
+          const data = await response.json();
+          const completionPercentage = data.profileData?.profileCompletion || 0;
+          
+          // If profile is incomplete, redirect to profile completion
+          if (completionPercentage < 80) {
+            router.push('/therapist/profile?complete=true');
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('Error checking profile completion:', error);
+      } finally {
+        setIsCheckingProfile(false);
+      }
+    };
+
+    checkProfileCompletion();
+  }, [router]);
+
+  useEffect(() => {
+    if (isCheckingProfile) return; // Don't start countdown until profile check is done
+
     // Auto-redirect to dashboard after 10 seconds
     const timer = setInterval(() => {
       setCountdown((prev) => {
@@ -31,20 +59,49 @@ export default function VerificationApprovedPage() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [router]);
+  }, [router, isCheckingProfile]);
 
   const handleContinue = async () => {
     try {
+      // Check profile completion first
+      const response = await fetch('/api/therapist/profile');
+      if (response.ok) {
+        const data = await response.json();
+        const completionPercentage = data.profileData?.profileCompletion || 0;
+        
+        // If profile is incomplete, redirect to profile completion
+        if (completionPercentage < 80) {
+          router.push('/therapist/profile?complete=true');
+          return;
+        }
+      }
+
       // Mark approval as seen
       await fetch('/api/therapist/verification/mark-approval-seen', {
         method: 'POST'
       });
     } catch (error) {
-      console.error('Error marking approval as seen:', error);
+      console.error('Error:', error);
     }
     
     router.push("/therapist/dashboard");
   };
+
+  // Show loading while checking profile
+  if (isCheckingProfile) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-2xl mx-auto">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+              <h2 className="text-xl font-semibold text-gray-700">Checking your profile...</h2>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
@@ -110,21 +167,21 @@ export default function VerificationApprovedPage() {
                       <div className="mx-auto w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
                         <Star className="w-6 h-6 text-yellow-600" />
                       </div>
-                      <h4 className="font-medium text-gray-800">Build Profile</h4>
+                      <h4 className="font-medium text-gray-800">Complete Profile</h4>
                       <p className="text-sm text-gray-600">
-                        Complete your profile to attract more patients
+                        Add final details to start accepting patients
                       </p>
                     </div>
                   </div>
                 </div>
 
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <h4 className="font-semibold text-blue-800 mb-2">Getting Started Tips</h4>
+                  <h4 className="font-semibold text-blue-800 mb-2">Next Steps</h4>
                   <ul className="text-left text-blue-700 text-sm space-y-1">
-                    <li>• Complete your therapist profile with a professional bio</li>
+                    <li>• Complete your profile with contact details and rates</li>
+                    <li>• Add your bank details for payment processing</li>
                     <li>• Set your availability schedule to start receiving patients</li>
                     <li>• Review your dashboard to familiarize yourself with the platform</li>
-                    <li>• Check your notification settings to stay updated</li>
                   </ul>
                 </div>
 

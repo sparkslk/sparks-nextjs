@@ -768,14 +768,19 @@ export default function TherapistVerificationPage() {
                     validationErrors.gender ? "border-destructive" : ""
                   }`}
                 >
-                  <SelectValue placeholder="Select gender" />
+                  <SelectValue placeholder="Select gender">
+                    {personalData.gender && (
+                      personalData.gender === "male" ? "Male" :
+                      personalData.gender === "female" ? "Female" :
+                      personalData.gender === "prefer-not-to-say" ? "Prefer not to say" :
+                      personalData.gender
+                    )}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="male">Male</SelectItem>
                   <SelectItem value="female">Female</SelectItem>
-                  <SelectItem value="prefer-not-to-say">
-                    Prefer not to say
-                  </SelectItem>
+                  <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
                 </SelectContent>
               </Select>
               {validationErrors.gender && (

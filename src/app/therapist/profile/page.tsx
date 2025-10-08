@@ -255,7 +255,35 @@ export default function TherapistProfilePage() {
 
   const startEdit = (section: string) => {
     setActiveSection(section);
-    setEditData({ ...profile });
+    // Properly initialize edit data with current profile values
+    if (profile) {
+      setEditData({
+        name: profile.name,
+        email: profile.email,
+        phone: profile.phone,
+        dateOfBirth: profile.dateOfBirth,
+        gender: profile.gender,
+        address: {
+          houseNumber: profile.address.houseNumber,
+          streetName: profile.address.streetName,
+          city: profile.address.city,
+        },
+        bio: profile.bio,
+        licenseNumber: profile.licenseNumber,
+        primarySpecialty: profile.primarySpecialty,
+        yearsOfExperience: profile.yearsOfExperience,
+        highestEducation: profile.highestEducation,
+        institution: profile.institution,
+        adhdExperience: profile.adhdExperience,
+        hourlyRate: profile.hourlyRate,
+        bankDetails: {
+          accountHolderName: profile.bankDetails.accountHolderName,
+          accountNumber: profile.bankDetails.accountNumber,
+          bankName: profile.bankDetails.bankName,
+          branchName: profile.bankDetails.branchName,
+        },
+      });
+    }
   };
 
   const cancelEdit = () => {
@@ -277,12 +305,13 @@ export default function TherapistProfilePage() {
         city: editData.address?.city || profile?.address.city,
         bio: editData.bio || profile?.bio,
         // Business information
-        hourlyRate: parseFloat(editData.hourlyRate || profile?.hourlyRate || '0'),
+        hourlyRate: (editData.hourlyRate || profile?.hourlyRate || '0').toString(),
         accountHolderName: editData.bankDetails?.accountHolderName || profile?.bankDetails.accountHolderName,
         accountNumber: editData.bankDetails?.accountNumber || profile?.bankDetails.accountNumber,
         bankName: editData.bankDetails?.bankName || profile?.bankDetails.bankName,
         branchName: editData.bankDetails?.branchName || profile?.bankDetails.branchName,
       };
+      
       const response = await fetch('/api/therapist/profile/complete', {
         method: 'POST',
         headers: {
@@ -290,15 +319,26 @@ export default function TherapistProfilePage() {
         },
         body: JSON.stringify(updateData),
       });
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update profile');
+        let errorMessage = 'Failed to update profile';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (jsonError) {
+          console.error('Error parsing response:', jsonError);
+          errorMessage = `Server error (${response.status})`;
+        }
+        throw new Error(errorMessage);
       }
+
       const result = await response.json();
       // Update local state
       if (profile) {
         const updatedProfile = { ...profile, ...editData };
-        updatedProfile.profileCompletion = result.completionPercentage;
+        if (result.completionPercentage !== undefined) {
+          updatedProfile.profileCompletion = result.completionPercentage;
+        }
         setProfile(updatedProfile);
       }
       // Clear edit data and close section
@@ -576,9 +616,12 @@ export default function TherapistProfilePage() {
                       <Label htmlFor="phone">Phone Number *</Label>
                       <Input
                         id="phone"
-                        value={editData.phone || ""}
+                        value={editData.phone || profile?.phone || ""}
                         onChange={(e) =>
-                          setEditData({ ...editData, phone: e.target.value })
+                          setEditData(prev => ({ 
+                            ...prev, 
+                            phone: e.target.value 
+                          }))
                         }
                         placeholder="Your phone number"
                       />
@@ -588,21 +631,18 @@ export default function TherapistProfilePage() {
                       <Input
                         id="dateOfBirth"
                         type="date"
-                        value={editData.dateOfBirth || ""}
+                        value={editData.dateOfBirth || profile?.dateOfBirth || ""}
                         onChange={(e) =>
-                          setEditData({
-                            ...editData,
-                            dateOfBirth: e.target.value,
-                          })
+                          setEditData(prev => ({ ...prev, dateOfBirth: e.target.value }))
                         }
                       />
                     </div>
                     <div>
                       <Label htmlFor="gender">Gender *</Label>
                       <Select
-                        value={editData.gender || ""}
+                        value={editData.gender || profile?.gender || ""}
                         onValueChange={(value) =>
-                          setEditData({ ...editData, gender: value })
+                          setEditData(prev => ({ ...prev, gender: value }))
                         }
                       >
                         <SelectTrigger>
@@ -622,16 +662,16 @@ export default function TherapistProfilePage() {
                       <Label htmlFor="city">City *</Label>
                       <Input
                         id="city"
-                        value={editData.address?.city || ""}
+                        value={editData.address?.city || profile?.address?.city || ""}
                         onChange={(e) =>
-                          setEditData({
-                            ...editData,
+                          setEditData(prev => ({
+                            ...prev,
                             address: {
-                              houseNumber: editData.address?.houseNumber || profile.address.houseNumber || "",
-                              streetName: editData.address?.streetName || profile.address.streetName || "",
+                              houseNumber: prev.address?.houseNumber || profile?.address?.houseNumber || "",
+                              streetName: prev.address?.streetName || profile?.address?.streetName || "",
                               city: e.target.value,
                             },
-                          })
+                          }))
                         }
                         placeholder="Your city"
                       />
@@ -641,16 +681,19 @@ export default function TherapistProfilePage() {
                     <Label htmlFor="bio">Professional Bio *</Label>
                     <Textarea
                       id="bio"
-                      value={editData.bio || ""}
+                      value={editData.bio || profile?.bio || ""}
                       onChange={(e) =>
-                        setEditData({ ...editData, bio: e.target.value })
+                        setEditData(prev => ({ 
+                          ...prev, 
+                          bio: e.target.value 
+                        }))
                       }
                       placeholder="Tell patients about your approach and experience..."
                       className="min-h-[100px]"
                       maxLength={500}
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                      {(editData.bio || "").length}/500 characters
+                      {(editData.bio || profile?.bio || "").length}/500 characters
                     </p>
                   </div>
                 </div>
@@ -792,13 +835,11 @@ export default function TherapistProfilePage() {
                       <Input
                         id="hourlyRate"
                         className="pl-12"
-                        value={editData.hourlyRate || ""}
-                        onChange={(e) =>
-                          setEditData({
-                            ...editData,
-                            hourlyRate: e.target.value.replace(/[^0-9.]/g, ""),
-                          })
-                        }
+                        value={editData.hourlyRate || profile?.hourlyRate || ""}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^0-9.]/g, "");
+                          setEditData(prev => ({ ...prev, hourlyRate: value }));
+                        }}
                         placeholder="0 for free consultations"
                       />
                     </div>
@@ -814,17 +855,18 @@ export default function TherapistProfilePage() {
                       </Label>
                       <Input
                         id="accountHolder"
-                        value={editData.bankDetails?.accountHolderName || ""}
+                        value={editData.bankDetails?.accountHolderName || profile?.bankDetails.accountHolderName || ""}
                         onChange={(e) =>
-                          setEditData({
-                            ...editData,
+                          setEditData(prev => ({
+                            ...prev,
                             bankDetails: {
+                              ...prev.bankDetails,
                               accountHolderName: e.target.value,
-                              accountNumber: editData.bankDetails?.accountNumber || profile.bankDetails.accountNumber || "",
-                              bankName: editData.bankDetails?.bankName || profile.bankDetails.bankName || "",
-                              branchName: editData.bankDetails?.branchName || profile.bankDetails.branchName || "",
+                              accountNumber: prev.bankDetails?.accountNumber || profile?.bankDetails.accountNumber || "",
+                              bankName: prev.bankDetails?.bankName || profile?.bankDetails.bankName || "",
+                              branchName: prev.bankDetails?.branchName || profile?.bankDetails.branchName || "",
                             },
-                          })
+                          }))
                         }
                       />
                     </div>
@@ -832,17 +874,18 @@ export default function TherapistProfilePage() {
                       <Label htmlFor="bankName">Bank Name *</Label>
                       <Input
                         id="bankName"
-                        value={editData.bankDetails?.bankName || ""}
+                        value={editData.bankDetails?.bankName || profile?.bankDetails.bankName || ""}
                         onChange={(e) =>
-                          setEditData({
-                            ...editData,
+                          setEditData(prev => ({
+                            ...prev,
                             bankDetails: {
-                              accountHolderName: editData.bankDetails?.accountHolderName || profile.bankDetails.accountHolderName || "",
-                              accountNumber: editData.bankDetails?.accountNumber || profile.bankDetails.accountNumber || "",
+                              ...prev.bankDetails,
+                              accountHolderName: prev.bankDetails?.accountHolderName || profile?.bankDetails.accountHolderName || "",
+                              accountNumber: prev.bankDetails?.accountNumber || profile?.bankDetails.accountNumber || "",
                               bankName: e.target.value,
-                              branchName: editData.bankDetails?.branchName || profile.bankDetails.branchName || "",
+                              branchName: prev.bankDetails?.branchName || profile?.bankDetails.branchName || "",
                             },
-                          })
+                          }))
                         }
                       />
                     </div>
@@ -850,17 +893,18 @@ export default function TherapistProfilePage() {
                       <Label htmlFor="accountNumber">Account Number *</Label>
                       <Input
                         id="accountNumber"
-                        value={editData.bankDetails?.accountNumber || ""}
+                        value={editData.bankDetails?.accountNumber || profile?.bankDetails.accountNumber || ""}
                         onChange={(e) =>
-                          setEditData({
-                            ...editData,
+                          setEditData(prev => ({
+                            ...prev,
                             bankDetails: {
-                              accountHolderName: editData.bankDetails?.accountHolderName || profile.bankDetails.accountHolderName || "",
+                              ...prev.bankDetails,
+                              accountHolderName: prev.bankDetails?.accountHolderName || profile?.bankDetails.accountHolderName || "",
                               accountNumber: e.target.value,
-                              bankName: editData.bankDetails?.bankName || profile.bankDetails.bankName || "",
-                              branchName: editData.bankDetails?.branchName || profile.bankDetails.branchName || "",
+                              bankName: prev.bankDetails?.bankName || profile?.bankDetails.bankName || "",
+                              branchName: prev.bankDetails?.branchName || profile?.bankDetails.branchName || "",
                             },
-                          })
+                          }))
                         }
                       />
                     </div>
@@ -868,17 +912,18 @@ export default function TherapistProfilePage() {
                       <Label htmlFor="branchName">Branch Name *</Label>
                       <Input
                         id="branchName"
-                        value={editData.bankDetails?.branchName || ""}
+                        value={editData.bankDetails?.branchName || profile?.bankDetails.branchName || ""}
                         onChange={(e) =>
-                          setEditData({
-                            ...editData,
+                          setEditData(prev => ({
+                            ...prev,
                             bankDetails: {
-                              accountHolderName: editData.bankDetails?.accountHolderName || profile.bankDetails.accountHolderName || "",
-                              accountNumber: editData.bankDetails?.accountNumber || profile.bankDetails.accountNumber || "",
-                              bankName: editData.bankDetails?.bankName || profile.bankDetails.bankName || "",
+                              ...prev.bankDetails,
+                              accountHolderName: prev.bankDetails?.accountHolderName || profile?.bankDetails.accountHolderName || "",
+                              accountNumber: prev.bankDetails?.accountNumber || profile?.bankDetails.accountNumber || "",
+                              bankName: prev.bankDetails?.bankName || profile?.bankDetails.bankName || "",
                               branchName: e.target.value,
                             },
-                          })
+                          }))
                         }
                       />
                     </div>

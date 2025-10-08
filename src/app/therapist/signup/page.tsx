@@ -125,6 +125,7 @@ export default function TherapistSignupPage() {
               width={60}
               height={60}
               className="rounded-lg"
+              style={{ width: 'auto', height: 'auto' }}
             />
           </div>
           <div>
