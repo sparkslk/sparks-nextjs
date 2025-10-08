@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 // import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +34,7 @@ import {
 
 interface TherapistApplication {
   id: string;
+  therapistId: string;
   name: string;
   email: string;
   phone: string;
@@ -50,112 +52,70 @@ interface TherapistApplication {
   institution: string;
   adhdExperience: string;
   documents: {
-    professionalLicense: { name: string; url: string }[];
-    educationalCertificates: { name: string; url: string }[];
-    additionalCertifications: { name: string; url: string }[];
+    professionalLicense: { id: string; name: string; originalName: string; url: string }[];
+    educationalCertificates: { id: string; name: string; originalName: string; url: string }[];
+    additionalCertifications: { id: string; name: string; originalName: string; url: string }[];
   };
   reference: {
     firstName: string;
     lastName: string;
     professionalTitle: string;
     phoneNumber: string;
-  };
-  status: "pending" | "approved" | "rejected" | "under_review";
+    email: string;
+  } | null;
+  status: "pending" | "approved" | "rejected";
   submittedAt: string;
   reviewedAt?: string;
   reviewedBy?: string;
   rejectionReason?: string;
 }
 
-// Mock data - replace with API call
-const mockApplications: TherapistApplication[] = [
-  {
-    id: "1",
-    name: "Dr. Dinithi Gunawardena",
-    email: "dinithi@email.com",
-    phone: "0771234567",
-    dateOfBirth: "1985-03-15",
-    address: {
-      houseNumber: "312/2,H",
-      streetName: "Colombo Road",
-      city: "Kandy",
-    },
-    gender: "female",
-    licenseNumber: "LIC123456",
-    primarySpecialty: "adhd-specialist",
-    yearsOfExperience: "5 to 10-years",
-    highestEducation: "doctorate",
-    institution: "University of Colombo",
-    adhdExperience:
-      "Extensive experience working with ADHD patients including children and adults. Specialized in cognitive behavioral therapy and medication management.",
-    documents: {
-      professionalLicense: [{ name: "license.pdf", url: "/docs/license.pdf" }],
-      educationalCertificates: [
-        { name: "degree.pdf", url: "/docs/degree.pdf" },
-      ],
-      additionalCertifications: [
-        { name: "adhd-cert.pdf", url: "/docs/adhd-cert.pdf" },
-      ],
-    },
-    reference: {
-      firstName: "Dr.Anuki",
-      lastName: "Wanniarachchi",
-      professionalTitle: "Senior Psychiatrist",
-      phoneNumber: "0779876543",
-    },
-    status: "pending",
-    submittedAt: "2025-01-15T10:30:00Z",
-  },
-  {
-    id: "2",
-    name: "Dr. Chameera Jayasinghe",
-    email: "chameerajayasinghe@email.com",
-    phone: "0762345678",
-    dateOfBirth: "1980-07-22",
-    address: {
-      houseNumber: "456",
-      streetName: "Galle Road",
-      city: "Colombo",
-    },
-    gender: "male",
-    licenseNumber: "LIC789012",
-    primarySpecialty: "child-psychology",
-    yearsOfExperience: "10+-years",
-    highestEducation: "phd",
-    institution: "University of Kelaniya",
-    adhdExperience:
-      "10+ years experience in child psychology with focus on ADHD, autism spectrum disorders, and behavioral interventions.",
-    documents: {
-      professionalLicense: [
-        { name: "license-mc.pdf", url: "/docs/license-mc.pdf" },
-      ],
-      educationalCertificates: [
-        { name: "phd-cert.pdf", url: "/docs/phd-cert.pdf" },
-      ],
-      additionalCertifications: [],
-    },
-    reference: {
-      firstName: "Dr. Malini",
-      lastName: "Perera",
-      professionalTitle: "Chief Psychologist",
-      phoneNumber: "0758765432",
-    },
-    status: "under_review",
-    submittedAt: "2025-01-14T14:15:00Z",
-  },
-];
-
 export default function ManagerApplicationsPage() {
-  const [applications, setApplications] =
-    useState<TherapistApplication[]>(mockApplications);
-  const [filteredApplications, setFilteredApplications] =
-    useState<TherapistApplication[]>(mockApplications);
+  const { data: session } = useSession();
+  const [applications, setApplications] = useState<TherapistApplication[]>([]);
+  const [filteredApplications, setFilteredApplications] = useState<TherapistApplication[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedApplication, setSelectedApplication] =
     useState<TherapistApplication | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
+
+  // Fetch applications from API
+  const fetchApplications = async () => {
+    try {
+      setLoading(true);
+      const searchParams = new URLSearchParams();
+      if (statusFilter !== "all") {
+        searchParams.set("status", statusFilter.toUpperCase());
+      }
+      if (searchTerm) {
+        searchParams.set("search", searchTerm);
+      }
+
+      const response = await fetch(`/api/manager/verification-requests?${searchParams}`);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch applications');
+      }
+
+      const data = await response.json();
+      setApplications(data);
+    } catch (error) {
+      console.error("Error fetching applications:", error);
+      // Handle error - maybe show a toast notification
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initial fetch
+  useEffect(() => {
+    if (session) {
+      fetchApplications();
+    }
+  }, [session, statusFilter, searchTerm]);
 
   useEffect(() => {
     let filtered = applications;
@@ -187,13 +147,7 @@ export default function ManagerApplicationsPage() {
             Pending
           </Badge>
         );
-      case "under_review":
-        return (
-          <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-            <Eye className="w-3 h-3 mr-1" />
-            Under Review
-          </Badge>
-        );
+
       case "approved":
         return (
           <Badge variant="secondary" className="bg-green-100 text-green-800">
@@ -215,62 +169,68 @@ export default function ManagerApplicationsPage() {
 
   const handleApprove = async (applicationId: string) => {
     try {
-      // TODO: API call to approve application
-      setApplications((prev) =>
-        prev.map((app) =>
-          app.id === applicationId
-            ? {
-                ...app,
-                status: "approved" as const,
-                reviewedAt: new Date().toISOString(),
-                reviewedBy: "Current Manager", // Replace with actual manager name
-              }
-            : app
-        )
-      );
+      const response = await fetch(`/api/manager/verification-requests/${applicationId}/review`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          status: 'APPROVED'
+        }),
+      });
 
-      // TODO: Send approval email to therapist
+      if (!response.ok) {
+        throw new Error('Failed to approve application');
+      }
+
+      // Refresh applications list
+      await fetchApplications();
       alert("Application approved successfully!");
     } catch (error) {
       console.error("Failed to approve application:", error);
+      alert("Failed to approve application. Please try again.");
     }
   };
 
   const handleReject = async (applicationId: string, reason: string) => {
     try {
-      // TODO: API call to reject application
-      setApplications((prev) =>
-        prev.map((app) =>
-          app.id === applicationId
-            ? {
-                ...app,
-                status: "rejected" as const,
-                rejectionReason: reason,
-                reviewedAt: new Date().toISOString(),
-                reviewedBy: "Current Manager",
-              }
-            : app
-        )
-      );
+      const response = await fetch(`/api/manager/verification-requests/${applicationId}/review`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          status: 'REJECTED',
+          reviewNotes: reason
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to reject application');
+      }
 
       setShowReviewModal(false);
       setRejectionReason("");
 
-      // TODO: Send rejection email to therapist
+      // Refresh applications list
+      await fetchApplications();
       alert("Application rejected.");
     } catch (error) {
       console.error("Failed to reject application:", error);
+      alert("Failed to reject application. Please try again.");
     }
   };
 
-  const handleSetUnderReview = async (applicationId: string) => {
-    setApplications((prev) =>
-      prev.map((app) =>
-        app.id === applicationId
-          ? { ...app, status: "under_review" as const }
-          : app
-      )
-    );
+
+
+  const handleDownloadDocument = (url: string, fileName: string) => {
+    // Create a temporary link to download the document
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const formatDate = (dateString: string) => {
@@ -378,37 +338,6 @@ export default function ManagerApplicationsPage() {
             </Button>
 
             {application.status === "pending" && (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleSetUnderReview(application.id)}
-                >
-                  Review
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={() => handleApprove(application.id)}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  <CheckCircle className="w-4 h-4 mr-1" />
-                  Approve
-                </Button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => {
-                    setSelectedApplication(application);
-                    setShowReviewModal(true);
-                  }}
-                >
-                  <XCircle className="w-4 h-4 mr-1" />
-                  Reject
-                </Button>
-              </>
-            )}
-
-            {application.status === "under_review" && (
               <>
                 <Button
                   size="sm"
@@ -577,11 +506,12 @@ export default function ManagerApplicationsPage() {
                             className="flex items-center gap-2 p-2 bg-muted rounded"
                           >
                             <FileText className="w-4 h-4" />
-                            <span>{doc.name}</span>
+                            <span>{doc.originalName || doc.name}</span>
                             <Button
                               variant="outline"
                               size="sm"
                               className="ml-auto"
+                              onClick={() => handleDownloadDocument(doc.url, doc.originalName || doc.name)}
                             >
                               <Download className="w-4 h-4 mr-1" />
                               Download
@@ -602,11 +532,12 @@ export default function ManagerApplicationsPage() {
                             className="flex items-center gap-2 p-2 bg-muted rounded"
                           >
                             <FileText className="w-4 h-4" />
-                            <span>{doc.name}</span>
+                            <span>{doc.originalName || doc.name}</span>
                             <Button
                               variant="outline"
                               size="sm"
                               className="ml-auto"
+                              onClick={() => handleDownloadDocument(doc.url, doc.originalName || doc.name)}
                             >
                               <Download className="w-4 h-4 mr-1" />
                               Download
@@ -629,11 +560,12 @@ export default function ManagerApplicationsPage() {
                               className="flex items-center gap-2 p-2 bg-muted rounded"
                             >
                               <FileText className="w-4 h-4" />
-                              <span>{doc.name}</span>
+                              <span>{doc.originalName || doc.name}</span>
                               <Button
                                 variant="outline"
                                 size="sm"
                                 className="ml-auto"
+                                onClick={() => handleDownloadDocument(doc.url, doc.originalName || doc.name)}
                               >
                                 <Download className="w-4 h-4 mr-1" />
                                 Download
@@ -653,28 +585,37 @@ export default function ManagerApplicationsPage() {
                     <CardTitle>Professional Reference</CardTitle>
                   </CardHeader>
                   <CardContent className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="font-medium">Name:</label>
-                      <p>
-                        {selectedApplication.reference.firstName}{" "}
-                        {selectedApplication.reference.lastName}
-                      </p>
-                    </div>
-                    <div>
-                      <label className="font-medium">Professional Title:</label>
-                      <p>{selectedApplication.reference.professionalTitle}</p>
-                    </div>
-                    <div>
-                      <label className="font-medium">Phone Number:</label>
-                      <p>{selectedApplication.reference.phoneNumber}</p>
-                    </div>
+                    {selectedApplication.reference ? (
+                      <>
+                        <div>
+                          <label className="font-medium">Name:</label>
+                          <p>
+                            {selectedApplication.reference.firstName}{" "}
+                            {selectedApplication.reference.lastName}
+                          </p>
+                        </div>
+                        <div>
+                          <label className="font-medium">Professional Title:</label>
+                          <p>{selectedApplication.reference.professionalTitle}</p>
+                        </div>
+                        <div>
+                          <label className="font-medium">Phone Number:</label>
+                          <p>{selectedApplication.reference.phoneNumber}</p>
+                        </div>
+                        <div>
+                          <label className="font-medium">Email:</label>
+                          <p>{selectedApplication.reference.email}</p>
+                        </div>
+                      </>
+                    ) : (
+                      <p className="col-span-2 text-muted-foreground">No reference information provided</p>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
             </Tabs>
 
-            {(selectedApplication.status === "pending" ||
-              selectedApplication.status === "under_review") && (
+            {selectedApplication.status === "pending" && (
               <div className="flex gap-4 mt-6 pt-6 border-t">
                 <Button
                   onClick={() => handleApprove(selectedApplication.id)}
@@ -738,8 +679,6 @@ export default function ManagerApplicationsPage() {
     return {
       all: applications.length,
       pending: applications.filter((app) => app.status === "pending").length,
-      under_review: applications.filter((app) => app.status === "under_review")
-        .length,
       approved: applications.filter((app) => app.status === "approved").length,
       rejected: applications.filter((app) => app.status === "rejected").length,
     };
@@ -763,7 +702,7 @@ export default function ManagerApplicationsPage() {
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-5 gap-4 mb-6">
+          <div className="grid grid-cols-4 gap-4 mb-6">
             <Card>
               <CardContent className="p-4 text-center">
                 <div className="text-2xl font-bold">{statusCounts.all}</div>
@@ -776,16 +715,6 @@ export default function ManagerApplicationsPage() {
                   {statusCounts.pending}
                 </div>
                 <div className="text-sm text-muted-foreground">Pending</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-blue-600">
-                  {statusCounts.under_review}
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  Under Review
-                </div>
               </CardContent>
             </Card>
             <Card>
@@ -825,7 +754,6 @@ export default function ManagerApplicationsPage() {
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="under_review">Under Review</SelectItem>
                 <SelectItem value="approved">Approved</SelectItem>
                 <SelectItem value="rejected">Rejected</SelectItem>
               </SelectContent>
@@ -835,7 +763,27 @@ export default function ManagerApplicationsPage() {
 
         {/* Applications Grid */}
         <div className="grid gap-6">
-          {filteredApplications.length === 0 ? (
+          {loading ? (
+            <div className="grid gap-6">
+              {[1, 2, 3].map((i) => (
+                <Card key={i} className="animate-pulse">
+                  <CardHeader className="pb-3">
+                    <div className="h-6 bg-gray-200 rounded w-1/3 mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="h-4 bg-gray-200 rounded"></div>
+                        <div className="h-4 bg-gray-200 rounded"></div>
+                      </div>
+                      <div className="h-16 bg-gray-200 rounded"></div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : filteredApplications.length === 0 ? (
             <Card>
               <CardContent className="p-8 text-center">
                 <p className="text-muted-foreground">
