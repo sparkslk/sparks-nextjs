@@ -27,6 +27,9 @@ interface AddAvailabilityModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (data: AvailabilityData) => void;
+  initialDate?: string;
+  initialStartTime?: string;
+  initialEndTime?: string;
 }
 
 interface AvailabilityData {
@@ -49,6 +52,9 @@ export function AddAvailabilityModal({
   isOpen,
   onClose,
   onSave,
+  initialDate,
+  initialStartTime,
+  initialEndTime,
 }: AddAvailabilityModalProps) {
   const [formData, setFormData] = useState<AvailabilityData>({
     startDate: new Date().toISOString().split('T')[0],
@@ -59,6 +65,21 @@ export function AddAvailabilityModal({
     selectedDays: [],
     isFree: false,
   });
+
+  // Update form data when initial values are provided
+  useEffect(() => {
+    if (isOpen) {
+      setFormData({
+        startDate: initialDate || new Date().toISOString().split('T')[0],
+        endDate: initialDate || new Date().toISOString().split('T')[0],
+        startTime: initialStartTime || "09:00",
+        endTime: initialEndTime || "17:00",
+        recurrenceType: "None",
+        selectedDays: [],
+        isFree: false,
+      });
+    }
+  }, [isOpen, initialDate, initialStartTime, initialEndTime]);
 
   const days = [
     { value: 0, label: "Sunday" },

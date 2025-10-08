@@ -48,6 +48,11 @@ function SetAvailabilityPageNew(): React.JSX.Element {
   const [filter, setFilter] = useState<"all" | "upcoming" | "past">("upcoming");
   const [selectedWeekStart, setSelectedWeekStart] = useState(new Date());
   const [activeTab, setActiveTab] = useState<"calendar" | "list">("calendar");
+  const [modalInitialData, setModalInitialData] = useState<{
+    date?: string;
+    startTime?: string;
+    endTime?: string;
+  } | null>(null);
 
   useEffect(() => {
     if (authStatus === "unauthenticated") {
@@ -174,8 +179,69 @@ function SetAvailabilityPageNew(): React.JSX.Element {
     return `${hour12}:${minutes.toString().padStart(2, "0")} ${ampm}`;
   };
 
+  // Handle calendar slot selection (when user clicks/drags on calendar)
+  const handleCalendarSlotSelect = (dayOfWeek: number, startTime: string, endTime: string) => {
+    // Get the week dates
+    const getWeekDates = (startDate: Date) => {
+      const dates = [];
+      const firstDay = new Date(startDate);
+      const day = firstDay.getDay();
+      const diff = day === 0 ? -6 : 1 - day;
+      firstDay.setDate(firstDay.getDate() + diff);
+      
+      for (let i = 0; i < 7; i++) {
+        const date = new Date(firstDay);
+        date.setDate(firstDay.getDate() + i);
+        dates.push(date);
+      }
+      return dates;
+    };
+
+    const weekDates = getWeekDates(selectedWeekStart);
+    
+    // Convert dayOfWeek (0=Sunday, 1=Monday, etc.) to array index (0=Monday, 6=Sunday)
+    const dayIndex = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    const selectedDate = weekDates[dayIndex];
+    
+    // Format date as YYYY-MM-DD
+    const dateStr = selectedDate.toISOString().split('T')[0];
+    
+    // Set initial data for modal
+    setModalInitialData({
+      date: dateStr,
+      startTime: startTime,
+      endTime: endTime,
+    });
+    
+    // Open modal
+    setShowAddModal(true);
+  };
+
   // Convert new slot format to old TimeSlot format for calendar
   const convertSlotsToTimeSlots = () => {
+    // Get the week range for filtering
+    const getWeekRange = (startDate: Date) => {
+      const firstDay = new Date(startDate);
+      const day = firstDay.getDay();
+      const diff = day === 0 ? -6 : 1 - day; // if Sunday (0), go back 6 days, else go to Monday
+      firstDay.setDate(firstDay.getDate() + diff);
+      firstDay.setHours(0, 0, 0, 0);
+      
+      const lastDay = new Date(firstDay);
+      lastDay.setDate(firstDay.getDate() + 6);
+      lastDay.setHours(23, 59, 59, 999);
+      
+      return { start: firstDay, end: lastDay };
+    };
+
+    const weekRange = getWeekRange(selectedWeekStart);
+
+    // Filter slots to only include those in the selected week
+    const weekSlots = slots.filter(slot => {
+      const slotDate = new Date(slot.date);
+      return slotDate >= weekRange.start && slotDate <= weekRange.end;
+    });
+
     // Group slots by their recurrence pattern (same time, different dates)
     const timeSlotMap = new Map<string, {
       id: string;
@@ -185,7 +251,7 @@ function SetAvailabilityPageNew(): React.JSX.Element {
       isFree: boolean;
     }>();
 
-    slots.forEach(slot => {
+    weekSlots.forEach(slot => {
       const key = `${slot.startTime}-${slot.isFree}`;
       const slotDate = new Date(slot.date);
       
@@ -243,7 +309,30 @@ function SetAvailabilityPageNew(): React.JSX.Element {
 
   // Convert to SessionSlot format (similar to TimeSlot but for sessions)
   const convertSlotsToSessionSlots = () => {
-    return slots.map(slot => {
+    // Get the week range for filtering
+    const getWeekRange = (startDate: Date) => {
+      const firstDay = new Date(startDate);
+      const day = firstDay.getDay();
+      const diff = day === 0 ? -6 : 1 - day;
+      firstDay.setDate(firstDay.getDate() + diff);
+      firstDay.setHours(0, 0, 0, 0);
+      
+      const lastDay = new Date(firstDay);
+      lastDay.setDate(firstDay.getDate() + 6);
+      lastDay.setHours(23, 59, 59, 999);
+      
+      return { start: firstDay, end: lastDay };
+    };
+
+    const weekRange = getWeekRange(selectedWeekStart);
+
+    // Filter slots to only include those in the selected week
+    const weekSlots = slots.filter(slot => {
+      const slotDate = new Date(slot.date);
+      return slotDate >= weekRange.start && slotDate <= weekRange.end;
+    });
+
+    return weekSlots.map(slot => {
       const [hours, minutes] = slot.startTime.split(':').map(Number);
       const endHours = hours;
       const endMinutes = minutes + 45;
@@ -407,10 +496,7 @@ function SetAvailabilityPageNew(): React.JSX.Element {
             sessionSlots={convertSlotsToSessionSlots()}
             selectedWeekStart={selectedWeekStart}
             onWeekChange={setSelectedWeekStart}
-            onDragSelect={(dayOfWeek, startTime, endTime) => {
-              // Optional: Handle drag selection
-              console.log("Drag select:", { dayOfWeek, startTime, endTime });
-            }}
+            onDragSelect={handleCalendarSlotSelect}
           />
         </TabsContent>
 
@@ -539,8 +625,14 @@ function SetAvailabilityPageNew(): React.JSX.Element {
       {/* Add Availability Modal */}
       <AddAvailabilityModal
         isOpen={showAddModal}
-        onClose={() => setShowAddModal(false)}
+        onClose={() => {
+          setShowAddModal(false);
+          setModalInitialData(null);
+        }}
         onSave={handleAddAvailability}
+        initialDate={modalInitialData?.date}
+        initialStartTime={modalInitialData?.startTime}
+        initialEndTime={modalInitialData?.endTime}
       />
 
       {/* Loading Overlay */}
