@@ -385,27 +385,19 @@ model QuizSubmission {
 }
 
 model TherapistAvailability {
-  id                   String          @id @default(cuid())
-  therapistId          String
-  startTime            String
-  endTime              String
-  dayOfWeek            Int
-  isRecurring          Boolean         @default(false)
-  recurrenceType       RecurrenceType?
-  recurrenceDays       Int[]
-  recurrenceEndDate    DateTime?
-  sessionDuration      Int             @default(60)
-  breakBetweenSessions Int             @default(15)
-  isActive             Boolean         @default(true)
-  createdAt            DateTime        @default(now())
-  updatedAt            DateTime        @updatedAt
-  isFree               Boolean         @default(false)
-  Therapist            Therapist       @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+  id          String    @id @default(cuid())
+  therapistId String
+  date        DateTime
+  startTime   String
+  isBooked    Boolean   @default(false)
+  isFree      Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  Therapist   Therapist @relation(fields: [therapistId], references: [id], onDelete: Cascade)
 
-  @@index([dayOfWeek])
-  @@index([isActive])
-  @@index([therapistId, dayOfWeek, isActive])
   @@index([therapistId])
+  @@index([therapistId, date])
+  @@index([therapistId, date, isBooked])
 }
 
 model SessionReschedule {
@@ -600,12 +592,6 @@ enum QuizStatus {
   IN_PROGRESS
   COMPLETED
   ABANDONED
-}
-
-enum RecurrenceType {
-  DAILY
-  WEEKLY
-  CUSTOM
 }
 
 enum RefundStatus {

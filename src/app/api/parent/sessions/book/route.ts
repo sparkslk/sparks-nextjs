@@ -3,24 +3,6 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-interface TherapistAvailability {
-  id: string;
-  therapistId: string;
-  startTime: string;
-  endTime: string;
-  dayOfWeek: number;
-  isRecurring: boolean;
-  recurrenceType: string | null;
-  recurrenceDays: number[];
-  recurrenceEndDate: Date | null;
-  sessionDuration: number;
-  breakBetweenSessions: number;
-  isActive: boolean;
-  rate: number | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -31,7 +13,6 @@ export async function POST(request: NextRequest) {
     const { childId, date, timeSlot, sessionType = "Individual" } = await request.json();
 
     if (!childId || !date || !timeSlot) {
-        console.log("Missing fields:", { childId, date, timeSlot });
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
@@ -53,6 +34,7 @@ export async function POST(request: NextRequest) {
           include: {
             user: {
               select: {
+                id: true,
                 name: true
               }
             }
@@ -70,160 +52,82 @@ export async function POST(request: NextRequest) {
 
     // Parse the date and time slot
     let sessionDate: Date;
-    let adjustedHours: number;
-    let minutes: number;
     let startTime: string;
     
     try {
-      // Parse the incoming date string (should be in ISO format from frontend)
       const inputDate = new Date(date);
       if (isNaN(inputDate.getTime())) {
         throw new Error("Invalid date");
       }
       
+      // Extract start time from slot (format: "HH:MM" or "HH:MM AM/PM")
       const [timeSlotStart] = timeSlot.split(" - ");
-      startTime = timeSlotStart; // Store for notification message
       
-      // Parse time more carefully
-      const timeMatch = timeSlotStart.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
-      if (!timeMatch) {
-        console.log("Invalid time slot format:", timeSlot);
-        return NextResponse.json(
-          { error: "Invalid time slot format" },
-          { status: 400 }
-        );
+      // Parse time (handle both 24h and 12h formats)
+      let hours: number, minutes: number;
+      
+      const time12Match = timeSlotStart.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+      if (time12Match) {
+        // 12-hour format
+        const h = parseInt(time12Match[1]);
+        minutes = parseInt(time12Match[2]);
+        const period = time12Match[3].toUpperCase();
+        hours = period === "AM" ? (h === 12 ? 0 : h) : (h === 12 ? 12 : h + 12);
+      } else {
+        // 24-hour format
+        const time24Match = timeSlotStart.match(/^(\d{1,2}):(\d{2})$/);
+        if (!time24Match) {
+          throw new Error("Invalid time format");
+        }
+        hours = parseInt(time24Match[1]);
+        minutes = parseInt(time24Match[2]);
       }
       
-      const hours = parseInt(timeMatch[1]);
-      minutes = parseInt(timeMatch[2]);
-      const period = timeMatch[3].toUpperCase();
-      
-      // Validate hours and minutes
-      if (hours < 1 || hours > 12 || minutes < 0 || minutes > 59) {
-        console.log("Invalid time values:", { hours, minutes });
-        return NextResponse.json(
-          { error: "Invalid time values" },
-          { status: 400 }
-        );
+      // Validate time values
+      if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+        throw new Error("Invalid time values");
       }
       
-      adjustedHours = period === "AM" ? (hours === 12 ? 0 : hours) : (hours === 12 ? 12 : hours + 12);
-      
-      // Create the session date directly without timezone conversion
-      // Store exactly what the user selects: 9:00 AM should be stored as 09:00
+      // Create session datetime
       const year = inputDate.getFullYear();
       const month = inputDate.getMonth();
       const day = inputDate.getDate();
       
-      // Create a date string in local format to avoid timezone issues
-      const dateString = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}T${adjustedHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00.000Z`;
+      const dateString = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}T${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00.000Z`;
       sessionDate = new Date(dateString);
-      
-      console.log("Original selected time:", `${hours}:${minutes.toString().padStart(2, '0')} ${period}`);
-      console.log("Adjusted hours (24h format):", adjustedHours);
-      console.log("Final session date:", sessionDate);
-      console.log("Selected time slot:", timeSlot);
+      startTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
       
     } catch (error) {
-      console.log("Failed to parse date:", date, error);
+      console.error("Failed to parse date/time:", error);
       return NextResponse.json(
-        { error: "Invalid date provided" },
+        { error: "Invalid date or time provided" },
         { status: 400 }
       );
     }
 
-    // Check if the therapist is available at this time
-    const jsDay = sessionDate.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
-    
-    // Debug logging
-    console.log("Session date:", sessionDate);
-    console.log("JS Day:", jsDay);
-    console.log("Session date is valid:", !isNaN(sessionDate.getTime()));
-    
-    // Validate that we have a valid day
-    if (isNaN(jsDay)) {
-      console.log("Invalid day calculated from sessionDate");
-      return NextResponse.json(
-        { error: "Invalid date provided" },
-        { status: 400 }
-      );
-    }
-    
-    // Convert JS day (0=Sunday) to database day (1=Monday, 7=Sunday)
-    const dayOfWeek = jsDay === 0 ? 7 : jsDay;
-    const sessionTime = `${adjustedHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-    
-    console.log("Database day of week:", dayOfWeek);
-    console.log("Session time:", sessionTime);
-    
-    // Additional validation to prevent NaN values
-    if (isNaN(dayOfWeek) || isNaN(sessionDate.getTime())) {
-      console.log("Invalid dayOfWeek or sessionDate:", { dayOfWeek, sessionDate });
-      return NextResponse.json(
-        { error: "Invalid date or time calculation" },
-        { status: 400 }
-      );
-    }
-    
-    // Get therapist availability using Prisma
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const therapistAvailability = await (prisma as any).therapistAvailability.findMany({
+    const dateOnly = sessionDate.toISOString().split('T')[0];
+
+    // Check if therapist has availability for this specific date and time
+    const availabilitySlot = await prisma.therapistAvailability.findFirst({
       where: {
-        therapistId: child.primaryTherapistId,
-        isActive: true,
-        OR: [
-          // Direct day match
-          { dayOfWeek: dayOfWeek },
-          // Recurring weekly match
-          { 
-            isRecurring: true,
-            recurrenceType: "WEEKLY",
-            recurrenceDays: {
-              has: dayOfWeek
-            }
-          }
-        ],
-        AND: [
-          {
-            OR: [
-              { recurrenceEndDate: null },
-              { recurrenceEndDate: { gte: sessionDate } }
-            ]
-          }
-        ]
+        therapistId: child.primaryTherapistId!,
+        date: {
+          gte: new Date(dateOnly + 'T00:00:00.000Z'),
+          lt: new Date(dateOnly + 'T23:59:59.999Z')
+        },
+        startTime: startTime,
+        isBooked: false
       }
-    }) as TherapistAvailability[];
-    
-    if (!therapistAvailability || therapistAvailability.length === 0) {
-      return NextResponse.json(
-        { error: "Therapist availability not configured" },
-        { status: 400 }
-      );
-    }
-
-    const availability = therapistAvailability.find((avail: TherapistAvailability) => {
-      const startTime = avail.startTime;
-      const endTime = avail.endTime;
-      
-      // Check if this availability applies to the selected day
-      const appliesToDay = avail.dayOfWeek === dayOfWeek || 
-                          (avail.isRecurring && avail.recurrenceType === "WEEKLY" && avail.recurrenceDays.includes(dayOfWeek));
-      
-      return appliesToDay &&
-             sessionTime >= startTime &&
-             sessionTime < endTime &&
-             avail.isActive &&
-             (!avail.recurrenceEndDate || new Date(avail.recurrenceEndDate) >= sessionDate);
     });
 
-    if (!availability) {
+    if (!availabilitySlot) {
       return NextResponse.json(
-        { error: "Therapist is not available at the selected time" },
+        { error: "This time slot is not available or has already been booked" },
         { status: 400 }
       );
     }
 
-    // Check for existing sessions at the same time
+    // Check for existing sessions at the same time (double-check)
     const existingSession = await prisma.therapySession.findFirst({
       where: {
         therapistId: child.primaryTherapistId!,
@@ -241,61 +145,81 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create the therapy session
-    const therapySession = await prisma.therapySession.create({
-      data: {
-        patientId: childId,
-        therapistId: child.primaryTherapistId!,
-        scheduledAt: sessionDate,
-        duration: availability.sessionDuration,
-        status: "SCHEDULED",
-        type: sessionType,
-        bookedRate: child.primaryTherapist.session_rate || 0, // Store the rate at time of booking
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      include: {
-        therapist: {
-          include: {
-            user: {
-              select: {
-                name: true,
-                email: true
+    // Get the rate - check if slot is free, otherwise use therapist's session rate
+    const sessionRate = availabilitySlot.isFree ? 0 : (child.primaryTherapist.session_rate || 0);
+
+    // Create the therapy session and mark the slot as booked in a transaction
+    const result = await prisma.$transaction(async (tx) => {
+      // Create therapy session
+      const therapySession = await tx.therapySession.create({
+        data: {
+          patientId: childId,
+          therapistId: child.primaryTherapistId!,
+          scheduledAt: sessionDate,
+          duration: 45, // Fixed 45-minute sessions
+          status: "SCHEDULED",
+          type: sessionType,
+          bookedRate: sessionRate
+        },
+        include: {
+          patient: {
+            select: {
+              firstName: true,
+              lastName: true
+            }
+          },
+          therapist: {
+            include: {
+              user: {
+                select: {
+                  name: true
+                }
               }
             }
           }
-        },
-        patient: {
-          select: {
-            firstName: true,
-            lastName: true
-          }
         }
-      }
+      });
+
+      // Mark the availability slot as booked
+      await tx.therapistAvailability.update({
+        where: { id: availabilitySlot.id },
+        data: { isBooked: true }
+      });
+
+      return therapySession;
     });
 
-    // Create notification for therapist
-    await prisma.notification.create({
-      data: {
-        receiverId: child.primaryTherapist.userId,
-        title: "New Session Scheduled",
-        message: `${child.firstName} ${child.lastName} has scheduled a session on ${sessionDate.toLocaleDateString()} at ${startTime}`,
-        type: "APPOINTMENT",
-        isRead: false,
-        isUrgent: false
-      }
+    // Create notifications for both parent and therapist
+    const notificationMessage = `New therapy session scheduled for ${child.firstName} ${child.lastName} on ${sessionDate.toLocaleDateString()} at ${startTime}`;
+    
+    await prisma.notification.createMany({
+      data: [
+        {
+          senderId: session.user.id,
+          receiverId: child.primaryTherapist.user.id,
+          type: "APPOINTMENT",
+          title: "New Session Booked",
+          message: notificationMessage,
+          isRead: false
+        },
+        {
+          receiverId: session.user.id,
+          type: "APPOINTMENT",
+          title: "Session Confirmation",
+          message: `Your session booking for ${child.firstName} ${child.lastName} has been confirmed for ${sessionDate.toLocaleDateString()} at ${startTime}`,
+          isRead: false
+        }
+      ]
     });
 
     return NextResponse.json({
-      success: true,
+      message: "Session booked successfully",
       session: {
-        id: therapySession.id,
-        scheduledAt: therapySession.scheduledAt,
-        duration: therapySession.duration,
-        status: therapySession.status,
-        type: therapySession.type,
-        therapistName: therapySession.therapist.user.name,
-        childName: `${therapySession.patient.firstName} ${therapySession.patient.lastName}`
+        id: result.id,
+        scheduledAt: result.scheduledAt,
+        duration: result.duration,
+        status: result.status,
+        bookedRate: result.bookedRate
       }
     });
 

@@ -10,65 +10,44 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Clock,
   Plus,
-  Save,
+  Calendar,
+  Trash2,
+  AlertCircle,
   CalendarDays,
   ListChecks,
-  Timer,
-  Hash,
 } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { WeeklyCalendarView } from "@/components/therapist/availability/WeeklyCalendarView";
 import { AddAvailabilityModal } from "@/components/therapist/availability/AddAvailabilityModal";
+import { WeeklyCalendarView } from "@/components/therapist/availability/WeeklyCalendarView";
 
-interface TimeSlot {
+interface AvailabilitySlot {
   id: string;
+  date: string;
   startTime: string;
-  endTime: string;
-  dayOfWeek: number;
-  isRecurring: boolean;
-  recurrencePattern?: {
-    type: "daily" | "weekly" | "custom";
-    days?: number[];
-    endDate?: string;
-  };
-  isActive: boolean;
-  isFreeSession?: boolean;
-  createdAt?: string;
+  isBooked: boolean;
+  isFree: boolean;
 }
 
-interface SessionSlot {
-  id: string;
+interface AvailabilityData {
+  startDate: string;
+  endDate: string;
   startTime: string;
   endTime: string;
-  dayOfWeek: number;
-  isActive: boolean;
-  parentAvailabilityId: string;
-  isFreeSession: boolean;
+  recurrenceType: "None" | "Daily" | "Weekly" | "Monthly" | "Custom";
+  selectedDays?: number[];
+  isFree: boolean;
 }
 
-// interface AvailabilityStats {
-//   totalHours: number;
-//   availableDays: number;
-//   maxSessionsPerWeek: number;
-//   averageSessionsPerDay: number;
-// }
-
-function SetAvailabilityPage(): React.JSX.Element {
+function SetAvailabilityPageNew(): React.JSX.Element {
   const { status: authStatus } = useSession();
   const router = useRouter();
-  const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
+  const [slots, setSlots] = useState<AvailabilitySlot[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [editingSlot, setEditingSlot] = useState<TimeSlot | null>(null);
+  const [filter, setFilter] = useState<"all" | "upcoming" | "past">("upcoming");
   const [selectedWeekStart, setSelectedWeekStart] = useState(new Date());
-  const [prefilledData, setPrefilledData] = useState<{
-    dayOfWeek: number;
-    startHour?: number;
-    startTime?: string;
-    endTime?: string;
-    selectedWeekStart: Date;
-  } | null>(null);
+  const [activeTab, setActiveTab] = useState<"calendar" | "list">("calendar");
 
   useEffect(() => {
     if (authStatus === "unauthenticated") {
@@ -87,7 +66,7 @@ function SetAvailabilityPage(): React.JSX.Element {
       const response = await fetch("/api/therapist/availability");
       if (response.ok) {
         const data = await response.json();
-        setTimeSlots(data.availability || []);
+        setSlots(data.slots || []);
       } else {
         console.error("Failed to fetch availability");
       }
@@ -98,467 +77,485 @@ function SetAvailabilityPage(): React.JSX.Element {
     }
   };
 
-  const handleAddTimeSlot = (newSlot: Omit<TimeSlot, "id">) => {
-    const slot: TimeSlot = {
-      ...newSlot,
-      id: Date.now().toString(),
-    };
-    setTimeSlots([...timeSlots, slot]);
-    setShowAddModal(false);
-  };
-
-  const handleEditTimeSlot = (updatedSlot: TimeSlot) => {
-    setTimeSlots(
-      timeSlots.map((slot) => (slot.id === updatedSlot.id ? updatedSlot : slot))
-    );
-    setEditingSlot(null);
-  };
-
-  const handleDeleteTimeSlot = (slotId: string) => {
-    setTimeSlots(timeSlots.filter((slot) => slot.id !== slotId));
-  };
-
-  const handleToggleSlot = (slotId: string) => {
-    setTimeSlots(
-      timeSlots.map((slot) =>
-        slot.id === slotId ? { ...slot, isActive: !slot.isActive } : slot
-      )
-    );
-  };
-
-  const handleSaveAvailability = async () => {
+  const handleAddAvailability = async (data: AvailabilityData) => {
     setSaving(true);
     try {
-      const response = await fetch("/api/therapist/availability", {
-        method: "PUT",
+      const response = await fetch("/api/therapist/availability/bulk-add", {
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          availability: timeSlots
-        }),
+        body: JSON.stringify(data),
       });
 
       if (response.ok) {
-        alert("Availability saved successfully!");
+        const result = await response.json();
+        alert(`Successfully created ${result.slotsCreated} availability slots!`);
+        setShowAddModal(false);
+        fetchAvailability();
       } else {
         const errorData = await response.json();
-        alert(`Failed to save availability: ${errorData.error}`);
+        if (errorData.conflicts) {
+          alert(
+            `Failed to create slots: ${errorData.error}\n\nFirst ${errorData.conflicts.length} conflicts:\n${errorData.conflicts.join('\n')}`
+          );
+        } else {
+          alert(`Failed to create slots: ${errorData.error}`);
+        }
       }
     } catch (error) {
-      console.error("Error saving availability:", error);
-      alert("Failed to save availability. Please try again.");
+      console.error("Error creating availability:", error);
+      alert("Failed to create availability. Please try again.");
     } finally {
       setSaving(false);
     }
   };
 
-  // const calculateStats = (): AvailabilityStats => {
-  //   const activeSlots = timeSlots.filter((slot) => slot.isActive);
+  const handleDeleteSlot = async (slotId: string) => {
+    if (!confirm("Are you sure you want to delete this slot?")) {
+      return;
+    }
 
-  //   const totalHours = activeSlots.reduce((total, slot) => {
-  //     const start = new Date(`1970-01-01T${slot.startTime}:00`);
-  //     const end = new Date(`1970-01-01T${slot.endTime}:00`);
-  //     const hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
-  //     return total + hours;
-  //   }, 0);
+    try {
+      const response = await fetch(`/api/therapist/availability/${slotId}`, {
+        method: "DELETE",
+      });
 
-  //   const availableDays = new Set(activeSlots.map((slot) => slot.dayOfWeek))
-  //     .size;
-
-  //   const maxSessionsPerWeek = activeSlots.reduce((total, slot) => {
-  //     const start = new Date(`1970-01-01T${slot.startTime}:00`);
-  //     const end = new Date(`1970-01-01T${slot.endTime}:00`);
-  //     const totalMinutes = (end.getTime() - start.getTime()) / (1000 * 60);
-  //     const sessionMinutes = slot.sessionDuration + slot.breakBetweenSessions;
-  //     const sessionsPerDay = Math.floor(totalMinutes / sessionMinutes);
-
-  //     const daysPerWeek = slot.recurrencePattern?.days?.length || 1;
-  //     return total + sessionsPerDay * daysPerWeek;
-  //   }, 0);
-
-  //   const averageSessionsPerDay =
-  //     availableDays > 0 ? maxSessionsPerWeek / availableDays : 0;
-
-  //   return {
-  //     totalHours,
-  //     availableDays,
-  //     maxSessionsPerWeek,
-  //     averageSessionsPerDay,
-  //   };
-  // };
-
-  const generateSessionSlots = (timeSlots: TimeSlot[]): SessionSlot[] => {
-    const sessionSlots: SessionSlot[] = [];
-    const SESSION_DURATION = 45; // Fixed 45-minute sessions
-    const BREAK_DURATION = 15; // Fixed 15-minute breaks
-
-    timeSlots.forEach((slot) => {
-      if (!slot.isActive) return;
-
-      // Get the days this slot applies to
-      let applicableDays: number[] = [];
-      
-      if (slot.recurrencePattern?.days && slot.recurrencePattern.days.length > 0) {
-        // Use the specified days from recurrence pattern (already in 1-7 format)
-        applicableDays = slot.recurrencePattern.days;
-      } else if (slot.isRecurring && slot.recurrencePattern?.type === "daily") {
-        // Daily recurrence applies to all days (1-7)
-        applicableDays = [1, 2, 3, 4, 5, 6, 7];
+      if (response.ok) {
+        alert("Slot deleted successfully!");
+        fetchAvailability();
       } else {
-        // Single day (already in 1-7 format)
-        applicableDays = [slot.dayOfWeek];
+        const errorData = await response.json();
+        alert(`Failed to delete slot: ${errorData.error}`);
       }
+    } catch (error) {
+      console.error("Error deleting slot:", error);
+      alert("Failed to delete slot. Please try again.");
+    }
+  };
 
-      applicableDays.forEach((dayOfWeek) => {
-        const startTime = new Date(`1970-01-01T${slot.startTime}:00`);
-        const endTime = new Date(`1970-01-01T${slot.endTime}:00`);
+  const handleClearAll = async () => {
+    if (!confirm("Are you sure you want to clear all unbooked availability slots?")) {
+      return;
+    }
 
-        const currentTime = new Date(startTime);
-        let sessionCount = 0;
+    try {
+      const response = await fetch("/api/therapist/availability", {
+        method: "DELETE",
+      });
 
-        while (currentTime < endTime) {
-          const sessionEnd = new Date(currentTime);
-          sessionEnd.setMinutes(
-            currentTime.getMinutes() + SESSION_DURATION
-          );
+      if (response.ok) {
+        alert("All unbooked slots cleared successfully!");
+        fetchAvailability();
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to clear slots: ${errorData.error}`);
+      }
+    } catch (error) {
+      console.error("Error clearing slots:", error);
+      alert("Failed to clear slots. Please try again.");
+    }
+  };
 
-          if (sessionEnd <= endTime) {
-            sessionSlots.push({
-              id: `${slot.id}-${dayOfWeek}-${sessionCount}`,
-              startTime: `${currentTime
-                .getHours()
-                .toString()
-                .padStart(2, "0")}:${currentTime
-                .getMinutes()
-                .toString()
-                .padStart(2, "0")}`,
-              endTime: `${sessionEnd
-                .getHours()
-                .toString()
-                .padStart(2, "0")}:${sessionEnd
-                .getMinutes()
-                .toString()
-                .padStart(2, "0")}`,
-              dayOfWeek,
-              isActive: slot.isActive,
-              parentAvailabilityId: slot.id,
-              isFreeSession: slot.isFreeSession || false,
-            });
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
 
-            // Move to next session (45 minutes + 15 minute break)
-            currentTime.setMinutes(
-              currentTime.getMinutes() + SESSION_DURATION + BREAK_DURATION
-            );
-            sessionCount++;
-          } else {
-            break;
-          }
-        }
+  const formatTime = (timeStr: string) => {
+    const [hours, minutes] = timeStr.split(":").map(Number);
+    const hour12 = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+    const ampm = hours >= 12 ? "PM" : "AM";
+    return `${hour12}:${minutes.toString().padStart(2, "0")} ${ampm}`;
+  };
+
+  // Convert new slot format to old TimeSlot format for calendar
+  const convertSlotsToTimeSlots = () => {
+    // Group slots by their recurrence pattern (same time, different dates)
+    const timeSlotMap = new Map<string, {
+      id: string;
+      startTime: string;
+      endTime: string;
+      dates: Date[];
+      isFree: boolean;
+    }>();
+
+    slots.forEach(slot => {
+      const key = `${slot.startTime}-${slot.isFree}`;
+      const slotDate = new Date(slot.date);
+      
+      if (!timeSlotMap.has(key)) {
+        const [hours, minutes] = slot.startTime.split(':').map(Number);
+        const endHours = hours;
+        const endMinutes = minutes + 45;
+        const endTime = `${endHours.toString().padStart(2, '0')}:${(endMinutes % 60).toString().padStart(2, '0')}:00`;
+        
+        timeSlotMap.set(key, {
+          id: slot.id,
+          startTime: slot.startTime,
+          endTime,
+          dates: [slotDate],
+          isFree: slot.isFree
+        });
+      } else {
+        timeSlotMap.get(key)!.dates.push(slotDate);
+      }
+    });
+
+    // Convert to TimeSlot format
+    const timeSlots: Array<{
+      id: string;
+      startTime: string;
+      endTime: string;
+      dayOfWeek: number;
+      isRecurring: boolean;
+      recurrencePattern?: {
+        type: "daily" | "weekly" | "custom";
+        days?: number[];
+        endDate?: string;
+      };
+      isActive: boolean;
+      isFreeSession?: boolean;
+    }> = [];
+
+    timeSlotMap.forEach((value) => {
+      // For each unique date, create a TimeSlot
+      value.dates.forEach(date => {
+        timeSlots.push({
+          id: value.id + '-' + date.toISOString(),
+          startTime: value.startTime,
+          endTime: value.endTime,
+          dayOfWeek: date.getDay(),
+          isRecurring: false,
+          isActive: true,
+          isFreeSession: value.isFree,
+        });
       });
     });
 
-    return sessionSlots;
+    return timeSlots;
   };
 
-  const sessionSlots = generateSessionSlots(timeSlots);
+  // Convert to SessionSlot format (similar to TimeSlot but for sessions)
+  const convertSlotsToSessionSlots = () => {
+    return slots.map(slot => {
+      const [hours, minutes] = slot.startTime.split(':').map(Number);
+      const endHours = hours;
+      const endMinutes = minutes + 45;
+      const endTime = `${endHours.toString().padStart(2, '0')}:${(endMinutes % 60).toString().padStart(2, '0')}:00`;
+      const slotDate = new Date(slot.date);
+      
+      return {
+        id: slot.id,
+        startTime: slot.startTime,
+        endTime,
+        dayOfWeek: slotDate.getDay(),
+        isActive: !slot.isBooked,
+        parentAvailabilityId: slot.id,
+        isFreeSession: slot.isFree,
+      };
+    });
+  };
 
-  const getStats = () => {
-    // Convert current JS day (0=Sunday) to DB format (1=Monday, 7=Sunday)
-    const todayJsDay = new Date().getDay();
-    const todayDbDay = todayJsDay === 0 ? 7 : todayJsDay;
-    
-    const sessionsToday = sessionSlots.filter(
-      (slot) => slot.dayOfWeek === todayDbDay && slot.isActive
-    ).length;
+  const getFilteredSlots = () => {
+    const now = new Date();
+    const today = now.toISOString().split("T")[0];
 
-    const availableDaysSet = new Set(
-      sessionSlots.filter((slot) => slot.isActive).map((slot) => slot.dayOfWeek)
-    );
-    const availableDays = availableDaysSet.size;
+    if (filter === "upcoming") {
+      return slots.filter((slot) => slot.date >= today);
+    } else if (filter === "past") {
+      return slots.filter((slot) => slot.date < today);
+    }
+    return slots;
+  };
 
-    let totalMinutes = 0;
-    sessionSlots.forEach((slot) => {
-      if (slot.isActive) {
-        const [sh, sm] = slot.startTime.split(":").map(Number);
-        const [eh, em] = slot.endTime.split(":").map(Number);
-        totalMinutes += eh * 60 + em - (sh * 60 + sm);
+  const groupSlotsByDate = (slots: AvailabilitySlot[]) => {
+    const grouped: { [date: string]: AvailabilitySlot[] } = {};
+    slots.forEach((slot) => {
+      if (!grouped[slot.date]) {
+        grouped[slot.date] = [];
       }
+      grouped[slot.date].push(slot);
     });
-    const totalHours = totalMinutes / 60;
-
-    const totalSessions = sessionSlots.filter((slot) => slot.isActive).length;
-
-    return { sessionsToday, availableDays, totalHours, totalSessions };
+    return grouped;
   };
 
-  const stats = getStats();
+  const filteredSlots = getFilteredSlots();
+  const groupedSlots = groupSlotsByDate(filteredSlots);
+  const dates = Object.keys(groupedSlots).sort();
 
-  const handleCloseModal = () => {
-    setShowAddModal(false);
-    setEditingSlot(null);
-    setPrefilledData(null);
+  const stats = {
+    total: slots.length,
+    booked: slots.filter((s) => s.isBooked).length,
+    available: slots.filter((s) => !s.isBooked).length,
+    free: slots.filter((s) => s.isFree).length,
   };
 
-  const handleDragSelect = (dayOfWeek: number, startTime: string, endTime: string) => {
-    setPrefilledData({ 
-      dayOfWeek, 
-      startTime, 
-      endTime, 
-      selectedWeekStart 
-    });
-    setShowAddModal(true);
-  };
-
-  if (authStatus === "loading" || loading) {
-    return <LoadingSpinner message="Loading availability settings..." />;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <LoadingSpinner />
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto p-6 max-w-7xl">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-[#8159A8]">
-            Set Availability
-          </h1>
-          <p className="text-gray-600 mt-2">
-            Manage your schedule and set recurring availability patterns
-          </p>
-        </div>
-
-        <div className="flex gap-2">
-          <Button
-            onClick={() => setShowAddModal(true)}
-            className="bg-[#8159A8] hover:bg-[#6D4C93] text-white"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Add Availability
-          </Button>
-          <Button
-            onClick={handleSaveAvailability}
-            disabled={saving}
-            variant="outline"
-            className="border-[#8159A8] text-[#8159A8] hover:bg-[#F5F3FB]"
-          >
-            {saving ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#8159A8] mr-2"></div>
-                Saving...
-              </>
-            ) : (
-              <>
-                <Save className="mr-2 h-4 w-4" />
-                Save Changes
-              </>
-            )}
-          </Button>
-        </div>
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-[#8159A8] mb-2">
+          Manage Availability
+        </h1>
+        <p className="text-gray-600">
+          Set your available time slots. Each slot is 45 minutes long.
+        </p>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 rounded-lg" style={{ background: "#F5F3FB" }}>
-                <ListChecks className="h-6 w-6" color="#8159A8" />
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Total Slots</p>
+                <p className="text-2xl font-bold text-[#8159A8]">{stats.total}</p>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">
-                  Sessions Today
-                </p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {stats.sessionsToday}
-                </p>
-              </div>
+              <Calendar className="h-8 w-8 text-[#8159A8] opacity-50" />
             </div>
           </CardContent>
         </Card>
-        <Card className="shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 rounded-lg" style={{ background: "#F5F3FB" }}>
-                <CalendarDays className="h-6 w-6" color="#8159A8" />
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Booked</p>
+                <p className="text-2xl font-bold text-blue-600">{stats.booked}</p>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">
-                  Available Days (This Week)
-                </p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {stats.availableDays}
-                </p>
-              </div>
+              <Clock className="h-8 w-8 text-blue-600 opacity-50" />
             </div>
           </CardContent>
         </Card>
-        <Card className="shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 rounded-lg" style={{ background: "#F5F3FB" }}>
-                <Timer className="h-6 w-6" color="#8159A8" />
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Available</p>
+                <p className="text-2xl font-bold text-green-600">{stats.available}</p>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">
-                  Total Hours (This Week)
-                </p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {stats.totalHours.toFixed(1)}
-                </p>
-              </div>
+              <Clock className="h-8 w-8 text-green-600 opacity-50" />
             </div>
           </CardContent>
         </Card>
-        <Card className="shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 rounded-lg" style={{ background: "#F5F3FB" }}>
-                <Hash className="h-6 w-6" color="#8159A8" />
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Free Sessions</p>
+                <p className="text-2xl font-bold text-amber-600">{stats.free}</p>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">
-                  Total Sessions (This Week)
-                </p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {stats.totalSessions}
-                </p>
-              </div>
+              <AlertCircle className="h-8 w-8 text-amber-600 opacity-50" />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Main Content */}
-      <Tabs defaultValue="calendar" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="calendar">Calendar View</TabsTrigger>
-          <TabsTrigger value="list">List View</TabsTrigger>
-        </TabsList>
+      {/* Tabs for Calendar and List Views */}
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "calendar" | "list")} className="space-y-4">
+        <div className="flex justify-between items-center">
+          <TabsList>
+            <TabsTrigger value="calendar" className="flex items-center gap-2">
+              <CalendarDays className="h-4 w-4" />
+              Calendar View
+            </TabsTrigger>
+            <TabsTrigger value="list" className="flex items-center gap-2">
+              <ListChecks className="h-4 w-4" />
+              List View
+            </TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="calendar" className="space-y-6">
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={handleClearAll}
+              disabled={stats.available === 0}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Clear All Unbooked
+            </Button>
+            <Button
+              onClick={() => setShowAddModal(true)}
+              className="bg-[#8159A8] hover:bg-[#6D4C93]"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add Availability
+            </Button>
+          </div>
+        </div>
+
+        {/* Calendar View Tab */}
+        <TabsContent value="calendar" className="mt-0">
           <WeeklyCalendarView
-            timeSlots={timeSlots}
-            sessionSlots={sessionSlots}
+            timeSlots={convertSlotsToTimeSlots()}
+            sessionSlots={convertSlotsToSessionSlots()}
             selectedWeekStart={selectedWeekStart}
             onWeekChange={setSelectedWeekStart}
-            onEditSlot={setEditingSlot}
-            onDeleteSlot={handleDeleteTimeSlot}
-            onToggleSlot={handleToggleSlot}
-            onDragSelect={handleDragSelect}
+            onDragSelect={(dayOfWeek, startTime, endTime) => {
+              // Optional: Handle drag selection
+              console.log("Drag select:", { dayOfWeek, startTime, endTime });
+            }}
           />
         </TabsContent>
 
-        <TabsContent value="list" className="space-y-6">
-          <Card className="shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-xl text-[#8159A8]">
-                Session Slots
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {sessionSlots.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="w-16 h-16 bg-[#F5F3FB] rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Clock className="h-8 w-8 text-[#8159A8]" />
-                  </div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    No session slots available
-                  </h3>
-                  <p className="text-gray-600 mb-4">
-                    Add your first availability slot to start accepting
-                    appointments
-                  </p>
-                  <Button
-                    onClick={() => setShowAddModal(true)}
-                    className="bg-[#8159A8] hover:bg-[#6D4C93] text-white"
-                  >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Availability
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {/* Group session slots by day */}
-                  {[1, 2, 3, 4, 5, 6, 7].map((dayOfWeek) => {
-                    const daySlots = sessionSlots.filter(slot => slot.dayOfWeek === dayOfWeek && slot.isActive);
-                    if (daySlots.length === 0) return null;
-                    
-                    const dayName = [
-                      "Monday",
-                      "Tuesday",
-                      "Wednesday",
-                      "Thursday",
-                      "Friday",
-                      "Saturday",
-                      "Sunday"
-                    ][dayOfWeek - 1];
-
-                    return (
-                      <div key={dayOfWeek} className="border rounded-lg p-4">
-                        <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                          {dayName}
-                          <Badge variant="outline" className="text-xs">
-                            {daySlots.length} session{daySlots.length !== 1 ? 's' : ''}
-                          </Badge>
-                        </h4>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                          {daySlots.map((sessionSlot) => (
-                            <div
-                              key={sessionSlot.id}
-                              className="p-3 border rounded bg-white hover:bg-gray-50 transition-colors"
-                            >
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <div className="font-medium text-sm text-gray-900">
-                                    {sessionSlot.startTime} - {sessionSlot.endTime}
-                                  </div>
-                                  <div className="text-xs text-gray-500 mt-1">
-                                    Individual Session Slot
-                                  </div>
-                                </div>
-                                <Badge
-                                  className={
-                                    sessionSlot.isActive
-                                      ? "bg-green-100 text-green-800"
-                                      : "bg-gray-100 text-gray-800"
-                                  }
-                                >
-                                  {sessionSlot.isActive ? "Available" : "Inactive"}
-                                </Badge>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+        {/* List View Tab */}
+        <TabsContent value="list" className="mt-0 space-y-4">
+          {/* Filter Buttons */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex gap-2">
+                <Button
+                  variant={filter === "upcoming" ? "default" : "outline"}
+                  onClick={() => setFilter("upcoming")}
+                  className={filter === "upcoming" ? "bg-[#8159A8]" : ""}
+                >
+                  Upcoming
+                </Button>
+                <Button
+                  variant={filter === "all" ? "default" : "outline"}
+                  onClick={() => setFilter("all")}
+                  className={filter === "all" ? "bg-[#8159A8]" : ""}
+                >
+                  All
+                </Button>
+                <Button
+                  variant={filter === "past" ? "default" : "outline"}
+                  onClick={() => setFilter("past")}
+                  className={filter === "past" ? "bg-[#8159A8]" : ""}
+                >
+                  Past
+                </Button>
+              </div>
             </CardContent>
           </Card>
+
+          {/* Slots List */}
+          {dates.length === 0 ? (
+            <Card>
+              <CardContent className="pt-12 pb-12 text-center">
+                <Calendar className="h-16 w-16 mx-auto mb-4 text-gray-400" />
+                <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                  No Availability Slots
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  Click &quot;Add Availability&quot; to create your first time slots.
+                </p>
+                <Button
+                  onClick={() => setShowAddModal(true)}
+                  className="bg-[#8159A8] hover:bg-[#6D4C93]"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Availability
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {dates.map((date) => (
+                <Card key={date}>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Calendar className="h-5 w-5 text-[#8159A8]" />
+                      {formatDate(date)}
+                      <Badge variant="outline">{groupedSlots[date].length} slots</Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                      {groupedSlots[date]
+                        .sort((a, b) => a.startTime.localeCompare(b.startTime))
+                        .map((slot) => (
+                          <div
+                            key={slot.id}
+                            className={`p-4 rounded-lg border-2 ${
+                              slot.isBooked
+                                ? "border-blue-200 bg-blue-50"
+                                : "border-gray-200 bg-white hover:border-[#8159A8] transition-colors"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <Clock className="h-4 w-4 text-[#8159A8]" />
+                                <span className="font-semibold">
+                                  {formatTime(slot.startTime)}
+                                </span>
+                              </div>
+                              {!slot.isBooked && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDeleteSlot(slot.id)}
+                                  className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                            <div className="flex gap-2 flex-wrap">
+                              <Badge
+                                variant="outline"
+                                className="text-xs bg-[#8159A8] text-white"
+                              >
+                                45min
+                              </Badge>
+                              {slot.isBooked && (
+                                <Badge variant="outline" className="text-xs bg-blue-100 text-blue-800">
+                                  Booked
+                                </Badge>
+                              )}
+                              {slot.isFree && (
+                                <Badge variant="outline" className="text-xs bg-green-100 text-green-800">
+                                  Free
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
 
-      {/* Add/Edit Modal */}
+      {/* Add Availability Modal */}
       <AddAvailabilityModal
-        isOpen={showAddModal || editingSlot !== null}
-        onClose={handleCloseModal}
-        onSave={(slot) => {
-          if ("id" in slot) {
-            handleEditTimeSlot(slot);
-          } else {
-            handleAddTimeSlot(slot);
-          }
-        }}
-        editingSlot={editingSlot}
-        prefilledData={prefilledData}
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onSave={handleAddAvailability}
       />
-  );
 
-export default SetAvailabilityPage;
+      {/* Loading Overlay */}
+      {saving && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card className="p-6">
+            <div className="flex items-center gap-4">
+              <LoadingSpinner />
+              <span className="text-lg">Creating availability slots...</span>
+            </div>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
 
-export default SetAvailabilityPage;
+export default SetAvailabilityPageNew;
