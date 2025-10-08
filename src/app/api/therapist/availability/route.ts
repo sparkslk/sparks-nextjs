@@ -113,7 +113,8 @@ export async function GET(req: NextRequest) {
                 endDate: slot.recurrenceEndDate?.toISOString() || undefined
             } : undefined,
             isActive: slot.isActive,
-            isFreeSession: slot.isFree
+            isFreeSession: slot.isFree,
+            createdAt: slot.createdAt.toISOString()
         }));
 
         return NextResponse.json({
@@ -255,7 +256,8 @@ export async function PUT(req: NextRequest) {
                 endDate: slot.recurrenceEndDate?.toISOString() || undefined
             } : undefined,
             isActive: slot.isActive,
-            isFreeSession: slot.isFree
+            isFreeSession: slot.isFree,
+            createdAt: slot.createdAt.toISOString()
         }));
 
         return NextResponse.json({

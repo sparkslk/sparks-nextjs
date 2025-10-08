@@ -33,6 +33,7 @@ interface TimeSlot {
   };
   isActive: boolean;
   isFreeSession?: boolean;
+  createdAt?: string;
 }
 
 interface SessionSlot {

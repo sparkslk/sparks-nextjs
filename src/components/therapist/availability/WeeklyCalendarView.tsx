@@ -22,6 +22,7 @@ interface TimeSlot {
   };
   isActive: boolean;
   isFreeSession?: boolean;
+  createdAt?: string; // Added to track when availability was created
 }
 
 interface SessionSlot {
@@ -46,6 +47,7 @@ interface WeeklyCalendarViewProps {
 }
 
 export function WeeklyCalendarView({
+  timeSlots,
   sessionSlots,
   selectedWeekStart,
   onWeekChange,
@@ -106,10 +108,80 @@ export function WeeklyCalendarView({
     onWeekChange(newDate);
   };
 
-  const getSessionSlotsForDay = (dayOfWeek: number) => {
+  // Helper function to check if a session slot should be displayed based on recurrence rules
+  // This ensures that recurring slots only appear within their valid date range:
+  // - Slots with recurrence end dates won't appear after that date
+  // - Non-recurring slots only appear on the specific week they were created
+  // - Recurring slots start from creation date and end at recurrence end date
+  // - Combined with past date checking, slots only show from today/future until end date
+  const shouldDisplaySlot = (sessionSlot: SessionSlot, currentDate: Date): boolean => {
+    // Find the parent availability slot
+    const parentSlot = timeSlots.find(slot => slot.id === sessionSlot.parentAvailabilityId);
+    
+    if (!parentSlot) return true; // If no parent found, display by default
+    
+    // Get the creation date (start of recurrence or the specific date for non-recurring)
+    const createdAt = parentSlot.createdAt ? new Date(parentSlot.createdAt) : null;
+    
+    if (!parentSlot.isRecurring) {
+      // NON-RECURRING: Only show on the specific week it was created
+      if (createdAt) {
+        // Find the Monday of the week when it was created
+        const createdDay = createdAt.getDay();
+        const daysFromMonday = createdDay === 0 ? -6 : 1 - createdDay;
+        const createdWeekStart = new Date(createdAt);
+        createdWeekStart.setDate(createdAt.getDate() + daysFromMonday);
+        createdWeekStart.setHours(0, 0, 0, 0);
+        
+        const createdWeekEnd = new Date(createdWeekStart);
+        createdWeekEnd.setDate(createdWeekStart.getDate() + 6);
+        createdWeekEnd.setHours(23, 59, 59, 999);
+        
+        // Only show if currentDate is in the same week as creation
+        if (currentDate < createdWeekStart || currentDate > createdWeekEnd) {
+          return false;
+        }
+      }
+    } else {
+      // RECURRING: Check both start date (createdAt) and end date
+      if (createdAt) {
+        const startDate = new Date(createdAt);
+        startDate.setHours(0, 0, 0, 0);
+        
+        // Don't show before the recurrence start date
+        if (currentDate < startDate) {
+          return false;
+        }
+      }
+      
+      // Check if recurrence has an end date
+      if (parentSlot.recurrencePattern?.endDate) {
+        const endDate = new Date(parentSlot.recurrencePattern.endDate);
+        endDate.setHours(23, 59, 59, 999); // Set to end of day for inclusive comparison
+        
+        // Only show if current date is before or on the recurrence end date
+        if (currentDate > endDate) {
+          return false;
+        }
+      }
+    }
+    
+    return true;
+  };
+
+  const getSessionSlotsForDay = (dayOfWeek: number, currentDate?: Date) => {
     // Convert JS day (0=Sunday, 6=Saturday) to our format (1=Monday, 7=Sunday)
     const dbDay = dayOfWeek === 0 ? 7 : dayOfWeek;
-    return sessionSlots.filter((slot) => slot.dayOfWeek === dbDay);
+    return sessionSlots.filter((slot) => {
+      if (slot.dayOfWeek !== dbDay) return false;
+      
+      // If currentDate is provided, check recurrence end date
+      if (currentDate) {
+        return shouldDisplaySlot(slot, currentDate);
+      }
+      
+      return true;
+    });
   };
 
   const getSlotPosition = (startTime: string, endTime: string) => {
@@ -142,7 +214,32 @@ export function WeeklyCalendarView({
     const jsDay = weekDate.getDay();
     const dbDay = jsDay === 0 ? 7 : jsDay;
     
-    const hasSlot = getSessionSlotsForDay(jsDay).some((slot) => {
+    // Check if the date or time slot is in the past
+    const now = new Date();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDate = new Date(weekDate);
+    selectedDate.setHours(0, 0, 0, 0);
+    
+    // Block if date is in the past
+    if (selectedDate < today) {
+      return;
+    }
+    
+    // If it's today, check if the time slot has passed
+    if (selectedDate.getTime() === today.getTime()) {
+      const currentHour = now.getHours();
+      const currentMinutes = now.getMinutes();
+      const currentTotalMinutes = currentHour * 60 + currentMinutes;
+      const slotStartMinutes = sessionTimeSlots[timeSlotIndex].startHour * 60;
+      
+      // Block if the time slot has already passed
+      if (slotStartMinutes <= currentTotalMinutes) {
+        return;
+      }
+    }
+    
+    const hasSlot = getSessionSlotsForDay(jsDay, weekDate).some((slot) => {
       const slotStartMinutes = timeStringToMinutes(slot.startTime);
       const currentSlotStart = sessionTimeSlots[timeSlotIndex].startHour * 60;
       return slotStartMinutes >= currentSlotStart && slotStartMinutes < (currentSlotStart + 60);
@@ -231,7 +328,7 @@ export function WeeklyCalendarView({
         </div>
 
         <div className="text-sm text-gray-600">
-          Click and drag to create new availability blocks. Each cell = 30 minutes.
+          Click and drag to create new availability blocks.
         </div>
       </div>
 
@@ -285,26 +382,50 @@ export function WeeklyCalendarView({
             <div key={dayIndex} className="border-r relative">
               {/* 60-minute session slots */}
               {sessionTimeSlots.map((timeSlot, timeSlotIndex) => {
-                const hasSlot = getSessionSlotsForDay(weekDates[dayIndex].getDay()).some((slot) => {
+                const hasSlot = getSessionSlotsForDay(weekDates[dayIndex].getDay(), weekDates[dayIndex]).some((slot) => {
                   const slotStartMinutes = timeStringToMinutes(slot.startTime);
                   const currentSlotStart = timeSlot.startHour * 60;
                   return slotStartMinutes >= currentSlotStart && slotStartMinutes < (currentSlotStart + 60);
                 });
 
+                // Check if this date is in the past or if time slot is in the past for today
+                const now = new Date();
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const cellDate = new Date(weekDates[dayIndex]);
+                cellDate.setHours(0, 0, 0, 0);
+                
+                let isPast = cellDate < today;
+                
+                // If it's today, also check if the time slot has passed
+                if (cellDate.getTime() === today.getTime()) {
+                  const currentHour = now.getHours();
+                  const currentMinutes = now.getMinutes();
+                  const currentTotalMinutes = currentHour * 60 + currentMinutes;
+                  const slotStartMinutes = timeSlot.startHour * 60;
+                  
+                  // Mark as past if the slot start time has already passed
+                  if (slotStartMinutes <= currentTotalMinutes) {
+                    isPast = true;
+                  }
+                }
+
                 return (
                   <div
                     key={timeSlotIndex}
-                    className={`h-16 border-b border-gray-100 transition-colors cursor-pointer group relative ${
-                      hasSlot
+                    className={`h-16 border-b border-gray-100 transition-colors ${
+                      isPast 
+                        ? "bg-gray-100 cursor-not-allowed opacity-50" 
+                        : hasSlot
                         ? "bg-[#8159A8]/10"
                         : isDragSelected(dayIndex, timeSlotIndex)
                         ? "bg-[#8159A8]/30"
-                        : "hover:bg-gray-50"
-                    }`}
-                    onMouseDown={() => handleMouseDown(dayIndex, timeSlotIndex)}
-                    onMouseEnter={() => handleMouseEnter(dayIndex, timeSlotIndex)}
+                        : "hover:bg-gray-50 cursor-pointer"
+                    } group relative`}
+                    onMouseDown={() => !isPast && handleMouseDown(dayIndex, timeSlotIndex)}
+                    onMouseEnter={() => !isPast && handleMouseEnter(dayIndex, timeSlotIndex)}
                     onClick={() => {
-                      if (!hasSlot && onDragSelect) {
+                      if (!isPast && !hasSlot && onDragSelect) {
                         // Convert JS day to database day format
                         const weekDate = weekDates[dayIndex];
                         const jsDay = weekDate.getDay();
@@ -318,7 +439,7 @@ export function WeeklyCalendarView({
                       }
                     }}
                   >
-                    {!hasSlot && (
+                    {!hasSlot && !isPast && (
                       <div className="flex flex-col items-center justify-center h-full opacity-0 group-hover:opacity-100 transition-opacity">
                         <Plus className="h-4 w-4 text-[#8159A8] mb-1" />
                         <div className="text-xs text-[#8159A8] font-medium">
@@ -329,12 +450,19 @@ export function WeeklyCalendarView({
                         </div>
                       </div>
                     )}
+                    {isPast && !hasSlot && (
+                      <div className="flex items-center justify-center h-full">
+                        <div className="text-xs text-gray-400">
+                          Past
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}
 
               {/* Session Slots - Individual bookable sessions */}
-              {getSessionSlotsForDay(weekDates[dayIndex].getDay()).map((sessionSlot) => {
+              {getSessionSlotsForDay(weekDates[dayIndex].getDay(), weekDates[dayIndex]).map((sessionSlot) => {
                 const position = getSlotPosition(sessionSlot.startTime, sessionSlot.endTime);
 
                 return (
