@@ -1,14 +1,72 @@
 import { $Enums } from "@prisma/client";
+import { prisma } from "./prisma";
 
 type UserRole = $Enums.UserRole;
 const UserRole = $Enums.UserRole;
 
-export function getRoleBasedDashboard(role: UserRole | null): string {
+export async function getRoleBasedDashboard(role: UserRole | null, userId?: string): Promise<string> {
     if (!role) return "/confirm-role";
 
     switch (role) {
         case UserRole.NORMAL_USER:
             return "/dashboard"; // Users go to main dashboard
+        case UserRole.PARENT_GUARDIAN:
+            return "/parent/dashboard";
+        case UserRole.THERAPIST:
+            // Check therapist verification status
+            if (userId) {
+                const therapist = await prisma.therapist.findUnique({
+                    where: { userId },
+                    include: { verification: true }
+                });
+
+                if (therapist?.verification) {
+                    const status = therapist.verification.status;
+                    
+                    // If approved, check if they've seen the approval message
+                    if (status === 'APPROVED') {
+                        const reviewNotes = therapist.verification.reviewNotes;
+                        const hasSeenApproval = reviewNotes?.includes('Approval acknowledged');
+                        
+                        // If they haven't seen the approval message yet, show it
+                        if (!hasSeenApproval) {
+                            return "/therapist/verification/approved";
+                        }
+                        
+                        return "/therapist/dashboard";
+                    }
+                    
+                    // If still pending or under review, go to success page
+                    if (status === 'PENDING' || status === 'UNDER_REVIEW') {
+                        return "/therapist/verification/success";
+                    }
+                    
+                    // If rejected or needs resubmission, go back to verification
+                    if (status === 'REJECTED' || status === 'REQUIRES_RESUBMISSION') {
+                        return "/therapist/verification";
+                    }
+                }
+                
+                // No verification found, go to verification page
+                return "/therapist/verification";
+            }
+            return "/therapist/dashboard";
+        case UserRole.MANAGER:
+            return "/manager/dashboard";
+        case UserRole.ADMIN:
+            return "/admin/dashboard";
+        default:
+            return "/dashboard";
+    }
+}
+
+// Keep sync version for backwards compatibility
+export function getRoleBasedDashboardSync(role: UserRole | null): string {
+    if (!role) return "/confirm-role";
+
+    switch (role) {
+        case UserRole.NORMAL_USER:
+            return "/dashboard";
         case UserRole.PARENT_GUARDIAN:
             return "/parent/dashboard";
         case UserRole.THERAPIST:

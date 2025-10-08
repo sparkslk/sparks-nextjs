@@ -1,23 +1,58 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { CheckCircle, Clock, FileText, User } from "lucide-react";
+import { CheckCircle, Clock, FileText, User, RefreshCw } from "lucide-react";
+
+interface VerificationStatus {
+  status: string;
+  submittedAt: string;
+  reviewedAt?: string;
+  reviewNotes?: string;
+}
 
 export default function VerificationSuccessPage() {
   const router = useRouter();
+  const [verificationStatus, setVerificationStatus] = useState<VerificationStatus | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const fetchVerificationStatus = async () => {
+    try {
+      const response = await fetch('/api/therapist/verification');
+      if (response.ok) {
+        const data = await response.json();
+        setVerificationStatus(data);
+        
+        // If approved, redirect to approval page
+        if (data.status === 'APPROVED') {
+          router.push('/therapist/verification/approved');
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching verification status:', error);
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  };
 
   useEffect(() => {
-    // Auto-redirect to dashboard after 10 seconds
-    const timer = setTimeout(() => {
-      router.push("/therapist/dashboard");
-    }, 10000);
+    fetchVerificationStatus();
+    
+    // Check status every 30 seconds
+    const interval = setInterval(fetchVerificationStatus, 30000);
+    
+    return () => clearInterval(interval);
+  }, []);
 
-    return () => clearTimeout(timer);
-  }, [router]);
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    fetchVerificationStatus();
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -47,6 +82,36 @@ export default function VerificationSuccessPage() {
                   <p className="text-muted-foreground">
                     Thank you for submitting your verification information. Your application is now under review.
                   </p>
+                  
+                  {!isLoading && verificationStatus && (
+                    <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-gray-700">Current Status:</p>
+                          <p className={`text-sm font-semibold ${
+                            verificationStatus.status === 'PENDING' ? 'text-yellow-600' :
+                            verificationStatus.status === 'UNDER_REVIEW' ? 'text-blue-600' :
+                            verificationStatus.status === 'APPROVED' ? 'text-green-600' :
+                            'text-red-600'
+                          }`}>
+                            {verificationStatus.status.replace('_', ' ')}
+                          </p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleRefresh}
+                          disabled={isRefreshing}
+                          className="text-gray-500"
+                        >
+                          <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                        </Button>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Submitted: {new Date(verificationStatus.submittedAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 space-y-4">
@@ -120,16 +185,21 @@ export default function VerificationSuccessPage() {
                 </div>
 
                 <div className="space-y-3">
-                  <Button 
-                    onClick={() => router.push("/therapist/dashboard")}
-                    className="w-full"
-                  >
-                    <User className="w-4 h-4 mr-2" />
-                    Go to Dashboard
-                  </Button>
+                  <div className="grid grid-cols-1 gap-3">
+                    <Button 
+                      onClick={handleRefresh}
+                      variant="outline"
+                      disabled={isRefreshing}
+                      className="w-full"
+                    >
+                      <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                      {isRefreshing ? 'Checking...' : 'Check Status'}
+                    </Button>
+                  </div>
                   
                   <p className="text-sm text-muted-foreground">
-                    You will be automatically redirected to your dashboard in a few seconds.
+                    We'll automatically check your verification status every 30 seconds. 
+                    Once approved, you'll be redirected to the approval page.
                   </p>
                 </div>
               </div>

@@ -1,6 +1,6 @@
 // src/app/therapist/verification/page.tsx
 "use client";
-
+import { useSession } from "next-auth/react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -64,6 +64,7 @@ interface ValidationErrors {
 }
 
 export default function TherapistVerificationPage() {
+  const { data: session } = useSession();
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -1328,12 +1329,12 @@ export default function TherapistVerificationPage() {
             </h4>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="font-medium">Full Name:</span> Anuki
-                Wanniarachchi
+                <span className="font-medium">Full Name:</span> {" "}
+            {session?.user?.name || ""}
               </div>
               <div>
                 <span className="font-medium">Email:</span>{" "}
-                anuki.thiyara@gmail.com
+            {session?.user?.email || ""}
               </div>
               <div>
                 <span className="font-medium">Phone:</span> {personalData.phone}

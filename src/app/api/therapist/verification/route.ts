@@ -243,7 +243,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Start transaction to create all records
+    // Start transaction to create all records with increased timeout
     const result = await prisma.$transaction(async (tx) => {
       // Create or update therapist profile
       const profile = await tx.therapistProfile.upsert({
@@ -326,6 +326,8 @@ export async function POST(req: NextRequest) {
       });
 
       return { profile, verification, reference };
+    }, {
+      timeout: 15000, // Increase timeout to 15 seconds
     });
 
     return NextResponse.json(
@@ -480,6 +482,8 @@ export async function PUT(req: NextRequest) {
       });
 
       return { profile, verification, reference };
+    }, {
+      timeout: 15000, // Increase timeout to 15 seconds
     });
 
     return NextResponse.json({

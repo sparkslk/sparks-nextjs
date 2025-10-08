@@ -11,24 +11,25 @@ export default function DashboardRedirectPage() {
 
     useEffect(() => {
         console.log("DashboardRedirect: Component mounted");
-        const getSessionWithRetry = async (retries = 10, delay = 200) => {
-            console.log("DashboardRedirect: Starting session retry");
-            for (let i = 0; i < retries; i++) {
-                const session = await getSession();
-                const userRole = (session?.user as { role?: UserRole })?.role;
-                console.log(`DashboardRedirect: Attempt ${i + 1}, role:`, userRole);
-                if (userRole) return userRole;
-                await new Promise(res => setTimeout(res, delay));
-            }
-            console.log("DashboardRedirect: No role found after retries");
-            return null;
-        };
+        
         const redirectToDashboard = async () => {
-            const userRole = await getSessionWithRetry();
-            const dashboardUrl = getRoleBasedDashboard(userRole ?? null);
+            const session = await getSession();
+            const userRole = (session?.user as { role?: UserRole })?.role;
+            const userId = (session?.user as { id?: string })?.id;
+            
+            console.log("DashboardRedirect: Got session data:", { userRole, userId });
+            
+            if (!userRole) {
+                console.log("DashboardRedirect: No role found, redirecting to confirm-role");
+                router.replace("/confirm-role");
+                return;
+            }
+            
+            const dashboardUrl = await getRoleBasedDashboard(userRole, userId);
             console.log("DashboardRedirect: Redirecting to:", dashboardUrl);
             router.replace(dashboardUrl);
         };
+        
         redirectToDashboard();
     }, [router]);
 
