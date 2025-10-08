@@ -15,7 +15,7 @@ interface UpdateAvailabilitySlotData {
   sessionDuration?: number;
   breakBetweenSessions?: number;
   isActive?: boolean;
-  rate?: number;
+  isFreeSession?: boolean;
 }
 
 /**
@@ -185,6 +185,7 @@ export async function PUT(
         if (data.sessionDuration !== undefined) updateData.sessionDuration = data.sessionDuration;
         if (data.breakBetweenSessions !== undefined) updateData.breakBetweenSessions = data.breakBetweenSessions;
         if (data.isActive !== undefined) updateData.isActive = data.isActive;
+        if (data.isFreeSession !== undefined) updateData.isFree = data.isFreeSession;
 
         if (data.recurrencePattern) {
             updateData.recurrenceType = data.recurrencePattern.type?.toUpperCase() as "DAILY" | "WEEKLY" | "CUSTOM";
@@ -214,7 +215,8 @@ export async function PUT(
             } : undefined,
             sessionDuration: updatedSlot.sessionDuration,
             breakBetweenSessions: updatedSlot.breakBetweenSessions,
-            isActive: updatedSlot.isActive
+            isActive: updatedSlot.isActive,
+            isFreeSession: updatedSlot.isFree
         };
 
         return NextResponse.json({

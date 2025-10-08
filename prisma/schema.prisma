@@ -385,7 +385,7 @@ model QuizSubmission {
 }
 
 model TherapistAvailability {
-  id                   String          @id
+  id                   String          @id @default(cuid())
   therapistId          String
   startTime            String
   endTime              String
@@ -398,7 +398,7 @@ model TherapistAvailability {
   breakBetweenSessions Int             @default(15)
   isActive             Boolean         @default(true)
   createdAt            DateTime        @default(now())
-  updatedAt            DateTime
+  updatedAt            DateTime        @updatedAt
   isFree               Boolean         @default(false)
   Therapist            Therapist       @relation(fields: [therapistId], references: [id], onDelete: Cascade)
 
@@ -409,7 +409,7 @@ model TherapistAvailability {
 }
 
 model SessionReschedule {
-  id                  String         @id
+  id                  String         @id @default(cuid())
   sessionId           String
   previousScheduledAt DateTime
   newScheduledAt      DateTime
@@ -418,7 +418,7 @@ model SessionReschedule {
   rescheduledByRole   String
   rescheduleReason    String?
   createdAt           DateTime       @default(now())
-  updatedAt           DateTime
+  updatedAt           DateTime       @updatedAt
   User                User           @relation(fields: [rescheduledBy], references: [id], onDelete: Cascade)
   TherapySession      TherapySession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 }

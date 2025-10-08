@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -87,22 +88,18 @@ export function AddAvailabilityModal({
   });
 
   const days = [
-    { value: 0, label: "Sunday" },
     { value: 1, label: "Monday" },
     { value: 2, label: "Tuesday" },
     { value: 3, label: "Wednesday" },
     { value: 4, label: "Thursday" },
     { value: 5, label: "Friday" },
     { value: 6, label: "Saturday" },
+    { value: 7, label: "Sunday" },
   ];
 
-  const timeSlots = Array.from({ length: (22 - 7) * 4 }, (_, i) => {
-    const totalMinutes = 7 * 60 + i * 15;
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-    return `${hours.toString().padStart(2, "0")}:${minutes
-      .toString()
-      .padStart(2, "0")}`;
+  const timeSlots = Array.from({ length: (22 - 7) }, (_, i) => {
+    const hours = 7 + i;
+    return `${hours.toString().padStart(2, "0")}:00`;
   });
 
   const schedulePresets: SchedulePreset[] = [
@@ -254,6 +251,12 @@ export function AddAvailabilityModal({
   }, [editingSlot, isOpen, prefilledData]);
 
   const handleSave = () => {
+    // Validate recurring availability has an end date
+    if (formData.isRecurring && !formData.endDate) {
+      alert("Please select an end date for recurring availability");
+      return;
+    }
+    
     if (warnings.some(w => w.includes("No sessions can fit") || w.includes("End time must be after"))) {
       return; // Don't save if there are critical errors
     }
@@ -306,9 +309,9 @@ export function AddAvailabilityModal({
   const setQuickSchedule = (type: "weekdays" | "weekends" | "daily") => {
     let selectedDays: number[] = [];
     switch (type) {
-      case "weekdays": selectedDays = [1, 2, 3, 4, 5]; break;
-      case "weekends": selectedDays = [0, 6]; break;
-      case "daily": selectedDays = [0, 1, 2, 3, 4, 5, 6]; break;
+      case "weekdays": selectedDays = [1, 2, 3, 4, 5]; break; // Monday to Friday
+      case "weekends": selectedDays = [6, 7]; break; // Saturday and Sunday
+      case "daily": selectedDays = [1, 2, 3, 4, 5, 6, 7]; break; // All days
     }
     setFormData({ ...formData, isRecurring: true, recurrenceType: "custom", selectedDays });
   };
@@ -339,9 +342,9 @@ export function AddAvailabilityModal({
               {editingSlot ? "Edit Availability Block" : "Create Availability Block"}
             </DialogTitle>
           </div>
-          <p className="text-sm text-gray-600 mt-1">
+          <DialogDescription className="text-sm text-gray-600 mt-1">
             Set up a time block and we&apos;ll automatically generate bookable session slots
-          </p>
+          </DialogDescription>
         </DialogHeader>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -532,6 +535,25 @@ export function AddAvailabilityModal({
                         ))}
                       </div>
                     </div>
+
+                    <div>
+                      <Label htmlFor="endDate" className="flex items-center gap-2">
+                        End Date
+                        <span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        id="endDate"
+                        type="date"
+                        value={formData.endDate}
+                        onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                        min={new Date().toISOString().split('T')[0]}
+                        className="mt-2"
+                        required
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Required: Select when this recurring availability should end
+                      </p>
+                    </div>
                   </>
                 )}
               </CardContent>
@@ -664,7 +686,7 @@ export function AddAvailabilityModal({
           </Button>
           <Button
             onClick={handleSave}
-            disabled={warnings.some(w => w.includes("No sessions can fit") || w.includes("End time must be after"))}
+            disabled={warnings.some(w => w.includes("No sessions can fit") || w.includes("End time must be after")) || (formData.isRecurring && !formData.endDate)}
             className="bg-[#8159A8] hover:bg-[#6D4C93] text-white"
           >
             <Save className="mr-2 h-4 w-4" />

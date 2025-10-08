@@ -164,6 +164,53 @@ export async function PUT(req: NextRequest) {
                 where: { therapistId: therapist.id }
             });
 
+            // Validate for overlaps before creating
+            const validateOverlaps = (slots: TimeSlotData[]) => {
+                for (let i = 0; i < slots.length; i++) {
+                    for (let j = i + 1; j < slots.length; j++) {
+                        const slot1 = slots[i];
+                        const slot2 = slots[j];
+                        
+                        // Get applicable days for each slot
+                        const getDays = (slot: TimeSlotData) => {
+                            if (slot.recurrencePattern?.days && slot.recurrencePattern.days.length > 0) {
+                                return slot.recurrencePattern.days;
+                            }
+                            return [slot.dayOfWeek];
+                        };
+                        
+                        const days1 = getDays(slot1);
+                        const days2 = getDays(slot2);
+                        
+                        // Check if they share any common days
+                        const commonDays = days1.filter(day => days2.includes(day));
+                        
+                        if (commonDays.length > 0) {
+                            // Convert times to minutes for comparison
+                            const [s1h, s1m] = slot1.startTime.split(':').map(Number);
+                            const [e1h, e1m] = slot1.endTime.split(':').map(Number);
+                            const [s2h, s2m] = slot2.startTime.split(':').map(Number);
+                            const [e2h, e2m] = slot2.endTime.split(':').map(Number);
+                            
+                            const start1 = s1h * 60 + s1m;
+                            const end1 = e1h * 60 + e1m;
+                            const start2 = s2h * 60 + s2m;
+                            const end2 = e2h * 60 + e2m;
+                            
+                            // Check for time overlap
+                            if (!(end1 <= start2 || end2 <= start1)) {
+                                const dayNames = ["", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+                                const dayName = dayNames[commonDays[0]];
+                                throw new Error(`Overlapping availability blocks detected on ${dayName} between ${slot1.startTime}-${slot1.endTime} and ${slot2.startTime}-${slot2.endTime}`);
+                            }
+                        }
+                    }
+                }
+            };
+            
+            // Validate before creating
+            validateOverlaps(availability);
+
             // Create new availability slots with fixed 45-minute sessions and 15-minute breaks
             const createdSlots = await Promise.all(
                 availability.map(async (slot: TimeSlotData) => {
@@ -182,12 +229,9 @@ export async function PUT(req: NextRequest) {
                             : null,
                         sessionDuration: 45, // Fixed 45-minute sessions
                         breakBetweenSessions: 15, // Fixed 15-minute breaks
-                        isActive: slot.isActive
+                        isActive: slot.isActive,
+                        isFree: slot.isFreeSession || false
                     };
-                    
-                    if (slot.isFreeSession) {
-                        createData.rate = 0;
-                    }
                     
                     return tx.therapistAvailability.create({
                         data: createData

@@ -57,7 +57,7 @@ export function WeeklyCalendarView({
   const [dragEnd, setDragEnd] = useState<{dayIndex: number, timeIndex: number} | null>(null);
 
   const days = [
-    "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday",
+    "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday",
   ];
 
   const sessionTimeSlots = Array.from({ length: (22 - 7) }, (_, i) => {
@@ -84,9 +84,15 @@ export function WeeklyCalendarView({
 
   const getWeekDates = (startDate: Date) => {
     const dates = [];
+    // Find the Monday of the current week
+    const firstDay = new Date(startDate);
+    const day = firstDay.getDay();
+    const diff = day === 0 ? -6 : 1 - day; // if Sunday (0), go back 6 days, else go to Monday
+    firstDay.setDate(firstDay.getDate() + diff);
+    
     for (let i = 0; i < 7; i++) {
-      const date = new Date(startDate);
-      date.setDate(startDate.getDate() + i);
+      const date = new Date(firstDay);
+      date.setDate(firstDay.getDate() + i);
       dates.push(date);
     }
     return dates;
@@ -101,7 +107,9 @@ export function WeeklyCalendarView({
   };
 
   const getSessionSlotsForDay = (dayOfWeek: number) => {
-    return sessionSlots.filter((slot) => slot.dayOfWeek === dayOfWeek);
+    // Convert JS day (0=Sunday, 6=Saturday) to our format (1=Monday, 7=Sunday)
+    const dbDay = dayOfWeek === 0 ? 7 : dayOfWeek;
+    return sessionSlots.filter((slot) => slot.dayOfWeek === dbDay);
   };
 
   const getSlotPosition = (startTime: string, endTime: string) => {
@@ -130,7 +138,11 @@ export function WeeklyCalendarView({
   };
 
   const handleMouseDown = (dayIndex: number, timeSlotIndex: number) => {
-    const hasSlot = getSessionSlotsForDay(weekDates[dayIndex].getDay()).some((slot) => {
+    const weekDate = weekDates[dayIndex];
+    const jsDay = weekDate.getDay();
+    const dbDay = jsDay === 0 ? 7 : jsDay;
+    
+    const hasSlot = getSessionSlotsForDay(jsDay).some((slot) => {
       const slotStartMinutes = timeStringToMinutes(slot.startTime);
       const currentSlotStart = sessionTimeSlots[timeSlotIndex].startHour * 60;
       return slotStartMinutes >= currentSlotStart && slotStartMinutes < (currentSlotStart + 60);
@@ -157,7 +169,12 @@ export function WeeklyCalendarView({
       const startTime = sessionTimeSlots[startTimeIndex].startTimeString;
       const endTime = sessionTimeSlots[endTimeIndex]?.startTimeString || "22:00";
       
-      onDragSelect(weekDates[dragStart.dayIndex].getDay(), startTime, endTime);
+      // Convert JS day to database day format (1=Monday, 7=Sunday)
+      const weekDate = weekDates[dragStart.dayIndex];
+      const jsDay = weekDate.getDay();
+      const dbDay = jsDay === 0 ? 7 : jsDay;
+      
+      onDragSelect(dbDay, startTime, endTime);
     }
     
     setIsDragging(false);
@@ -288,8 +305,13 @@ export function WeeklyCalendarView({
                     onMouseEnter={() => handleMouseEnter(dayIndex, timeSlotIndex)}
                     onClick={() => {
                       if (!hasSlot && onDragSelect) {
+                        // Convert JS day to database day format
+                        const weekDate = weekDates[dayIndex];
+                        const jsDay = weekDate.getDay();
+                        const dbDay = jsDay === 0 ? 7 : jsDay;
+                        
                         onDragSelect(
-                          weekDates[dayIndex].getDay(),
+                          dbDay,
                           timeSlot.startTimeString,
                           timeSlot.endTimeString
                         );

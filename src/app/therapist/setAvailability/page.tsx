@@ -69,8 +69,6 @@ function SetAvailabilityPage(): React.JSX.Element {
     selectedWeekStart: Date;
   } | null>(null);
 
-  const todayDayOfWeek = new Date().getDay();
-
   useEffect(() => {
     if (authStatus === "unauthenticated") {
       router.push("/login");
@@ -201,13 +199,13 @@ function SetAvailabilityPage(): React.JSX.Element {
       let applicableDays: number[] = [];
       
       if (slot.recurrencePattern?.days && slot.recurrencePattern.days.length > 0) {
-        // Use the specified days from recurrence pattern
+        // Use the specified days from recurrence pattern (already in 1-7 format)
         applicableDays = slot.recurrencePattern.days;
       } else if (slot.isRecurring && slot.recurrencePattern?.type === "daily") {
-        // Daily recurrence applies to all days
-        applicableDays = [0, 1, 2, 3, 4, 5, 6];
+        // Daily recurrence applies to all days (1-7)
+        applicableDays = [1, 2, 3, 4, 5, 6, 7];
       } else {
-        // Single day or weekly recurrence
+        // Single day (already in 1-7 format)
         applicableDays = [slot.dayOfWeek];
       }
 
@@ -265,8 +263,12 @@ function SetAvailabilityPage(): React.JSX.Element {
   const sessionSlots = generateSessionSlots(timeSlots);
 
   const getStats = () => {
+    // Convert current JS day (0=Sunday) to DB format (1=Monday, 7=Sunday)
+    const todayJsDay = new Date().getDay();
+    const todayDbDay = todayJsDay === 0 ? 7 : todayJsDay;
+    
     const sessionsToday = sessionSlots.filter(
-      (slot) => slot.dayOfWeek === todayDayOfWeek && slot.isActive
+      (slot) => slot.dayOfWeek === todayDbDay && slot.isActive
     ).length;
 
     const availableDaysSet = new Set(
@@ -476,19 +478,19 @@ function SetAvailabilityPage(): React.JSX.Element {
               ) : (
                 <div className="space-y-4">
                   {/* Group session slots by day */}
-                  {[0, 1, 2, 3, 4, 5, 6].map((dayOfWeek) => {
+                  {[1, 2, 3, 4, 5, 6, 7].map((dayOfWeek) => {
                     const daySlots = sessionSlots.filter(slot => slot.dayOfWeek === dayOfWeek && slot.isActive);
                     if (daySlots.length === 0) return null;
                     
                     const dayName = [
-                      "Sunday",
-                      "Monday", 
+                      "Monday",
                       "Tuesday",
                       "Wednesday",
                       "Thursday",
                       "Friday",
-                      "Saturday"
-                    ][dayOfWeek];
+                      "Saturday",
+                      "Sunday"
+                    ][dayOfWeek - 1];
 
                     return (
                       <div key={dayOfWeek} className="border rounded-lg p-4">
