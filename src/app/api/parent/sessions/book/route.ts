@@ -53,9 +53,10 @@ export async function POST(request: NextRequest) {
     // Parse the date and time slot
     let sessionDate: Date;
     let startTime: string;
+    let inputDate: Date;
 
     try {
-      const inputDate = new Date(date);
+      inputDate = new Date(date);
       if (isNaN(inputDate.getTime())) {
         throw new Error("Invalid date");
       }
@@ -93,8 +94,8 @@ export async function POST(request: NextRequest) {
       const month = inputDate.getMonth();
       const day = inputDate.getDate();
 
-      const dateString = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}T${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00.000Z`;
-      sessionDate = new Date(dateString);
+      // Create session date in Sri Lankan timezone
+      sessionDate = new Date(year, month, day, hours, minutes, 0, 0);
       startTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
 
     } catch (error) {
@@ -105,18 +106,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const dateOnly = sessionDate.toISOString().split('T')[0];
+    // Get the date string for matching
+    const dateStr = `${inputDate.getFullYear()}-${(inputDate.getMonth() + 1).toString().padStart(2, '0')}-${inputDate.getDate().toString().padStart(2, '0')}`;
+
+    console.log(`Book API - Querying for date: ${dateStr}, time: ${startTime}`);
+
+    // Create target date for comparison (same logic as available-slots)
+    const targetDate = new Date(dateStr + 'T00:00:00.000Z');
+    const nextDay = new Date(dateStr + 'T00:00:00.000Z');
+    nextDay.setUTCDate(nextDay.getUTCDate() + 1);
 
     // Check if therapist has availability for this specific date and time
     const availabilitySlot = await prisma.therapistAvailability.findFirst({
       where: {
         therapistId: child.primaryTherapistId!,
-        date: {
-          gte: new Date(dateOnly + 'T00:00:00.000Z'),
-          lt: new Date(dateOnly + 'T23:59:59.999Z')
-        },
         startTime: startTime,
-        isBooked: false
+        isBooked: false,
+        date: {
+          gte: targetDate,
+          lt: nextDay
+        }
       }
     });
 
@@ -127,29 +136,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check for existing sessions at the same time (double-check)
-    const existingSession = await prisma.therapySession.findFirst({
-      where: {
-        therapistId: child.primaryTherapistId!,
-        scheduledAt: sessionDate,
-        status: {
-          in: ["SCHEDULED", "APPROVED", "REQUESTED", "RESCHEDULED"]
-        }
-      }
-    });
-
-    if (existingSession) {
-      return NextResponse.json(
-        { error: "This time slot is already booked" },
-        { status: 400 }
-      );
-    }
-
     // Get the rate - check if slot is free, otherwise use therapist's session rate
     const sessionRate = availabilitySlot.isFree ? 0 : (child.primaryTherapist.session_rate || 0);
 
     // Create the therapy session and mark the slot as booked in a transaction
     const result = await prisma.$transaction(async (tx) => {
+      // First, mark the availability slot as booked (double-check it's still available)
+      const updateRes = await tx.therapistAvailability.updateMany({
+        where: {
+          id: availabilitySlot.id,
+          isBooked: false // Only update if still unbooked
+        },
+        data: { isBooked: true }
+      });
+
+      if (updateRes.count === 0) {
+        throw new Error('SLOT_ALREADY_BOOKED');
+      }
+
       // Create therapy session
       const therapySession = await tx.therapySession.create({
         data: {
@@ -178,12 +182,6 @@ export async function POST(request: NextRequest) {
             }
           }
         }
-      });
-
-      // Mark the availability slot as booked
-      await tx.therapistAvailability.update({
-        where: { id: availabilitySlot.id },
-        data: { isBooked: true }
       });
 
       return therapySession;
@@ -225,6 +223,15 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error("Error booking session:", error);
+
+    const maybeErr = error as Error | undefined;
+    if (maybeErr?.message === 'SLOT_ALREADY_BOOKED') {
+      return NextResponse.json(
+        { error: 'This time slot has already been booked' },
+        { status: 409 }
+      );
+    }
+
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

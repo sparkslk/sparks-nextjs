@@ -16,6 +16,16 @@ interface Child {
   therapist: Therapist | null;
 }
 
+interface TimeSlot {
+  slot: string;
+  startTime: string;
+  isAvailable: boolean;
+  isBooked: boolean;
+  isBlocked: boolean;
+  isFree: boolean;
+  cost: number;
+}
+
 interface SessionBookingModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -30,16 +40,14 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [showCalendar, setShowCalendar] = useState(false);
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
-  const [availableSlots, setAvailableSlots] = useState<Array<{slot: string, isAvailable: boolean, isBooked?: boolean, isBlocked?: boolean}>>([]);
+  const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [therapistInfo, setTherapistInfo] = useState<{
     name: string;
-    cost: number;
     duration: number;
   }>({
     name: child.therapist?.name || "Therapist",
-    cost: 3000,
-    duration: 60
+    duration: 45
   });
   const [booking, setBooking] = useState(false);
 
@@ -54,17 +62,27 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
     const fetchAvailableSlots = async () => {
       setLoadingSlots(true);
       try {
+        // Format date to YYYY-MM-DD without timezone conversion issues
+        const year = selectedDate.getFullYear();
+        const month = (selectedDate.getMonth() + 1).toString().padStart(2, '0');
+        const day = selectedDate.getDate().toString().padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
+
+        console.log(`Frontend: Selected date object:`, selectedDate);
+        console.log(`Frontend: Sending date string to API:`, dateStr);
+        console.log(`Frontend: Previous toISOString() would have been:`, selectedDate.toISOString().split('T')[0]);
+
         const response = await fetch(
-          `/api/parent/sessions/available-slots?childId=${child.id}&date=${selectedDate.toISOString()}`
+          `/api/parent/sessions/available-slots?childId=${child.id}&date=${dateStr}`
         );
-        
+
         if (response.ok) {
           const data = await response.json();
-          setAvailableSlots(data.slots || []);
+          setAvailableSlots(data.availableSlots || []);
+          // Update therapist name from response
           setTherapistInfo(prev => ({
             ...prev,
-            cost: data.cost || prev.cost,
-            duration: data.sessionDuration || prev.duration
+            name: data.therapistName || child.therapist?.name || "Therapist"
           }));
         } else {
           setAvailableSlots([]);
@@ -80,7 +98,7 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
     if (open && child.id) {
       fetchAvailableSlots();
     }
-  }, [selectedDate, open, child.id]);
+  }, [selectedDate, open, child.id, child.therapist?.name]);
 
   const handleDateClick = (day: number) => {
     setSelectedDate(new Date(year, month, day));
@@ -93,7 +111,7 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
 
   const handleConfirm = async () => {
     if (!selectedSlot) return;
-    
+
     setBooking(true);
     try {
       const response = await fetch('/api/parent/sessions/book', {
@@ -103,7 +121,7 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
         },
         body: JSON.stringify({
           childId: child.id,
-          date: selectedDate.toISOString(),
+          date: `${selectedDate.getFullYear()}-${(selectedDate.getMonth() + 1).toString().padStart(2, '0')}-${selectedDate.getDate().toString().padStart(2, '0')}`,
           timeSlot: selectedSlot,
           sessionType: "Individual"
         }),
@@ -145,11 +163,11 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
             <div className="flex items-center gap-4 bg-card rounded-xl p-4 shadow border border-border">
               <Image src={child.therapist?.image || '/images/therapist.png'} alt={child.therapist?.name || ''} width={48} height={48} className="object-cover w-12 h-12 rounded-full border-2 border-primary" />
               <div>
-                <div className="font-bold text-base text-foreground mb-1">Dr. {child.therapist?.name}</div>
-                <div className="text-xs text-muted-foreground mb-1">Cognitive Behavioral Therapy</div>
+                <div className="font-bold text-base text-foreground mb-1">Dr. {therapistInfo.name}</div>
+                <div className="text-xs text-muted-foreground mb-1">Cognitive Behavioral Therapy • 45 min sessions</div>
                 <div className="flex items-center gap-2">
                   <span className="text-yellow-500 font-semibold text-xs">★ 4.9</span>
-                  <span className="text-xs text-muted-foreground">Rs.{therapistInfo.cost} per session</span>
+                  <span className="text-xs text-muted-foreground">Licensed Therapist</span>
                 </div>
               </div>
             </div>
@@ -235,17 +253,25 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
                   <Button
                     key={slotData.slot}
                     variant={selectedSlot === slotData.slot ? "default" : "outline"}
-                    className={`rounded-xl px-4 py-2 text-base font-semibold shadow-sm ${
-                      selectedSlot === slotData.slot 
-                        ? "bg-primary text-white" 
-                        : slotData.isAvailable 
-                        ? "hover:bg-primary/10" 
-                        : "opacity-50 cursor-not-allowed bg-muted text-muted-foreground"
-                    }`}
+                    className={`rounded-xl px-4 py-3 text-sm font-semibold shadow-sm flex flex-col items-center gap-1 h-auto ${selectedSlot === slotData.slot
+                        ? "bg-primary text-white"
+                        : slotData.isAvailable
+                          ? "hover:bg-primary/10"
+                          : "opacity-50 cursor-not-allowed bg-muted text-muted-foreground"
+                      }`}
                     onClick={() => slotData.isAvailable && handleSlotClick(slotData.slot)}
                     disabled={!slotData.isAvailable}
                   >
-                    {slotData.slot} {!slotData.isAvailable && (slotData.isBooked ? "(Booked)" : "(Blocked)")}
+                    <span className="text-base font-bold">{slotData.slot}</span>
+                    {slotData.isAvailable ? (
+                      <span className={`text-xs ${slotData.isFree ? "text-green-600 font-bold" : "text-muted-foreground"}`}>
+                        {slotData.isFree ? "FREE" : `Rs.${slotData.cost}`}
+                      </span>
+                    ) : (
+                      <span className="text-xs">
+                        {slotData.isBooked ? "(Booked)" : "(Blocked)"}
+                      </span>
+                    )}
                   </Button>
                 ))}
               </div>
@@ -263,14 +289,25 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
                 <span>Time:</span> <span className="font-medium text-foreground">{selectedSlot || "--"}</span>
               </div>
               <div className="flex justify-between text-sm mb-2 text-muted-foreground">
-                <span>Therapist:</span> <span className="font-medium text-foreground">Dr. {child.therapist?.name}</span>
+                <span>Therapist:</span> <span className="font-medium text-foreground">Dr. {therapistInfo.name}</span>
+              </div>
+              <div className="flex justify-between text-sm mb-2 text-muted-foreground">
+                <span>Duration:</span> <span className="font-medium text-foreground">45 minutes</span>
               </div>
               <div className="flex justify-between text-sm mb-4 text-muted-foreground">
-                <span>Total Cost:</span> <span className="font-bold text-primary">Rs.{therapistInfo.cost}</span>
+                <span>Total Cost:</span>
+                <span className={`font-bold ${selectedSlot && availableSlots.find(slot => slot.slot === selectedSlot)?.isFree ? 'text-green-600' : 'text-primary'}`}>
+                  {selectedSlot
+                    ? (availableSlots.find(slot => slot.slot === selectedSlot)?.isFree
+                      ? "FREE"
+                      : `Rs.${availableSlots.find(slot => slot.slot === selectedSlot)?.cost || 0}`)
+                    : "--"
+                  }
+                </span>
               </div>
-              <Button 
-                className="w-full bg-primary text-white text-base py-3 rounded-xl font-semibold shadow" 
-                disabled={!selectedSlot || bookingConfirmed || booking} 
+              <Button
+                className="w-full bg-primary text-white text-base py-3 rounded-xl font-semibold shadow"
+                disabled={!selectedSlot || bookingConfirmed || booking}
                 onClick={handleConfirm}
               >
                 {booking ? "Booking..." : bookingConfirmed ? "Booking Confirmed!" : "Confirm Booking"}
