@@ -1,6 +1,6 @@
 // src/app/therapist/verification/page.tsx
 "use client";
-
+import { useSession } from "next-auth/react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -28,6 +28,7 @@ interface FileUpload {
   name: string;
   size: number;
   type: string;
+  id?: string; // Document ID from the API
 }
 
 interface PersonalFormData {
@@ -63,6 +64,7 @@ interface ValidationErrors {
 }
 
 export default function TherapistVerificationPage() {
+  const { data: session } = useSession();
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -120,8 +122,8 @@ export default function TherapistVerificationPage() {
 
   const steps = [
     { title: "General details", description: "Personal information" },
-    { title: "Medical History", description: "Professional qualifications" },
-    { title: "Membership plan", description: "Certifications & documents" },
+    { title: "Professional details", description: "Professional qualifications" },
+    { title: "Certifications", description: "Upload documents" },
     { title: "Review & Submit", description: "Final verification" },
   ];
 
@@ -256,7 +258,7 @@ export default function TherapistVerificationPage() {
     return allowedTypes.includes(file.type);
   };
 
-  const handleFileUpload = (
+  const handleFileUpload = async (
     category: keyof Pick<
       CertificationFormData,
       | "professionalLicense"
@@ -267,7 +269,7 @@ export default function TherapistVerificationPage() {
   ) => {
     if (!files) return;
 
-    const validFiles: FileUpload[] = [];
+    const validFiles: File[] = [];
     const errors: string[] = [];
 
     Array.from(files).forEach((file) => {
@@ -283,11 +285,7 @@ export default function TherapistVerificationPage() {
         return;
       }
 
-      validFiles.push({
-        name: file.name,
-        size: file.size,
-        type: file.type,
-      });
+      validFiles.push(file);
     });
 
     if (errors.length > 0) {
@@ -295,23 +293,69 @@ export default function TherapistVerificationPage() {
         ...prev,
         [category]: errors.join(", "),
       }));
-    } else {
-      setValidationErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[category];
-        return newErrors;
-      });
+      return;
     }
 
-    if (validFiles.length > 0) {
+    if (validFiles.length === 0) return;
+
+    // Clear any previous errors
+    setValidationErrors((prev) => {
+      const newErrors = { ...prev };
+      delete newErrors[category];
+      return newErrors;
+    });
+
+    try {
+      // Map category names to API values
+      const categoryMap = {
+        professionalLicense: "PROFESSIONAL_LICENSE",
+        educationalCertificates: "EDUCATIONAL_CERTIFICATE",
+        additionalCertifications: "ADDITIONAL_CERTIFICATION",
+      };
+
+      const formData = new FormData();
+      validFiles.forEach((file) => {
+        formData.append("files", file);
+      });
+      formData.append("category", categoryMap[category]);
+
+      const response = await fetch("/api/therapist/verification/documents", {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        setValidationErrors((prev) => ({
+          ...prev,
+          [category]: result.error || "Failed to upload files",
+        }));
+        return;
+      }
+
+      // Update state with successfully uploaded files
+      const uploadedFiles: FileUpload[] = result.documents.map((doc: any) => ({
+        name: doc.originalName,
+        size: doc.fileSize,
+        type: doc.mimeType,
+        id: doc.id, // Store the document ID for potential deletion
+      }));
+
       setCertificationData((prev) => ({
         ...prev,
-        [category]: [...prev[category], ...validFiles],
+        [category]: [...prev[category], ...uploadedFiles],
+      }));
+    } catch (error) {
+      console.error("File upload error:", error);
+      setValidationErrors((prev) => ({
+        ...prev,
+        [category]: "Failed to upload files. Please try again.",
       }));
     }
   };
 
-  const removeFile = (
+  const removeFile = async (
     category: keyof Pick<
       CertificationFormData,
       | "professionalLicense"
@@ -320,6 +364,27 @@ export default function TherapistVerificationPage() {
     >,
     index: number
   ) => {
+    const file = certificationData[category][index];
+    
+    // If file has an ID, it was uploaded to the server and needs to be deleted
+    if (file.id) {
+      try {
+        const response = await fetch(`/api/therapist/verification/documents/${file.id}`, {
+          method: "DELETE",
+        });
+
+        if (!response.ok) {
+          const result = await response.json();
+          console.error("Failed to delete file:", result.error);
+          // Continue with local removal even if API deletion fails
+        }
+      } catch (error) {
+        console.error("Error deleting file:", error);
+        // Continue with local removal even if API deletion fails
+      }
+    }
+
+    // Remove from local state
     setCertificationData((prev) => ({
       ...prev,
       [category]: prev[category].filter((_, i) => i !== index),
@@ -484,20 +549,67 @@ export default function TherapistVerificationPage() {
 
     setIsLoading(true);
     try {
-      // TODO: Implement API call to submit verification data
-      console.log("Submitting verification data:", {
-        personal: personalData,
-        professional: professionalData,
-        certifications: certificationData,
-        agreements,
+      // Prepare the data for API submission
+      const submissionData = {
+        personalInfo: {
+          phone: personalData.phone,
+          houseNumber: personalData.houseNumber,
+          streetName: personalData.streetName,
+          city: personalData.city,
+          gender: personalData.gender.toUpperCase(),
+          dateOfBirth: personalData.dateOfBirth,
+        },
+        professionalInfo: {
+          licenseNumber: professionalData.licenseNumber,
+          primarySpecialty: professionalData.primarySpecialty,
+          yearsOfExperience: professionalData.yearsOfExperience,
+          highestEducation: professionalData.highestEducation,
+          institution: professionalData.institution,
+          adhdExperience: professionalData.adhdExperience,
+        },
+        referenceInfo: {
+          firstName: certificationData.referenceFirstName,
+          lastName: certificationData.referenceLastName,
+          professionalTitle: certificationData.referenceProfessionalTitle,
+          phoneNumber: certificationData.referencePhoneNumber,
+        },
+        agreements: {
+          backgroundCheck: agreements.backgroundCheck,
+          termsAndPrivacy: agreements.termsAndPrivacy,
+          accurateInfo: agreements.accurateInfo,
+        },
+      };
+
+      const response = await fetch("/api/therapist/verification", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(submissionData),
       });
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const result = await response.json();
 
-      // Redirect to dashboard or success page
+      if (!response.ok) {
+        if (result.details) {
+          // Handle validation errors
+          const fieldErrors: ValidationErrors = {};
+          result.details.forEach((error: any) => {
+            const fieldPath = error.path.join(".");
+            fieldErrors[fieldPath] = error.message;
+          });
+          setValidationErrors(fieldErrors);
+          setError("Please fix the validation errors before continuing.");
+        } else {
+          setError(result.error || "Failed to submit verification.");
+        }
+        return;
+      }
+
+      // Success - redirect to success page or dashboard
       router.push("/therapist/verification/success");
-    } catch {
+    } catch (err) {
+      console.error("Verification submission error:", err);
       setError("Failed to submit verification. Please try again.");
     } finally {
       setIsLoading(false);
@@ -656,14 +768,19 @@ export default function TherapistVerificationPage() {
                     validationErrors.gender ? "border-destructive" : ""
                   }`}
                 >
-                  <SelectValue placeholder="Select gender" />
+                  <SelectValue placeholder="Select gender">
+                    {personalData.gender && (
+                      personalData.gender === "male" ? "Male" :
+                      personalData.gender === "female" ? "Female" :
+                      personalData.gender === "prefer-not-to-say" ? "Prefer not to say" :
+                      personalData.gender
+                    )}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="male">Male</SelectItem>
                   <SelectItem value="female">Female</SelectItem>
-                  <SelectItem value="prefer-not-to-say">
-                    Prefer not to say
-                  </SelectItem>
+                  <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
                 </SelectContent>
               </Select>
               {validationErrors.gender && (
@@ -1004,21 +1121,38 @@ export default function TherapistVerificationPage() {
               key={index}
               className="flex items-center justify-between p-2 bg-blue-50 rounded-md"
             >
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 flex-1">
                 <FileText className="h-4 w-4 text-blue-600" />
-                <span className="text-sm">{file.name}</span>
+                <span className="text-sm truncate">{file.name}</span>
                 <span className="text-xs text-muted-foreground">
                   {(file.size / 1024 / 1024).toFixed(2)} MB
                 </span>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => removeFile(category, index)}
-                className="h-6 w-6 p-0"
-              >
-                <X className="h-3 w-3" />
-              </Button>
+              <div className="flex items-center space-x-1">
+                {file.id && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      // Open download link
+                      window.open(`/api/therapist/verification/documents/${file.id}/download`, '_blank');
+                    }}
+                    className="h-6 w-6 p-0 text-blue-600 hover:text-blue-800"
+                    title="Download file"
+                  >
+                    <FileText className="h-3 w-3" />
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removeFile(category, index)}
+                  className="h-6 w-6 p-0 text-red-600 hover:text-red-800"
+                  title="Remove file"
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
             </div>
           ))}
         </div>
@@ -1200,12 +1334,12 @@ export default function TherapistVerificationPage() {
             </h4>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="font-medium">Full Name:</span> Anuki
-                Wanniarachchi
+                <span className="font-medium">Full Name:</span> {" "}
+            {session?.user?.name || ""}
               </div>
               <div>
                 <span className="font-medium">Email:</span>{" "}
-                anuki.thiyara@gmail.com
+            {session?.user?.email || ""}
               </div>
               <div>
                 <span className="font-medium">Phone:</span> {personalData.phone}

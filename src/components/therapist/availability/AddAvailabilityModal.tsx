@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -20,71 +21,65 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Save, X, Calendar as CalendarIcon, Clock, AlertTriangle, CheckCircle, Users } from "lucide-react";
-
-interface TimeSlot {
-  id: string;
-  startTime: string;
-  endTime: string;
-  dayOfWeek: number;
-  isRecurring: boolean;
-  recurrencePattern?: {
-    type: "daily" | "weekly" | "custom";
-    days?: number[];
-    endDate?: string;
-  };
-  isActive: boolean;
-  isFreeSession?: boolean;
-}
+import { Save, X, Calendar as CalendarIcon, Clock, AlertTriangle, CheckCircle } from "lucide-react";
 
 interface AddAvailabilityModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (slot: TimeSlot | Omit<TimeSlot, "id">) => void;
-  editingSlot?: TimeSlot | null;
-  prefilledData?: {
-    dayOfWeek: number;
-    startTime?: string;
-    endTime?: string;
-    selectedWeekStart: Date;
-  } | null;
+  onSave: (data: AvailabilityData) => void;
+  initialDate?: string;
+  initialStartTime?: string;
+  initialEndTime?: string;
+}
+
+interface AvailabilityData {
+  startDate: string;
+  endDate: string;
+  startTime: string;
+  endTime: string;
+  recurrenceType: "None" | "Daily" | "Weekly" | "Monthly" | "Custom";
+  selectedDays?: number[];
+  isFree: boolean;
 }
 
 interface SessionPreview {
   sessionNumber: number;
   startTime: string;
-  endTime: string;
   displayStart: string;
-  displayEnd: string;
-}
-
-interface SchedulePreset {
-  id: string;
-  name: string;
-  description: string;
-  startTime: string;
-  endTime: string;
-  color: string;
 }
 
 export function AddAvailabilityModal({
   isOpen,
   onClose,
   onSave,
-  editingSlot,
-  prefilledData,
+  initialDate,
+  initialStartTime,
+  initialEndTime,
 }: AddAvailabilityModalProps) {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<AvailabilityData>({
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: new Date().toISOString().split('T')[0],
     startTime: "09:00",
     endTime: "17:00",
-    dayOfWeek: 1,
-    isRecurring: false,
-    recurrenceType: "weekly" as "daily" | "weekly" | "custom",
-    selectedDays: [1] as number[],
-    endDate: "",
-    isActive: true,
-    isFreeSession: false,
+    recurrenceType: "None",
+    selectedDays: [],
+    isFree: false,
   });
+
+  // Update form data when initial values are provided
+  useEffect(() => {
+    if (isOpen) {
+      setFormData({
+        startDate: initialDate || new Date().toISOString().split('T')[0],
+        endDate: initialDate || new Date().toISOString().split('T')[0],
+        startTime: initialStartTime || "09:00",
+        endTime: initialEndTime || "17:00",
+        recurrenceType: "None",
+        selectedDays: [],
+        isFree: false,
+      });
+    }
+  }, [isOpen, initialDate, initialStartTime, initialEndTime]);
 
   const days = [
     { value: 0, label: "Sunday" },
@@ -96,49 +91,41 @@ export function AddAvailabilityModal({
     { value: 6, label: "Saturday" },
   ];
 
-  const timeSlots = Array.from({ length: (22 - 7) * 4 }, (_, i) => {
-    const totalMinutes = 7 * 60 + i * 15;
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-    return `${hours.toString().padStart(2, "0")}:${minutes
-      .toString()
-      .padStart(2, "0")}`;
+  const timeSlots = Array.from({ length: (22 - 7) }, (_, i) => {
+    const hours = 7 + i;
+    return `${hours.toString().padStart(2, "0")}:00`;
   });
 
-  const schedulePresets: SchedulePreset[] = [
-    {
-      id: "business-hours",
-      name: "Business Hours",
-      description: "Standard 9-5 schedule",
-      startTime: "09:00",
-      endTime: "17:00",
-      color: "bg-blue-100 text-blue-800"
-    },
-    {
-      id: "morning-sessions",
-      name: "Morning Sessions",
-      description: "Early bird appointments",
-      startTime: "08:00",
-      endTime: "12:00",
-      color: "bg-green-100 text-green-800"
-    },
-    {
-      id: "evening-sessions",
-      name: "Evening Sessions",
-      description: "After-work appointments",
-      startTime: "17:00",
-      endTime: "21:00",
-      color: "bg-purple-100 text-purple-800"
-    },
-    {
-      id: "weekend-schedule",
-      name: "Weekend Schedule",
-      description: "Flexible weekend hours",
-      startTime: "10:00",
-      endTime: "16:00",
-      color: "bg-orange-100 text-orange-800"
+  // Filter time slots based on whether start date is today
+  const getAvailableTimeSlots = (isStartTime: boolean) => {
+    const selectedDate = new Date(formData.startDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    selectedDate.setHours(0, 0, 0, 0);
+
+    const isToday = selectedDate.getTime() === today.getTime();
+
+    if (!isToday) {
+      return timeSlots; // All time slots available if not today
     }
-  ];
+
+    // If today, filter out past time slots
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+
+    return timeSlots.filter(slot => {
+      const [slotHour] = slot.split(':').map(Number);
+      
+      if (isStartTime) {
+        // For start time, disable if slot hour has passed or is current hour
+        return slotHour > currentHour;
+      } else {
+        // For end time, same logic
+        return slotHour > currentHour;
+      }
+    });
+  };
 
   const formatTime = (timeString: string) => {
     const [hours, minutes] = timeString.split(':').map(Number);
@@ -147,158 +134,127 @@ export function AddAvailabilityModal({
     return `${hour12}:${minutes.toString().padStart(2, '0')} ${ampm}`;
   };
 
-  const generateSessionPreview = (): { sessions: SessionPreview[], unusedMinutes: number, warnings: string[] } => {
-    const start = new Date(`1970-01-01T${formData.startTime}:00`);
-    const end = new Date(`1970-01-01T${formData.endTime}:00`);
-    const totalMinutes = (end.getTime() - start.getTime()) / (1000 * 60);
+  const generateSessionPreview = (): { sessions: SessionPreview[], warnings: string[] } => {
+    const [startHour, startMinute] = formData.startTime.split(':').map(Number);
+    const [endHour, endMinute] = formData.endTime.split(':').map(Number);
     
-    if (totalMinutes <= 0) {
-      return { sessions: [], unusedMinutes: 0, warnings: ["End time must be after start time"] };
+    const startMinutes = startHour * 60 + startMinute;
+    const endMinutes = endHour * 60 + endMinute;
+    
+    if (endMinutes <= startMinutes) {
+      return { sessions: [], warnings: ["End time must be after start time"] };
     }
 
-    const sessionMinutes = 45; // Fixed 45-minute sessions
-    const breakMinutes = 15; // Fixed 15-minute breaks
-    const slotDuration = sessionMinutes + breakMinutes;
-    
     const sessions: SessionPreview[] = [];
     const warnings: string[] = [];
-    let currentTime = new Date(start);
+
+    // Generate sessions starting on the hour
+    let currentMinutes = Math.ceil(startMinutes / 60) * 60; // Round up to next hour
     let sessionCount = 0;
 
-    // Generate sessions with breaks
-    while (true) {
-      const sessionEnd = new Date(currentTime.getTime() + sessionMinutes * 60 * 1000);
-      const slotEnd = new Date(currentTime.getTime() + slotDuration * 60 * 1000);
+    while (currentMinutes + 45 <= endMinutes) {
+      sessionCount++;
+      const hours = Math.floor(currentMinutes / 60);
+      const minutes = currentMinutes % 60;
+      const time = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
       
-      // Check if session fits
-      if (sessionEnd <= end) {
-        sessionCount++;
-        sessions.push({
-          sessionNumber: sessionCount,
-          startTime: currentTime.toTimeString().slice(0, 5),
-          endTime: sessionEnd.toTimeString().slice(0, 5),
-          displayStart: formatTime(currentTime.toTimeString().slice(0, 5)),
-          displayEnd: formatTime(sessionEnd.toTimeString().slice(0, 5))
-        });
+      sessions.push({
+        sessionNumber: sessionCount,
+        startTime: time,
+        displayStart: formatTime(time)
+      });
 
-        // Check if there's room for another session after the break
-        if (slotEnd <= end) {
-          currentTime = new Date(slotEnd);
-        } else {
-          // No room for break + next session, but check if we can fit one more session
-          const nextSessionEnd = new Date(sessionEnd.getTime() + sessionMinutes * 60 * 1000);
-          if (nextSessionEnd <= end) {
-            sessionCount++;
-            sessions.push({
-              sessionNumber: sessionCount,
-              startTime: sessionEnd.toTimeString().slice(0, 5),
-              endTime: nextSessionEnd.toTimeString().slice(0, 5),
-              displayStart: formatTime(sessionEnd.toTimeString().slice(0, 5)),
-              displayEnd: formatTime(nextSessionEnd.toTimeString().slice(0, 5))
-            });
-          }
-          break;
+      currentMinutes += 60; // Next hour (45 min session + 15 min break)
+    }
+
+    if (sessions.length === 0) {
+      warnings.push("No sessions can fit in this time block. Please extend the time range.");
+    }
+
+    return { sessions, warnings };
+  };
+
+  const { sessions, warnings } = generateSessionPreview();
+
+  const calculateStats = () => {
+    const startDate = new Date(formData.startDate);
+    const endDate = new Date(formData.endDate);
+    
+    let totalDays = 0;
+
+    if (formData.recurrenceType === "None") {
+      totalDays = 1;
+    } else if (formData.recurrenceType === "Daily") {
+      const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+      totalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    } else if (formData.recurrenceType === "Weekly") {
+      let weeks = 0;
+      let currentDate = new Date(startDate);
+      while (currentDate <= endDate) {
+        if (currentDate.getDay() === startDate.getDay()) {
+          weeks++;
         }
-      } else {
-        break;
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+      totalDays = weeks;
+    } else if (formData.recurrenceType === "Monthly") {
+      let months = 0;
+      let currentDate = new Date(startDate);
+      while (currentDate <= endDate) {
+        if (currentDate.getDate() === startDate.getDate()) {
+          months++;
+        }
+        currentDate.setMonth(currentDate.getMonth() + 1);
+      }
+      totalDays = months;
+    } else if (formData.recurrenceType === "Custom") {
+      let currentDate = new Date(startDate);
+      while (currentDate <= endDate) {
+        if (formData.selectedDays?.includes(currentDate.getDay())) {
+          totalDays++;
+        }
+        currentDate.setDate(currentDate.getDate() + 1);
       }
     }
 
-    // Calculate unused time
-    const lastSessionEnd = sessions.length > 0 
-      ? new Date(`1970-01-01T${sessions[sessions.length - 1].endTime}:00`)
-      : start;
-    const unusedMinutes = (end.getTime() - lastSessionEnd.getTime()) / (1000 * 60);
+    const sessionsPerDay = sessions.length;
+    const totalSessions = sessionsPerDay * totalDays;
+    const totalHours = (totalSessions * 45) / 60;
 
-    // Add warnings only for significant issues
-    if (sessions.length === 0) {
-      warnings.push("No sessions can fit in this time block");
-    }
-    
-    // Only warn if there's enough unused time for a full session (60+ minutes)
-    if (unusedMinutes >= 60) {
-      warnings.push(`${unusedMinutes} minutes unused - consider extending or adding another session slot`);
-    }
-
-    return { sessions, unusedMinutes, warnings };
+    return { totalDays, totalSessions, totalHours, sessionsPerDay };
   };
 
-  const { sessions, unusedMinutes, warnings } = generateSessionPreview();
-
-  useEffect(() => {
-    if (editingSlot) {
-      setFormData({
-        startTime: editingSlot.startTime,
-        endTime: editingSlot.endTime,
-        dayOfWeek: editingSlot.dayOfWeek,
-        isRecurring: editingSlot.isRecurring,
-        recurrenceType: editingSlot.recurrencePattern?.type || "weekly",
-        selectedDays: editingSlot.recurrencePattern?.days || [editingSlot.dayOfWeek],
-        endDate: editingSlot.recurrencePattern?.endDate || "",
-        isActive: editingSlot.isActive,
-        isFreeSession: editingSlot.isFreeSession || false,
-      });
-    } else if (prefilledData) {
-      setFormData({
-        startTime: prefilledData.startTime || "09:00",
-        endTime: prefilledData.endTime || "10:00",
-        dayOfWeek: prefilledData.dayOfWeek,
-        isRecurring: false,
-        recurrenceType: "weekly",
-        selectedDays: [prefilledData.dayOfWeek],
-        endDate: "",
-        isActive: true,
-        isFreeSession: false,
-      });
-    }
-  }, [editingSlot, isOpen, prefilledData]);
+  const stats = calculateStats();
 
   const handleSave = () => {
-    if (warnings.some(w => w.includes("No sessions can fit") || w.includes("End time must be after"))) {
-      return; // Don't save if there are critical errors
+    if (warnings.length > 0) {
+      return;
     }
 
-    const slot: Omit<TimeSlot, "id"> = {
-      startTime: formData.startTime,
-      endTime: formData.endTime,
-      dayOfWeek: formData.dayOfWeek,
-      isRecurring: formData.isRecurring,
-      recurrencePattern: formData.isRecurring
-        ? {
-            type: formData.recurrenceType,
-            days: formData.selectedDays,
-            endDate: formData.endDate || undefined,
-          }
-        : undefined,
-      isActive: formData.isActive,
-      isFreeSession: formData.isFreeSession,
-    };
-
-    if (editingSlot) {
-      onSave({ ...slot, id: editingSlot.id });
-    } else {
-      onSave(slot);
+    if (formData.recurrenceType === "Custom" && (!formData.selectedDays || formData.selectedDays.length === 0)) {
+      alert("Please select at least one day for custom recurrence");
+      return;
     }
-  };
 
-  const applyPreset = (preset: SchedulePreset) => {
-    setFormData({
-      ...formData,
-      startTime: preset.startTime,
-      endTime: preset.endTime,
-    });
+    if (new Date(formData.startDate) > new Date(formData.endDate)) {
+      alert("End date must be after or equal to start date");
+      return;
+    }
+
+    onSave(formData);
   };
 
   const handleDayToggle = (dayValue: number) => {
-    if (formData.selectedDays.includes(dayValue)) {
+    const currentDays = formData.selectedDays || [];
+    if (currentDays.includes(dayValue)) {
       setFormData({
         ...formData,
-        selectedDays: formData.selectedDays.filter((d) => d !== dayValue),
+        selectedDays: currentDays.filter((d) => d !== dayValue),
       });
     } else {
       setFormData({
         ...formData,
-        selectedDays: [...formData.selectedDays, dayValue].sort(),
+        selectedDays: [...currentDays, dayValue].sort(),
       });
     }
   };
@@ -310,24 +266,8 @@ export function AddAvailabilityModal({
       case "weekends": selectedDays = [0, 6]; break;
       case "daily": selectedDays = [0, 1, 2, 3, 4, 5, 6]; break;
     }
-    setFormData({ ...formData, isRecurring: true, recurrenceType: "custom", selectedDays });
+    setFormData({ ...formData, recurrenceType: "Custom", selectedDays });
   };
-
-  const calculateWeeklyStats = () => {
-    const daysPerWeek = formData.isRecurring ? formData.selectedDays.length : 1;
-    const sessionsPerDay = sessions.length;
-    const totalSessions = sessionsPerDay * daysPerWeek;
-    const hoursPerDay = sessions.reduce((total, session) => {
-      const start = new Date(`1970-01-01T${session.startTime}:00`);
-      const end = new Date(`1970-01-01T${session.endTime}:00`);
-      return total + (end.getTime() - start.getTime()) / (1000 * 60 * 60);
-    }, 0);
-    const totalHours = hoursPerDay * daysPerWeek;
-
-    return { totalSessions, totalHours, sessionsPerDay };
-  };
-
-  const stats = calculateWeeklyStats();
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -336,53 +276,61 @@ export function AddAvailabilityModal({
           <div className="flex items-center gap-2">
             <CalendarIcon className="h-5 w-5 text-[#8159A8]" />
             <DialogTitle className="text-xl font-bold text-[#8159A8]">
-              {editingSlot ? "Edit Availability Block" : "Create Availability Block"}
+              Create Availability
             </DialogTitle>
           </div>
-          <p className="text-sm text-gray-600 mt-1">
-            Set up a time block and we&apos;ll automatically generate bookable session slots
-          </p>
+          <DialogDescription className="text-sm text-gray-600 mt-1">
+            Set your available dates and times. We&apos;ll automatically create 45-minute session slots.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left Column - Configuration */}
           <div className="space-y-6">
-            {/* Quick Presets */}
+            {/* Date Range */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Clock className="h-5 w-5" />
-                  Quick Presets
-                </CardTitle>
+                <CardTitle className="text-lg">Date Range</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-2">
-                  {schedulePresets.map((preset) => (
-                    <Button
-                      key={preset.id}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => applyPreset(preset)}
-                      className="p-3 h-auto flex-col items-start"
-                    >
-                      <div className={`px-2 py-1 rounded text-xs ${preset.color} mb-1`}>
-                        {preset.name}
-                      </div>
-                      <div className="text-xs text-gray-600 text-left">
-                        {preset.description}
-                      </div>
-                    </Button>
-                  ))}
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="startDate">Start Date</Label>
+                  <Input
+                    id="startDate"
+                    type="date"
+                    value={formData.startDate}
+                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="mt-2"
+                  />
                 </div>
+                
+                {/* Only show End Date if recurrence is enabled */}
+                {formData.recurrenceType !== "None" && (
+                  <div>
+                    <Label htmlFor="endDate">End Date (Recurrence End)</Label>
+                    <Input
+                      id="endDate"
+                      type="date"
+                      value={formData.endDate}
+                      onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                      min={formData.startDate}
+                      className="mt-2"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Availability will repeat until this date
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
             {/* Time Block */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Time Block</CardTitle>
+                <CardTitle className="text-lg">Daily Time Block</CardTitle>
                 <p className="text-sm text-gray-600">
-                  Define the overall time period when you&apos;re available
+                  Sessions start on the hour and are 45 minutes long
                 </p>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -394,13 +342,23 @@ export function AddAvailabilityModal({
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {timeSlots.map((time) => (
+                        {getAvailableTimeSlots(true).map((time) => (
                           <SelectItem key={time} value={time}>
                             {formatTime(time)}
                           </SelectItem>
                         ))}
+                        {getAvailableTimeSlots(true).length === 0 && (
+                          <div className="px-2 py-1 text-sm text-gray-500">
+                            No available times for today
+                          </div>
+                        )}
                       </SelectContent>
                     </Select>
+                    {formData.startDate === new Date().toISOString().split('T')[0] && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Past times are hidden
+                      </p>
+                    )}
                   </div>
 
                   <div>
@@ -410,95 +368,58 @@ export function AddAvailabilityModal({
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {timeSlots.map((time) => (
+                        {getAvailableTimeSlots(false).map((time) => (
                           <SelectItem key={time} value={time}>
                             {formatTime(time)}
                           </SelectItem>
                         ))}
+                        {getAvailableTimeSlots(false).length === 0 && (
+                          <div className="px-2 py-1 text-sm text-gray-500">
+                            No available times for today
+                          </div>
+                        )}
                       </SelectContent>
                     </Select>
+                    {formData.startDate === new Date().toISOString().split('T')[0] && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Past times are hidden
+                      </p>
+                    )}
                   </div>
                 </div>
-
-                {!formData.isRecurring && (
-                  <div>
-                    <Label htmlFor="dayOfWeek">Day of Week</Label>
-                    <Select
-                      value={formData.dayOfWeek.toString()}
-                      onValueChange={(value) => setFormData({ ...formData, dayOfWeek: parseInt(value) })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {days.map((day) => (
-                          <SelectItem key={day.value} value={day.value.toString()}>
-                            {day.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
               </CardContent>
             </Card>
 
-            {/* Session Info */}
+            {/* Recurrence */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Session Information</CardTitle>
-                <p className="text-sm text-gray-600">
-                  All sessions are standardized to 45 minutes with 15-minute breaks
-                </p>
+                <CardTitle className="text-lg">Recurrence Pattern</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="bg-[#F5F3FB] p-4 rounded-lg border border-[#8159A8]/20">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium text-[#8159A8]">Session Duration:</span>
-                    <Badge className="bg-[#8159A8] text-white">45 minutes</Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium text-[#8159A8]">Break Between Sessions:</span>
-                    <Badge variant="outline">15 minutes</Badge>
-                  </div>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="isFreeSession"
-                    checked={formData.isFreeSession}
-                    onCheckedChange={(checked) => setFormData({ ...formData, isFreeSession: checked === true })}
-                  />
-                  <Label htmlFor="isFreeSession" className="text-sm font-medium">
-                    Offer as free sessions
-                  </Label>
-                </div>
-                {formData.isFreeSession && (
-                  <div className="bg-green-50 p-3 rounded-lg border border-green-200">
-                    <p className="text-sm text-green-800">
-                      These sessions will be offered free of charge to patients. Your regular session rate will apply to other bookings.
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Recurring Settings */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Recurring Schedule</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="isRecurring"
-                    checked={formData.isRecurring}
-                    onCheckedChange={(checked) => setFormData({ ...formData, isRecurring: checked === true })}
-                  />
-                  <Label htmlFor="isRecurring">Repeat this availability block</Label>
+                <div>
+                  <Label htmlFor="recurrenceType">Repeat</Label>
+                  <Select 
+                    value={formData.recurrenceType} 
+                    onValueChange={(value) => setFormData({ 
+                      ...formData, 
+                      recurrenceType: value as any,
+                      selectedDays: value === "Custom" ? formData.selectedDays : []
+                    })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="None">No Repeat (Single Date)</SelectItem>
+                      <SelectItem value="Daily">Daily</SelectItem>
+                      <SelectItem value="Weekly">Weekly (Same Day)</SelectItem>
+                      <SelectItem value="Monthly">Monthly (Same Date)</SelectItem>
+                      <SelectItem value="Custom">Custom Days</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
-                {formData.isRecurring && (
+                {formData.recurrenceType === "Custom" && (
                   <>
                     <div>
                       <Label>Quick Schedule</Label>
@@ -522,7 +443,7 @@ export function AddAvailabilityModal({
                           <div key={day.value} className="flex flex-col items-center">
                             <Checkbox
                               id={`day-${day.value}`}
-                              checked={formData.selectedDays.includes(day.value)}
+                              checked={formData.selectedDays?.includes(day.value) || false}
                               onCheckedChange={() => handleDayToggle(day.value)}
                             />
                             <Label htmlFor={`day-${day.value}`} className="text-xs mt-1 cursor-pointer">
@@ -537,7 +458,31 @@ export function AddAvailabilityModal({
               </CardContent>
             </Card>
 
-
+            {/* Free Sessions */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Session Pricing</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="isFree"
+                    checked={formData.isFree}
+                    onCheckedChange={(checked) => setFormData({ ...formData, isFree: checked === true })}
+                  />
+                  <Label htmlFor="isFree" className="text-sm font-medium">
+                    Offer as free sessions
+                  </Label>
+                </div>
+                {formData.isFree && (
+                  <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                    <p className="text-sm text-green-800">
+                      These sessions will be offered free of charge to patients.
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
 
           {/* Right Column - Preview */}
@@ -546,13 +491,10 @@ export function AddAvailabilityModal({
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  Session Preview
-                  <Badge variant="outline">{sessions.length} sessions</Badge>
+                  <Clock className="h-5 w-5" />
+                  Daily Session Preview
+                  <Badge variant="outline">{sessions.length} slots per day</Badge>
                 </CardTitle>
-                <p className="text-sm text-gray-600">
-                  These are the individual slots patients can book
-                </p>
               </CardHeader>
               <CardContent>
                 {sessions.length > 0 ? (
@@ -561,17 +503,17 @@ export function AddAvailabilityModal({
                       <div key={session.sessionNumber} className="flex items-center justify-between p-3 bg-[#F5F3FB] rounded-lg border border-[#8159A8]/20">
                         <div>
                           <div className="font-medium text-[#8159A8]">
-                            Session {session.sessionNumber}
+                            Slot {session.sessionNumber}
                           </div>
                           <div className="text-sm text-gray-600">
-                            {session.displayStart} - {session.displayEnd}
+                            {session.displayStart}
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
                           <Badge className="bg-[#8159A8] text-white">
                             45min
                           </Badge>
-                          {formData.isFreeSession && (
+                          {formData.isFree && (
                             <Badge className="bg-green-100 text-green-800">
                               Free
                             </Badge>
@@ -584,11 +526,9 @@ export function AddAvailabilityModal({
                   <div className="text-center py-8 text-gray-500">
                     <Clock className="h-8 w-8 mx-auto mb-2 text-gray-400" />
                     <p>No sessions generated</p>
-                    <p className="text-sm">Adjust your time block or session settings</p>
+                    <p className="text-sm">Adjust your time block settings</p>
                   </div>
                 )}
-
-
               </CardContent>
             </Card>
 
@@ -614,43 +554,40 @@ export function AddAvailabilityModal({
               </Card>
             )}
 
-            {/* Weekly Summary */}
+            {/* Summary */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2 text-[#8159A8]">
                   <CheckCircle className="h-5 w-5" />
-                  Weekly Summary
+                  Summary
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Total sessions per week:</span>
+                    <span className="text-gray-600">Total days:</span>
+                    <Badge className="bg-[#8159A8] text-white">{stats.totalDays}</Badge>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Slots per day:</span>
+                    <span className="font-medium">{stats.sessionsPerDay}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Total slots created:</span>
                     <Badge className="bg-[#8159A8] text-white">{stats.totalSessions}</Badge>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Total hours per week:</span>
+                    <span className="text-gray-600">Total hours:</span>
                     <span className="font-medium">{stats.totalHours.toFixed(1)}h</span>
                   </div>
-                  {formData.isFreeSession ? (
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-600">Session type:</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Session type:</span>
+                    {formData.isFree ? (
                       <Badge className="bg-green-100 text-green-800">Free Sessions</Badge>
-                    </div>
-                  ) : (
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-600">Session type:</span>
+                    ) : (
                       <Badge className="bg-[#8159A8] text-white">Paid Sessions</Badge>
-                    </div>
-                  )}
-                  {formData.isRecurring && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-600">Active days:</span>
-                      <span className="font-medium">
-                        {formData.selectedDays.map(d => days.find(day => day.value === d)?.label.slice(0, 3)).join(", ")}
-                      </span>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -664,11 +601,11 @@ export function AddAvailabilityModal({
           </Button>
           <Button
             onClick={handleSave}
-            disabled={warnings.some(w => w.includes("No sessions can fit") || w.includes("End time must be after"))}
+            disabled={warnings.length > 0 || sessions.length === 0}
             className="bg-[#8159A8] hover:bg-[#6D4C93] text-white"
           >
             <Save className="mr-2 h-4 w-4" />
-            {editingSlot ? "Update" : "Create"} Availability Block
+            Create Availability ({stats.totalSessions} slots)
           </Button>
         </div>
       </DialogContent>

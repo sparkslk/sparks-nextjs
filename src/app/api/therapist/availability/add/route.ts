@@ -15,7 +15,7 @@ interface CreateAvailabilitySlotData {
   sessionDuration: number;
   breakBetweenSessions: number;
   isActive: boolean;
-  rate?: number;
+  isFreeSession?: boolean;
 }
 
 /**
@@ -163,7 +163,8 @@ export async function POST(req: NextRequest) {
                     : null,
                 sessionDuration: data.sessionDuration || 60,
                 breakBetweenSessions: data.breakBetweenSessions || 15,
-                isActive: data.isActive !== false // Default to true if not specified
+                isActive: data.isActive !== false, // Default to true if not specified
+                isFree: data.isFreeSession || false
             }
         });
 
@@ -182,7 +183,7 @@ export async function POST(req: NextRequest) {
             sessionDuration: newSlot.sessionDuration,
             breakBetweenSessions: newSlot.breakBetweenSessions,
             isActive: newSlot.isActive,
-            rate: data.rate || undefined
+            isFreeSession: newSlot.isFree
         };
 
         return NextResponse.json({

@@ -2,19 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireApiAuth } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
 
-interface TimeSlotData {
+interface AvailabilitySlot {
   id: string;
+  date: string;
   startTime: string;
-  endTime: string;
-  dayOfWeek: number;
-  isRecurring: boolean;
-  recurrencePattern?: {
-    type: "daily" | "weekly" | "custom";
-    days?: number[];
-    endDate?: string;
-  };
-  isActive: boolean;
-  isFreeSession?: boolean;
+  isBooked: boolean;
+  isFree: boolean;
 }
 
 /**
@@ -22,12 +15,25 @@ interface TimeSlotData {
  * /api/therapist/availability:
  *   get:
  *     summary: Get therapist availability
- *     description: Retrieve the authenticated therapist's availability schedule
+ *     description: Retrieve the authenticated therapist's availability slots
  *     tags:
  *       - Therapist
  *       - Availability
  *     security:
  *       - sessionAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Start date for filtering slots (optional)
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: End date for filtering slots (optional)
  *     responses:
  *       200:
  *         description: Availability retrieved successfully
@@ -36,36 +42,27 @@ interface TimeSlotData {
  *             schema:
  *               type: object
  *               properties:
- *                 availability:
- *                   type: object
- *                   description: Therapist availability schedule
+ *                 slots:
+ *                   type: array
+ *                   items:
+ *                     type: object
  *       401:
  *         description: Unauthorized
  *       404:
  *         description: Therapist profile not found
  *       500:
  *         description: Internal server error
- *   put:
- *     summary: Update therapist availability
- *     description: Update the authenticated therapist's availability schedule
+ *   delete:
+ *     summary: Delete all availability slots
+ *     description: Delete all availability slots for the authenticated therapist
  *     tags:
  *       - Therapist
  *       - Availability
  *     security:
  *       - sessionAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               availability:
- *                 type: object
- *                 description: Updated availability schedule
  *     responses:
  *       200:
- *         description: Availability updated successfully
+ *         description: All slots deleted successfully
  *       401:
  *         description: Unauthorized
  *       404:
@@ -78,6 +75,10 @@ interface TimeSlotData {
 export async function GET(req: NextRequest) {
     try {
         const session = await requireApiAuth(req, ['THERAPIST']);
+        
+        const { searchParams } = new URL(req.url);
+        const startDate = searchParams.get('startDate');
+        const endDate = searchParams.get('endDate');
 
         // Get therapist profile
         const therapist = await prisma.therapist.findUnique({
@@ -91,33 +92,42 @@ export async function GET(req: NextRequest) {
             );
         }
 
-        // Get availability slots from the new table
+        // Build query filters
+        const whereClause: any = {
+            therapistId: therapist.id
+        };
+
+        if (startDate || endDate) {
+            whereClause.date = {};
+            if (startDate) {
+                whereClause.date.gte = new Date(startDate);
+            }
+            if (endDate) {
+                whereClause.date.lte = new Date(endDate);
+            }
+        }
+
+        // Get availability slots from the database
         const availabilitySlots = await prisma.therapistAvailability.findMany({
-            where: { therapistId: therapist.id },
+            where: whereClause,
             orderBy: [
-                { dayOfWeek: 'asc' },
+                { date: 'asc' },
                 { startTime: 'asc' }
             ]
         });
 
         // Convert database records to frontend format
-        const availability = availabilitySlots.map((slot) => ({
+        const slots: AvailabilitySlot[] = availabilitySlots.map((slot) => ({
             id: slot.id,
+            date: slot.date.toISOString().split('T')[0],
             startTime: slot.startTime,
-            endTime: slot.endTime,
-            dayOfWeek: slot.dayOfWeek,
-            isRecurring: slot.isRecurring,
-            recurrencePattern: slot.isRecurring && slot.recurrenceType ? {
-                type: slot.recurrenceType.toLowerCase() as "daily" | "weekly" | "custom",
-                days: slot.recurrenceDays.length > 0 ? slot.recurrenceDays : undefined,
-                endDate: slot.recurrenceEndDate?.toISOString() || undefined
-            } : undefined,
-            isActive: slot.isActive,
-            isFreeSession: slot.rate !== null && slot.rate.toNumber() === 0
+            isBooked: slot.isBooked,
+            isFree: slot.isFree
         }));
 
         return NextResponse.json({
-            availability: availability
+            slots,
+            count: slots.length
         });
 
     } catch (error) {
@@ -132,18 +142,10 @@ export async function GET(req: NextRequest) {
     }
 }
 
-// Update therapist availability
-export async function PUT(req: NextRequest) {
+// Delete all therapist availability
+export async function DELETE(req: NextRequest) {
     try {
         const session = await requireApiAuth(req, ['THERAPIST']);
-        const { availability } = await req.json();
-
-        if (!availability || !Array.isArray(availability)) {
-            return NextResponse.json(
-                { error: "Availability data must be an array" },
-                { status: 400 }
-            );
-        }
 
         // Get therapist profile
         const therapist = await prisma.therapist.findUnique({
@@ -157,75 +159,26 @@ export async function PUT(req: NextRequest) {
             );
         }
 
-        // Use transaction to update availability slots
-        const result = await prisma.$transaction(async (tx) => {
-            // Delete existing availability slots for this therapist
-            await tx.therapistAvailability.deleteMany({
-                where: { therapistId: therapist.id }
-            });
-
-            // Create new availability slots with fixed 45-minute sessions and 15-minute breaks
-            const createdSlots = await Promise.all(
-                availability.map(async (slot: TimeSlotData) => {
-                    const recurrenceType = slot.recurrencePattern?.type?.toUpperCase() as "DAILY" | "WEEKLY" | "CUSTOM" | undefined;
-                    
-                    const createData: any = {
-                        therapistId: therapist.id,
-                        startTime: slot.startTime,
-                        endTime: slot.endTime,
-                        dayOfWeek: slot.dayOfWeek,
-                        isRecurring: slot.isRecurring,
-                        recurrenceType: recurrenceType,
-                        recurrenceDays: slot.recurrencePattern?.days || [],
-                        recurrenceEndDate: slot.recurrencePattern?.endDate 
-                            ? new Date(slot.recurrencePattern.endDate) 
-                            : null,
-                        sessionDuration: 45, // Fixed 45-minute sessions
-                        breakBetweenSessions: 15, // Fixed 15-minute breaks
-                        isActive: slot.isActive
-                    };
-                    
-                    if (slot.isFreeSession) {
-                        createData.rate = 0;
-                    }
-                    
-                    return tx.therapistAvailability.create({
-                        data: createData
-                    });
-                })
-            );
-
-            return createdSlots;
+        // Delete all availability slots for this therapist that are not booked
+        const result = await prisma.therapistAvailability.deleteMany({
+            where: {
+                therapistId: therapist.id,
+                isBooked: false
+            }
         });
 
-        // Convert created slots back to frontend format
-        const formattedAvailability = result.map((slot) => ({
-            id: slot.id,
-            startTime: slot.startTime,
-            endTime: slot.endTime,
-            dayOfWeek: slot.dayOfWeek,
-            isRecurring: slot.isRecurring,
-            recurrencePattern: slot.isRecurring ? {
-                type: slot.recurrenceType?.toLowerCase() as "daily" | "weekly" | "custom",
-                days: slot.recurrenceDays || undefined,
-                endDate: slot.recurrenceEndDate?.toISOString() || undefined
-            } : undefined,
-            isActive: slot.isActive,
-            isFreeSession: slot.rate !== null && slot.rate.toNumber() === 0
-        }));
-
         return NextResponse.json({
-            message: "Availability updated successfully",
-            availability: formattedAvailability
+            message: "Availability deleted successfully",
+            deletedCount: result.count
         });
 
     } catch (error) {
         if (error instanceof NextResponse) {
             return error;
         }
-        console.error("Error updating therapist availability:", error);
+        console.error("Error deleting therapist availability:", error);
         return NextResponse.json(
-            { error: "Failed to update availability" },
+            { error: "Failed to delete availability" },
             { status: 500 }
         );
     }
