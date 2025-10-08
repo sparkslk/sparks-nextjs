@@ -31,7 +31,7 @@ export default function AppointmentsHeader({ childrenCount, upcomingSessionsCoun
               <p className="text-lg font-bold" style={{ color: '#8159A8' }}>{childrenCount}</p>
             </div>
             <div className="text-right">
-              <p className="text-xs" style={{ color: '#8159A8' }}>Upcoming Sessions</p>
+              <p className="text-xs" style={{ color: '#8159A8' }}>Scheduled Sessions</p>
               <p className="text-lg font-bold" style={{ color: '#8159A8' }}>
                 {upcomingSessionsCount}
               </p>

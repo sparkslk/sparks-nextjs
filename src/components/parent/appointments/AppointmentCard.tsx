@@ -1,6 +1,6 @@
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, User, CalendarDays, Video, CheckCircle } from "lucide-react";
+import { Calendar, Clock, User, CalendarDays, Video, CheckCircle, ChevronDown, ChevronRight } from "lucide-react";
 import { Child, Appointment } from "@/types/appointments";
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,10 +13,12 @@ interface AppointmentCardProps {
   upcomingAppointments: Appointment[];
   pastAppointments: Appointment[];
   cancelledAppointments: Appointment[];
+  noShowAppointments: Appointment[];
   onTherapistClick: (therapist: Child['therapist']) => void;
   formatDate: (dateString: string) => string;
   isHighlighted?: boolean;
   onSessionCancelled?: () => void;
+  customUpcomingComponent?: React.ReactNode;
 }
 
 function formatSriLankaDateTime(dateString: string, options: Intl.DateTimeFormatOptions = { dateStyle: 'medium', timeStyle: 'short' }) {
@@ -32,12 +34,14 @@ export default function AppointmentCard({
   upcomingAppointments,
   pastAppointments,
   cancelledAppointments,
+  noShowAppointments,
   onTherapistClick,
   formatDate,
   isHighlighted = false,
-  onSessionCancelled
+  onSessionCancelled,
+  customUpcomingComponent
 }: AppointmentCardProps) {
-  const [activeTab, setActiveTab] = useState<'upcoming' | 'completed' | 'cancelled' | 'all'>('all');
+  const [activeTab, setActiveTab] = useState<'upcoming' | 'completed' | 'cancelled' | 'no-show' | 'all'>('all');
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [selectedSessionToCancel, setSelectedSessionToCancel] = useState<Appointment | null>(null);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
@@ -52,15 +56,22 @@ export default function AppointmentCard({
   } | null>(null);
   const [checkingReschedule, setCheckingReschedule] = useState(false);
 
+  // New collapsible states for All tab
+  const [isPastOpen, setIsPastOpen] = useState<boolean>(false);
+  const [isCancelledOpen, setIsCancelledOpen] = useState<boolean>(false);
+  const [isNoShowOpen, setIsNoShowOpen] = useState<boolean>(false);
+
   // Filtering logic for appointments
   let filteredUpcoming = upcomingAppointments;
   let filteredPast = pastAppointments;
   let filteredCancelled = cancelledAppointments;
+  let filteredNoShow = noShowAppointments;
 
   if (activeTab !== 'all') {
     filteredUpcoming = activeTab === 'upcoming' ? upcomingAppointments : [];
     filteredPast = activeTab === 'completed' ? pastAppointments : [];
     filteredCancelled = activeTab === 'cancelled' ? cancelledAppointments : [];
+    filteredNoShow = activeTab === 'no-show' ? noShowAppointments : [];
   }
   // console.log(therapySessions);
 
@@ -203,12 +214,15 @@ export default function AppointmentCard({
     </div>
   );
 
-  const renderPastSessions = () => (
+  // Adjusted renderPastSessions to optionally hide the header so it can be used inside collapsible wrapper
+  const renderPastSessions = (showHeader = true) => (
     <div>
-      <div className="flex items-center space-x-2 mb-3">
-        <CheckCircle className="w-4 h-4 text-gray-600" />
-        <h3 className="font-semibold text-gray-900 text-sm">Past Sessions</h3>
-      </div>
+      {showHeader && (
+        <div className="flex items-center space-x-2 mb-3">
+          <CheckCircle className="w-4 h-4 text-gray-600" />
+          <h3 className="font-semibold text-gray-900 text-sm">Past Sessions</h3>
+        </div>
+      )}
       {filteredPast.length > 0 ? (
         <div className="space-y-3">
           {filteredPast.map((appointment: Appointment & { childFirstName?: string; childLastName?: string }) => (
@@ -283,12 +297,15 @@ export default function AppointmentCard({
     </div>
   );
 
-  const renderCancelledSessions = () => (
+  // Adjusted renderCancelledSessions to optionally hide the header so it can be used inside collapsible wrapper
+  const renderCancelledSessions = (showHeader = true) => (
     <div>
-      <div className="flex items-center space-x-2 mb-3">
-        <Calendar className="w-4 h-4 text-red-600" />
-        <h3 className="font-semibold text-gray-900 text-sm">Cancelled Sessions</h3>
-      </div>
+      {showHeader && (
+        <div className="flex items-center space-x-2 mb-3">
+          <Calendar className="w-4 h-4 text-red-600" />
+          <h3 className="font-semibold text-gray-900 text-sm">Cancelled Sessions</h3>
+        </div>
+      )}
       {filteredCancelled.length > 0 ? (
         <div className="space-y-3">
           {filteredCancelled.map((appointment: Appointment & { childFirstName?: string; childLastName?: string }) => (
@@ -352,12 +369,127 @@ export default function AppointmentCard({
     </div>
   );
 
+  // Adjusted renderNoShowSessions to optionally hide the header so it can be used inside collapsible wrapper
+  const renderNoShowSessions = (showHeader = true) => (
+    <div>
+      {showHeader && (
+        <div className="flex items-center space-x-2 mb-3">
+          <Calendar className="w-4 h-4 text-orange-600" />
+          <h3 className="font-semibold text-gray-900 text-sm">No Show Sessions</h3>
+        </div>
+      )}
+      {filteredNoShow.length > 0 ? (
+        <div className="space-y-3">
+          {filteredNoShow.map((appointment: Appointment & { childFirstName?: string; childLastName?: string }) => (
+            <div
+              key={appointment.id}
+              className="session-card no-show relative flex flex-col p-4 bg-gradient-to-r from-orange-50 to-red-50 rounded-2xl border border-orange-200 shadow transition-all duration-300 transform text-lg"
+              style={{ minHeight: '90px' }}
+            >
+              {/* Patient name with improved styling */}
+              {appointment.childFirstName && appointment.childLastName && (
+                <div className="absolute left-4 top-4 right-4 flex items-center justify-between z-10">
+                  <div className="px-4 py-2">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xs font-medium text-orange-600 uppercase tracking-wide">Patient</span>
+                      <span className="text-sm font-bold text-orange-800">
+                        {appointment.childFirstName} {appointment.childLastName}
+                      </span>
+                    </div>
+                  </div>
+                  <span className="inline-block bg-orange-100 border border-orange-300 text-orange-600 text-xs font-semibold px-3 py-1 rounded-full shadow-sm">
+                    No Show
+                  </span>
+                </div>
+              )}
+              <div className="flex items-center space-x-6 w-full mt-8">
+                <div className="w-14 h-14 bg-orange-100 rounded-full flex items-center justify-center">
+                  <Calendar className="w-7 h-7" style={{ color: '#EA580C' }} />
+                </div>
+                <div className="flex flex-row gap-6 sm:gap-12 items-center flex-wrap">
+                  <div className="flex flex-row items-center gap-2">
+                    <Calendar className="w-5 h-5" style={{ color: '#EA580C' }} />
+                    <span className="text-sm text-gray-500">Date:</span>
+                    <span className="font-semibold text-gray-900 text-sm ml-1">{formatDate(appointment.date)}</span>
+                  </div>
+                  <div className="flex flex-row items-center gap-2">
+                    <Clock className="w-5 h-5" style={{ color: '#EA580C' }} />
+                    <span className="text-sm text-gray-500">Time:</span>
+                    <span className="font-semibold text-gray-900 text-sm ml-1">{appointment.time}</span>
+                  </div>
+                  <div className="flex flex-row items-center gap-2">
+                    <User className="w-5 h-5" style={{ color: '#EA580C' }} />
+                    <span className="text-sm text-gray-500">Type:</span>
+                    <span className="font-semibold text-gray-900 text-sm ml-1">{appointment.type}</span>
+                  </div>
+                  <div className="flex flex-row items-center gap-2">
+                    <CheckCircle className="w-5 h-5" style={{ color: '#EA580C' }} />
+                    <span className="text-sm text-gray-500">Duration:</span>
+                    <span className="font-semibold text-gray-900 text-sm ml-1">{appointment.duration} min</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="p-3 bg-gradient-to-r from-gray-50 to-orange-50 rounded-lg text-center border border-gray-200">
+          <Calendar className="w-6 h-6 mx-auto mb-2 text-gray-400" />
+          <p className="text-gray-500 text-xs">No no-show sessions</p>
+        </div>
+      )}
+    </div>
+  );
+
   const renderAllSessions = () => (
-    filteredUpcoming.length > 0 || filteredPast.length > 0 || filteredCancelled.length > 0 ? (
+    filteredUpcoming.length > 0 || filteredPast.length > 0 || filteredCancelled.length > 0 || filteredNoShow.length > 0 ? (
       <div className="space-y-4">
-        {renderUpcomingSessions()}
-        {renderPastSessions()}
-        {renderCancelledSessions()}
+        {customUpcomingComponent || renderUpcomingSessions()}
+
+        {/* Collapsible Past Sessions */}
+        <div className="border rounded-2xl bg-[var(--color-secondary)]/5 p-0">
+          <div
+            className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors"
+            onClick={() => setIsPastOpen(!isPastOpen)}
+          >
+            <div className="flex items-center gap-3">
+              {isPastOpen ? <ChevronDown className="w-5 h-5 text-gray-600" /> : <ChevronRight className="w-5 h-5 text-gray-600" />}
+              <h3 className="text-sm font-semibold text-gray-900">Past Sessions</h3>
+            </div>
+            <div className="text-sm text-gray-600">{filteredPast.length}</div>
+          </div>
+          {isPastOpen && <div className="px-4 pb-4 pt-0">{renderPastSessions(false)}</div>}
+        </div>
+
+        {/* Collapsible Cancelled Sessions */}
+        <div className="border rounded-2xl bg-[var(--color-secondary)]/5 p-0">
+          <div
+            className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors"
+            onClick={() => setIsCancelledOpen(!isCancelledOpen)}
+          >
+            <div className="flex items-center gap-3">
+              {isCancelledOpen ? <ChevronDown className="w-5 h-5 text-gray-600" /> : <ChevronRight className="w-5 h-5 text-gray-600" />}
+              <h3 className="text-sm font-semibold text-gray-900">Cancelled Sessions</h3>
+            </div>
+            <div className="text-sm text-gray-600">{filteredCancelled.length}</div>
+          </div>
+          {isCancelledOpen && <div className="px-4 pb-4 pt-0">{renderCancelledSessions(false)}</div>}
+        </div>
+
+        {/* Collapsible No Show Sessions */}
+        <div className="border rounded-2xl bg-[var(--color-secondary)]/5 p-0">
+          <div
+            className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors"
+            onClick={() => setIsNoShowOpen(!isNoShowOpen)}
+          >
+            <div className="flex items-center gap-3">
+              {isNoShowOpen ? <ChevronDown className="w-5 h-5 text-gray-600" /> : <ChevronRight className="w-5 h-5 text-gray-600" />}
+              <h3 className="text-sm font-semibold text-gray-900">No Show Sessions</h3>
+            </div>
+            <div className="text-sm text-gray-600">{filteredNoShow.length}</div>
+          </div>
+          {isNoShowOpen && <div className="px-4 pb-4 pt-0">{renderNoShowSessions(false)}</div>}
+        </div>
       </div>
     ) : (
       <div className="text-center py-6">
@@ -386,8 +518,8 @@ export default function AppointmentCard({
 
   return (
     <Card className={`appointments-card bg-[var(--color-card)]/80 backdrop-blur-sm shadow-lg border hover:shadow-xl transition-all duration-300 ${isHighlighted
-        ? 'border-[var(--color-primary)] ring-2 ring-[var(--color-primary)]/20 shadow-[var(--color-primary)]/20'
-        : 'border-[var(--color-border)]'
+      ? 'border-[var(--color-primary)] ring-2 ring-[var(--color-primary)]/20 shadow-[var(--color-primary)]/20'
+      : 'border-[var(--color-border)]'
       }`}>
       <CardHeader className="pb-3 px-3 sm:px-6">
         <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-0">
@@ -447,7 +579,7 @@ export default function AppointmentCard({
 
       {/* Tabs for Sessions */}
       <div className="px-2 sm:px-6 pt-2 pb-4">
-        <Tabs value={activeTab} onValueChange={(value: string) => setActiveTab(value as 'upcoming' | 'completed' | 'cancelled' | 'all')} className="w-full">
+        <Tabs value={activeTab} onValueChange={(value: string) => setActiveTab(value as 'upcoming' | 'completed' | 'cancelled' | 'no-show' | 'all')} className="w-full">
           <TabsList className="w-full flex bg-[var(--color-secondary)]/30 rounded-2xl border border-[var(--color-border)] shadow-sm">
             <TabsTrigger value="upcoming" className="flex-1 text-xs sm:text-sm">
               Upcoming ({upcomingAppointments.length})
@@ -458,8 +590,11 @@ export default function AppointmentCard({
             <TabsTrigger value="cancelled" className="flex-1 text-xs sm:text-sm">
               Cancelled ({cancelledAppointments.length})
             </TabsTrigger>
+            <TabsTrigger value="no-show" className="flex-1 text-xs sm:text-sm">
+              No Show ({noShowAppointments.length})
+            </TabsTrigger>
             <TabsTrigger value="all" className="flex-1 text-xs sm:text-sm">
-              All ({upcomingAppointments.length + pastAppointments.length + cancelledAppointments.length})
+              All ({upcomingAppointments.length + pastAppointments.length + cancelledAppointments.length + noShowAppointments.length})
             </TabsTrigger>
           </TabsList>
 
@@ -468,7 +603,7 @@ export default function AppointmentCard({
           </TabsContent>
 
           <TabsContent value="upcoming" className="px-0 sm:px-4">
-            {renderUpcomingSessions()}
+            {customUpcomingComponent || renderUpcomingSessions()}
           </TabsContent>
 
           <TabsContent value="completed" className="px-0 sm:px-4">
@@ -477,6 +612,10 @@ export default function AppointmentCard({
 
           <TabsContent value="cancelled" className="px-0 sm:px-4">
             {renderCancelledSessions()}
+          </TabsContent>
+
+          <TabsContent value="no-show" className="px-0 sm:px-4">
+            {renderNoShowSessions()}
           </TabsContent>
         </Tabs>
       </div>
