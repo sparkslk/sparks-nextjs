@@ -33,6 +33,7 @@ interface SessionSlot {
   isActive: boolean;
   parentAvailabilityId: string;
   isFreeSession: boolean;
+  isBooked?: boolean;
 }
 
 interface WeeklyCalendarViewProps {
@@ -469,7 +470,9 @@ export function WeeklyCalendarView({
                   <div
                     key={sessionSlot.id}
                     className={`absolute left-2 right-2 rounded border transition-all cursor-pointer z-10 ${
-                      !sessionSlot.isActive
+                      sessionSlot.isBooked
+                        ? "bg-blue-500 text-white border-blue-600 hover:bg-blue-600"
+                        : !sessionSlot.isActive
                         ? "bg-gray-400 text-gray-100 border-gray-500"
                         : sessionSlot.isFreeSession
                         ? "bg-green-500 text-white border-green-600 hover:bg-green-600"
@@ -484,7 +487,11 @@ export function WeeklyCalendarView({
                         {formatTime(sessionSlot.startTime)}
                       </div>
                       <div className="text-xs opacity-90">
-                        {sessionSlot.isFreeSession ? "Free" : "Available"}
+                        {sessionSlot.isBooked 
+                          ? "Booked" 
+                          : sessionSlot.isFreeSession 
+                          ? "Free" 
+                          : "Available"}
                       </div>
                     </div>
 
@@ -507,11 +514,17 @@ export function WeeklyCalendarView({
                             </div>
                             <div><strong>Status:</strong> 
                               <span className={`ml-1 px-2 py-1 rounded text-xs ${
-                                sessionSlot.isActive
+                                sessionSlot.isBooked
                                   ? "bg-blue-100 text-blue-800"
+                                  : sessionSlot.isActive
+                                  ? "bg-green-100 text-green-800"
                                   : "bg-gray-100 text-gray-800"
                               }`}>
-                                {sessionSlot.isActive ? "Available for booking" : "Inactive"}
+                                {sessionSlot.isBooked 
+                                  ? "Booked" 
+                                  : sessionSlot.isActive 
+                                  ? "Available for booking" 
+                                  : "Inactive"}
                               </span>
                             </div>
                           </div>
@@ -530,13 +543,17 @@ export function WeeklyCalendarView({
           <div className="flex items-center gap-6 text-sm flex-wrap">
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 bg-[#8159A8] rounded border border-[#6D4C93]"></div>
-              <span>Paid Sessions (45 min)</span>
+              <span>Available Paid Sessions</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 bg-green-500 rounded border border-green-600"></div>
-              <span>Free Sessions (45 min)</span>
+              <span>Available Free Sessions</span>
             </div>
-                        <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-blue-500 rounded border border-blue-600"></div>
+              <span>Booked Sessions</span>
+            </div>
+            <div className="flex items-center gap-2">
               <div className="w-4 h-4 bg-gray-400 rounded border border-gray-500"></div>
               <span>Inactive Sessions</span>
             </div>

@@ -273,17 +273,24 @@ export function AddAvailabilityModal({
                     className="mt-2"
                   />
                 </div>
-                <div>
-                  <Label htmlFor="endDate">End Date (Recurrence End)</Label>
-                  <Input
-                    id="endDate"
-                    type="date"
-                    value={formData.endDate}
-                    onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                    min={formData.startDate}
-                    className="mt-2"
-                  />
-                </div>
+                
+                {/* Only show End Date if recurrence is enabled */}
+                {formData.recurrenceType !== "None" && (
+                  <div>
+                    <Label htmlFor="endDate">End Date (Recurrence End)</Label>
+                    <Input
+                      id="endDate"
+                      type="date"
+                      value={formData.endDate}
+                      onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                      min={formData.startDate}
+                      className="mt-2"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Availability will repeat until this date
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
 

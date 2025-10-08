@@ -242,38 +242,7 @@ function SetAvailabilityPageNew(): React.JSX.Element {
       return slotDate >= weekRange.start && slotDate <= weekRange.end;
     });
 
-    // Group slots by their recurrence pattern (same time, different dates)
-    const timeSlotMap = new Map<string, {
-      id: string;
-      startTime: string;
-      endTime: string;
-      dates: Date[];
-      isFree: boolean;
-    }>();
-
-    weekSlots.forEach(slot => {
-      const key = `${slot.startTime}-${slot.isFree}`;
-      const slotDate = new Date(slot.date);
-      
-      if (!timeSlotMap.has(key)) {
-        const [hours, minutes] = slot.startTime.split(':').map(Number);
-        const endHours = hours;
-        const endMinutes = minutes + 45;
-        const endTime = `${endHours.toString().padStart(2, '0')}:${(endMinutes % 60).toString().padStart(2, '0')}:00`;
-        
-        timeSlotMap.set(key, {
-          id: slot.id,
-          startTime: slot.startTime,
-          endTime,
-          dates: [slotDate],
-          isFree: slot.isFree
-        });
-      } else {
-        timeSlotMap.get(key)!.dates.push(slotDate);
-      }
-    });
-
-    // Convert to TimeSlot format
+    // Convert directly without grouping to preserve individual slot information
     const timeSlots: Array<{
       id: string;
       startTime: string;
@@ -287,20 +256,25 @@ function SetAvailabilityPageNew(): React.JSX.Element {
       };
       isActive: boolean;
       isFreeSession?: boolean;
+      isBooked?: boolean;
     }> = [];
 
-    timeSlotMap.forEach((value) => {
-      // For each unique date, create a TimeSlot
-      value.dates.forEach(date => {
-        timeSlots.push({
-          id: value.id + '-' + date.toISOString(),
-          startTime: value.startTime,
-          endTime: value.endTime,
-          dayOfWeek: date.getDay(),
-          isRecurring: false,
-          isActive: true,
-          isFreeSession: value.isFree,
-        });
+    weekSlots.forEach(slot => {
+      const [hours, minutes] = slot.startTime.split(':').map(Number);
+      const endHours = hours;
+      const endMinutes = minutes + 45;
+      const endTime = `${endHours.toString().padStart(2, '0')}:${(endMinutes % 60).toString().padStart(2, '0')}:00`;
+      const slotDate = new Date(slot.date);
+      
+      timeSlots.push({
+        id: slot.id,
+        startTime: slot.startTime,
+        endTime,
+        dayOfWeek: slotDate.getDay(),
+        isRecurring: false,
+        isActive: true, // Always true for display, booking status handled separately
+        isFreeSession: slot.isFree,
+        isBooked: slot.isBooked, // Pass booking status
       });
     });
 
@@ -344,9 +318,10 @@ function SetAvailabilityPageNew(): React.JSX.Element {
         startTime: slot.startTime,
         endTime,
         dayOfWeek: slotDate.getDay(),
-        isActive: !slot.isBooked,
+        isActive: true, // Always show as active (not deleted)
         parentAvailabilityId: slot.id,
         isFreeSession: slot.isFree,
+        isBooked: slot.isBooked, // Pass booking status separately
       };
     });
   };
