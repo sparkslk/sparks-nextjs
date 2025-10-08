@@ -137,6 +137,13 @@ export async function POST(request: NextRequest) {
         const hashedPassword = await bcrypt.hash(password, 12);
 
         // Create user with metadata if provided
+        console.log("Creating user with data:", {
+            name,
+            email,
+            role: role || UserRole.NORMAL_USER,
+            metadata: metadata || null
+        });
+
         const user = await prisma.user.create({
             data: {
                 name,
@@ -147,25 +154,43 @@ export async function POST(request: NextRequest) {
             },
         });
 
+        console.log("User created successfully:", { id: user.id, email: user.email, role: user.role });
+
         // Create role-specific profiles
         if (role === UserRole.THERAPIST) {
             // Ensure specialization is an array
-            const specializationArray = metadata.specialization
+            const specializationArray = metadata?.specialization
                 ? (Array.isArray(metadata.specialization)
                     ? metadata.specialization
-                    : metadata.specialization.split(',').map((s: string) => s.trim()).filter(Boolean))
+                    : [metadata.specialization]) // Convert single string to array
                 : [];
 
-            await prisma.therapist.create({
-                data: {
-                    userId: user.id,
-                    licenseNumber: metadata?.licenseNumber || "",
-                    specialization: specializationArray,
-                    experience: metadata.experience || 0,
-                    bio: metadata.bio || '',
-                    // Note: organizationId will need to be set later by an admin
-                },
+            console.log("Creating therapist profile with data:", {
+                userId: user.id,
+                licenseNumber: metadata?.licenseNumber || null,
+                specialization: specializationArray,
+                experience: metadata?.experience || 0,
+                bio: metadata?.bio || '',
             });
+
+            try {
+                await prisma.therapist.create({
+                    data: {
+                        userId: user.id,
+                        licenseNumber: metadata?.licenseNumber || null, // Use null instead of empty string for unique constraint
+                        specialization: specializationArray,
+                        experience: metadata?.experience || 0,
+                        bio: metadata?.bio || '',
+                        // Note: organizationId will need to be set later by an admin
+                    },
+                });
+                console.log("Therapist profile created successfully");
+            } catch (therapistError) {
+                console.error("Failed to create therapist profile:", therapistError);
+                // If therapist creation fails, clean up the user record
+                await prisma.user.delete({ where: { id: user.id } });
+                throw new Error("Failed to create therapist profile: " + (therapistError instanceof Error ? therapistError.message : 'Unknown error'));
+            }
         }
         // Do NOT create ParentGuardian record at signup. This should be done when a parent adds a child (patient) later.
 
@@ -177,9 +202,14 @@ export async function POST(request: NextRequest) {
             { user: userWithoutPassword },
             { status: 201 }
         );
-    } catch {
+    } catch (error) {
+        console.error("Signup error:", error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         return NextResponse.json(
-            { error: "Internal server error" },
+            { 
+                error: "Internal server error", 
+                details: process.env.NODE_ENV === 'development' ? errorMessage : undefined 
+            },
             { status: 500 }
         );
     }

@@ -54,6 +54,13 @@ export default function TherapistSignupPage() {
 
 
     try {
+      console.log("Attempting therapist signup with data:", {
+        email: formData.email,
+        name: formData.name,
+        role: UserRole.THERAPIST,
+        specialization: formData.specialization,
+      });
+
       const response = await fetch("/api/auth/signup", {
         method: "POST",
         headers: {
@@ -71,22 +78,30 @@ export default function TherapistSignupPage() {
       });
 
       const data = await response.json();
+      console.log("Signup response:", { status: response.status, data });
 
       if (!response.ok) {
+        console.error("Signup failed:", data);
         throw new Error(data.error || "Failed to create account");
       }
 
       // Sign in the user after successful signup
+      console.log("Attempting to sign in after signup...");
       const result = await signIn("credentials", {
         email: formData.email,
         password: formData.password,
         redirect: false,
       });
 
+      console.log("Sign in result:", result);
+
       if (result?.error) {
+        console.error("Sign in failed:", result.error);
         throw new Error("Failed to sign in after registration");
       }
 
+      // Redirect to verification page
+      console.log("Redirecting to therapist verification...");
       router.push("/therapist/verification");
     } catch (error: unknown) {
       setError(

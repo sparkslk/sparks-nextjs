@@ -128,10 +128,10 @@ model Patient {
   assessments            Assessment[]
   Medication             Medication[]
   parentGuardians        ParentGuardian[]
-  payments               Payment[]                    // Add this line
   organization           Organization?                @relation(fields: [organizationId], references: [id])
   primaryTherapist       Therapist?                   @relation(fields: [primaryTherapistId], references: [id])
   user                   User?                        @relation(fields: [userId], references: [id])
+  payments               Payment[]
   tasks                  Task[]
   therapistRequests      TherapistAssignmentRequest[] @relation("PatientRequests")
   therapySessions        TherapySession[]
@@ -393,9 +393,9 @@ model TherapistAvailability {
   sessionDuration      Int             @default(60)
   breakBetweenSessions Int             @default(15)
   isActive             Boolean         @default(true)
-  rate                 Decimal?        @db.Decimal(10, 2)
   createdAt            DateTime        @default(now())
   updatedAt            DateTime
+  isFree               Boolean         @default(false)
   Therapist            Therapist       @relation(fields: [therapistId], references: [id], onDelete: Cascade)
 
   @@index([dayOfWeek])
@@ -455,7 +455,7 @@ model Payment {
   orderId           String          @unique
   paymentId         String?         @unique
   sessionId         String?
-  patientId         String?         // Add this field
+  patientId         String?
   amount            Decimal         @db.Decimal(10, 2)
   currency          String          @default("LKR")
   status            PaymentStatus   @default(PENDING)
@@ -468,13 +468,13 @@ model Payment {
   metadata          Json?
   createdAt         DateTime?       @default(now()) @db.Timestamp(6)
   updatedAt         DateTime?       @default(now()) @db.Timestamp(6)
-  patient           Patient?        @relation(fields: [patientId], references: [id]) // Add this relation
+  patient           Patient?        @relation(fields: [patientId], references: [id])
   TherapySession    TherapySession? @relation(fields: [sessionId], references: [id], map: "fk_payment_session")
 
   @@index([orderId], map: "idx_orderId")
   @@index([paymentId], map: "idx_paymentId")
   @@index([sessionId], map: "idx_sessionId")
-  @@index([patientId], map: "idx_patientId") // Add this index
+  @@index([patientId], map: "idx_patientId")
   @@index([status], map: "idx_status")
 }
 
