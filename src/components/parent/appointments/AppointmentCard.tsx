@@ -730,6 +730,32 @@ export default function AppointmentCard({
           }
         }}
       />
+
+      {/* Cancel Session Modal */}
+      <SessionCancellationDialog
+        isOpen={showCancelDialog}
+        onClose={() => {
+          setShowCancelDialog(false);
+          setSelectedSessionToCancel(null);
+        }}
+        session={selectedSessionToCancel ? {
+          id: selectedSessionToCancel.id,
+          scheduledAt: selectedSessionToCancel.date + 'T' + selectedSessionToCancel.time + ':00',
+          patientName: selectedSessionToCancel.childFirstName && selectedSessionToCancel.childLastName
+            ? `${selectedSessionToCancel.childFirstName} ${selectedSessionToCancel.childLastName}`
+            : 'Patient',
+          therapistName: selectedSessionToCancel.therapist
+        } : null}
+        onSessionCancelled={() => {
+          setShowCancelDialog(false);
+          setSelectedSessionToCancel(null);
+          if (onSessionCancelled) {
+            onSessionCancelled();
+          } else {
+            window.location.reload();
+          }
+        }}
+      />
     </Card>
   );
 }

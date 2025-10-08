@@ -112,16 +112,45 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Update the session status to CANCELLED
-    const updatedSession = await prisma.therapySession.update({
-      where: {
-        id: sessionId
-      },
-      data: {
-        status: "CANCELLED",
-        updatedAt: new Date(),
-        sessionNotes: cancelReason ? `Cancelled by parent. Reason: ${cancelReason}` : "Cancelled by parent"
-      }
+    // Update the session status to CANCELLED and free up the therapist's availability slot
+    const [updatedSession] = await prisma.$transaction(async (tx) => {
+      // Update the session status to CANCELLED
+      const session = await tx.therapySession.update({
+        where: {
+          id: sessionId
+        },
+        data: {
+          status: "CANCELLED",
+          updatedAt: new Date(),
+          sessionNotes: cancelReason ? `Cancelled by parent. Reason: ${cancelReason}` : "Cancelled by parent"
+        }
+      });
+
+      // Find and update the corresponding therapist availability slot to make it available again
+      const sessionDate = new Date(therapySession.scheduledAt);
+      const timeString = sessionDate.toTimeString().slice(0, 5); // Format as "HH:mm"
+
+      // Get the date only (without time) for comparison
+      const dateOnly = new Date(sessionDate.getFullYear(), sessionDate.getMonth(), sessionDate.getDate());
+      const nextDay = new Date(dateOnly);
+      nextDay.setDate(nextDay.getDate() + 1);
+
+      await tx.therapistAvailability.updateMany({
+        where: {
+          therapistId: therapySession.therapistId,
+          startTime: timeString,
+          date: {
+            gte: dateOnly,
+            lt: nextDay
+          },
+          isBooked: true
+        },
+        data: {
+          isBooked: false
+        }
+      });
+
+      return [session];
     });
 
     // Create a notification for the therapist

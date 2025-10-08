@@ -15,6 +15,7 @@ import { Calendar, Clock, User, AlertCircle, ChevronDown, ChevronRight } from "l
 import { useRouter } from "next/navigation";
 import { SessionBookingModal } from "@/components/parent/SessionBookingModal";
 import RescheduleModal from "@/components/parent/appointments/RescheduleModal";
+import SessionCancellationDialog from "@/components/parent/SessionCancellationDialog";
 
 export default function AppointmentsPage() {
   const [children, setChildren] = useState<Child[]>([]);
@@ -33,6 +34,10 @@ export default function AppointmentsPage() {
   // Reschedule modal state (so RescheduleModal receives appointment and can fetch slots by childId)
   const [selectedSessionToReschedule, setSelectedSessionToReschedule] = useState<Appointment | null>(null);
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
+
+  // Cancel modal state
+  const [selectedSessionToCancel, setSelectedSessionToCancel] = useState<Appointment | null>(null);
+  const [showCancelModal, setShowCancelModal] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -152,6 +157,18 @@ export default function AppointmentsPage() {
     fetchData();
     setShowRescheduleModal(false);
     setSelectedSessionToReschedule(null);
+  };
+
+  const handleCancelRequest = (appointment: Appointment) => {
+    setSelectedSessionToCancel(appointment);
+    setShowCancelModal(true);
+  };
+
+  const handleCancelConfirmed = () => {
+    // refresh list after cancel completes
+    fetchData();
+    setShowCancelModal(false);
+    setSelectedSessionToCancel(null);
   };
 
   // Reschedule helpers and No-show helpers
@@ -359,6 +376,14 @@ export default function AppointmentsPage() {
                                 onClick={() => handleRescheduleRequest(appointment)}
                               >
                                 Reschedule
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-red-600 border-red-600 hover:bg-red-50"
+                                onClick={() => handleCancelRequest(appointment)}
+                              >
+                                Cancel
                               </Button>
                               <Button
                                 variant="outline"
@@ -586,6 +611,24 @@ export default function AppointmentsPage() {
           if (!open) setSelectedSessionToReschedule(null);
         }}
         onRescheduleSuccess={handleRescheduleConfirmed}
+      />
+
+      {/* Cancel Session Modal */}
+      <SessionCancellationDialog
+        isOpen={showCancelModal}
+        onClose={() => {
+          setShowCancelModal(false);
+          setSelectedSessionToCancel(null);
+        }}
+        session={selectedSessionToCancel ? {
+          id: selectedSessionToCancel.id,
+          scheduledAt: selectedSessionToCancel.date + 'T' + selectedSessionToCancel.time + ':00',
+          patientName: selectedSessionToCancel.childFirstName && selectedSessionToCancel.childLastName
+            ? `${selectedSessionToCancel.childFirstName} ${selectedSessionToCancel.childLastName}`
+            : children.find(c => c.id === selectedSessionToCancel.childId)?.firstName + " " + children.find(c => c.id === selectedSessionToCancel.childId)?.lastName,
+          therapistName: selectedSessionToCancel.therapist
+        } : null}
+        onSessionCancelled={handleCancelConfirmed}
       />
     </div>
   );
