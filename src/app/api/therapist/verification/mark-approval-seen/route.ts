@@ -40,16 +40,29 @@ export async function POST(req: NextRequest) {
     }
 
     // Update verification record to mark approval as seen
-    await prisma.therapistVerification.updateMany({
+    const verification = await prisma.therapistVerification.findFirst({
       where: { 
         therapistId: therapist.id,
         status: 'APPROVED'
-      },
-      data: {
-        // Add a timestamp to track when approval was acknowledged
-        reviewNotes: `Approval acknowledged at ${new Date().toISOString()}`
       }
     });
+
+    if (verification) {
+      const existingNotes = verification.reviewNotes || '';
+      const acknowledgedMarker = 'APPROVAL_ACKNOWLEDGED';
+      
+      // Only add the marker if it's not already there
+      if (!existingNotes.includes(acknowledgedMarker)) {
+        const newNotes = existingNotes 
+          ? `${existingNotes}\n\n${acknowledgedMarker}: ${new Date().toISOString()}`
+          : `${acknowledgedMarker}: ${new Date().toISOString()}`;
+          
+        await prisma.therapistVerification.update({
+          where: { id: verification.id },
+          data: { reviewNotes: newNotes }
+        });
+      }
+    }
 
     return NextResponse.json({
       message: "Approval message marked as seen"

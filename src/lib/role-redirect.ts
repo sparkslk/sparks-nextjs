@@ -15,9 +15,18 @@ export async function getRoleBasedDashboard(role: UserRole | null, userId?: stri
         case UserRole.THERAPIST:
             // Check therapist verification status
             if (userId) {
+                console.log("getRoleBasedDashboard: Checking therapist verification for userId:", userId);
+                
                 const therapist = await prisma.therapist.findUnique({
                     where: { userId },
                     include: { verification: true }
+                });
+
+                console.log("getRoleBasedDashboard: Found therapist:", {
+                    therapistId: therapist?.id,
+                    hasVerification: !!therapist?.verification,
+                    verificationStatus: therapist?.verification?.status,
+                    reviewNotes: therapist?.verification?.reviewNotes
                 });
 
                 if (therapist?.verification) {
@@ -26,7 +35,9 @@ export async function getRoleBasedDashboard(role: UserRole | null, userId?: stri
                     // If approved, check if they've seen the approval message
                     if (status === 'APPROVED') {
                         const reviewNotes = therapist.verification.reviewNotes;
-                        const hasSeenApproval = reviewNotes?.includes('Approval acknowledged');
+                        const hasSeenApproval = reviewNotes?.includes('APPROVAL_ACKNOWLEDGED');
+                        
+                        console.log("getRoleBasedDashboard: Approved therapist - hasSeenApproval:", hasSeenApproval);
                         
                         // If they haven't seen the approval message yet, show it
                         if (!hasSeenApproval) {
@@ -36,18 +47,21 @@ export async function getRoleBasedDashboard(role: UserRole | null, userId?: stri
                         return "/therapist/dashboard";
                     }
                     
-                    // If still pending or under review, go to success page
-                    if (status === 'PENDING' || status === 'UNDER_REVIEW') {
+                    // If still pending, go to success page
+                    if (status === 'PENDING') {
+                        console.log("getRoleBasedDashboard: Pending verification");
                         return "/therapist/verification/success";
                     }
                     
                     // If rejected or needs resubmission, go back to verification
                     if (status === 'REJECTED' || status === 'REQUIRES_RESUBMISSION') {
+                        console.log("getRoleBasedDashboard: Rejected or needs resubmission");
                         return "/therapist/verification";
                     }
                 }
                 
                 // No verification found, go to verification page
+                console.log("getRoleBasedDashboard: No verification found");
                 return "/therapist/verification";
             }
             return "/therapist/dashboard";
