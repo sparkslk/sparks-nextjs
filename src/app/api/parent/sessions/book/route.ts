@@ -50,6 +50,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log(`Book API received: date=${date}, timeSlot=${timeSlot}`);
+
     // Parse the date and time slot
     let sessionDate: Date;
     let startTime: string;
@@ -61,27 +63,36 @@ export async function POST(request: NextRequest) {
         throw new Error("Invalid date");
       }
 
-      // Extract start time from slot (format: "HH:MM" or "HH:MM AM/PM")
-      const [timeSlotStart] = timeSlot.split(" - ");
+      // Extract start time from slot (format: "HH:MM-HH:MM")
+      const [timeSlotStart] = timeSlot.split("-");
+      console.log(`Extracted timeSlotStart: "${timeSlotStart}"`);
 
-      // Parse time (handle both 24h and 12h formats)
+      // Clean the time string (remove any extra spaces)
+      const cleanTimeSlot = timeSlotStart.trim();
+      console.log(`Clean timeSlotStart: "${cleanTimeSlot}"`);
+
+      // Parse time (prioritize 24h format since our system uses 24h)
       let hours: number, minutes: number;
 
-      const time12Match = timeSlotStart.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
-      if (time12Match) {
-        // 12-hour format
-        const h = parseInt(time12Match[1]);
-        minutes = parseInt(time12Match[2]);
-        const period = time12Match[3].toUpperCase();
-        hours = period === "AM" ? (h === 12 ? 0 : h) : (h === 12 ? 12 : h + 12);
-      } else {
-        // 24-hour format
-        const time24Match = timeSlotStart.match(/^(\d{1,2}):(\d{2})$/);
-        if (!time24Match) {
-          throw new Error("Invalid time format");
-        }
+      // First try 24-hour format (HH:MM)
+      const time24Match = cleanTimeSlot.match(/^(\d{1,2}):(\d{2})$/);
+      if (time24Match) {
         hours = parseInt(time24Match[1]);
         minutes = parseInt(time24Match[2]);
+        console.log(`Parsed 24h format: ${hours}:${minutes}`);
+      } else {
+        // Try 12-hour format as fallback
+        const time12Match = cleanTimeSlot.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+        if (time12Match) {
+          const h = parseInt(time12Match[1]);
+          minutes = parseInt(time12Match[2]);
+          const period = time12Match[3].toUpperCase();
+          hours = period === "AM" ? (h === 12 ? 0 : h) : (h === 12 ? 12 : h + 12);
+          console.log(`Parsed 12h format: ${h}${period} -> ${hours}:${minutes}`);
+        } else {
+          console.error(`Failed to parse time format: "${cleanTimeSlot}"`);
+          throw new Error(`Invalid time format: "${cleanTimeSlot}"`);
+        }
       }
 
       // Validate time values
@@ -89,14 +100,20 @@ export async function POST(request: NextRequest) {
         throw new Error("Invalid time values");
       }
 
-      // Create session datetime
-      const year = inputDate.getFullYear();
-      const month = inputDate.getMonth();
-      const day = inputDate.getDate();
+      // Create session datetime that preserves the exact time
+      // Build the datetime string to avoid timezone conversion issues
+      const dateStr = `${inputDate.getFullYear()}-${(inputDate.getMonth() + 1).toString().padStart(2, '0')}-${inputDate.getDate().toString().padStart(2, '0')}`;
+      const timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`;
 
-      // Create session date in Sri Lankan timezone
-      sessionDate = new Date(year, month, day, hours, minutes, 0, 0);
+      // Create as UTC datetime to preserve the exact time values
+      sessionDate = new Date(`${dateStr}T${timeStr}.000Z`);
       startTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+
+      console.log(`Parsed time: ${startTime}`);
+      console.log(`Date: ${dateStr}, Time: ${timeStr}`);
+      console.log(`Combined UTC string: ${dateStr}T${timeStr}.000Z`);
+      console.log(`SessionDate: ${sessionDate.toISOString()}`);
+      console.log(`Time part in DB will be: ${sessionDate.toISOString().split('T')[1]}`);
 
     } catch (error) {
       console.error("Failed to parse date/time:", error);
