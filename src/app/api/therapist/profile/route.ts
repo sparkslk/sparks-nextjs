@@ -88,7 +88,7 @@ export async function GET(req: NextRequest) {
     try {
         const session = await requireApiAuth(req, ['THERAPIST']);
 
-        // Get therapist profile with user information
+        // Get therapist profile with all related data
         const therapist = await prisma.therapist.findUnique({
             where: { userId: session.user.id },
             include: {
@@ -98,6 +98,19 @@ export async function GET(req: NextRequest) {
                         name: true,
                         email: true,
                         image: true
+                    }
+                },
+                profile: true,
+                verification: {
+                    select: {
+                        status: true,
+                        licenseNumber: true,
+                        primarySpecialty: true,
+                        yearsOfExperience: true,
+                        highestEducation: true,
+                        institution: true,
+                        adhdExperience: true,
+                        reviewedAt: true
                     }
                 },
                 organization: {
@@ -116,7 +129,40 @@ export async function GET(req: NextRequest) {
             );
         }
 
-        return NextResponse.json({
+        // Calculate profile completion
+        const requiredFields = [
+            // Basic info
+            therapist.user.name,
+            therapist.user.email,
+            therapist.profile?.phone,
+            therapist.profile?.dateOfBirth,
+            therapist.profile?.gender,
+            therapist.profile?.city,
+            therapist.bio,
+            // Professional info
+            therapist.verification?.licenseNumber,
+            therapist.verification?.primarySpecialty,
+            therapist.verification?.yearsOfExperience,
+            therapist.verification?.highestEducation,
+            therapist.verification?.institution,
+            // Business info
+            therapist.session_rate !== null,
+            therapist.profile?.accountHolderName,
+            therapist.profile?.accountNumber,
+            therapist.profile?.bankName,
+            therapist.profile?.branchName,
+        ];
+
+        const completedFields = requiredFields.filter(field => {
+            if (typeof field === 'boolean') return field;
+            return field && field.toString().trim() !== '';
+        }).length;
+
+        const completionPercentage = Math.round((completedFields / requiredFields.length) * 100);
+        const isCompleted = completionPercentage >= 90; // Consider 90%+ as completed
+
+        // Legacy format for existing frontend components
+        const legacyResponse = {
             id: therapist.id,
             licenseNumber: therapist.licenseNumber,
             specialization: therapist.specialization,
@@ -129,6 +175,59 @@ export async function GET(req: NextRequest) {
             createdAt: therapist.createdAt,
             updatedAt: therapist.updatedAt,
             hasAvailability: therapist.availability && Array.isArray(therapist.availability) && therapist.availability.length > 0
+        };
+
+        // Enhanced profile data for profile completion flow
+        const profileData = {
+            // User info
+            name: therapist.user.name || '',
+            email: therapist.user.email || '',
+            image: therapist.user.image,
+            
+            // Basic profile
+            phone: therapist.profile?.phone || '',
+            dateOfBirth: therapist.profile?.dateOfBirth?.toISOString().split('T')[0] || '',
+            gender: therapist.profile?.gender || '',
+            address: {
+                houseNumber: therapist.profile?.houseNumber || '',
+                streetName: therapist.profile?.streetName || '',
+                city: therapist.profile?.city || ''
+            },
+            bio: therapist.bio || '',
+            
+            // Professional info from verification
+            licenseNumber: therapist.verification?.licenseNumber || '',
+            primarySpecialty: therapist.verification?.primarySpecialty || '',
+            yearsOfExperience: therapist.verification?.yearsOfExperience || '',
+            highestEducation: therapist.verification?.highestEducation || '',
+            institution: therapist.verification?.institution || '',
+            adhdExperience: therapist.verification?.adhdExperience || '',
+            
+            // Business info
+            hourlyRate: therapist.session_rate?.toString() || '0',
+            bankDetails: {
+                accountHolderName: therapist.profile?.accountHolderName || '',
+                accountNumber: therapist.profile?.accountNumber || '',
+                bankName: therapist.profile?.bankName || '',
+                branchName: therapist.profile?.branchName || ''
+            },
+            
+            // Profile status
+            verificationStatus: therapist.verification?.status?.toLowerCase() || 'pending',
+            verificationDate: therapist.verification?.reviewedAt?.toISOString() || '',
+            joinedDate: therapist.createdAt.toISOString(),
+            lastUpdated: therapist.updatedAt.toISOString(),
+            profileCompletion: completionPercentage,
+            
+            // Profile image info
+            hasProfileImage: !!(therapist.profile?.profileImage || therapist.user.image),
+        };
+
+        return NextResponse.json({
+            ...legacyResponse,
+            profileData,
+            isCompleted,
+            completionPercentage
         });
 
     } catch (error) {

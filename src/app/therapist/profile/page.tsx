@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,6 +42,7 @@ import {
   Shield,
   AlertCircle,
 } from "lucide-react";
+import { useSession } from "next-auth/react";
 
 // Fixed TherapistProfile interface with all required properties
 interface TherapistProfile {
@@ -76,45 +78,136 @@ interface TherapistProfile {
   profileCompletion: number;
 }
 
-const mockProfile: TherapistProfile = {
-  name: "Dr. Ravindi Fernando",
-  email: "ravindi@email.com",
-  phone: "0771234567",
-  dateOfBirth: "1985-03-15",
-  gender: "female",
-  address: {
-    houseNumber: "123",
-    streetName: "Colombo Road",
-    city: "Kandy",
-  },
-  profilePicture: "/images/profile-placeholder.jpg",
-  bio: "Experienced ADHD specialist with over 8 years of practice. I focus on cognitive behavioral therapy and holistic approaches.",
-  licenseNumber: "LIC123456",
-  primarySpecialty: "adhd-specialist",
-  yearsOfExperience: "5-10-years",
-  highestEducation: "doctorate",
-  institution: "University of Colombo",
-  adhdExperience:
-    "Extensive experience working with ADHD patients including children and adults.",
-  hourlyRate: "2500",
-  bankDetails: {
-    accountHolderName: "Ravindi Fernando",
-    accountNumber: "1234567890123",
-    bankName: "Commercial Bank",
-    branchName: "Kandy",
-  },
-  verificationStatus: "approved",
-  verificationDate: "2025-01-10T10:30:00Z",
-  joinedDate: "2025-01-05T14:20:00Z",
-  lastUpdated: "2025-01-15T09:15:00Z",
-  profileCompletion: 85,
-};
-
 export default function TherapistProfilePage() {
-  const [profile, setProfile] = useState<TherapistProfile>(mockProfile);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const { data: session } = useSession();
+  const isCompletionMode = searchParams.get('complete') === 'true';
+
+  const [profile, setProfile] = useState<TherapistProfile | null>(null);
   const [activeSection, setActiveSection] = useState<string | null>(null);
   const [editData, setEditData] = useState<Partial<TherapistProfile>>({});
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showCompletionBanner, setShowCompletionBanner] = useState(isCompletionMode);
+  const [error, setError] = useState<string>('');
+
+  // Fetch profile data from API
+  useEffect(() => {
+    const fetchProfileData = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch('/api/therapist/profile');
+        if (!response.ok) {
+          throw new Error('Failed to fetch profile data');
+        }
+        const data = await response.json();
+        // Map API response to frontend interface
+        const profileData: TherapistProfile = {
+          name: data.profileData.name,
+          email: data.profileData.email,
+          phone: data.profileData.phone,
+          dateOfBirth: data.profileData.dateOfBirth,
+          gender: data.profileData.gender,
+          address: {
+            houseNumber: data.profileData.address.houseNumber,
+            streetName: data.profileData.address.streetName,
+            city: data.profileData.address.city,
+          },
+          profilePicture: data.profileData.hasProfileImage 
+            ? "/api/therapist/profile/image"
+            : "/images/profile-placeholder.jpg",
+          bio: data.profileData.bio,
+          licenseNumber: data.profileData.licenseNumber,
+          primarySpecialty: data.profileData.primarySpecialty,
+          yearsOfExperience: data.profileData.yearsOfExperience,
+          highestEducation: data.profileData.highestEducation,
+          institution: data.profileData.institution,
+          adhdExperience: data.profileData.adhdExperience,
+          hourlyRate: data.profileData.hourlyRate,
+          bankDetails: {
+            accountHolderName: data.profileData.bankDetails.accountHolderName,
+            accountNumber: data.profileData.bankDetails.accountNumber,
+            bankName: data.profileData.bankDetails.bankName,
+            branchName: data.profileData.bankDetails.branchName,
+          },
+          verificationStatus: data.profileData.verificationStatus,
+          verificationDate: data.profileData.verificationDate,
+          joinedDate: data.profileData.joinedDate,
+          lastUpdated: data.profileData.lastUpdated,
+          profileCompletion: data.profileData.profileCompletion,
+        };
+        setProfile(profileData);
+        // Auto-open personal section if in completion mode and profile incomplete
+        if (isCompletionMode && data.profileData.profileCompletion < 80) {
+          setActiveSection('personal');
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+        setError('Failed to load profile data. Please try again.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    if (session?.user?.role === 'THERAPIST') {
+      fetchProfileData();
+    }
+  }, [session, isCompletionMode]);
+
+  // Show loading state while fetching profile
+  if (isLoading && !profile) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <h2 className="text-xl font-semibold text-gray-700">Loading your profile...</h2>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  // Show error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center py-12">
+              <div className="text-red-600 mb-4">
+                <AlertCircle className="w-12 h-12 mx-auto mb-2" />
+                <h2 className="text-xl font-semibold">Error Loading Profile</h2>
+                <p className="text-sm mt-2">{error}</p>
+              </div>
+              <Button onClick={() => window.location.reload()}>
+                Try Again
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  // Show message if no profile found
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center py-12">
+              <User className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+              <h2 className="text-xl font-semibold text-gray-700">Profile Not Found</h2>
+              <p className="text-gray-600 mt-2">Unable to load your profile information.</p>
+              <Button onClick={() => router.push('/therapist/dashboard')} className="mt-4">
+                Go to Dashboard
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const getStatusInfo = (status: string) => {
     switch (status) {
@@ -171,17 +264,68 @@ export default function TherapistProfilePage() {
   };
 
   const saveEdit = async () => {
-    setIsLoading(true);
     try {
-      // TODO: API call
-      setProfile(prev => ({...prev, ...editData}));
-      setActiveSection(null);
+      setIsLoading(true);
+      // Prepare data for API
+      const updateData = {
+        // Personal information
+        phone: editData.phone || profile?.phone,
+        dateOfBirth: editData.dateOfBirth || profile?.dateOfBirth,
+        gender: editData.gender || profile?.gender,
+        houseNumber: editData.address?.houseNumber || profile?.address.houseNumber,
+        streetName: editData.address?.streetName || profile?.address.streetName,
+        city: editData.address?.city || profile?.address.city,
+        bio: editData.bio || profile?.bio,
+        // Business information
+        hourlyRate: parseFloat(editData.hourlyRate || profile?.hourlyRate || '0'),
+        accountHolderName: editData.bankDetails?.accountHolderName || profile?.bankDetails.accountHolderName,
+        accountNumber: editData.bankDetails?.accountNumber || profile?.bankDetails.accountNumber,
+        bankName: editData.bankDetails?.bankName || profile?.bankDetails.bankName,
+        branchName: editData.bankDetails?.branchName || profile?.bankDetails.branchName,
+      };
+      const response = await fetch('/api/therapist/profile/complete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updateData),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update profile');
+      }
+      const result = await response.json();
+      // Update local state
+      if (profile) {
+        const updatedProfile = { ...profile, ...editData };
+        updatedProfile.profileCompletion = result.completionPercentage;
+        setProfile(updatedProfile);
+      }
+      // Clear edit data and close section
       setEditData({});
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      setActiveSection(null);
+      // If in completion mode and profile is now complete, offer to go to dashboard
+      if (isCompletionMode && result.completionPercentage >= 80) {
+        const shouldRedirect = confirm(
+          "Great! Your profile is now complete. Would you like to go to your dashboard?"
+        );
+        if (shouldRedirect) {
+          router.push('/therapist/dashboard');
+        }
+      }
     } catch (error) {
-      console.error("Failed to update:", error);
+      console.error("Failed to update profile:", error);
+      setError(error instanceof Error ? error.message : 'Failed to update profile');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleProfileComplete = () => {
+    if (profile.profileCompletion >= 80) {
+      router.push('/therapist/dashboard');
+    } else {
+      alert('Please complete the required fields before proceeding to your dashboard.');
     }
   };
 
@@ -370,6 +514,52 @@ export default function TherapistProfilePage() {
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           <ProfileHeader />
+
+          {/* Profile Completion Banner */}
+          {showCompletionBanner && (
+            <Card className="border-blue-200 bg-blue-50 mb-8">
+              <CardContent className="p-6">
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0">
+                    <CheckCircle className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-blue-900 mb-2">
+                      Welcome! Complete Your Profile
+                    </h3>
+                    <p className="text-blue-800 mb-4">
+                      Congratulations on your approval! To start accepting patients, please complete your profile by adding:
+                    </p>
+                    <ul className="text-sm text-blue-700 space-y-1 mb-4">
+                      <li>• Personal contact information</li>
+                      <li>• Professional hourly rate</li>
+                      <li>• Bank account details (optional)</li>
+                      <li>• Profile picture (optional)</li>
+                    </ul>
+                    <div className="flex gap-3">
+                      <Button 
+                        onClick={() => {
+                          // Auto-open required sections
+                          setActiveSection('personal');
+                          setShowCompletionBanner(false);
+                        }}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        Complete Profile
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setShowCompletionBanner(false)}
+                        className="border-blue-300 text-blue-600 hover:bg-blue-100"
+                      >
+                        Skip for Now
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           <div className="space-y-8">
             {/* Personal Information */}

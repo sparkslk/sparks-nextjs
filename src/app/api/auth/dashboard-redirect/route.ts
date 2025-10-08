@@ -2,6 +2,43 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireApiAuth } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
 
+// Helper function to check if therapist profile is complete
+async function checkProfileCompletion(therapist: any): Promise<boolean> {
+  // Get all verification data
+  const verification = await prisma.therapistVerification.findUnique({
+    where: { therapistId: therapist.id }
+  });
+
+  // Check required fields for profile completion
+  const requiredFields = [
+    // Basic info
+    therapist.user?.name,
+    therapist.user?.email,
+    therapist.profile?.phone,
+    therapist.profile?.dateOfBirth,
+    therapist.profile?.gender,
+    therapist.profile?.city,
+    therapist.bio,
+    // Professional info
+    verification?.licenseNumber,
+    verification?.primarySpecialty,
+    verification?.yearsOfExperience,
+    verification?.highestEducation,
+    verification?.institution,
+    // Business info
+    therapist.session_rate !== null && therapist.session_rate > 0,
+  ];
+
+  // Check basic completion (profile image and bank details can be optional initially)
+  const completedFields = requiredFields.filter(field => {
+    if (typeof field === 'boolean') return field;
+    return field && field.toString().trim() !== '';
+  }).length;
+
+  const completionPercentage = (completedFields / requiredFields.length) * 100;
+  return completionPercentage >= 80; // Consider 80%+ as completed for basic requirements
+}
+
 /**
  * @swagger
  * /api/auth/dashboard-redirect:
@@ -55,20 +92,24 @@ export async function GET(req: NextRequest) {
         
         const therapist = await prisma.therapist.findUnique({
           where: { userId },
-          include: { verification: true }
+          include: { 
+            verification: true,
+            profile: true
+          }
         });
 
         console.log("Dashboard redirect API: Found therapist:", {
           therapistId: therapist?.id,
           hasVerification: !!therapist?.verification,
           verificationStatus: therapist?.verification?.status,
-          reviewNotes: therapist?.verification?.reviewNotes
+          reviewNotes: therapist?.verification?.reviewNotes,
+          hasProfile: !!therapist?.profile
         });
 
         if (therapist?.verification) {
           const status = therapist.verification.status;
           
-          // If approved, check if they've seen the approval message
+          // If approved, check if they've seen the approval message and completed profile
           if (status === 'APPROVED') {
             const reviewNotes = therapist.verification.reviewNotes;
             const hasSeenApproval = reviewNotes?.includes('APPROVAL_ACKNOWLEDGED');
@@ -79,7 +120,15 @@ export async function GET(req: NextRequest) {
             if (!hasSeenApproval) {
               redirectUrl = "/therapist/verification/approved";
             } else {
-              redirectUrl = "/therapist/dashboard";
+              // Check if profile is completed
+              const isProfileComplete = await checkProfileCompletion(therapist);
+              console.log("Dashboard redirect API: Profile completion check:", isProfileComplete);
+              
+              if (!isProfileComplete) {
+                redirectUrl = "/therapist/profile?complete=true";
+              } else {
+                redirectUrl = "/therapist/dashboard";
+              }
             }
           } else if (status === 'PENDING') {
             console.log("Dashboard redirect API: Pending verification");

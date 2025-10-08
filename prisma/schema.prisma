@@ -627,17 +627,28 @@ enum PaymentStatus {
 
 // Therapist Verification Models
 model TherapistProfile {
-  id           String     @id @default(cuid())
-  therapistId  String     @unique
-  phone        String?
-  houseNumber  String?
-  streetName   String?
-  city         String?
-  gender       Gender?
-  dateOfBirth  DateTime?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  therapist    Therapist  @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+  id                    String     @id @default(cuid())
+  therapistId           String     @unique
+  phone                 String?
+  houseNumber           String?
+  streetName            String?
+  city                  String?
+  gender                Gender?
+  dateOfBirth           DateTime?
+  profileImage          Bytes?     // Store profile image as bytea
+  profileImageName      String?    // Store original filename
+  profileImageMimeType  String?    // Store MIME type
+  // Bank details for payments
+  accountHolderName     String?
+  accountNumber         String?
+  bankName              String?
+  branchName            String?
+  // Profile completion tracking
+  profileCompleted      Boolean    @default(false)
+  profileCompletedAt    DateTime?
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
+  therapist             Therapist  @relation(fields: [therapistId], references: [id], onDelete: Cascade)
 }
 
 model TherapistVerification {
