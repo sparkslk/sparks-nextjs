@@ -22,6 +22,7 @@ interface TimeSlot {
   };
   isActive: boolean;
   isFreeSession?: boolean;
+  createdAt?: string; // Added to track when availability was created
 }
 
 interface SessionSlot {
@@ -32,6 +33,7 @@ interface SessionSlot {
   isActive: boolean;
   parentAvailabilityId: string;
   isFreeSession: boolean;
+  isBooked?: boolean;
 }
 
 interface WeeklyCalendarViewProps {
@@ -43,13 +45,16 @@ interface WeeklyCalendarViewProps {
   onDeleteSlot?: (slotId: string) => void;
   onToggleSlot?: (slotId: string) => void;
   onDragSelect?: (dayOfWeek: number, startTime: string, endTime: string) => void;
+  onSlotClick?: (slotId: string) => void;
 }
 
 export function WeeklyCalendarView({
+  timeSlots,
   sessionSlots,
   selectedWeekStart,
   onWeekChange,
   onDragSelect,
+  onSlotClick,
 }: WeeklyCalendarViewProps): React.JSX.Element {
   const [hoveredSlot, setHoveredSlot] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -57,7 +62,7 @@ export function WeeklyCalendarView({
   const [dragEnd, setDragEnd] = useState<{dayIndex: number, timeIndex: number} | null>(null);
 
   const days = [
-    "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday",
+    "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday",
   ];
 
   const sessionTimeSlots = Array.from({ length: (22 - 7) }, (_, i) => {
@@ -84,9 +89,15 @@ export function WeeklyCalendarView({
 
   const getWeekDates = (startDate: Date) => {
     const dates = [];
+    // Find the Monday of the current week
+    const firstDay = new Date(startDate);
+    const day = firstDay.getDay();
+    const diff = day === 0 ? -6 : 1 - day; // if Sunday (0), go back 6 days, else go to Monday
+    firstDay.setDate(firstDay.getDate() + diff);
+    
     for (let i = 0; i < 7; i++) {
-      const date = new Date(startDate);
-      date.setDate(startDate.getDate() + i);
+      const date = new Date(firstDay);
+      date.setDate(firstDay.getDate() + i);
       dates.push(date);
     }
     return dates;
@@ -100,8 +111,80 @@ export function WeeklyCalendarView({
     onWeekChange(newDate);
   };
 
-  const getSessionSlotsForDay = (dayOfWeek: number) => {
-    return sessionSlots.filter((slot) => slot.dayOfWeek === dayOfWeek);
+  // Helper function to check if a session slot should be displayed based on recurrence rules
+  // This ensures that recurring slots only appear within their valid date range:
+  // - Slots with recurrence end dates won't appear after that date
+  // - Non-recurring slots only appear on the specific week they were created
+  // - Recurring slots start from creation date and end at recurrence end date
+  // - Combined with past date checking, slots only show from today/future until end date
+  const shouldDisplaySlot = (sessionSlot: SessionSlot, currentDate: Date): boolean => {
+    // Find the parent availability slot
+    const parentSlot = timeSlots.find(slot => slot.id === sessionSlot.parentAvailabilityId);
+    
+    if (!parentSlot) return true; // If no parent found, display by default
+    
+    // Get the creation date (start of recurrence or the specific date for non-recurring)
+    const createdAt = parentSlot.createdAt ? new Date(parentSlot.createdAt) : null;
+    
+    if (!parentSlot.isRecurring) {
+      // NON-RECURRING: Only show on the specific week it was created
+      if (createdAt) {
+        // Find the Monday of the week when it was created
+        const createdDay = createdAt.getDay();
+        const daysFromMonday = createdDay === 0 ? -6 : 1 - createdDay;
+        const createdWeekStart = new Date(createdAt);
+        createdWeekStart.setDate(createdAt.getDate() + daysFromMonday);
+        createdWeekStart.setHours(0, 0, 0, 0);
+        
+        const createdWeekEnd = new Date(createdWeekStart);
+        createdWeekEnd.setDate(createdWeekStart.getDate() + 6);
+        createdWeekEnd.setHours(23, 59, 59, 999);
+        
+        // Only show if currentDate is in the same week as creation
+        if (currentDate < createdWeekStart || currentDate > createdWeekEnd) {
+          return false;
+        }
+      }
+    } else {
+      // RECURRING: Check both start date (createdAt) and end date
+      if (createdAt) {
+        const startDate = new Date(createdAt);
+        startDate.setHours(0, 0, 0, 0);
+        
+        // Don't show before the recurrence start date
+        if (currentDate < startDate) {
+          return false;
+        }
+      }
+      
+      // Check if recurrence has an end date
+      if (parentSlot.recurrencePattern?.endDate) {
+        const endDate = new Date(parentSlot.recurrencePattern.endDate);
+        endDate.setHours(23, 59, 59, 999); // Set to end of day for inclusive comparison
+        
+        // Only show if current date is before or on the recurrence end date
+        if (currentDate > endDate) {
+          return false;
+        }
+      }
+    }
+    
+    return true;
+  };
+
+  const getSessionSlotsForDay = (dayOfWeek: number, currentDate?: Date) => {
+    // Convert JS day (0=Sunday, 6=Saturday) to our format (1=Monday, 7=Sunday)
+    const dbDay = dayOfWeek === 0 ? 7 : dayOfWeek;
+    return sessionSlots.filter((slot) => {
+      if (slot.dayOfWeek !== dbDay) return false;
+      
+      // If currentDate is provided, check recurrence end date
+      if (currentDate) {
+        return shouldDisplaySlot(slot, currentDate);
+      }
+      
+      return true;
+    });
   };
 
   const getSlotPosition = (startTime: string, endTime: string) => {
@@ -130,7 +213,36 @@ export function WeeklyCalendarView({
   };
 
   const handleMouseDown = (dayIndex: number, timeSlotIndex: number) => {
-    const hasSlot = getSessionSlotsForDay(weekDates[dayIndex].getDay()).some((slot) => {
+    const weekDate = weekDates[dayIndex];
+    const jsDay = weekDate.getDay();
+    const dbDay = jsDay === 0 ? 7 : jsDay;
+    
+    // Check if the date or time slot is in the past
+    const now = new Date();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDate = new Date(weekDate);
+    selectedDate.setHours(0, 0, 0, 0);
+    
+    // Block if date is in the past
+    if (selectedDate < today) {
+      return;
+    }
+    
+    // If it's today, check if the time slot has passed
+    if (selectedDate.getTime() === today.getTime()) {
+      const currentHour = now.getHours();
+      const currentMinutes = now.getMinutes();
+      const currentTotalMinutes = currentHour * 60 + currentMinutes;
+      const slotStartMinutes = sessionTimeSlots[timeSlotIndex].startHour * 60;
+      
+      // Block if the time slot has already passed
+      if (slotStartMinutes <= currentTotalMinutes) {
+        return;
+      }
+    }
+    
+    const hasSlot = getSessionSlotsForDay(jsDay, weekDate).some((slot) => {
       const slotStartMinutes = timeStringToMinutes(slot.startTime);
       const currentSlotStart = sessionTimeSlots[timeSlotIndex].startHour * 60;
       return slotStartMinutes >= currentSlotStart && slotStartMinutes < (currentSlotStart + 60);
@@ -157,7 +269,12 @@ export function WeeklyCalendarView({
       const startTime = sessionTimeSlots[startTimeIndex].startTimeString;
       const endTime = sessionTimeSlots[endTimeIndex]?.startTimeString || "22:00";
       
-      onDragSelect(weekDates[dragStart.dayIndex].getDay(), startTime, endTime);
+      // Convert JS day to database day format (1=Monday, 7=Sunday)
+      const weekDate = weekDates[dragStart.dayIndex];
+      const jsDay = weekDate.getDay();
+      const dbDay = jsDay === 0 ? 7 : jsDay;
+      
+      onDragSelect(dbDay, startTime, endTime);
     }
     
     setIsDragging(false);
@@ -214,7 +331,7 @@ export function WeeklyCalendarView({
         </div>
 
         <div className="text-sm text-gray-600">
-          Click and drag to create new availability blocks. Each cell = 30 minutes.
+          Click and drag to create new availability blocks.
         </div>
       </div>
 
@@ -268,35 +385,64 @@ export function WeeklyCalendarView({
             <div key={dayIndex} className="border-r relative">
               {/* 60-minute session slots */}
               {sessionTimeSlots.map((timeSlot, timeSlotIndex) => {
-                const hasSlot = getSessionSlotsForDay(weekDates[dayIndex].getDay()).some((slot) => {
+                const hasSlot = getSessionSlotsForDay(weekDates[dayIndex].getDay(), weekDates[dayIndex]).some((slot) => {
                   const slotStartMinutes = timeStringToMinutes(slot.startTime);
                   const currentSlotStart = timeSlot.startHour * 60;
                   return slotStartMinutes >= currentSlotStart && slotStartMinutes < (currentSlotStart + 60);
                 });
 
+                // Check if this date is in the past or if time slot is in the past for today
+                const now = new Date();
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const cellDate = new Date(weekDates[dayIndex]);
+                cellDate.setHours(0, 0, 0, 0);
+                
+                let isPast = cellDate < today;
+                
+                // If it's today, also check if the time slot has passed
+                if (cellDate.getTime() === today.getTime()) {
+                  const currentHour = now.getHours();
+                  const currentMinutes = now.getMinutes();
+                  const currentTotalMinutes = currentHour * 60 + currentMinutes;
+                  const slotStartMinutes = timeSlot.startHour * 60;
+                  
+                  // Mark as past if the slot start time has already passed
+                  if (slotStartMinutes <= currentTotalMinutes) {
+                    isPast = true;
+                  }
+                }
+
                 return (
                   <div
                     key={timeSlotIndex}
-                    className={`h-16 border-b border-gray-100 transition-colors cursor-pointer group relative ${
-                      hasSlot
+                    className={`h-16 border-b border-gray-100 transition-colors ${
+                      isPast 
+                        ? "bg-gray-100 cursor-not-allowed opacity-50" 
+                        : hasSlot
                         ? "bg-[#8159A8]/10"
                         : isDragSelected(dayIndex, timeSlotIndex)
                         ? "bg-[#8159A8]/30"
-                        : "hover:bg-gray-50"
-                    }`}
-                    onMouseDown={() => handleMouseDown(dayIndex, timeSlotIndex)}
-                    onMouseEnter={() => handleMouseEnter(dayIndex, timeSlotIndex)}
+                        : "hover:bg-gray-50 cursor-pointer"
+                    } group relative`}
+                    onMouseDown={() => !isPast && handleMouseDown(dayIndex, timeSlotIndex)}
+                    onMouseEnter={() => !isPast && handleMouseEnter(dayIndex, timeSlotIndex)}
                     onClick={() => {
-                      if (!hasSlot && onDragSelect) {
+                      if (!isPast && !hasSlot && onDragSelect) {
+                        // Convert JS day to database day format
+                        const weekDate = weekDates[dayIndex];
+                        const jsDay = weekDate.getDay();
+                        const dbDay = jsDay === 0 ? 7 : jsDay;
+                        
                         onDragSelect(
-                          weekDates[dayIndex].getDay(),
+                          dbDay,
                           timeSlot.startTimeString,
                           timeSlot.endTimeString
                         );
                       }
                     }}
                   >
-                    {!hasSlot && (
+                    {!hasSlot && !isPast && (
                       <div className="flex flex-col items-center justify-center h-full opacity-0 group-hover:opacity-100 transition-opacity">
                         <Plus className="h-4 w-4 text-[#8159A8] mb-1" />
                         <div className="text-xs text-[#8159A8] font-medium">
@@ -307,34 +453,48 @@ export function WeeklyCalendarView({
                         </div>
                       </div>
                     )}
+                    {isPast && !hasSlot && (
+                      <div className="flex items-center justify-center h-full">
+                        <div className="text-xs text-gray-400">
+                          Past
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}
 
               {/* Session Slots - Individual bookable sessions */}
-              {getSessionSlotsForDay(weekDates[dayIndex].getDay()).map((sessionSlot) => {
+              {getSessionSlotsForDay(weekDates[dayIndex].getDay(), weekDates[dayIndex]).map((sessionSlot) => {
                 const position = getSlotPosition(sessionSlot.startTime, sessionSlot.endTime);
 
                 return (
                   <div
                     key={sessionSlot.id}
-                    className={`absolute left-2 right-2 rounded border transition-all cursor-pointer z-10 ${
-                      !sessionSlot.isActive
+                    className={`absolute left-2 right-2 rounded border transition-all z-10 ${
+                      sessionSlot.isBooked
+                        ? "bg-blue-500 text-white border-blue-600 hover:bg-blue-600 cursor-not-allowed"
+                        : !sessionSlot.isActive
                         ? "bg-gray-400 text-gray-100 border-gray-500"
                         : sessionSlot.isFreeSession
-                        ? "bg-green-500 text-white border-green-600 hover:bg-green-600"
-                        : "bg-[#8159A8] text-white border-[#6D4C93] hover:bg-[#6D4C93]"
+                        ? "bg-green-500 text-white border-green-600 hover:bg-green-600 cursor-pointer"
+                        : "bg-[#8159A8] text-white border-[#6D4C93] hover:bg-[#6D4C93] cursor-pointer"
                     }`}
                     style={position}
                     onMouseEnter={() => setHoveredSlot(sessionSlot.id)}
                     onMouseLeave={() => setHoveredSlot(null)}
+                    onClick={() => !sessionSlot.isBooked && onSlotClick && onSlotClick(sessionSlot.id)}
                   >
                     <div className="p-1 text-center">
                       <div className="text-xs font-medium">
                         {formatTime(sessionSlot.startTime)}
                       </div>
                       <div className="text-xs opacity-90">
-                        {sessionSlot.isFreeSession ? "Free" : "Available"}
+                        {sessionSlot.isBooked 
+                          ? "Booked" 
+                          : sessionSlot.isFreeSession 
+                          ? "Free" 
+                          : "Available"}
                       </div>
                     </div>
 
@@ -357,14 +517,25 @@ export function WeeklyCalendarView({
                             </div>
                             <div><strong>Status:</strong> 
                               <span className={`ml-1 px-2 py-1 rounded text-xs ${
-                                sessionSlot.isActive
+                                sessionSlot.isBooked
                                   ? "bg-blue-100 text-blue-800"
+                                  : sessionSlot.isActive
+                                  ? "bg-green-100 text-green-800"
                                   : "bg-gray-100 text-gray-800"
                               }`}>
-                                {sessionSlot.isActive ? "Available for booking" : "Inactive"}
+                                {sessionSlot.isBooked 
+                                  ? "Booked" 
+                                  : sessionSlot.isActive 
+                                  ? "Available for booking" 
+                                  : "Inactive"}
                               </span>
                             </div>
                           </div>
+                          {!sessionSlot.isBooked && (
+                            <div className="mt-2 pt-2 border-t text-xs text-gray-500 italic">
+                              Click to edit or delete
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}
@@ -380,13 +551,17 @@ export function WeeklyCalendarView({
           <div className="flex items-center gap-6 text-sm flex-wrap">
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 bg-[#8159A8] rounded border border-[#6D4C93]"></div>
-              <span>Paid Sessions (45 min)</span>
+              <span>Available Paid Sessions</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 bg-green-500 rounded border border-green-600"></div>
-              <span>Free Sessions (45 min)</span>
+              <span>Available Free Sessions</span>
             </div>
-                        <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-blue-500 rounded border border-blue-600"></div>
+              <span>Booked Sessions</span>
+            </div>
+            <div className="flex items-center gap-2">
               <div className="w-4 h-4 bg-gray-400 rounded border border-gray-500"></div>
               <span>Inactive Sessions</span>
             </div>
