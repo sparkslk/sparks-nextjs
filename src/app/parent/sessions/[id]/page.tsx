@@ -362,10 +362,10 @@ export default function SessionDetailsPage() {
               <CardHeader className="flex  gap-2 mb-0.5 border-b border-border">
                 <CardTitle className="flex items-center justify-between w-full">
                   <span className="text-xl font-bold text-[#8159A8] flex items-center gap-2">
-                    <FileText className="w-6 h-6 text-[#8159A8]" /> Tasks assigned for this session
+                    <FileText className="w-6 h-6 text-[#8159A8]" /> Assessments assigned for this session
                   </span>
                   <Badge className="bg-[#f7f5fb] text-[#8159A8] border border-[#e5e3ee] px-4 py-1 rounded-xl font-semibold text-base shadow-none">
-                    {tasks.length} tasks
+                    {tasks.length} assessments
                   </Badge>
                 </CardTitle>
               </CardHeader>
@@ -375,7 +375,7 @@ export default function SessionDetailsPage() {
                 ) : tasksError ? (
                   <div className="bg-white rounded-xl shadow p-6 text-red-400 italic text-center">{tasksError}</div>
                 ) : tasks.length === 0 ? (
-                  <div className="bg-white rounded-xl shadow p-6 text-gray-400 italic text-center">No tasks for this session</div>
+                  <div className="bg-white rounded-xl shadow p-6 text-gray-400 italic text-center">No assessments for this session</div>
                 ) : (
                   <div className="space-y-5 mt-2">
                     {tasks.map((task) => (

@@ -50,53 +50,71 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log(`Book API received: date=${date}, timeSlot=${timeSlot}`);
+
     // Parse the date and time slot
     let sessionDate: Date;
     let startTime: string;
-    
+    let inputDate: Date;
+
     try {
-      const inputDate = new Date(date);
+      inputDate = new Date(date);
       if (isNaN(inputDate.getTime())) {
         throw new Error("Invalid date");
       }
-      
-      // Extract start time from slot (format: "HH:MM" or "HH:MM AM/PM")
-      const [timeSlotStart] = timeSlot.split(" - ");
-      
-      // Parse time (handle both 24h and 12h formats)
+
+      // Extract start time from slot (format: "HH:MM-HH:MM")
+      const [timeSlotStart] = timeSlot.split("-");
+      console.log(`Extracted timeSlotStart: "${timeSlotStart}"`);
+
+      // Clean the time string (remove any extra spaces)
+      const cleanTimeSlot = timeSlotStart.trim();
+      console.log(`Clean timeSlotStart: "${cleanTimeSlot}"`);
+
+      // Parse time (prioritize 24h format since our system uses 24h)
       let hours: number, minutes: number;
-      
-      const time12Match = timeSlotStart.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
-      if (time12Match) {
-        // 12-hour format
-        const h = parseInt(time12Match[1]);
-        minutes = parseInt(time12Match[2]);
-        const period = time12Match[3].toUpperCase();
-        hours = period === "AM" ? (h === 12 ? 0 : h) : (h === 12 ? 12 : h + 12);
-      } else {
-        // 24-hour format
-        const time24Match = timeSlotStart.match(/^(\d{1,2}):(\d{2})$/);
-        if (!time24Match) {
-          throw new Error("Invalid time format");
-        }
+
+      // First try 24-hour format (HH:MM)
+      const time24Match = cleanTimeSlot.match(/^(\d{1,2}):(\d{2})$/);
+      if (time24Match) {
         hours = parseInt(time24Match[1]);
         minutes = parseInt(time24Match[2]);
+        console.log(`Parsed 24h format: ${hours}:${minutes}`);
+      } else {
+        // Try 12-hour format as fallback
+        const time12Match = cleanTimeSlot.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+        if (time12Match) {
+          const h = parseInt(time12Match[1]);
+          minutes = parseInt(time12Match[2]);
+          const period = time12Match[3].toUpperCase();
+          hours = period === "AM" ? (h === 12 ? 0 : h) : (h === 12 ? 12 : h + 12);
+          console.log(`Parsed 12h format: ${h}${period} -> ${hours}:${minutes}`);
+        } else {
+          console.error(`Failed to parse time format: "${cleanTimeSlot}"`);
+          throw new Error(`Invalid time format: "${cleanTimeSlot}"`);
+        }
       }
-      
+
       // Validate time values
       if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
         throw new Error("Invalid time values");
       }
-      
-      // Create session datetime
-      const year = inputDate.getFullYear();
-      const month = inputDate.getMonth();
-      const day = inputDate.getDate();
-      
-      const dateString = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}T${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00.000Z`;
-      sessionDate = new Date(dateString);
+
+      // Create session datetime that preserves the exact time
+      // Build the datetime string to avoid timezone conversion issues
+      const dateStr = `${inputDate.getFullYear()}-${(inputDate.getMonth() + 1).toString().padStart(2, '0')}-${inputDate.getDate().toString().padStart(2, '0')}`;
+      const timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`;
+
+      // Create as UTC datetime to preserve the exact time values
+      sessionDate = new Date(`${dateStr}T${timeStr}.000Z`);
       startTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-      
+
+      console.log(`Parsed time: ${startTime}`);
+      console.log(`Date: ${dateStr}, Time: ${timeStr}`);
+      console.log(`Combined UTC string: ${dateStr}T${timeStr}.000Z`);
+      console.log(`SessionDate: ${sessionDate.toISOString()}`);
+      console.log(`Time part in DB will be: ${sessionDate.toISOString().split('T')[1]}`);
+
     } catch (error) {
       console.error("Failed to parse date/time:", error);
       return NextResponse.json(
@@ -105,18 +123,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const dateOnly = sessionDate.toISOString().split('T')[0];
+    // Get the date string for matching
+    const dateStr = `${inputDate.getFullYear()}-${(inputDate.getMonth() + 1).toString().padStart(2, '0')}-${inputDate.getDate().toString().padStart(2, '0')}`;
+
+    console.log(`Book API - Querying for date: ${dateStr}, time: ${startTime}`);
+
+    // Create target date for comparison (same logic as available-slots)
+    const targetDate = new Date(dateStr + 'T00:00:00.000Z');
+    const nextDay = new Date(dateStr + 'T00:00:00.000Z');
+    nextDay.setUTCDate(nextDay.getUTCDate() + 1);
 
     // Check if therapist has availability for this specific date and time
     const availabilitySlot = await prisma.therapistAvailability.findFirst({
       where: {
         therapistId: child.primaryTherapistId!,
-        date: {
-          gte: new Date(dateOnly + 'T00:00:00.000Z'),
-          lt: new Date(dateOnly + 'T23:59:59.999Z')
-        },
         startTime: startTime,
-        isBooked: false
+        isBooked: false,
+        date: {
+          gte: targetDate,
+          lt: nextDay
+        }
       }
     });
 
@@ -127,29 +153,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check for existing sessions at the same time (double-check)
-    const existingSession = await prisma.therapySession.findFirst({
-      where: {
-        therapistId: child.primaryTherapistId!,
-        scheduledAt: sessionDate,
-        status: {
-          in: ["SCHEDULED", "APPROVED", "REQUESTED", "RESCHEDULED"]
-        }
-      }
-    });
-
-    if (existingSession) {
-      return NextResponse.json(
-        { error: "This time slot is already booked" },
-        { status: 400 }
-      );
-    }
-
     // Get the rate - check if slot is free, otherwise use therapist's session rate
     const sessionRate = availabilitySlot.isFree ? 0 : (child.primaryTherapist.session_rate || 0);
 
     // Create the therapy session and mark the slot as booked in a transaction
     const result = await prisma.$transaction(async (tx) => {
+      // First, mark the availability slot as booked (double-check it's still available)
+      const updateRes = await tx.therapistAvailability.updateMany({
+        where: {
+          id: availabilitySlot.id,
+          isBooked: false // Only update if still unbooked
+        },
+        data: { isBooked: true }
+      });
+
+      if (updateRes.count === 0) {
+        throw new Error('SLOT_ALREADY_BOOKED');
+      }
+
       // Create therapy session
       const therapySession = await tx.therapySession.create({
         data: {
@@ -180,18 +201,12 @@ export async function POST(request: NextRequest) {
         }
       });
 
-      // Mark the availability slot as booked
-      await tx.therapistAvailability.update({
-        where: { id: availabilitySlot.id },
-        data: { isBooked: true }
-      });
-
       return therapySession;
     });
 
     // Create notifications for both parent and therapist
     const notificationMessage = `New therapy session scheduled for ${child.firstName} ${child.lastName} on ${sessionDate.toLocaleDateString()} at ${startTime}`;
-    
+
     await prisma.notification.createMany({
       data: [
         {
@@ -225,6 +240,15 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error("Error booking session:", error);
+
+    const maybeErr = error as Error | undefined;
+    if (maybeErr?.message === 'SLOT_ALREADY_BOOKED') {
+      return NextResponse.json(
+        { error: 'This time slot has already been booked' },
+        { status: 409 }
+      );
+    }
+
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

@@ -25,7 +25,7 @@ interface TherapySession {
   };
   scheduledAt: string;
   duration: number; // in minutes
-  status: "SCHEDULED" | "COMPLETED" | "CANCELLED";
+  status: "SCHEDULED" | "COMPLETED" | "CANCELLED" ;
   type: string;
   attendanceStatus: "present" | "absent" | "partial" | "pending";
 }
