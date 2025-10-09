@@ -11,7 +11,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -129,7 +128,7 @@ function SetAvailabilityPageNew(): React.JSX.Element {
     }
   };
 
-  const handleDeleteSlot = async (slotId: string) => {
+  /*const handleDeleteSlot = async (slotId: string) => {
     if (!confirm("Are you sure you want to delete this slot?")) {
       return;
     }
@@ -150,7 +149,7 @@ function SetAvailabilityPageNew(): React.JSX.Element {
       console.error("Error deleting slot:", error);
       alert("Failed to delete slot. Please try again.");
     }
-  };
+  };*/
 
   const handleClearAll = async () => {
     if (!confirm("Are you sure you want to clear all unbooked availability slots?")) {

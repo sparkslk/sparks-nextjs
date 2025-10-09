@@ -44,10 +44,11 @@ import { prisma } from "@/lib/prisma";
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await requireApiAuth(req, ['THERAPIST', 'ADMIN']);
+    const { id: documentId } = await params;
 
     // Get therapist ID (if user is therapist, only allow their own documents)
     let therapistId: string | undefined;
@@ -67,7 +68,7 @@ export async function GET(
     }
 
     // Find the document and verify access
-    const whereClause: any = { id: params.id };
+    const whereClause: Record<string, unknown> = { id: documentId };
     if (therapistId) {
       whereClause.therapistId = therapistId;
     }

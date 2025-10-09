@@ -93,7 +93,13 @@ export async function GET(req: NextRequest) {
         }
 
         // Build query filters
-        const whereClause: any = {
+        const whereClause: {
+            therapistId: string;
+            date?: {
+                gte?: Date;
+                lte?: Date;
+            };
+        } = {
             therapistId: therapist.id
         };
 

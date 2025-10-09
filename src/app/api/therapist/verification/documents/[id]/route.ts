@@ -31,10 +31,11 @@ import { prisma } from "@/lib/prisma";
  */
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await requireApiAuth(req, ['THERAPIST']);
+    const params = await context.params;
 
     // Get therapist ID
     const therapist = await prisma.therapist.findUnique({

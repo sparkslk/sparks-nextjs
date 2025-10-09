@@ -112,7 +112,6 @@ export function AddAvailabilityModal({
     // If today, filter out past time slots
     const now = new Date();
     const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
 
     return timeSlots.filter(slot => {
       const [slotHour] = slot.split(':').map(Number);
@@ -189,7 +188,7 @@ export function AddAvailabilityModal({
       totalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
     } else if (formData.recurrenceType === "Weekly") {
       let weeks = 0;
-      let currentDate = new Date(startDate);
+      const currentDate = new Date(startDate);
       while (currentDate <= endDate) {
         if (currentDate.getDay() === startDate.getDay()) {
           weeks++;
@@ -199,7 +198,7 @@ export function AddAvailabilityModal({
       totalDays = weeks;
     } else if (formData.recurrenceType === "Monthly") {
       let months = 0;
-      let currentDate = new Date(startDate);
+      const currentDate = new Date(startDate);
       while (currentDate <= endDate) {
         if (currentDate.getDate() === startDate.getDate()) {
           months++;
@@ -208,7 +207,7 @@ export function AddAvailabilityModal({
       }
       totalDays = months;
     } else if (formData.recurrenceType === "Custom") {
-      let currentDate = new Date(startDate);
+      const currentDate = new Date(startDate);
       while (currentDate <= endDate) {
         if (formData.selectedDays?.includes(currentDate.getDay())) {
           totalDays++;
@@ -402,7 +401,7 @@ export function AddAvailabilityModal({
                     value={formData.recurrenceType} 
                     onValueChange={(value) => setFormData({ 
                       ...formData, 
-                      recurrenceType: value as any,
+                      recurrenceType: value as "None" | "Daily" | "Weekly" | "Monthly" | "Custom",
                       selectedDays: value === "Custom" ? formData.selectedDays : []
                     })}
                   >

@@ -2,8 +2,32 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireApiAuth } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
 
+interface TherapistWithRelations {
+  id: string;
+  userId: string;
+  bio: string | null;
+  session_rate: number | { toNumber(): number } | null;
+  user?: {
+    name?: string | null;
+    email?: string | null;
+  };
+  profile?: {
+    phone?: string | null;
+    dateOfBirth?: Date | null;
+    gender?: string | null;
+    city?: string | null;
+  } | null;
+  verification?: {
+    licenseNumber?: string | null;
+    primarySpecialty?: string | null;
+    yearsOfExperience?: string | null;
+    highestEducation?: string | null;
+    institution?: string | null;
+  } | null;
+}
+
 // Helper function to check if therapist profile is complete
-async function checkProfileCompletion(therapist: any): Promise<boolean> {
+async function checkProfileCompletion(therapist: TherapistWithRelations): Promise<boolean> {
   // Get all verification data
   const verification = await prisma.therapistVerification.findUnique({
     where: { therapistId: therapist.id }
@@ -26,7 +50,7 @@ async function checkProfileCompletion(therapist: any): Promise<boolean> {
     verification?.highestEducation,
     verification?.institution,
     // Business info
-    therapist.session_rate !== null && therapist.session_rate > 0,
+    therapist.session_rate !== null && (typeof therapist.session_rate === 'number' ? therapist.session_rate > 0 : therapist.session_rate.toNumber() > 0),
   ];
 
   // Check basic completion (profile image and bank details can be optional initially)
