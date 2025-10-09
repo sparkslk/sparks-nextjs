@@ -335,7 +335,7 @@ export default function TherapistVerificationPage() {
       }
 
       // Update state with successfully uploaded files
-      const uploadedFiles: FileUpload[] = result.documents.map((doc: any) => ({
+      const uploadedFiles: FileUpload[] = result.documents.map((doc: {originalName: string; fileSize: number; mimeType: string; id: string}) => ({
         name: doc.originalName,
         size: doc.fileSize,
         type: doc.mimeType,
@@ -594,7 +594,7 @@ export default function TherapistVerificationPage() {
         if (result.details) {
           // Handle validation errors
           const fieldErrors: ValidationErrors = {};
-          result.details.forEach((error: any) => {
+          result.details.forEach((error: {path: string[]; message: string}) => {
             const fieldPath = error.path.join(".");
             fieldErrors[fieldPath] = error.message;
           });

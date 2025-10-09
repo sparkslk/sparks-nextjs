@@ -58,14 +58,6 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
   const [loadingSessionDetails, setLoadingSessionDetails] = useState(false);
   const [detailedSession, setDetailedSession] = useState<Session | null>(null);
 
-  // Completion confirmation modal state
-  const [completionModalOpen, setCompletionModalOpen] = useState(false);
-  const [completionSessionData, setCompletionSessionData] = useState<{
-    sessionId: string;
-    patientName: string;
-    attendanceStatus: string;
-  } | null>(null);
-
   // No Show confirmation state
   const [showNoShowConfirmation, setShowNoShowConfirmation] = useState(false);
   const [pendingAttendanceStatus, setPendingAttendanceStatus] = useState<string>("");
@@ -404,24 +396,6 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
       performMoveSession();
     }
   };
-
-  useEffect(() => {
-    const handleSessionSaved = (event: CustomEvent) => {
-      const { sessionId, attendanceStatus, patientName } = event.detail;
-      setCompletionSessionData({
-        sessionId,
-        attendanceStatus,
-        patientName
-      });
-      setCompletionModalOpen(true);
-    };
-
-    window.addEventListener('sessionSaved', handleSessionSaved as EventListener);
-    
-    return () => {
-      window.removeEventListener('sessionSaved', handleSessionSaved as EventListener);
-    };
-  }, []);
 
   if (!session) return null;
 

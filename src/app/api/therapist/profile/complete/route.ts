@@ -107,6 +107,12 @@ export async function PUT(req: NextRequest) {
     const therapist = await prisma.therapist.findUnique({
       where: { userId: session.user.id },
       include: { 
+        user: {
+          select: {
+            name: true,
+            email: true
+          }
+        },
         profile: true,
         verification: {
           select: {
@@ -131,7 +137,7 @@ export async function PUT(req: NextRequest) {
     }
 
     // Prepare therapist updates
-    const therapistUpdates: any = {};
+    const therapistUpdates: Record<string, unknown> = {};
     if (data.bio !== undefined) therapistUpdates.bio = data.bio;
     if (data.hourlyRate !== undefined) {
       const rate = parseFloat(data.hourlyRate);
@@ -141,7 +147,7 @@ export async function PUT(req: NextRequest) {
     }
 
     // Prepare profile updates
-    const profileUpdates: any = {};
+    const profileUpdates: Record<string, unknown> = {};
     if (data.phone !== undefined) profileUpdates.phone = data.phone;
     if (data.dateOfBirth !== undefined) {
       profileUpdates.dateOfBirth = data.dateOfBirth ? new Date(data.dateOfBirth) : null;

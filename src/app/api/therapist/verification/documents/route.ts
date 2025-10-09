@@ -229,7 +229,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Build where clause
-    const whereClause: any = { therapistId: therapist.id };
+    const whereClause: Record<string, unknown> = { therapistId: therapist.id };
     if (category) {
       const categoryValidation = documentCategorySchema.safeParse(category);
       if (categoryValidation.success) {

@@ -56,11 +56,12 @@ const reviewRequestSchema = z.object({
  */
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await requireApiAuth(req, ['MANAGER']);
     const body = await req.json();
+    const { id: verificationId } = await params;
     
     // Validate request body
     const validationResult = reviewRequestSchema.safeParse(body);
@@ -75,7 +76,6 @@ export async function PUT(
     }
 
     const { status, reviewNotes } = validationResult.data;
-    const verificationId = params.id;
 
     // Check if verification exists
     const verification = await prisma.therapistVerification.findUnique({

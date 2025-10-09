@@ -215,7 +215,6 @@ export function WeeklyCalendarView({
   const handleMouseDown = (dayIndex: number, timeSlotIndex: number) => {
     const weekDate = weekDates[dayIndex];
     const jsDay = weekDate.getDay();
-    const dbDay = jsDay === 0 ? 7 : jsDay;
     
     // Check if the date or time slot is in the past
     const now = new Date();

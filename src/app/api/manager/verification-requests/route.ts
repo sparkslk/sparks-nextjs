@@ -63,21 +63,21 @@ import { prisma } from "@/lib/prisma";
  */
 export async function GET(req: NextRequest) {
   try {
-    const session = await requireApiAuth(req, ['MANAGER']);
+    await requireApiAuth(req, ['MANAGER']);
     const url = new URL(req.url);
     
     const statusFilter = url.searchParams.get('status');
     const searchTerm = url.searchParams.get('search');
 
     // Build where clause
-    const whereClause: any = {};
+    const whereClause: Record<string, string> = {};
     
     if (statusFilter) {
       whereClause.status = statusFilter;
     }
 
     // Get all therapist verification requests with related data
-    let verifications = await prisma.therapistVerification.findMany({
+    const verifications = await prisma.therapistVerification.findMany({
       where: whereClause,
       include: {
         therapist: {

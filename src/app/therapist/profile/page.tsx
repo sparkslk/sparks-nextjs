@@ -361,13 +361,13 @@ export default function TherapistProfilePage() {
     }
   };
 
-  const handleProfileComplete = () => {
-    if (profile.profileCompletion >= 80) {
-      router.push('/therapist/dashboard');
-    } else {
-      alert('Please complete the required fields before proceeding to your dashboard.');
-    }
-  };
+  //const handleProfileComplete = () => {
+    //if (profile.profileCompletion >= 80) {
+      //router.push('/therapist/dashboard');
+    //} else {
+      //alert('Please complete the required fields before proceeding to your dashboard.');
+    //}
+  //};
 
   const ProfileHeader = () => {
     const statusInfo = getStatusInfo(profile.verificationStatus);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 // import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -83,7 +83,7 @@ export default function ManagerApplicationsPage() {
   const [rejectionReason, setRejectionReason] = useState("");
 
   // Fetch applications from API
-  const fetchApplications = async () => {
+  const fetchApplications = useCallback(async () => {
     try {
       setLoading(true);
       const searchParams = new URLSearchParams();
@@ -108,14 +108,14 @@ export default function ManagerApplicationsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [statusFilter, searchTerm]);
 
   // Initial fetch
   useEffect(() => {
     if (session) {
       fetchApplications();
     }
-  }, [session, statusFilter, searchTerm]);
+  }, [session, fetchApplications]);
 
   useEffect(() => {
     let filtered = applications;

@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { CheckCircle, Clock, FileText, User, RefreshCw } from "lucide-react";
+import { CheckCircle, Clock, FileText, RefreshCw } from "lucide-react";
 
 interface VerificationStatus {
   status: string;
@@ -20,7 +20,7 @@ export default function VerificationSuccessPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const fetchVerificationStatus = async () => {
+  const fetchVerificationStatus = useCallback(async () => {
     try {
       const response = await fetch('/api/therapist/verification');
       if (response.ok) {
@@ -38,7 +38,7 @@ export default function VerificationSuccessPage() {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  };
+  }, [router]);
 
   useEffect(() => {
     fetchVerificationStatus();
@@ -47,7 +47,7 @@ export default function VerificationSuccessPage() {
     const interval = setInterval(fetchVerificationStatus, 30000);
     
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchVerificationStatus]);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -140,7 +140,7 @@ export default function VerificationSuccessPage() {
                       <div>
                         <p className="font-medium text-blue-900">Reference Verification</p>
                         <p className="text-blue-700 text-sm">
-                          We'll contact your professional reference to verify your credentials and experience.
+                          We&apos;ll contact your professional reference to verify your credentials and experience.
                         </p>
                       </div>
                     </div>
@@ -179,7 +179,7 @@ export default function VerificationSuccessPage() {
                   <ul className="text-left text-yellow-700 text-sm space-y-1">
                     <li>• You will receive email updates throughout the verification process</li>
                     <li>• Please ensure your contact information is up to date</li>
-                    <li>• If additional information is needed, we'll contact you directly</li>
+                    <li>• If additional information is needed, we&apos;ll contact you directly</li>
                     <li>• You can check your verification status in your therapist dashboard</li>
                   </ul>
                 </div>
@@ -198,8 +198,8 @@ export default function VerificationSuccessPage() {
                   </div>
                   
                   <p className="text-sm text-muted-foreground">
-                    We'll automatically check your verification status every 30 seconds. 
-                    Once approved, you'll be redirected to the approval page.
+                    We&apos;ll automatically check your verification status every 30 seconds. 
+                    Once approved, you&apos;ll be redirected to the approval page.
                   </p>
                 </div>
               </div>
