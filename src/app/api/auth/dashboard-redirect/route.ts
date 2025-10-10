@@ -28,10 +28,8 @@ interface TherapistWithRelations {
 
 // Helper function to check if therapist profile is complete
 async function checkProfileCompletion(therapist: TherapistWithRelations): Promise<boolean> {
-  // Get all verification data
-  const verification = await prisma.therapistVerification.findUnique({
-    where: { therapistId: therapist.id }
-  });
+  // Use verification data from the therapist relation
+  const verification = therapist.verification;
 
   // Check required fields for profile completion
   const requiredFields = [

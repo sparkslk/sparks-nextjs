@@ -119,6 +119,8 @@ export default function TherapistSessionsPage() {
 
   useEffect(() => {
     fetchSessions();
+    // Check for sessions needing documentation and send notifications
+    checkPendingDocumentation();
   }, []);
 
   const fetchSessions = async () => {
@@ -137,6 +139,28 @@ export default function TherapistSessionsPage() {
       console.error("Error fetching sessions:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Check for sessions needing documentation and send reminder notifications
+  const checkPendingDocumentation = async () => {
+    try {
+      const response = await fetch("/api/therapist/sessions/check-pending-documentation", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Pending documentation check:", data);
+        // Notifications are sent by the API, no UI action needed
+      } else {
+        console.error("Failed to check pending documentation");
+      }
+    } catch (error) {
+      console.error("Error checking pending documentation:", error);
     }
   };
 
