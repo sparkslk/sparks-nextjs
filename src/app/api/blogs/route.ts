@@ -22,7 +22,7 @@ export async function GET(request: Request) {
     const filter = url.searchParams.get('filter') || 'mine';
     
     // Get user role from session
-    const userRole = (session.user as any).role;
+    const userRole = (session.user as { role?: string }).role;
 
     // Build query based on filter and user role
     let whereClause = {};

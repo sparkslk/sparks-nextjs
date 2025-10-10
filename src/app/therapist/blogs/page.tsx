@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -70,25 +70,9 @@ export default function BlogManagementPage() {
     draft: 0,
   });
 
-  useEffect(() => {
-    if (authStatus === "unauthenticated") {
-      router.push("/login");
-      return;
-    }
 
-    if (authStatus === "authenticated" && session) {
-      fetchBlogs(activeTab);
-    }
-  }, [authStatus, router, session]);
 
-  // Refetch blogs when active tab changes
-  useEffect(() => {
-    if (authStatus === "authenticated" && session) {
-      fetchBlogs(activeTab);
-    }
-  }, [activeTab]);
-
-  const fetchTabCounts = async () => {
+  const fetchTabCounts = useCallback(async () => {
     try {
       // Fetch counts for all tabs
       const [allResponse, mineResponse, publishedResponse, draftResponse] = await Promise.all([
@@ -114,31 +98,27 @@ export default function BlogManagementPage() {
     } catch (err) {
       console.error("Error fetching tab counts:", err);
     }
-  };
+  }, []);
 
-  const fetchBlogs = async (filter: string = 'mine') => {
+    const fetchBlogs = useCallback(async () => {
+    if (!session) return;
+    
+    setLoading(true);
     try {
-      setLoading(true);
-      setError(null);
-
-      const response = await fetch(`/api/blogs?filter=${filter}`);
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch blogs");
+      const response = await fetch(`/api/blogs?filter=${activeTab}`);
+      if (response.ok) {
+        const data = await response.json();
+        setBlogs(data);
+      } else {
+        setError("Failed to fetch blogs");
       }
-
-      const blogData = await response.json();
-      setBlogs(blogData);
-      
-      // Update tab counts after fetching blogs
-      await fetchTabCounts();
     } catch (err) {
+      setError("Error fetching blogs");
       console.error("Error fetching blogs:", err);
-      setError("Failed to load blogs. Please try again later.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [session, activeTab]);
 
   const handleViewBlog = (e: React.MouseEvent, id: number) => {
     e.stopPropagation();
@@ -183,6 +163,27 @@ export default function BlogManagementPage() {
     }
   };
 
+  // Authentication and initial data loading
+  useEffect(() => {
+    if (authStatus === "unauthenticated") {
+      router.push("/login");
+      return;
+    }
+
+    if (authStatus === "authenticated" && session) {
+      fetchBlogs();
+      fetchTabCounts();
+    }
+  }, [authStatus, router, session, fetchBlogs, fetchTabCounts]);
+
+  // Refetch blogs when active tab changes
+  useEffect(() => {
+    if (authStatus === "authenticated" && session) {
+      fetchBlogs();
+      fetchTabCounts();
+    }
+  }, [activeTab, authStatus, session, fetchBlogs, fetchTabCounts]);
+
   // Filter blogs based on search and category (status filtering is now handled by API)
   const filteredBlogs = blogs.filter((blog) => {
     const matchesSearch =
@@ -222,7 +223,7 @@ export default function BlogManagementPage() {
           <CardContent className="pt-6 pb-6">
             <h2 className="text-xl font-bold text-red-500 mb-2">Error</h2>
             <p className="text-gray-600 mb-4">{error}</p>
-            <Button onClick={() => fetchBlogs(activeTab)}>Try Again</Button>
+            <Button onClick={() => fetchBlogs()}>Try Again</Button>
           </CardContent>
         </Card>
       </div>

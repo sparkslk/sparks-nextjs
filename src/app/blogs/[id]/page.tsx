@@ -34,7 +34,7 @@ export default function BlogDetails() {
   // Redirect users to role-specific blog pages
   useEffect(() => {
     if (session?.user) {
-      const userRole = (session.user as any).role;
+      const userRole = (session.user as { role?: string }).role;
       const blogId = params.id;
       
       if (userRole === 'THERAPIST') {
