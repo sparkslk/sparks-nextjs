@@ -24,6 +24,8 @@ interface Blog {
   imageUrl: string | null;
   category: string | null;
   tags: string[] | null;
+  isOwnBlog: boolean;
+  authorName: string;
   User: {
     name: string;
     email: string;
@@ -277,33 +279,49 @@ export default function BlogDetailPage({ params }: { params: Promise<{ id: strin
             </div>
             <h1 className="text-3xl font-bold text-[#8159A8]">{blog.title}</h1>
             <p className="text-gray-600 mt-2">{blog.summary}</p>
+            {/* Author information */}
+            <div className="flex items-center mt-3">
+              <div className={`w-8 h-8 rounded-full text-white text-sm flex items-center justify-center font-medium ${
+                blog.isOwnBlog ? 'bg-[#8159A8]' : 'bg-gray-500'
+              }`}>
+                {blog.authorName?.charAt(0)?.toUpperCase() || "T"}
+              </div>
+              <span className={`ml-2 text-sm ${blog.isOwnBlog ? 'text-[#8159A8] font-medium' : 'text-gray-600'}`}>
+                {blog.isOwnBlog ? 'Your blog' : `By ${blog.authorName}`}
+              </span>
+            </div>
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {blog.status === "draft" && (
-              <Button
-                onClick={handlePublish}
-                className="bg-[#8159A8] hover:bg-[#6D4C93] text-white transition-all duration-300"
-              >
-                Publish Now
-              </Button>
+            {/* Only show action buttons for own blogs */}
+            {blog.isOwnBlog && (
+              <>
+                {blog.status === "draft" && (
+                  <Button
+                    onClick={handlePublish}
+                    className="bg-[#8159A8] hover:bg-[#6D4C93] text-white transition-all duration-300"
+                  >
+                    Publish Now
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  onClick={() => router.push(`/therapist/blogs/${blog.id}/edit`)}
+                  className="transition-all duration-300 hover:bg-[#F5F3FB]"
+                >
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleDeleteClick}
+                  className="text-red-600 hover:bg-red-50 hover:border-red-300 transition-all duration-300"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </Button>
+              </>
             )}
-            <Button
-              variant="outline"
-              onClick={() => router.push(`/therapist/blogs/${blog.id}/edit`)}
-              className="transition-all duration-300 hover:bg-[#F5F3FB]"
-            >
-              <Edit className="mr-2 h-4 w-4" />
-              Edit
-            </Button>
-            <Button
-              variant="outline"
-              onClick={handleDeleteClick}
-              className="text-red-600 hover:bg-red-50 hover:border-red-300 transition-all duration-300"
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete
-            </Button>
           </div>
         </div>
 

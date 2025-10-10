@@ -45,6 +45,7 @@ interface Blog {
   updated_at: string;
   published_at: string | null;
   authorName: string;
+  isOwnBlog: boolean; // Flag to identify if this is user's own blog
   User?: {
     name: string;
     email: string;
@@ -56,12 +57,18 @@ export default function BlogManagementPage() {
   const router = useRouter();
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("all");
+  const [activeTab, setActiveTab] = useState("mine");
   const [error, setError] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [blogToDelete, setBlogToDelete] = useState<Blog | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
+  const [tabCounts, setTabCounts] = useState({
+    all: 0,
+    mine: 0,
+    published: 0,
+    draft: 0,
+  });
 
   useEffect(() => {
     if (authStatus === "unauthenticated") {
@@ -70,16 +77,51 @@ export default function BlogManagementPage() {
     }
 
     if (authStatus === "authenticated" && session) {
-      fetchBlogs();
+      fetchBlogs(activeTab);
     }
   }, [authStatus, router, session]);
 
-  const fetchBlogs = async () => {
+  // Refetch blogs when active tab changes
+  useEffect(() => {
+    if (authStatus === "authenticated" && session) {
+      fetchBlogs(activeTab);
+    }
+  }, [activeTab]);
+
+  const fetchTabCounts = async () => {
+    try {
+      // Fetch counts for all tabs
+      const [allResponse, mineResponse, publishedResponse, draftResponse] = await Promise.all([
+        fetch('/api/blogs?filter=all'),
+        fetch('/api/blogs?filter=mine'),
+        fetch('/api/blogs?filter=published'),
+        fetch('/api/blogs?filter=draft')
+      ]);
+
+      const [allData, mineData, publishedData, draftData] = await Promise.all([
+        allResponse.json(),
+        mineResponse.json(),
+        publishedResponse.json(),
+        draftResponse.json()
+      ]);
+
+      setTabCounts({
+        all: allData.length,
+        mine: mineData.length,
+        published: publishedData.length,
+        draft: draftData.length,
+      });
+    } catch (err) {
+      console.error("Error fetching tab counts:", err);
+    }
+  };
+
+  const fetchBlogs = async (filter: string = 'mine') => {
     try {
       setLoading(true);
       setError(null);
 
-      const response = await fetch("/api/blogs");
+      const response = await fetch(`/api/blogs?filter=${filter}`);
 
       if (!response.ok) {
         throw new Error("Failed to fetch blogs");
@@ -87,6 +129,9 @@ export default function BlogManagementPage() {
 
       const blogData = await response.json();
       setBlogs(blogData);
+      
+      // Update tab counts after fetching blogs
+      await fetchTabCounts();
     } catch (err) {
       console.error("Error fetching blogs:", err);
       setError("Failed to load blogs. Please try again later.");
@@ -138,24 +183,20 @@ export default function BlogManagementPage() {
     }
   };
 
-  // Filter blogs based on search and category
+  // Filter blogs based on search and category (status filtering is now handled by API)
   const filteredBlogs = blogs.filter((blog) => {
     const matchesSearch =
       blog.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       blog.summary.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory =
       filterCategory === "all" || blog.category === filterCategory;
-    const matchesTab = activeTab === "all" || blog.status === activeTab;
 
-    return matchesSearch && matchesCategory && matchesTab;
+    return matchesSearch && matchesCategory;
   });
 
-  const publishedCount = blogs.filter(
-    (blog) => blog.status === "published"
-  ).length;
-  const draftCount = blogs.filter((blog) => blog.status === "draft").length;
+
   const totalViews = blogs
-    .filter((blog) => blog.status === "published")
+    .filter((blog) => blog.status === "published" && (activeTab === 'all' || blog.isOwnBlog))
     .reduce((sum, blog) => sum + blog.views, 0);
 
   const handleNewBlog = () => {
@@ -181,7 +222,7 @@ export default function BlogManagementPage() {
           <CardContent className="pt-6 pb-6">
             <h2 className="text-xl font-bold text-red-500 mb-2">Error</h2>
             <p className="text-gray-600 mb-4">{error}</p>
-            <Button onClick={fetchBlogs}>Try Again</Button>
+            <Button onClick={() => fetchBlogs(activeTab)}>Try Again</Button>
           </CardContent>
         </Card>
       </div>
@@ -230,10 +271,10 @@ export default function BlogManagementPage() {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">
-                    Total Blogs
+                    My Blogs
                   </p>
                   <p className="text-2xl font-bold text-gray-900">
-                    {blogs.length}
+                    {tabCounts.mine}
                   </p>
                 </div>
               </div>
@@ -247,9 +288,9 @@ export default function BlogManagementPage() {
                   <Target className="h-6 w-6 text-green-600" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Published</p>
+                  <p className="text-sm font-medium text-gray-600">My Published</p>
                   <p className="text-2xl font-bold text-gray-900">
-                    {publishedCount}
+                    {tabCounts.published}
                   </p>
                 </div>
               </div>
@@ -263,9 +304,9 @@ export default function BlogManagementPage() {
                   <Edit className="h-6 w-6 text-yellow-600" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Drafts</p>
+                  <p className="text-sm font-medium text-gray-600">My Drafts</p>
                   <p className="text-2xl font-bold text-gray-900">
-                    {draftCount}
+                    {tabCounts.draft}
                   </p>
                 </div>
               </div>
@@ -326,9 +367,10 @@ export default function BlogManagementPage() {
         {/* Tabs */}
         <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
           {[
-            { key: "all", label: "All Blogs", count: blogs.length },
-            { key: "published", label: "Published", count: publishedCount },
-            { key: "draft", label: "Drafts", count: draftCount },
+            { key: "all", label: "All Published", count: tabCounts.all },
+            { key: "mine", label: "My Blogs", count: tabCounts.mine },
+            { key: "published", label: "My Published", count: tabCounts.published },
+            { key: "draft", label: "My Drafts", count: tabCounts.draft },
           ].map((tab) => (
             <button
               key={tab.key}
@@ -444,31 +486,45 @@ export default function BlogManagementPage() {
 
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
-                      <div className="w-6 h-6 rounded-full bg-[#8159A8] text-white text-xs flex items-center justify-center font-medium">
+                      <div className={`w-6 h-6 rounded-full text-white text-xs flex items-center justify-center font-medium ${
+                        blog.isOwnBlog ? 'bg-[#8159A8]' : 'bg-gray-500'
+                      }`}>
                         {blog.authorName?.charAt(0)?.toUpperCase() || "T"}
                       </div>
-                      <span className="ml-2 text-sm text-gray-600">
-                        {blog.authorName}
-                      </span>
+                      <div className="ml-2">
+                        <span className={`text-sm ${blog.isOwnBlog ? 'text-[#8159A8] font-medium' : 'text-gray-600'}`}>
+                          {blog.isOwnBlog ? 'You' : blog.authorName}
+                        </span>
+                        {!blog.isOwnBlog && (
+                          <span className="text-xs text-gray-500 block">
+                            by {blog.authorName}
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     <div className="flex space-x-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => handleEditBlog(e, blog.id)}
-                        className="h-8 w-8 p-0 hover:bg-[#8159A8]/10"
-                      >
-                        <Edit className="h-4 w-4 text-[#8159A8]" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => handleArchiveBlog(e, blog)}
-                        className="h-8 w-8 p-0 hover:bg-red-50"
-                      >
-                        <MoreVertical className="h-4 w-4 text-gray-500" />
-                      </Button>
+                      {/* Only show edit/delete buttons for own blogs */}
+                      {blog.isOwnBlog && (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => handleEditBlog(e, blog.id)}
+                            className="h-8 w-8 p-0 hover:bg-[#8159A8]/10"
+                          >
+                            <Edit className="h-4 w-4 text-[#8159A8]" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => handleArchiveBlog(e, blog)}
+                            className="h-8 w-8 p-0 hover:bg-red-50"
+                          >
+                            <MoreVertical className="h-4 w-4 text-gray-500" />
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </div>
                 </CardContent>
