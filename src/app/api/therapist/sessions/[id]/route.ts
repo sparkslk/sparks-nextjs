@@ -418,7 +418,7 @@ export async function PUT(
 
         return NextResponse.json(
             {
-                message: "Session documentation saved successfully",
+                message: "Session documentation saved successfully!",
                 session: {
                     id: sessionWithPatient.id,
                     patientName: `${sessionWithPatient.patient.firstName} ${sessionWithPatient.patient.lastName}`,
