@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { ArrowLeft, Calendar, User, Eye, Tag } from "lucide-react";
 
@@ -25,9 +26,25 @@ interface Blog {
 export default function BlogDetails() {
   const params = useParams();
   const router = useRouter();
+  const { data: session } = useSession();
   const [blog, setBlog] = useState<Blog | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Redirect users to role-specific blog pages
+  useEffect(() => {
+    if (session?.user) {
+      const userRole = (session.user as any).role;
+      const blogId = params.id;
+      
+      if (userRole === 'THERAPIST') {
+        router.replace(`/therapist/blogs/${blogId}`);
+      } else {
+        // Parents and other users go to parent blogs
+        router.replace(`/parent/blogs/${blogId}`);
+      }
+    }
+  }, [session, params.id, router]);
 
   useEffect(() => {
     const fetchBlog = async () => {

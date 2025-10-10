@@ -1,467 +1,360 @@
 "use client";
 
-import Link from "next/link";
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 import {
-    BookOpen,
-    Users,
-    Download,
-    ExternalLink,
-    Phone,
-    Globe,
-    Heart,
-    GraduationCap,
-    ArrowRight,
-    FileText,
-    Video,
-    Headphones,
-    Calendar,
-    MapPin,
-    Clock,
-    Shield
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Search,
+  Eye,
+  Calendar,
+  FileText,
+  TrendingUp,
+  BookOpen,
 } from "lucide-react";
-// import Header from "@/components/landingpage/Header/page";
-// import Footer from "@/components/landingpage/Footer/page";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
-interface ResourceCardProps {
-    title: string;
-    description: string;
-    type: "PDF" | "Website" | "Video" | "Audio" | "Tool";
-    category: string;
-    icon: React.ReactNode;
-    link: string;
-    isExternal?: boolean;
-}
-
-const ResourceCard = ({ title, description, type, category, icon, link, isExternal = false }: ResourceCardProps) => {
-    const getTypeColor = (type: string) => {
-        switch (type) {
-            case "PDF": return "bg-red-100 text-red-700";
-            case "Website": return "bg-blue-100 text-blue-700";
-            case "Video": return "bg-primary/10 text-primary";
-            case "Audio": return "bg-green-100 text-green-700";
-            case "Tool": return "bg-orange-100 text-orange-700";
-            default: return "bg-gray-100 text-gray-700";
-        }
-    };
-
-    const getTypeIcon = (type: string) => {
-        switch (type) {
-            case "PDF": return <FileText className="h-3 w-3" />;
-            case "Website": return <Globe className="h-3 w-3" />;
-            case "Video": return <Video className="h-3 w-3" />;
-            case "Audio": return <Headphones className="h-3 w-3" />;
-            case "Tool": return <Download className="h-3 w-3" />;
-            default: return <FileText className="h-3 w-3" />;
-        }
-    };
-
-    return (
-        <Card className="h-full hover:shadow-lg transition-all duration-300 group">
-            <CardHeader className="pb-4">
-                <div className="flex items-start justify-between">
-                    <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                        {icon}
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Badge variant="secondary" className={`text-xs px-2 py-1 ${getTypeColor(type)}`}>
-                            <div className="flex items-center gap-1">
-                                {getTypeIcon(type)}
-                                {type}
-                            </div>
-                        </Badge>
-                        {isExternal && <ExternalLink className="h-3 w-3 text-muted-foreground" />}
-                    </div>
-                </div>
-                <CardTitle className="text-lg font-bold text-foreground group-hover:text-primary transition-colors">
-                    {title}
-                </CardTitle>
-                <CardDescription className="text-muted-foreground text-sm leading-relaxed">
-                    {description}
-                </CardDescription>
-                <Badge variant="outline" className="w-fit text-xs">
-                    {category}
-                </Badge>
-            </CardHeader>
-            <CardContent className="pt-0">
-                <Link href={link} className={isExternal ? "block" : "block"} target={isExternal ? "_blank" : undefined}>
-                    <Button variant="outline" size="sm" className="w-full group-hover:border-primary group-hover:text-primary">
-                        {type === "Tool" ? "Use Tool" : type === "PDF" ? "Download" : "View Resource"}
-                        <ArrowRight className="h-3 w-3 ml-2" />
-                    </Button>
-                </Link>
-            </CardContent>
-        </Card>
-    );
-};
-
-interface SupportGroupProps {
+// Update Blog interface to match database schema
+interface Blog {
+  id: number;
+  title: string;
+  summary: string;
+  content: string;
+  therapist_id: string;
+  status: "published" | "draft" | "archived";
+  category?: string;
+  tags: string[];
+  imageUrl?: string | null; // Base64 image URL
+  views: number;
+  created_at: string;
+  updated_at: string;
+  published_at: string | null;
+  authorName: string;
+  isOwnBlog: boolean; // Flag to identify if this is user's own blog
+  User?: {
     name: string;
-    type: "Online" | "In-Person" | "Hybrid";
-    location: string;
-    schedule: string;
-    contact: string;
-    description: string;
+    email: string;
+  };
 }
 
-const SupportGroupCard = ({ name, type, location, schedule, contact, description }: SupportGroupProps) => {
-    const getTypeColor = (type: string) => {
-        switch (type) {
-            case "Online": return "bg-blue-100 text-blue-700";
-            case "In-Person": return "bg-green-100 text-green-700";
-            case "Hybrid": return "bg-primary/10 text-primary";
-            default: return "bg-gray-100 text-gray-700";
-        }
-    };
+export default function ParentBlogsPage() {
+  const { status: authStatus, data: session } = useSession();
+  const router = useRouter();
+  const [blogs, setBlogs] = useState<Blog[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("all");
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterCategory, setFilterCategory] = useState("all");
 
+  useEffect(() => {
+    if (authStatus === "unauthenticated") {
+      router.push("/login");
+      return;
+    }
+
+    if (authStatus === "authenticated" && session) {
+      fetchBlogs();
+    }
+  }, [authStatus, router, session]);
+
+  const fetchBlogs = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Parents can only view all published blogs from all therapists
+      const response = await fetch('/api/blogs?filter=all');
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch blogs");
+      }
+
+      const blogData = await response.json();
+      setBlogs(blogData);
+    } catch (err) {
+      console.error("Error fetching blogs:", err);
+      setError("Failed to load blogs. Please try again later.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleViewBlog = (e: React.MouseEvent, id: number) => {
+    e.stopPropagation();
+    router.push(`/parent/blogs/${id}`);
+  };
+
+  // Filter blogs based on search and category (status filtering is now handled by API)
+  const filteredBlogs = blogs.filter((blog) => {
+    const matchesSearch =
+      blog.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      blog.summary.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory =
+      filterCategory === "all" || blog.category === filterCategory;
+
+    return matchesSearch && matchesCategory;
+  });
+
+
+  const totalViews = blogs
+    .filter((blog) => blog.status === "published")
+    .reduce((sum, blog) => sum + blog.views, 0);
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  if (authStatus === "loading" || loading) {
+    return <LoadingSpinner message="Loading blog management..." />;
+  }
+
+  if (error) {
     return (
-        <Card className="hover:shadow-md transition-shadow">
-            <CardHeader className="pb-4">
-                <div className="flex items-start justify-between">
-                    <CardTitle className="text-lg font-bold text-foreground">{name}</CardTitle>
-                    <Badge className={`text-xs px-2 py-1 ${getTypeColor(type)}`}>
-                        {type}
-                    </Badge>
-                </div>
-                <CardDescription className="text-muted-foreground text-sm leading-relaxed">
-                    {description}
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <MapPin className="h-4 w-4" />
-                    <span>{location}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Clock className="h-4 w-4" />
-                    <span>{schedule}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Phone className="h-4 w-4" />
-                    <span>{contact}</span>
-                </div>
-            </CardContent>
+      <div className="min-h-screen bg-gradient-to-br from-[#F5F3FB] via-white to-[#F5F3FB] p-6 flex items-center justify-center">
+        <Card className="w-full max-w-md text-center">
+          <CardContent className="pt-6 pb-6">
+            <h2 className="text-xl font-bold text-red-500 mb-2">Error</h2>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <Button onClick={() => fetchBlogs()}>Try Again</Button>
+          </CardContent>
         </Card>
+      </div>
     );
-};
+  }
 
-export default function ResourcesPage() {
-    const educationalResources = [
-        {
-            title: "ADHD Guide for Parents (Sinhala)",
-            description: "Comprehensive guide for Sri Lankan parents with children who have ADHD, including local resources and cultural considerations.",
-            type: "PDF" as const,
-            category: "Parent Education",
-            icon: <BookOpen className="h-5 w-5 text-primary" />,
-            link: "/resources/adhd-parent-guide-sinhala.pdf"
-        },
-        {
-            title: "Understanding ADHD in Sri Lankan Schools",
-            description: "Educational material for teachers and school staff about supporting students with ADHD in local educational settings.",
-            type: "PDF" as const,
-            category: "Education",
-            icon: <GraduationCap className="h-5 w-5 text-primary" />,
-            link: "/resources/adhd-schools-guide.pdf"
-        },
-        {
-            title: "ADHD Medication Guide (Tamil)",
-            description: "Detailed information about ADHD medications, side effects, and management strategies available in Tamil.",
-            type: "PDF" as const,
-            category: "Medical Information",
-            icon: <Shield className="h-5 w-5 text-primary" />,
-            link: "/resources/adhd-medication-guide-tamil.pdf"
-        },
-        {
-            title: "Daily Management Strategies",
-            description: "Practical tips and techniques for managing ADHD symptoms in daily life, work, and relationships.",
-            type: "Website" as const,
-            category: "Coping Strategies",
-            icon: <Heart className="h-5 w-5 text-primary" />,
-            link: "/resources/daily-management-strategies"
-        }
-    ];
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-[#F5F3FB] via-white to-[#F5F3FB] p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-[#8159A8]">
+              Therapy Resources
+            </h1>
+            <p className="text-gray-600">
+              Explore helpful articles and resources from our therapists
+            </p>
+          </div>
+        </div>
 
-    const toolsAndApps = [
-        {
-            title: "SPARKS Symptom Tracker",
-            description: "Track daily symptoms, mood, and medication effects to share with your healthcare provider.",
-            type: "Tool" as const,
-            category: "Tracking Tools",
-            icon: <Calendar className="h-5 w-5 text-primary" />,
-            link: "/dashboard/symptom-tracker"
-        },
-        {
-            title: "Focus Timer & Task Manager",
-            description: "Pomodoro-style timer with task breakdown features designed specifically for ADHD minds.",
-            type: "Tool" as const,
-            category: "Productivity",
-            icon: <Clock className="h-5 w-5 text-primary" />,
-            link: "/tools/focus-timer"
-        },
-        {
-            title: "Mindfulness Exercises for ADHD",
-            description: "Guided meditation and mindfulness exercises tailored for people with ADHD and attention difficulties.",
-            type: "Audio" as const,
-            category: "Mental Health",
-            icon: <Headphones className="h-5 w-5 text-primary" />,
-            link: "/resources/mindfulness-exercises"
-        },
-        {
-            title: "ADHD Education Videos",
-            description: "Series of educational videos about ADHD in Sinhala, Tamil, and English for different age groups.",
-            type: "Video" as const,
-            category: "Education",
-            icon: <Video className="h-5 w-5 text-primary" />,
-            link: "/resources/education-videos"
-        }
-    ];
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card className="shadow-sm hover:shadow-md transition-shadow duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <BookOpen className="h-6 w-6 text-blue-600" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">
+                    Available Articles
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {blogs.length}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-    const externalResources = [
-        {
-            title: "Children with Disabilities (CHADD) Sri Lanka",
-            description: "International organization with resources adapted for Sri Lankan context.",
-            type: "Website" as const,
-            category: "International Resources",
-            icon: <Globe className="h-5 w-5 text-primary" />,
-            link: "https://chadd.org",
-            isExternal: true
-        },
-        {
-            title: "Sri Lanka College of Psychiatrists",
-            description: "Professional organization providing information about mental health services in Sri Lanka.",
-            type: "Website" as const,
-            category: "Professional Organizations",
-            icon: <Users className="h-5 w-5 text-primary" />,
-            link: "https://psychiatrysl.org",
-            isExternal: true
-        },
-        {
-            title: "Ministry of Health ADHD Guidelines",
-            description: "Official guidelines and policies for ADHD diagnosis and treatment in Sri Lanka.",
-            type: "PDF" as const,
-            category: "Government Resources",
-            icon: <FileText className="h-5 w-5 text-primary" />,
-            link: "https://health.gov.lk/adhd-guidelines",
-            isExternal: true
-        }
-    ];
+          <Card className="shadow-sm hover:shadow-md transition-shadow duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <FileText className="h-6 w-6 text-green-600" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Categories</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {new Set(blogs.filter(blog => blog.category).map(blog => blog.category)).size}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-    const supportGroups = [
-        {
-            name: "Colombo ADHD Parent Support Group",
-            type: "Hybrid" as const,
-            location: "Colombo 7, Sri Lanka & Online",
-            schedule: "Every 2nd Saturday, 2:00 PM - 4:00 PM",
-            contact: "+94 11 234 5678",
-            description: "Monthly meetings for parents of children with ADHD. Share experiences, strategies, and support each other."
-        },
-        {
-            name: "Young Adults with ADHD - Online",
-            type: "Online" as const,
-            location: "Zoom Meetings",
-            schedule: "Weekly Thursdays, 7:00 PM - 8:30 PM",
-            contact: "youngadults@sparks.lk",
-            description: "Peer support group for adults (18-35) managing ADHD in work, relationships, and daily life."
-        },
-        {
-            name: "ADHD Awareness Kandy",
-            type: "In-Person" as const,
-            location: "Community Center, Kandy",
-            schedule: "Monthly - 3rd Sunday, 10:00 AM - 12:00 PM",
-            contact: "+94 81 123 4567",
-            description: "Community-based support group focusing on ADHD awareness and family support in Central Province."
-        },
-        {
-            name: "Teachers & ADHD Workshop Series",
-            type: "Hybrid" as const,
-            location: "Various Schools & Online",
-            schedule: "Quarterly Workshops",
-            contact: "education@sparks.lk",
-            description: "Educational workshops for teachers and school staff about supporting students with ADHD."
-        }
-    ];
+          <Card className="shadow-sm hover:shadow-md transition-shadow duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="p-2 bg-purple-100 rounded-lg">
+                  <TrendingUp className="h-6 w-6 text-purple-600" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">
+                    Total Views
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {totalViews.toLocaleString()}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-    const emergencyContacts = [
-        {
-            name: "National Mental Health Helpline",
-            number: "1926",
-            description: "24/7 mental health crisis support",
-            availability: "24/7"
-        },
-        {
-            name: "Samaritans of Sri Lanka",
-            number: "+94 11 269 6666",
-            description: "Emotional support and crisis intervention",
-            availability: "24/7"
-        },
-        {
-            name: "SPARKS Support Line",
-            number: "+94 11 SPARKS (776 257)",
-            description: "ADHD-specific support and guidance",
-            availability: "Mon-Fri 9:00 AM - 6:00 PM"
-        }
-    ];
+        {/* Filters and Search */}
+        <Card className="shadow-sm">
+          <CardContent className="p-6">
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Input
+                    placeholder="Search blogs..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+              <Select value={filterCategory} onValueChange={setFilterCategory}>
+                <SelectTrigger className="w-full md:w-48">
+                  <SelectValue placeholder="Filter by category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  <SelectItem value="adhd">ADHD Resources</SelectItem>
+                  <SelectItem value="anxiety">Anxiety & Depression</SelectItem>
+                  <SelectItem value="parenting">Parenting Support</SelectItem>
+                  <SelectItem value="wellness">Mental Wellness</SelectItem>
+                  <SelectItem value="therapy">Therapy Approaches</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
 
-    return (
-        <div className="min-h-screen">
-            {/* <Header /> */}
 
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                {/* Hero Section */}
-                <div className="text-center mb-12">
-                    <Badge variant="secondary" className="mb-4 px-4 py-2 text-sm font-medium">
-                        ADHD SUPPORT RESOURCES
+
+        {/* Blog Grid */}
+        {filteredBlogs.length === 0 ? (
+          <Card className="shadow-sm">
+            <CardContent className="p-12 text-center">
+              <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                No articles found
+              </h3>
+              <p className="text-gray-600 mb-4">
+                {blogs.length === 0
+                  ? "No therapy articles are currently available."
+                  : "Try adjusting your search or filter criteria."}
+              </p>
+
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredBlogs.map((blog) => (
+              <Card
+                key={blog.id}
+                className="cursor-pointer hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1"
+                onClick={(e) => handleViewBlog(e, blog.id)}
+              >
+                <div className="relative">
+                  {blog.imageUrl ? (
+                    <div className="relative h-48 w-full">
+                      <Image
+                        src={blog.imageUrl}
+                        alt={blog.title}
+                        fill
+                        className="object-cover rounded-t-lg"
+                        onError={(e) => {
+                          e.currentTarget.src =
+                            "/images/blogs/blog-placeholder.jpg";
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="h-48 w-full bg-gradient-to-br from-[#8159A8]/10 to-[#6D4C93]/10 rounded-t-lg flex items-center justify-center">
+                      <FileText className="h-12 w-12 text-[#8159A8]/40" />
+                    </div>
+                  )}
+
+                  <div className="absolute top-3 left-3">
+                    <Badge
+                      className={`${
+                        blog.status === "published"
+                          ? "bg-green-100 text-green-800 border-green-200"
+                          : blog.status === "draft"
+                          ? "bg-yellow-100 text-yellow-800 border-yellow-200"
+                          : "bg-gray-100 text-gray-800 border-gray-200"
+                      }`}
+                    >
+                      {blog.status.charAt(0).toUpperCase() +
+                        blog.status.slice(1)}
                     </Badge>
-                    <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-6">
-                        ADHD{" "}
-                        <span className="bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent">
-                            Resources
-                        </span>
-                    </h1>
-                    <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-                        Comprehensive collection of resources, tools, and support materials for individuals
-                        with ADHD, families, educators, and healthcare professionals in Sri Lanka.
-                    </p>
+                  </div>
+
+                  {blog.category && (
+                    <div className="absolute top-3 right-3">
+                      <Badge
+                        variant="outline"
+                        className="bg-white/90 backdrop-blur-sm"
+                      >
+                        {blog.category}
+                      </Badge>
+                    </div>
+                  )}
                 </div>
 
-                {/* Resource Categories */}
-                <section className="mb-16">
-                    <Tabs defaultValue="educational" className="w-full">
-                        <TabsList className="grid w-full grid-cols-4">
-                            <TabsTrigger value="educational">Educational</TabsTrigger>
-                            <TabsTrigger value="tools">Tools & Apps</TabsTrigger>
-                            <TabsTrigger value="external">External Links</TabsTrigger>
-                            <TabsTrigger value="support">Support Groups</TabsTrigger>
-                        </TabsList>
+                <CardContent className="p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
+                    {blog.title}
+                  </h3>
+                  <p className="text-gray-600 text-sm mb-4 line-clamp-3">
+                    {blog.summary}
+                  </p>
 
-                        <TabsContent value="educational" className="mt-8">
-                            <div className="mb-6">
-                                <h2 className="text-2xl font-bold text-foreground mb-2">Educational Resources</h2>
-                                <p className="text-muted-foreground">
-                                    Downloadable guides, articles, and educational materials about ADHD
-                                </p>
-                            </div>
-                            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                                {educationalResources.map((resource, index) => (
-                                    <ResourceCard key={index} {...resource} />
-                                ))}
-                            </div>
-                        </TabsContent>
+                  <div className="flex items-center text-xs text-gray-500 mb-4">
+                    <div className="flex items-center mr-4">
+                      <Calendar className="w-3 h-3 mr-1" />
+                      <span>{formatDate(blog.updated_at)}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <Eye className="w-3 h-3 mr-1" />
+                      <span>{blog.views.toLocaleString()} views</span>
+                    </div>
+                  </div>
 
-                        <TabsContent value="tools" className="mt-8">
-                            <div className="mb-6">
-                                <h2 className="text-2xl font-bold text-foreground mb-2">Tools & Applications</h2>
-                                <p className="text-muted-foreground">
-                                    Interactive tools, trackers, and applications to help manage ADHD symptoms
-                                </p>
-                            </div>
-                            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                                {toolsAndApps.map((resource, index) => (
-                                    <ResourceCard key={index} {...resource} />
-                                ))}
-                            </div>
-                        </TabsContent>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <div className="w-6 h-6 rounded-full bg-[#8159A8] text-white text-xs flex items-center justify-center font-medium">
+                        {blog.authorName?.charAt(0)?.toUpperCase() || "T"}
+                      </div>
+                      <div className="ml-2">
+                        <span className="text-sm text-gray-600">
+                          {blog.authorName}
+                        </span>
+                        <span className="text-xs text-gray-500 block">
+                          Therapist
+                        </span>
+                      </div>
+                    </div>
 
-                        <TabsContent value="external" className="mt-8">
-                            <div className="mb-6">
-                                <h2 className="text-2xl font-bold text-foreground mb-2">External Resources</h2>
-                                <p className="text-muted-foreground">
-                                    Links to trusted external organizations, websites, and professional resources
-                                </p>
-                            </div>
-                            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                                {externalResources.map((resource, index) => (
-                                    <ResourceCard key={index} {...resource} />
-                                ))}
-                            </div>
-                        </TabsContent>
-
-                        <TabsContent value="support" className="mt-8">
-                            <div className="mb-6">
-                                <h2 className="text-2xl font-bold text-foreground mb-2">Support Groups & Communities</h2>
-                                <p className="text-muted-foreground">
-                                    Connect with local and online support groups for individuals and families affected by ADHD
-                                </p>
-                            </div>
-                            <div className="grid gap-6 md:grid-cols-2">
-                                {supportGroups.map((group, index) => (
-                                    <SupportGroupCard key={index} {...group} />
-                                ))}
-                            </div>
-                        </TabsContent>
-                    </Tabs>
-                </section>
-
-                {/* Emergency Contacts */}
-                <section className="mb-16">
-                    <Card className="bg-gradient-to-r from-red-50 to-orange-50 border-red-200">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2 text-red-800">
-                                <Phone className="h-5 w-5" />
-                                Emergency & Crisis Support
-                            </CardTitle>
-                            <CardDescription className="text-red-700">
-                                If you or someone you know is in crisis, please reach out for immediate help
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid gap-4 md:grid-cols-3">
-                                {emergencyContacts.map((contact, index) => (
-                                    <div key={index} className="bg-white rounded-lg p-4 border">
-                                        <h3 className="font-semibold text-foreground mb-1">{contact.name}</h3>
-                                        <p className="text-2xl font-bold text-primary mb-1">{contact.number}</p>
-                                        <p className="text-sm text-muted-foreground mb-1">{contact.description}</p>
-                                        <Badge variant="outline" className="text-xs">
-                                            {contact.availability}
-                                        </Badge>
-                                    </div>
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
-                </section>
-
-                {/* Resource Guidelines */}
-                <section className="mb-16">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Shield className="h-5 w-5" />
-                                Using These Resources Safely
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="grid md:grid-cols-2 gap-6">
-                                <div>
-                                    <h3 className="font-semibold text-foreground mb-2">Important Reminders</h3>
-                                    <ul className="space-y-1 text-sm text-muted-foreground">
-                                        <li>• These resources are for educational purposes only</li>
-                                        <li>• Always consult with healthcare professionals for medical advice</li>
-                                        <li>• Resources are not a substitute for professional diagnosis or treatment</li>
-                                        <li>• If you experience crisis situations, contact emergency services immediately</li>
-                                    </ul>
-                                </div>
-                                <div>
-                                    <h3 className="font-semibold text-foreground mb-2">How to Use Resources</h3>
-                                    <ul className="space-y-1 text-sm text-muted-foreground">
-                                        <li>• Download PDF resources for offline access</li>
-                                        <li>• Share educational materials with your support network</li>
-                                        <li>• Use tracking tools consistently for best results</li>
-                                        <li>• Join support groups that match your needs and schedule</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </section>
-
-                
-            </main>
-
-          
-        </div>
-    );
+                    {/* Parents cannot edit or delete blogs */}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }

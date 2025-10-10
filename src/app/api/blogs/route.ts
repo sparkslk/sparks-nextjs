@@ -20,8 +20,11 @@ export async function GET(request: Request) {
     // Parse URL to get filter parameter
     const url = new URL(request.url);
     const filter = url.searchParams.get('filter') || 'mine';
+    
+    // Get user role from session
+    const userRole = (session.user as any).role;
 
-    // Build query based on filter
+    // Build query based on filter and user role
     let whereClause = {};
     
     if (filter === 'all') {
@@ -30,27 +33,57 @@ export async function GET(request: Request) {
         status: 'published'
       };
     } else if (filter === 'mine') {
-      // Get all blogs (published and draft) from the current therapist
-      whereClause = {
-        therapist_id: session.user.id
-      };
+      // Only therapists can access their own blogs
+      if (userRole !== 'THERAPIST') {
+        // Non-therapists get all published blogs instead
+        whereClause = {
+          status: 'published'
+        };
+      } else {
+        // Get all blogs (published and draft) from the current therapist
+        whereClause = {
+          therapist_id: session.user.id
+        };
+      }
     } else if (filter === 'published') {
-      // Get only published blogs from the current therapist
-      whereClause = {
-        therapist_id: session.user.id,
-        status: 'published'
-      };
+      // Only therapists can filter their own published blogs
+      if (userRole !== 'THERAPIST') {
+        // Non-therapists get all published blogs
+        whereClause = {
+          status: 'published'
+        };
+      } else {
+        // Get only published blogs from the current therapist
+        whereClause = {
+          therapist_id: session.user.id,
+          status: 'published'
+        };
+      }
     } else if (filter === 'draft') {
-      // Get only draft blogs from the current therapist
-      whereClause = {
-        therapist_id: session.user.id,
-        status: 'draft'
-      };
+      // Only therapists can see drafts - non-therapists get published blogs
+      if (userRole !== 'THERAPIST') {
+        whereClause = {
+          status: 'published'
+        };
+      } else {
+        // Get only draft blogs from the current therapist
+        whereClause = {
+          therapist_id: session.user.id,
+          status: 'draft'
+        };
+      }
     } else {
-      // Default to mine filter
-      whereClause = {
-        therapist_id: session.user.id
-      };
+      // Default behavior based on user role
+      if (userRole === 'THERAPIST') {
+        whereClause = {
+          therapist_id: session.user.id
+        };
+      } else {
+        // Parents and other users get all published blogs
+        whereClause = {
+          status: 'published'
+        };
+      }
     }
 
     // Fetch blogs based on filter
