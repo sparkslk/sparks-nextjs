@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { generateSimpleMeetingLink } from "@/lib/google-meet";
+import { SessionType, SessionStatus, Prisma } from "@prisma/client";
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,11 +12,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { childId, date, timeSlot, sessionType = "Individual" } = await request.json();
+    const { childId, date, timeSlot, sessionType = "Individual", meetingType = "IN_PERSON" } = await request.json();
 
     if (!childId || !date || !timeSlot) {
       return NextResponse.json(
         { error: "Missing required fields" },
+        { status: 400 }
+      );
+    }
+
+    // Validate meetingType
+    if (!Object.values(SessionType).includes(meetingType as SessionType)) {
+      return NextResponse.json(
+        { error: "Invalid meeting type. Must be IN_PERSON, ONLINE, or HYBRID" },
         { status: 400 }
       );
     }
@@ -171,17 +181,27 @@ export async function POST(request: NextRequest) {
         throw new Error('SLOT_ALREADY_BOOKED');
       }
 
-      // Create therapy session
+      // Create therapy session with meeting type and link
+      const sessionData: Prisma.TherapySessionUncheckedCreateInput = {
+        patientId: childId,
+        therapistId: child.primaryTherapistId!,
+        scheduledAt: sessionDate,
+        duration: 45, // Fixed 45-minute sessions
+        status: SessionStatus.SCHEDULED,
+        type: sessionType,
+        sessionType: meetingType as SessionType,
+        bookedRate: sessionRate
+      };
+
+      // Generate meeting link for online sessions
+      if (meetingType === "ONLINE" || meetingType === "HYBRID") {
+        // For now, use simple meeting link generation
+        // Can be upgraded to Google Meet integration when OAuth is configured for therapists
+        sessionData.meetingLink = generateSimpleMeetingLink(childId + "-" + Date.now());
+      }
+
       const therapySession = await tx.therapySession.create({
-        data: {
-          patientId: childId,
-          therapistId: child.primaryTherapistId!,
-          scheduledAt: sessionDate,
-          duration: 45, // Fixed 45-minute sessions
-          status: "SCHEDULED",
-          type: sessionType,
-          bookedRate: sessionRate
-        },
+        data: sessionData,
         include: {
           patient: {
             select: {
@@ -205,7 +225,13 @@ export async function POST(request: NextRequest) {
     });
 
     // Create notifications for both parent and therapist
-    const notificationMessage = `New therapy session scheduled for ${child.firstName} ${child.lastName} on ${sessionDate.toLocaleDateString()} at ${startTime}`;
+    const meetingInfo = meetingType === "ONLINE"
+      ? ` (Online Session${result.meetingLink ? ` - Meeting Link: ${result.meetingLink}` : ''})`
+      : meetingType === "HYBRID"
+      ? ` (Hybrid Session${result.meetingLink ? ` - Meeting Link: ${result.meetingLink}` : ''})`
+      : " (In-Person Session)";
+
+    const notificationMessage = `New therapy session scheduled for ${child.firstName} ${child.lastName} on ${sessionDate.toLocaleDateString()} at ${startTime}${meetingInfo}`;
 
     await prisma.notification.createMany({
       data: [
@@ -221,7 +247,7 @@ export async function POST(request: NextRequest) {
           receiverId: session.user.id,
           type: "APPOINTMENT",
           title: "Session Confirmation",
-          message: `Your session booking for ${child.firstName} ${child.lastName} has been confirmed for ${sessionDate.toLocaleDateString()} at ${startTime}`,
+          message: `Your session booking for ${child.firstName} ${child.lastName} has been confirmed for ${sessionDate.toLocaleDateString()} at ${startTime}${meetingInfo}`,
           isRead: false
         }
       ]
@@ -234,6 +260,8 @@ export async function POST(request: NextRequest) {
         scheduledAt: result.scheduledAt,
         duration: result.duration,
         status: result.status,
+        sessionType: result.sessionType,
+        meetingLink: result.meetingLink,
         bookedRate: result.bookedRate
       }
     });

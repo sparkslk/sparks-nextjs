@@ -172,6 +172,9 @@ model TherapySession {
   duration          Int
   status            SessionStatus       @default(SCHEDULED)
   type              String
+  sessionType       SessionType         @default(IN_PERSON) // Online vs In-person
+  meetingLink       String?             // Google Meet link for online sessions
+  calendarEventId   String?             // Google Calendar event ID for tracking
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
   attendanceStatus  AttendanceStatus?
@@ -881,4 +884,10 @@ enum GameAssignmentStatus {
   ACTIVE
   COMPLETED
   PAUSED
+}
+
+enum SessionType {
+  IN_PERSON
+  ONLINE
+  HYBRID
 }
