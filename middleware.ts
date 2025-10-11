@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { withAuth } from "next-auth/middleware";
 import { $Enums } from "@prisma/client";
-import { isAuthorizedForRoute, getRoleBasedDashboard } from "./src/lib/role-redirect";
+import { isAuthorizedForRoute, getRoleBasedDashboardSync } from "./src/lib/role-redirect";
 
 type UserRole = $Enums.UserRole;
 
@@ -61,7 +61,7 @@ export default withAuth(
             // Check if user is authorized for this route
             if (!isAuthorizedForRoute(userRole, pathname)) {
                 // Redirect to their appropriate dashboard
-                const dashboardUrl = getRoleBasedDashboard(userRole);
+                const dashboardUrl = getRoleBasedDashboardSync(userRole);
                 const redirectUrl = new URL(dashboardUrl, request.url);
                 return NextResponse.redirect(redirectUrl);
             }

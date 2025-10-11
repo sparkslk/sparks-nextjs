@@ -149,21 +149,17 @@ export async function POST(req: NextRequest) {
         }
 
         // Create the availability slot
+        // Note: Using date field to store the day, startTime for the time slot
+        const today = new Date();
+        const targetDate = new Date(today);
+        targetDate.setDate(today.getDate() + ((data.dayOfWeek + 7 - today.getDay()) % 7));
+
         const newSlot = await prisma.therapistAvailability.create({
             data: {
                 therapistId: therapist.id,
+                date: targetDate,
                 startTime: data.startTime,
-                endTime: data.endTime,
-                dayOfWeek: data.dayOfWeek,
-                isRecurring: data.isRecurring || false,
-                recurrenceType: data.recurrencePattern?.type?.toUpperCase() as "DAILY" | "WEEKLY" | "CUSTOM" | undefined,
-                recurrenceDays: data.recurrencePattern?.days || [],
-                recurrenceEndDate: data.recurrencePattern?.endDate 
-                    ? new Date(data.recurrencePattern.endDate) 
-                    : null,
-                sessionDuration: data.sessionDuration || 60,
-                breakBetweenSessions: data.breakBetweenSessions || 15,
-                isActive: data.isActive !== false, // Default to true if not specified
+                isBooked: false,
                 isFree: data.isFreeSession || false
             }
         });
@@ -171,18 +167,10 @@ export async function POST(req: NextRequest) {
         // Convert to frontend format
         const formattedSlot = {
             id: newSlot.id,
+            date: newSlot.date.toISOString(),
             startTime: newSlot.startTime,
-            endTime: newSlot.endTime,
-            dayOfWeek: newSlot.dayOfWeek,
-            isRecurring: newSlot.isRecurring,
-            recurrencePattern: newSlot.isRecurring ? {
-                type: newSlot.recurrenceType?.toLowerCase() as "daily" | "weekly" | "custom",
-                days: newSlot.recurrenceDays || undefined,
-                endDate: newSlot.recurrenceEndDate?.toISOString() || undefined
-            } : undefined,
-            sessionDuration: newSlot.sessionDuration,
-            breakBetweenSessions: newSlot.breakBetweenSessions,
-            isActive: newSlot.isActive,
+            dayOfWeek: data.dayOfWeek,
+            isBooked: newSlot.isBooked,
             isFreeSession: newSlot.isFree
         };
 
