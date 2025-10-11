@@ -34,9 +34,16 @@ export default function SessionsPage() {
   const [sessions, setSessions] = useState<TherapySession[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Filter states
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("All Status");
   const [selectedType, setSelectedType] = useState("All Types");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [selectedDuration, setSelectedDuration] = useState("All Durations");
+  const [selectedTimeOfDay, setSelectedTimeOfDay] = useState("All Times");
+  const [selectedTherapist, setSelectedTherapist] = useState("All Therapists");
 
   // Fetch sessions from API
   useEffect(() => {
@@ -79,6 +86,30 @@ export default function SessionsPage() {
     fetchSessions();
   }, []);
 
+  // Extract unique therapists for filter dropdown
+  const therapists = useMemo(() => {
+    const uniqueTherapists = new Map<string, string>();
+    sessions.forEach((session) => {
+      uniqueTherapists.set(
+        session.therapist.id.toString(),
+        session.therapist.name
+      );
+    });
+    return Array.from(uniqueTherapists, ([id, name]) => ({ id, name }));
+  }, [sessions]);
+
+  // Clear all filters function
+  const clearAllFilters = () => {
+    setSearchTerm("");
+    setSelectedStatus("All Status");
+    setSelectedType("All Types");
+    setStartDate("");
+    setEndDate("");
+    setSelectedDuration("All Durations");
+    setSelectedTimeOfDay("All Times");
+    setSelectedTherapist("All Therapists");
+  };
+
   // Filter logic
   const filteredSessions = useMemo(() => {
     return sessions.filter((session) => {
@@ -99,9 +130,55 @@ export default function SessionsPage() {
       const matchesType =
         selectedType === "All Types" || session.type === selectedType;
 
-      return matchesSearch && matchesStatus && matchesType;
+      // Date range filter
+      const sessionDate = new Date(session.scheduledAt);
+      const matchesStartDate =
+        !startDate || sessionDate >= new Date(startDate);
+      const matchesEndDate =
+        !endDate || sessionDate <= new Date(endDate + "T23:59:59");
+
+      // Duration filter
+      const matchesDuration =
+        selectedDuration === "All Durations" ||
+        (selectedDuration === "120"
+          ? session.duration >= 120
+          : session.duration === parseInt(selectedDuration));
+
+      // Time of day filter
+      const sessionHour = sessionDate.getHours();
+      const matchesTimeOfDay =
+        selectedTimeOfDay === "All Times" ||
+        (selectedTimeOfDay === "Morning" && sessionHour >= 6 && sessionHour < 12) ||
+        (selectedTimeOfDay === "Afternoon" && sessionHour >= 12 && sessionHour < 18) ||
+        (selectedTimeOfDay === "Evening" && sessionHour >= 18 && sessionHour < 24);
+
+      // Therapist filter
+      const matchesTherapist =
+        selectedTherapist === "All Therapists" ||
+        session.therapist.id.toString() === selectedTherapist;
+
+      return (
+        matchesSearch &&
+        matchesStatus &&
+        matchesType &&
+        matchesStartDate &&
+        matchesEndDate &&
+        matchesDuration &&
+        matchesTimeOfDay &&
+        matchesTherapist
+      );
     });
-  }, [sessions, searchTerm, selectedStatus, selectedType]);
+  }, [
+    sessions,
+    searchTerm,
+    selectedStatus,
+    selectedType,
+    startDate,
+    endDate,
+    selectedDuration,
+    selectedTimeOfDay,
+    selectedTherapist,
+  ]);
 
   const stats = {
     total: filteredSessions.length,
@@ -214,9 +291,21 @@ export default function SessionsPage() {
         searchTerm={searchTerm}
         selectedStatus={selectedStatus}
         selectedType={selectedType}
+        startDate={startDate}
+        endDate={endDate}
+        selectedDuration={selectedDuration}
+        selectedTimeOfDay={selectedTimeOfDay}
+        selectedTherapist={selectedTherapist}
+        therapists={therapists}
         onSearchChange={setSearchTerm}
         onStatusChange={setSelectedStatus}
         onTypeChange={setSelectedType}
+        onStartDateChange={setStartDate}
+        onEndDateChange={setEndDate}
+        onDurationChange={setSelectedDuration}
+        onTimeOfDayChange={setSelectedTimeOfDay}
+        onTherapistChange={setSelectedTherapist}
+        onClearAllFilters={clearAllFilters}
       />
 
       {/* Paginated Table */}
