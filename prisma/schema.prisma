@@ -57,6 +57,7 @@ model User {
   SessionReschedule     SessionReschedule[]
   therapistProfile      Therapist?
   blogs                 blogs[]
+  donations             Donation[]
 }
 
 model VerificationToken {
@@ -474,6 +475,46 @@ model Payment {
   @@index([status], map: "idx_status")
 }
 
+model Donation {
+  id                String            @id @default(cuid())
+  amount            Decimal           @db.Decimal(10, 2)
+  currency          String            @default("LKR")
+  frequency         DonationFrequency @default(ONE_TIME)
+
+  // Payment details
+  paymentMethod     String?
+  paymentStatus     DonationPaymentStatus @default(PENDING)
+  payHereOrderId    String?           @unique
+  payHerePaymentId  String?           @unique
+  payHereStatusCode String?
+
+  // Donor information
+  donorName         String?
+  donorEmail        String?
+  donorPhone        String?
+  isAnonymous       Boolean           @default(false)
+  message           String?
+
+  // User relation (if logged in)
+  userId            String?
+  user              User?             @relation(fields: [userId], references: [id])
+
+  // Receipt
+  receiptSent       Boolean           @default(false)
+  receiptSentAt     DateTime?
+
+  // Metadata
+  source            String?
+  ipAddress         String?
+
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  @@index([donorEmail])
+  @@index([paymentStatus])
+  @@index([createdAt])
+}
+
 model TherapistProfile {
   id                   String    @id @default(cuid())
   therapistId          String    @unique
@@ -707,4 +748,20 @@ enum ReferenceStatus {
   CONTACTED
   VERIFIED
   FAILED_VERIFICATION
+}
+
+enum DonationFrequency {
+  ONE_TIME
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+enum DonationPaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+  CANCELLED
 }

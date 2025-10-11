@@ -3,19 +3,9 @@ import { requireApiAuth } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
 
 interface CreateAvailabilitySlotData {
+  date: string;
   startTime: string;
-  endTime: string;
-  dayOfWeek: number;
-  isRecurring: boolean;
-  recurrencePattern?: {
-    type: "daily" | "weekly" | "custom";
-    days?: number[];
-    endDate?: string;
-  };
-  sessionDuration: number;
-  breakBetweenSessions: number;
-  isActive: boolean;
-  isFreeSession?: boolean;
+  isFree?: boolean;
 }
 
 /**
@@ -102,36 +92,18 @@ export async function POST(req: NextRequest) {
         const data: CreateAvailabilitySlotData = await req.json();
 
         // Validate required fields
-        if (!data.startTime || !data.endTime || data.dayOfWeek === undefined) {
+        if (!data.date || !data.startTime) {
             return NextResponse.json(
-                { error: "Missing required fields: startTime, endTime, and dayOfWeek are required" },
+                { error: "Missing required fields: date and startTime are required" },
                 { status: 400 }
             );
         }
 
         // Validate time format (HH:MM)
         const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
-        if (!timeRegex.test(data.startTime) || !timeRegex.test(data.endTime)) {
+        if (!timeRegex.test(data.startTime)) {
             return NextResponse.json(
                 { error: "Invalid time format. Use HH:MM format" },
-                { status: 400 }
-            );
-        }
-
-        // Validate dayOfWeek (0-6)
-        if (data.dayOfWeek < 0 || data.dayOfWeek > 6) {
-            return NextResponse.json(
-                { error: "dayOfWeek must be between 0 (Sunday) and 6 (Saturday)" },
-                { status: 400 }
-            );
-        }
-
-        // Validate start time is before end time
-        const startMinutes = timeToMinutes(data.startTime);
-        const endMinutes = timeToMinutes(data.endTime);
-        if (startMinutes >= endMinutes) {
-            return NextResponse.json(
-                { error: "Start time must be before end time" },
                 { status: 400 }
             );
         }
@@ -152,38 +124,20 @@ export async function POST(req: NextRequest) {
         const newSlot = await prisma.therapistAvailability.create({
             data: {
                 therapistId: therapist.id,
+                date: new Date(data.date),
                 startTime: data.startTime,
-                endTime: data.endTime,
-                dayOfWeek: data.dayOfWeek,
-                isRecurring: data.isRecurring || false,
-                recurrenceType: data.recurrencePattern?.type?.toUpperCase() as "DAILY" | "WEEKLY" | "CUSTOM" | undefined,
-                recurrenceDays: data.recurrencePattern?.days || [],
-                recurrenceEndDate: data.recurrencePattern?.endDate 
-                    ? new Date(data.recurrencePattern.endDate) 
-                    : null,
-                sessionDuration: data.sessionDuration || 60,
-                breakBetweenSessions: data.breakBetweenSessions || 15,
-                isActive: data.isActive !== false, // Default to true if not specified
-                isFree: data.isFreeSession || false
+                isBooked: false,
+                isFree: data.isFree || false
             }
         });
 
         // Convert to frontend format
         const formattedSlot = {
             id: newSlot.id,
+            date: newSlot.date.toISOString(),
             startTime: newSlot.startTime,
-            endTime: newSlot.endTime,
-            dayOfWeek: newSlot.dayOfWeek,
-            isRecurring: newSlot.isRecurring,
-            recurrencePattern: newSlot.isRecurring ? {
-                type: newSlot.recurrenceType?.toLowerCase() as "daily" | "weekly" | "custom",
-                days: newSlot.recurrenceDays || undefined,
-                endDate: newSlot.recurrenceEndDate?.toISOString() || undefined
-            } : undefined,
-            sessionDuration: newSlot.sessionDuration,
-            breakBetweenSessions: newSlot.breakBetweenSessions,
-            isActive: newSlot.isActive,
-            isFreeSession: newSlot.isFree
+            isBooked: newSlot.isBooked,
+            isFree: newSlot.isFree
         };
 
         return NextResponse.json({
@@ -201,10 +155,4 @@ export async function POST(req: NextRequest) {
             { status: 500 }
         );
     }
-}
-
-// Helper function to convert time string to minutes
-function timeToMinutes(time: string): number {
-    const [hours, minutes] = time.split(':').map(Number);
-    return hours * 60 + minutes;
 }

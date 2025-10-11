@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Calendar } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -19,110 +19,13 @@ interface RecentReportProps {
   size: string;
 }
 
-const mockDonationData = [
-  {
-    id: 1,
-    donorName: "Malini Wickramasinghe",
-    timeAgo: "2 hours ago",
-    amount: "Rs. 15,000",
-  },
-  {
-    id: 2,
-    donorName: "Chandana Rajapaksa",
-    timeAgo: "5 hours ago",
-    amount: "Rs. 7,500",
-  },
-  {
-    id: 3,
-    donorName: "Sanduni Perera",
-    timeAgo: "1 day ago",
-    amount: "Rs. 30,000",
-  },
-  {
-    id: 4,
-    donorName: "Anonymous",
-    timeAgo: "2 days ago",
-    amount: "Rs. 22,500",
-  },
-  {
-    id: 5,
-    donorName: "Pradeep Silva",
-    timeAgo: "3 days ago",
-    amount: "Rs. 12,000",
-  },
-  {
-    id: 6,
-    donorName: "Kumari Fernando",
-    timeAgo: "4 days ago",
-    amount: "Rs. 8,750",
-  },
-  {
-    id: 7,
-    donorName: "Rohan Gunawardena",
-    timeAgo: "5 days ago",
-    amount: "Rs. 25,000",
-  },
-  {
-    id: 8,
-    donorName: "Nimal Jayasuriya",
-    timeAgo: "6 days ago",
-    amount: "Rs. 18,500",
-  },
-  {
-    id: 9,
-    donorName: "Dilani Mendis",
-    timeAgo: "1 week ago",
-    amount: "Rs. 5,000",
-  },
-  {
-    id: 10,
-    donorName: "Anonymous",
-    timeAgo: "1 week ago",
-    amount: "Rs. 35,000",
-  },
-  {
-    id: 11,
-    donorName: "Tharaka Wijesinghe",
-    timeAgo: "1 week ago",
-    amount: "Rs. 14,200",
-  },
-  {
-    id: 12,
-    donorName: "Chamari Rathnayake",
-    timeAgo: "1 week ago",
-    amount: "Rs. 9,800",
-  },
-  {
-    id: 13,
-    donorName: "Asanka Perera",
-    timeAgo: "2 weeks ago",
-    amount: "Rs. 27,500",
-  },
-  {
-    id: 14,
-    donorName: "Sunitha Dias",
-    timeAgo: "2 weeks ago",
-    amount: "Rs. 11,000",
-  },
-  {
-    id: 15,
-    donorName: "Kamal Dissanayake",
-    timeAgo: "2 weeks ago",
-    amount: "Rs. 19,750",
-  },
-  {
-    id: 16,
-    donorName: "Anonymous",
-    timeAgo: "2 weeks ago",
-    amount: "Rs. 45,000",
-  },
-  {
-    id: 17,
-    donorName: "Ruvini Senanayake",
-    timeAgo: "3 weeks ago",
-    amount: "Rs. 6,500",
-  },
-];
+interface Donation {
+  id: string;
+  amount: number;
+  donorName: string;
+  paymentStatus: string;
+  createdAt: string;
+}
 
 // Simple Button component since it's not imported
 const Button: React.FC<{
@@ -146,13 +49,47 @@ const Button: React.FC<{
 
 const AllDonationsCard = () => {
   const [currentPage, setCurrentPage] = useState(1);
+  const [donations, setDonations] = useState<Donation[]>([]);
+  const [totalDonations, setTotalDonations] = useState(0);
+  const [loading, setLoading] = useState(true);
   const itemsPerPage = 5;
 
+  const fetchDonations = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/admin/donations?page=${currentPage}&limit=${itemsPerPage}&status=COMPLETED`);
+      if (response.ok) {
+        const data = await response.json();
+        setDonations(data.donations || []);
+        setTotalDonations(data.pagination?.total || 0);
+      }
+    } catch (error) {
+      console.error('Error fetching donations:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentPage, itemsPerPage]);
+
+  useEffect(() => {
+    fetchDonations();
+  }, [fetchDonations]);
+
+  const getTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
+    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} days ago`;
+    return `${Math.floor(diffInSeconds / 604800)} weeks ago`;
+  };
+
   // Calculate pagination
-  const totalPages = Math.ceil(mockDonationData.length / itemsPerPage);
+  const totalPages = Math.ceil(totalDonations / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentDonations = mockDonationData.slice(startIndex, endIndex);
+  const endIndex = Math.min(startIndex + itemsPerPage, totalDonations);
+  const currentDonations = donations;
 
   const handlePrevious = () => {
     if (currentPage > 1) {
@@ -194,59 +131,65 @@ const AllDonationsCard = () => {
           All Donations
         </CardTitle>
         <div className="text-sm text-gray-500 mt-1">
-          Showing {startIndex + 1}-{Math.min(endIndex, mockDonationData.length)}{" "}
-          of {mockDonationData.length} donations
+          Showing {startIndex + 1}-{endIndex}{" "}
+          of {totalDonations} donations
         </div>
       </CardHeader>
       <CardContent>
-        <div className="space-y-3">
-          {currentDonations && currentDonations.length > 0 ? (
-            currentDonations.map((donation) => (
-              <div
-                key={donation.id}
-                className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-white rounded-xl border border-gray-100 hover:shadow-sm transition-all duration-200"
-              >
-                <div className="flex-1">
-                  <h4 className="font-semibold text-base text-gray-800 mb-1">
-                    {donation.donorName}
-                  </h4>
-                  <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
-                    <span className="flex items-center gap-1.5">
-                      <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                      <span className="font-medium">Donor</span>
-                    </span>
+        {loading ? (
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
+            <p className="text-sm text-gray-500 mt-2">Loading donations...</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {currentDonations && currentDonations.length > 0 ? (
+              currentDonations.map((donation) => (
+                <div
+                  key={donation.id}
+                  className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-white rounded-xl border border-gray-100 hover:shadow-sm transition-all duration-200"
+                >
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-base text-gray-800 mb-1">
+                      {donation.donorName}
+                    </h4>
+                    <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
+                      <span className="flex items-center gap-1.5">
+                        <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                        <span className="font-medium">Donor</span>
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm">
+                      <span className="flex items-center gap-1 text-gray-500">
+                        <svg
+                          className="w-3.5 h-3.5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                        {getTimeAgo(donation.createdAt)}
+                      </span>
+                      <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+                        COMPLETED
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3 text-sm">
-                    <span className="flex items-center gap-1 text-gray-500">
-                      <svg
-                        className="w-3.5 h-3.5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                      {donation.timeAgo}
-                    </span>
-                    <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
-                      COMPLETED
-                    </span>
+                  <div className="text-right flex flex-col items-end">
+                    <div className="text-lg font-bold text-green-500 mb-0.5">
+                      Rs. {parseFloat(donation.amount.toString()).toLocaleString()}
+                    </div>
+                    <div className="text-sm text-gray-500">Donation</div>
                   </div>
                 </div>
-                <div className="text-right flex flex-col items-end">
-                  <div className="text-lg font-bold text-green-500 mb-0.5">
-                    {donation.amount}
-                  </div>
-                  <div className="text-sm text-gray-500">Donation</div>
-                </div>
-              </div>
-            ))
-          ) : (
+              ))
+            ) : (
             <div className="text-center py-8">
               <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
                 <svg
@@ -266,10 +209,11 @@ const AllDonationsCard = () => {
               <p className="text-sm text-gray-500">No donations found</p>
             </div>
           )}
-        </div>
+          </div>
+        )}
 
         {/* Pagination */}
-        {mockDonationData.length > itemsPerPage && (
+        {!loading && totalDonations > itemsPerPage && (
           <div className="mt-6 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Button
