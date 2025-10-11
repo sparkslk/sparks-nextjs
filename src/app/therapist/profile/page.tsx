@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -78,11 +78,11 @@ interface TherapistProfile {
   profileCompletion: number;
 }
 
-export default function TherapistProfilePage() {
+function TherapistProfilePageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { data: session } = useSession();
-  const isCompletionMode = searchParams.get('complete') === 'true';
+  const isCompletionMode = searchParams?.get('complete') === 'true';
 
   const [profile, setProfile] = useState<TherapistProfile | null>(null);
   const [activeSection, setActiveSection] = useState<string | null>(null);
@@ -978,5 +978,21 @@ export default function TherapistProfilePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Wrap with Suspense to fix useSearchParams error
+export default function TherapistProfilePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <h2 className="text-xl font-semibold text-gray-700">Loading...</h2>
+        </div>
+      </div>
+    }>
+      <TherapistProfilePageContent />
+    </Suspense>
   );
 }

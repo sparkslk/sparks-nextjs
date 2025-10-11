@@ -19,8 +19,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import PaymentHistoryTable from "./payment-history-table";
 
 // Basic User type to replace 'any'
 interface User {
@@ -569,10 +571,10 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold text-gray-900">
-            Edit {user.role} Details
+            {user.role} Details - {String(user.fullName || user.name || '')}
           </DialogTitle>
         </DialogHeader>
 
@@ -583,29 +585,46 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
           </Alert>
         )}
 
-        <div className="space-y-4 py-4">
-          {renderFieldsByRole()}
-        </div>
+        <Tabs defaultValue="details" className="w-full">
+          <TabsList className="grid w-full" style={{ gridTemplateColumns: user.role === "Patient" ? "1fr 1fr" : "1fr" }}>
+            <TabsTrigger value="details">User Details</TabsTrigger>
+            {user.role === "Patient" && (
+              <TabsTrigger value="payments">Payment History</TabsTrigger>
+            )}
+          </TabsList>
 
-        <DialogFooter className="gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={loading}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            onClick={handleSave}
-            disabled={loading}
-            className="bg-[#8159A8] hover:bg-[#6d4a91]"
-          >
-            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {loading ? "Saving..." : "Save Changes"}
-          </Button>
-        </DialogFooter>
+          <TabsContent value="details" className="space-y-4 py-4">
+            <div className="space-y-4">
+              {renderFieldsByRole()}
+            </div>
+
+            <DialogFooter className="gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                disabled={loading}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={handleSave}
+                disabled={loading}
+                className="bg-[#8159A8] hover:bg-[#6d4a91]"
+              >
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {loading ? "Saving..." : "Save Changes"}
+              </Button>
+            </DialogFooter>
+          </TabsContent>
+
+          {user.role === "Patient" && user.id && (
+            <TabsContent value="payments" className="py-4">
+              <PaymentHistoryTable patientId={user.id} />
+            </TabsContent>
+          )}
+        </Tabs>
       </DialogContent>
     </Dialog>
   );

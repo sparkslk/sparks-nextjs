@@ -61,7 +61,6 @@ export async function GET(req: NextRequest) {
 
         const therapistId = searchParams.get('therapistId');
         const date = searchParams.get('date');
-        const duration = parseInt(searchParams.get('duration') || '60');
 
         if (!therapistId || !date) {
             return NextResponse.json(
@@ -71,7 +70,9 @@ export async function GET(req: NextRequest) {
         }
 
         const requestedDate = new Date(date);
-        const dayOfWeek = requestedDate.getDay();
+        requestedDate.setHours(0, 0, 0, 0); // Start of day
+        const nextDate = new Date(requestedDate);
+        nextDate.setDate(nextDate.getDate() + 1); // End of day
 
         // Get therapist and their availability from the new table
         const therapist = await prisma.therapist.findUnique({
@@ -86,22 +87,15 @@ export async function GET(req: NextRequest) {
             );
         }
 
-        // Get availability slots from the new table
+        // Get availability slots for the requested date
         const availabilitySlots = await prisma.therapistAvailability.findMany({
             where: {
                 therapistId: therapist.id,
-                isActive: true,
-                OR: [
-                    // Direct day match
-                    { dayOfWeek: dayOfWeek },
-                    // Recurrence pattern match
-                    {
-                        isRecurring: true,
-                        recurrenceDays: {
-                            has: dayOfWeek
-                        }
-                    }
-                ]
+                date: {
+                    gte: requestedDate,
+                    lt: nextDate
+                },
+                isBooked: false // Only unbooked slots
             }
         });
 
@@ -109,47 +103,16 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ slots: [] });
         }
 
-        const availableSlots: string[] = [];
-
-        // Generate session slots from availability blocks
-        availabilitySlots.forEach((block) => {
-            // Generate individual session slots within this availability block
-            const startTime = new Date(`1970-01-01T${block.startTime}:00`);
-            const endTime = new Date(`1970-01-01T${block.endTime}:00`);
-            const currentTime = new Date(startTime);
-            const sessionDuration = block.sessionDuration || 60;
-            const breakDuration = block.breakBetweenSessions || 15;
-
-            while (currentTime < endTime) {
-                const sessionEnd = new Date(currentTime);
-                sessionEnd.setMinutes(currentTime.getMinutes() + sessionDuration);
-
-                if (sessionEnd <= endTime) {
-                    // This is a valid session slot
-                    availableSlots.push(currentTime.toTimeString().slice(0, 5));
-                    
-                    // Move to next potential session (current session + break)
-                    currentTime.setMinutes(
-                        currentTime.getMinutes() + sessionDuration + breakDuration
-                    );
-                } else {
-                    // Check if we can fit one more session without a trailing break
-                    const finalSessionEnd = new Date(currentTime.getTime() + sessionDuration * 60 * 1000);
-                    if (finalSessionEnd <= endTime) {
-                        availableSlots.push(currentTime.toTimeString().slice(0, 5));
-                    }
-                    break;
-                }
-            }
-        });
+        // Extract available time slots
+        const availableSlots = availabilitySlots.map(slot => slot.startTime);
 
         // Get existing sessions for this therapist on this date
         const existingSessions = await prisma.therapySession.findMany({
             where: {
                 therapistId,
                 scheduledAt: {
-                    gte: new Date(requestedDate.setHours(0, 0, 0, 0)),
-                    lt: new Date(requestedDate.setHours(23, 59, 59, 999))
+                    gte: requestedDate,
+                    lt: nextDate
                 },
                 status: {
                     in: ['SCHEDULED', 'APPROVED']
@@ -168,14 +131,12 @@ export async function GET(req: NextRequest) {
             const sessionEnd = new Date(sessionStart.getTime() + session.duration * 60 * 1000);
 
             // 15-minute buffer before and after
-            const bufferStart = new Date(sessionStart.getTime() - 15 * 60 * 1000);
-            const bufferEnd = new Date(sessionEnd.getTime() + 15 * 60 * 1000);
+            const bufferStart = new Date(sessionStart.getTime() - 15 * 60 * 1000).toTimeString().slice(0, 5);
+            const bufferEnd = new Date(sessionEnd.getTime() + 15 * 60 * 1000).toTimeString().slice(0, 5);
 
             availableSlots.forEach(slot => {
-                const slotTime = new Date(`1970-01-01T${slot}:00`);
-                const slotEnd = new Date(slotTime.getTime() + duration * 60 * 1000);
-
-                if (slotTime < bufferEnd && slotEnd > bufferStart) {
+                // Check if slot conflicts with session (including buffer)
+                if (slot >= bufferStart && slot <= bufferEnd) {
                     conflictingSlots.add(slot);
                 }
             });
