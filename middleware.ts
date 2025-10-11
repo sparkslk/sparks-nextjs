@@ -29,6 +29,7 @@ export default withAuth(
             pathname === "/confirm-role" ||
             pathname === "/set-password" ||
             pathname === "/api-docs" ||
+            pathname.startsWith("/donate") ||
             pathname.startsWith("/therapist/signup") ||
             pathname.startsWith("/therapist/verification") ||
             pathname.startsWith("/manager/signup") ||
@@ -95,6 +96,7 @@ export default withAuth(
                     pathname === "/set-password" ||
                     pathname === "/api-docs" ||
                     pathname.startsWith("/quiz") ||
+                    pathname.startsWith("/donate") ||
                     pathname.startsWith("/therapist/signup") ||
                     pathname.startsWith("/therapist/verification") ||
                     pathname.startsWith("/manager/signup") ||

@@ -58,6 +58,7 @@ model User {
   therapistProfile      Therapist?
   blogs                 blogs[]
   donations             Donation[]
+  gamesAdded            Game[]                  @relation("GameAddedBy")
 }
 
 model VerificationToken {
@@ -111,6 +112,7 @@ model Therapist {
   therapySessions       TherapySession[]
   treatments            Treatment[]
   treatmentPlans        TreatmentPlan[]
+  gameAssignments       GameAssignment[]     @relation("TherapistGameAssignments")
 }
 
 model Patient {
@@ -142,6 +144,8 @@ model Patient {
   therapySessions        TherapySession[]
   treatments             Treatment[]
   treatmentPlans         TreatmentPlan[]
+  gameAssignments        GameAssignment[]     @relation("PatientGameAssignments")
+  gameSessions           GameSession[]        @relation("PatientGameSessions")
 }
 
 model ParentGuardian {
@@ -592,6 +596,94 @@ model TherapistReference {
   therapist          Therapist       @relation(fields: [therapistId], references: [id], onDelete: Cascade)
 }
 
+model Game {
+  id              String          @id @default(cuid())
+  title           String
+  description     String
+  category        GameCategory
+  embedUrl        String // iframe src URL
+  thumbnailUrl    String?
+
+  // Embedding configuration
+  iframeWidth     String   @default("100%")
+  iframeHeight    String   @default("600px")
+  allowFullscreen Boolean  @default(true)
+
+  // Therapeutic metadata
+  targetSkills    String[] // ["attention", "memory", "impulse-control"]
+  ageRange        String   // "6-12", "13-18", etc.
+  difficulty      GameDifficulty
+  estimatedTime   Int      // minutes
+
+  // Management
+  isActive        Boolean  @default(true)
+  addedBy         String   // Admin/Therapist who added
+  user            User     @relation("GameAddedBy", fields: [addedBy], references: [id])
+
+  // Assignments
+  assignments     GameAssignment[]
+  sessions        GameSession[]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([category])
+  @@index([isActive])
+}
+
+model GameAssignment {
+  id          String              @id @default(cuid())
+  gameId      String
+  game        Game                @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  patientId   String
+  patient     Patient             @relation("PatientGameAssignments", fields: [patientId], references: [id], onDelete: Cascade)
+
+  therapistId String
+  therapist   Therapist           @relation("TherapistGameAssignments", fields: [therapistId], references: [id], onDelete: Cascade)
+
+  // Assignment details
+  targetSessions  Int       // Target number of sessions to complete
+  therapistNotes  String?   // Notes from therapist about this assignment
+  status          GameAssignmentStatus @default(ACTIVE)
+
+  // Timestamps
+  assignedAt   DateTime  @default(now())
+  completedAt  DateTime?
+
+  sessions     GameSession[]
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([patientId])
+  @@index([therapistId])
+  @@index([status])
+}
+
+model GameSession {
+  id           String          @id @default(cuid())
+  gameId       String
+  game         Game            @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  patientId    String
+  patient      Patient         @relation("PatientGameSessions", fields: [patientId], references: [id], onDelete: Cascade)
+
+  assignmentId String?
+  assignment   GameAssignment? @relation(fields: [assignmentId], references: [id])
+
+  // Session data
+  startedAt    DateTime @default(now())
+  endedAt      DateTime?
+  duration     Int?     // seconds
+
+  // Game-specific metrics (JSON for flexibility)
+  gameData     Json?    // { score: 100, level: 5, etc. }
+
+  @@index([patientId])
+  @@index([gameId])
+}
+
 enum UserRole {
   NORMAL_USER
   PARENT_GUARDIAN
@@ -764,4 +856,29 @@ enum DonationPaymentStatus {
   FAILED
   REFUNDED
   CANCELLED
+}
+
+enum GameCategory {
+  ATTENTION_TRAINING
+  MEMORY_EXERCISES
+  IMPULSE_CONTROL
+  EXECUTIVE_FUNCTION
+  SOCIAL_SKILLS
+  EMOTIONAL_REGULATION
+  EDUCATIONAL
+  RELAXATION
+  OTHER
+}
+
+enum GameDifficulty {
+  EASY
+  MEDIUM
+  HARD
+  ADAPTIVE
+}
+
+enum GameAssignmentStatus {
+  ACTIVE
+  COMPLETED
+  PAUSED
 }
