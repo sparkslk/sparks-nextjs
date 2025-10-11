@@ -1,7 +1,6 @@
 "use client";
 
-import React from "react";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,159 +10,319 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Gamepad2,
-  //Users,
   Trophy,
   Clock,
   RefreshCw,
   Play,
   Pause,
   Settings,
-  //Star,
   Brain,
   Target,
   Zap,
+  Plus,
+  Edit,
+  Trash2,
+  Loader2,
 } from "lucide-react";
-
-interface GameData {
+interface Game {
   id: string;
   title: string;
-  category: "attention" | "memory" | "focus" | "impulse-control";
   description: string;
-  difficulty: "easy" | "medium" | "hard";
-  duration: number; // in minutes
-  totalPlays: number;
-  averageScore: number;
+  category: string;
+  difficulty: string;
+  embedUrl: string;
+  thumbnailUrl: string | null;
+  targetSkills: string[];
+  ageRange: string;
+  estimatedTime: number;
   isActive: boolean;
   createdAt: string;
-  lastPlayed: string;
+  updatedAt: string;
 }
 
 interface GameStats {
   totalGames: number;
   activeGames: number;
-  totalPlaySessions: number;
-  averageSessionTime: number;
-  mostPopularGame: string;
-  weeklyPlays: number;
+  inactiveGames: number;
 }
 
-const mockGameData: GameData[] = [
-  {
-    id: "1",
-    title: "Focus Flow",
-    category: "attention",
-    description:
-      "A visual attention training game where patients track moving objects",
-    difficulty: "medium",
-    duration: 10,
-    totalPlays: 2847,
-    averageScore: 78.5,
-    isActive: true,
-    createdAt: "2024-01-15",
-    lastPlayed: "2 hours ago",
-  },
-  {
-    id: "2",
-    title: "Memory Palace",
-    category: "memory",
-    description: "Sequential memory exercises using visual and audio cues",
-    difficulty: "hard",
-    duration: 15,
-    totalPlays: 1923,
-    averageScore: 65.2,
-    isActive: true,
-    createdAt: "2024-02-03",
-    lastPlayed: "4 hours ago",
-  },
-  {
-    id: "3",
-    title: "Impulse Guardian",
-    category: "impulse-control",
-    description: "Response inhibition training through go/no-go tasks",
-    difficulty: "easy",
-    duration: 8,
-    totalPlays: 3412,
-    averageScore: 82.1,
-    isActive: true,
-    createdAt: "2024-01-28",
-    lastPlayed: "1 hour ago",
-  },
-  {
-    id: "4",
-    title: "Zen Focus",
-    category: "focus",
-    description: "Mindfulness-based attention regulation exercises",
-    difficulty: "medium",
-    duration: 12,
-    totalPlays: 1654,
-    averageScore: 71.8,
-    isActive: false,
-    createdAt: "2024-03-10",
-    lastPlayed: "2 days ago",
-  },
+interface GameFormData {
+  title: string;
+  description: string;
+  category: string;
+  difficulty: string;
+  embedUrl: string;
+  thumbnailUrl: string;
+  targetSkills: string;
+  ageRange: string;
+  estimatedTime: string;
+}
+
+const CATEGORIES = [
+  { value: "ATTENTION_TRAINING", label: "Attention Training", icon: Target },
+  { value: "MEMORY_EXERCISES", label: "Memory Exercises", icon: Brain },
+  { value: "IMPULSE_CONTROL", label: "Impulse Control", icon: Zap },
+  { value: "EXECUTIVE_FUNCTION", label: "Executive Function", icon: Settings },
+  { value: "SOCIAL_SKILLS", label: "Social Skills", icon: Gamepad2 },
+  { value: "EMOTIONAL_REGULATION", label: "Emotional Regulation", icon: Brain },
+  { value: "EDUCATIONAL", label: "Educational", icon: Brain },
+  { value: "RELAXATION", label: "Relaxation", icon: Clock },
+  { value: "OTHER", label: "Other", icon: Gamepad2 },
 ];
 
-const mockGameStats: GameStats = {
-  totalGames: 12,
-  activeGames: 9,
-  totalPlaySessions: 15840,
-  averageSessionTime: 11.3,
-  mostPopularGame: "Focus Flow",
-  weeklyPlays: 1247,
-};
+const DIFFICULTIES = [
+  { value: "EASY", label: "Easy", color: "text-green-600 bg-green-100" },
+  { value: "MEDIUM", label: "Medium", color: "text-yellow-600 bg-yellow-100" },
+  { value: "HARD", label: "Hard", color: "text-red-600 bg-red-100" },
+  { value: "ADAPTIVE", label: "Adaptive", color: "text-blue-600 bg-blue-100" },
+];
 
-export default function GameManagementDashboard() {
-  const [gameData, setGameData] = useState<GameData[]>(mockGameData);
-  const [gameStats] = useState<GameStats>(mockGameStats);
-  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+export default function AdminGameManagement() {
+  const [games, setGames] = useState<Game[]>([]);
+  const [stats, setStats] = useState<GameStats>({ totalGames: 0, activeGames: 0, inactiveGames: 0 });
+  const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [selectedGame, setSelectedGame] = useState<Game | null>(null);
+  const [formData, setFormData] = useState<GameFormData>({
+    title: "",
+    description: "",
+    category: "",
+    difficulty: "",
+    embedUrl: "",
+    thumbnailUrl: "",
+    targetSkills: "",
+    ageRange: "",
+    estimatedTime: "",
+  });
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    // Set the initial timestamp after component mounts to avoid hydration mismatch
-    setLastUpdated(new Date());
+    fetchGames();
   }, []);
 
-  const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case "attention":
-        return <Target className="h-4 w-4" />;
-      case "memory":
-        return <Brain className="h-4 w-4" />;
-      case "focus":
-        return <Zap className="h-4 w-4" />;
-      case "impulse-control":
-        return <Settings className="h-4 w-4" />;
-      default:
-        return <Gamepad2 className="h-4 w-4" />;
+  const fetchGames = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch("/api/admin/games");
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch games");
+      }
+
+      const data = await response.json();
+      setGames(data.games || []);
+
+      // Calculate stats
+      const active = data.games.filter((g: Game) => g.isActive).length;
+      setStats({
+        totalGames: data.games.length,
+        activeGames: active,
+        inactiveGames: data.games.length - active,
+      });
+
+      setLastUpdated(new Date());
+    } catch (error) {
+      console.error("Error fetching games:", error);
+      alert("Failed to fetch games. Please try again.");
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const handleCreateGame = async () => {
+    try {
+      setSubmitting(true);
+      const targetSkillsArray = formData.targetSkills.split(",").map((s) => s.trim()).filter(Boolean);
+
+      const response = await fetch("/api/admin/games", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...formData,
+          targetSkills: targetSkillsArray,
+          estimatedTime: parseInt(formData.estimatedTime),
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to create game");
+      }
+
+      alert("Game created successfully!");
+
+      setShowCreateDialog(false);
+      resetForm();
+      fetchGames();
+    } catch (error: unknown) {
+      console.error("Error creating game:", error);
+      alert(error instanceof Error ? error.message : "Failed to create game");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleUpdateGame = async () => {
+    if (!selectedGame) return;
+
+    try {
+      setSubmitting(true);
+      const targetSkillsArray = formData.targetSkills.split(",").map((s) => s.trim()).filter(Boolean);
+
+      const response = await fetch(`/api/admin/games/${selectedGame.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...formData,
+          targetSkills: targetSkillsArray,
+          estimatedTime: parseInt(formData.estimatedTime),
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to update game");
+      }
+
+      alert("Game updated successfully!");
+
+      setShowEditDialog(false);
+      resetForm();
+      fetchGames();
+    } catch (error: unknown) {
+      console.error("Error updating game:", error);
+      alert(error instanceof Error ? error.message : "Failed to update game");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteGame = async () => {
+    if (!selectedGame) return;
+
+    try {
+      setSubmitting(true);
+      const response = await fetch(`/api/admin/games/${selectedGame.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to delete game");
+      }
+
+      alert("Game deleted successfully!");
+
+      setShowDeleteDialog(false);
+      setSelectedGame(null);
+      fetchGames();
+    } catch (error: unknown) {
+      console.error("Error deleting game:", error);
+      alert(error instanceof Error ? error.message : "Failed to delete game");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const toggleGameStatus = async (game: Game) => {
+    try {
+      const response = await fetch(`/api/admin/games/${game.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: !game.isActive }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to update game status");
+      }
+
+      alert(`Game ${game.isActive ? "deactivated" : "activated"} successfully!`);
+
+      fetchGames();
+    } catch (error: unknown) {
+      console.error("Error toggling game status:", error);
+      alert(error instanceof Error ? error.message : "Failed to update game status");
+    }
+  };
+
+  const openEditDialog = (game: Game) => {
+    setSelectedGame(game);
+    setFormData({
+      title: game.title,
+      description: game.description,
+      category: game.category,
+      difficulty: game.difficulty,
+      embedUrl: game.embedUrl,
+      thumbnailUrl: game.thumbnailUrl || "",
+      targetSkills: game.targetSkills.join(", "),
+      ageRange: game.ageRange,
+      estimatedTime: game.estimatedTime.toString(),
+    });
+    setShowEditDialog(true);
+  };
+
+  const openDeleteDialog = (game: Game) => {
+    setSelectedGame(game);
+    setShowDeleteDialog(true);
+  };
+
+  const resetForm = () => {
+    setFormData({
+      title: "",
+      description: "",
+      category: "",
+      difficulty: "",
+      embedUrl: "",
+      thumbnailUrl: "",
+      targetSkills: "",
+      ageRange: "",
+      estimatedTime: "",
+    });
+    setSelectedGame(null);
+  };
+
+  const getCategoryIcon = (category: string) => {
+    const cat = CATEGORIES.find((c) => c.value === category);
+    const Icon = cat?.icon || Gamepad2;
+    return <Icon className="h-4 w-4" />;
+  };
+
+  const getCategoryLabel = (category: string) => {
+    return CATEGORIES.find((c) => c.value === category)?.label || category;
   };
 
   const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case "easy":
-        return "text-green-600 bg-green-100";
-      case "medium":
-        return "text-yellow-600 bg-yellow-100";
-      case "hard":
-        return "text-red-600 bg-red-100";
-      default:
-        return "text-gray-600 bg-gray-100";
-    }
-  };
-
-  const toggleGameStatus = (gameId: string) => {
-    setGameData((prevData) =>
-      prevData.map((game) =>
-        game.id === gameId ? { ...game, isActive: !game.isActive } : game
-      )
-    );
+    return DIFFICULTIES.find((d) => d.value === difficulty)?.color || "text-gray-600 bg-gray-100";
   };
 
   const filteredGames =
     selectedCategory === "all"
-      ? gameData
-      : gameData.filter((game) => game.category === selectedCategory);
+      ? games
+      : games.filter((game) => game.category === selectedCategory);
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#F5F3FB" }}>
@@ -174,8 +333,7 @@ export default function GameManagementDashboard() {
             ADHD Game Management
           </h1>
           <p className="text-muted-foreground mt-1">
-            Manage therapeutic games and monitor patient engagement across all
-            ADHD training modules.
+            Manage therapeutic games and monitor patient engagement across all ADHD training modules.
           </p>
           <p className="text-xs text-gray-400 mt-2 flex items-center gap-1">
             <RefreshCw className="h-3 w-3" />
@@ -184,56 +342,44 @@ export default function GameManagementDashboard() {
         </div>
 
         {/* Game Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Games</CardTitle>
               <Gamepad2 className="h-12 w-12" style={{ color: "#8159A8" }} />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{gameStats.totalGames}</div>
+              <div className="text-2xl font-bold">{stats.totalGames}</div>
               <p className="text-xs text-muted-foreground">
-                {gameStats.activeGames} currently active
+                {stats.activeGames} active, {stats.inactiveGames} inactive
               </p>
             </CardContent>
           </Card>
 
           <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Avg. Session Time
-              </CardTitle>
-              <Clock className="h-12 w-12" style={{ color: "#8159A8" }} />
+              <CardTitle className="text-sm font-medium">Active Games</CardTitle>
+              <Play className="h-12 w-12" style={{ color: "#8159A8" }} />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                {gameStats.averageSessionTime} min
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Optimal engagement range
-              </p>
+              <div className="text-2xl font-bold">{stats.activeGames}</div>
+              <p className="text-xs text-muted-foreground">Currently available</p>
             </CardContent>
           </Card>
 
           <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Most Popular
-              </CardTitle>
+              <CardTitle className="text-sm font-medium">Categories</CardTitle>
               <Trophy className="h-12 w-12" style={{ color: "#8159A8" }} />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-sm">
-                {gameStats.mostPopularGame}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Top performing game
-              </p>
+              <div className="text-2xl font-bold">{CATEGORIES.length}</div>
+              <p className="text-xs text-muted-foreground">Different game types</p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Category Filter */}
+        {/* Category Filter and Create Button */}
         <div className="mb-6 flex flex-wrap md:flex-nowrap items-center justify-between gap-2">
           <div className="flex flex-wrap gap-2">
             <Button
@@ -243,123 +389,340 @@ export default function GameManagementDashboard() {
             >
               All Games
             </Button>
-            <Button
-              variant={selectedCategory === "attention" ? "default" : "outline"}
-              onClick={() => setSelectedCategory("attention")}
-              className="text-sm flex items-center gap-1"
-            >
-              <Target className="h-3 w-3" />
-              Attention
-            </Button>
-            <Button
-              variant={selectedCategory === "memory" ? "default" : "outline"}
-              onClick={() => setSelectedCategory("memory")}
-              className="text-sm flex items-center gap-1"
-            >
-              <Brain className="h-3 w-3" />
-              Memory
-            </Button>
-            <Button
-              variant={selectedCategory === "focus" ? "default" : "outline"}
-              onClick={() => setSelectedCategory("focus")}
-              className="text-sm flex items-center gap-1"
-            >
-              <Zap className="h-3 w-3" />
-              Focus
-            </Button>
+            {CATEGORIES.slice(0, 4).map((cat) => {
+              const Icon = cat.icon;
+              return (
+                <Button
+                  key={cat.value}
+                  variant={selectedCategory === cat.value ? "default" : "outline"}
+                  onClick={() => setSelectedCategory(cat.value)}
+                  className="text-sm flex items-center gap-1"
+                >
+                  <Icon className="h-3 w-3" />
+                  {cat.label}
+                </Button>
+              );
+            })}
           </div>
           <Button
             variant="default"
             className="bg-[#8159A8] hover:bg-[#6B429B] text-white font-semibold"
+            onClick={() => {
+              resetForm();
+              setShowCreateDialog(true);
+            }}
           >
-            + New Game
+            <Plus className="h-4 w-4 mr-1" />
+            New Game
           </Button>
         </div>
 
         {/* Games List */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {filteredGames.map((game) => (
-            <Card key={game.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    {getCategoryIcon(game.category)}
-                    <CardTitle className="text-lg">{game.title}</CardTitle>
+        {loading ? (
+          <div className="flex items-center justify-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : filteredGames.length === 0 ? (
+          <Card className="p-8 text-center">
+            <Gamepad2 className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No games found</h3>
+            <p className="text-muted-foreground mb-4">
+              Get started by creating your first therapeutic game.
+            </p>
+            <Button
+              onClick={() => {
+                resetForm();
+                setShowCreateDialog(true);
+              }}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Create Game
+            </Button>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            {filteredGames.map((game) => (
+              <Card key={game.id} className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {getCategoryIcon(game.category)}
+                      <CardTitle className="text-lg">{game.title}</CardTitle>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(
+                          game.difficulty
+                        )}`}
+                      >
+                        {game.difficulty}
+                      </span>
+                      <div
+                        className={`w-3 h-3 rounded-full ${
+                          game.isActive ? "bg-green-500" : "bg-gray-400"
+                        }`}
+                      ></div>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(
-                        game.difficulty
-                      )}`}
-                    >
-                      {game.difficulty}
-                    </span>
-                    <div
-                      className={`w-3 h-3 rounded-full ${
-                        game.isActive ? "bg-green-500" : "bg-gray-400"
-                      }`}
-                    ></div>
-                  </div>
-                </div>
-                <CardDescription>{game.description}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center p-3 bg-gray-50 rounded-lg">
-                      <div className="text-2xl font-bold text-blue-600">
-                        {game.totalPlays.toLocaleString()}
+                  <CardDescription>{game.description}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="text-center p-3 bg-gray-50 rounded-lg">
+                        <div className="text-sm font-semibold text-blue-600">
+                          {getCategoryLabel(game.category)}
+                        </div>
+                        <div className="text-xs text-muted-foreground">Category</div>
                       </div>
-                      <div className="text-xs text-muted-foreground">
-                        Total Plays
+                      <div className="text-center p-3 bg-gray-50 rounded-lg">
+                        <div className="text-sm font-semibold text-green-600">
+                          {game.estimatedTime} min
+                        </div>
+                        <div className="text-xs text-muted-foreground">Duration</div>
                       </div>
                     </div>
-                    <div className="text-center p-3 bg-gray-50 rounded-lg">
-                      <div className="text-2xl font-bold text-green-600">
-                        {game.averageScore}%
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        Avg Score
-                      </div>
+
+                    <div className="flex items-center justify-between text-sm text-muted-foreground">
+                      <span>Age: {game.ageRange}</span>
+                      <span>Skills: {game.targetSkills.length}</span>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => toggleGameStatus(game)}
+                        className={`flex items-center gap-1 ${
+                          game.isActive
+                            ? "bg-red-500 hover:bg-red-600"
+                            : "bg-green-500 hover:bg-green-600"
+                        } text-white`}
+                      >
+                        {game.isActive ? (
+                          <Pause className="h-3 w-3" />
+                        ) : (
+                          <Play className="h-3 w-3" />
+                        )}
+                        {game.isActive ? "Deactivate" : "Activate"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex items-center gap-1"
+                        onClick={() => openEditDialog(game)}
+                      >
+                        <Edit className="h-3 w-3" />
+                        Edit
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex items-center gap-1 text-red-600 hover:text-red-700"
+                        onClick={() => openDeleteDialog(game)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                        Delete
+                      </Button>
                     </div>
                   </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
 
-                  <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <span>Duration: {game.duration} min</span>
-                    <span>Last played: {game.lastPlayed}</span>
-                  </div>
+        {/* Create/Edit Dialog */}
+        <Dialog
+          open={showCreateDialog || showEditDialog}
+          onOpenChange={(open) => {
+            if (!open) {
+              setShowCreateDialog(false);
+              setShowEditDialog(false);
+              resetForm();
+            }
+          }}
+        >
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{showEditDialog ? "Edit Game" : "Create New Game"}</DialogTitle>
+              <DialogDescription>
+                {showEditDialog
+                  ? "Update the game details below."
+                  : "Fill in the details to create a new therapeutic game."}
+              </DialogDescription>
+            </DialogHeader>
 
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      onClick={() => toggleGameStatus(game.id)}
-                      className={`flex items-center gap-1 ${
-                        game.isActive
-                          ? "bg-red-500 hover:bg-red-600"
-                          : "bg-green-500 hover:bg-green-600"
-                      } text-white`}
-                    >
-                      {game.isActive ? (
-                        <Pause className="h-3 w-3" />
-                      ) : (
-                        <Play className="h-3 w-3" />
-                      )}
-                      {game.isActive ? "Deactivate" : "Activate"}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="flex items-center gap-1"
-                    >
-                      <Settings className="h-3 w-3" />
-                      Configure
-                    </Button>
-                  </div>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="title">Title *</Label>
+                <Input
+                  id="title"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  placeholder="e.g., Focus Flow"
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="description">Description *</Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Describe the game and its therapeutic benefits"
+                  rows={3}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="category">Category *</Label>
+                  <Select
+                    value={formData.category}
+                    onValueChange={(value) => setFormData({ ...formData, category: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CATEGORIES.map((cat) => (
+                        <SelectItem key={cat.value} value={cat.value}>
+                          {cat.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="difficulty">Difficulty *</Label>
+                  <Select
+                    value={formData.difficulty}
+                    onValueChange={(value) => setFormData({ ...formData, difficulty: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select difficulty" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DIFFICULTIES.map((diff) => (
+                        <SelectItem key={diff.value} value={diff.value}>
+                          {diff.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="embedUrl">Game URL (iframe source) *</Label>
+                <Input
+                  id="embedUrl"
+                  value={formData.embedUrl}
+                  onChange={(e) => setFormData({ ...formData, embedUrl: e.target.value })}
+                  placeholder="https://example.com/game"
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="thumbnailUrl">Thumbnail URL</Label>
+                <Input
+                  id="thumbnailUrl"
+                  value={formData.thumbnailUrl}
+                  onChange={(e) => setFormData({ ...formData, thumbnailUrl: e.target.value })}
+                  placeholder="https://example.com/thumbnail.jpg"
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="targetSkills">Target Skills (comma-separated) *</Label>
+                <Input
+                  id="targetSkills"
+                  value={formData.targetSkills}
+                  onChange={(e) => setFormData({ ...formData, targetSkills: e.target.value })}
+                  placeholder="attention, memory, focus"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="ageRange">Age Range *</Label>
+                  <Input
+                    id="ageRange"
+                    value={formData.ageRange}
+                    onChange={(e) => setFormData({ ...formData, ageRange: e.target.value })}
+                    placeholder="e.g., 6-12"
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="estimatedTime">Est. Time (minutes) *</Label>
+                  <Input
+                    id="estimatedTime"
+                    type="number"
+                    value={formData.estimatedTime}
+                    onChange={(e) => setFormData({ ...formData, estimatedTime: e.target.value })}
+                    placeholder="15"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowCreateDialog(false);
+                  setShowEditDialog(false);
+                  resetForm();
+                }}
+                disabled={submitting}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={showEditDialog ? handleUpdateGame : handleCreateGame}
+                disabled={submitting}
+              >
+                {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {showEditDialog ? "Update Game" : "Create Game"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete Game</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete &quot;{selectedGame?.title}&quot;? This action cannot be
+                undone and will remove all associated data.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowDeleteDialog(false);
+                  setSelectedGame(null);
+                }}
+                disabled={submitting}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDeleteGame}
+                disabled={submitting}
+              >
+                {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Delete Game
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );
