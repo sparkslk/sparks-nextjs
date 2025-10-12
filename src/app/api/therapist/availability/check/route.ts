@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireApiAuth } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
-import { RecurrenceType } from "@prisma/client";
 
 /**
  * @swagger
@@ -88,25 +87,19 @@ export async function POST(req: NextRequest) {
         }
 
         const requestedDateTime = new Date(dateTime);
-        const dayOfWeek = requestedDateTime.getDay(); // 0 = Sunday, 1 = Monday, etc.
+        const requestedDate = new Date(requestedDateTime.toDateString()); // Date only, no time
         const timeString = requestedDateTime.toTimeString().slice(0, 5); // HH:MM format
 
-        // Get availability slots from the new table
+        // Get availability slots from the table - simplified based on actual schema
+        // TherapistAvailability has: therapistId, date, startTime, isBooked, isFree
         const availabilitySlots = await prisma.therapistAvailability.findMany({
             where: {
                 therapistId: therapist.id,
-                isActive: true,
-                OR: [
-                    // Direct day match
-                    { dayOfWeek: dayOfWeek },
-                    // Recurrence pattern match
-                    {
-                        isRecurring: true,
-                        recurrenceDays: {
-                            has: dayOfWeek
-                        }
-                    }
-                ]
+                date: {
+                    gte: requestedDate,
+                    lt: new Date(requestedDate.getTime() + 24 * 60 * 60 * 1000)
+                },
+                isBooked: false
             }
         });
 
@@ -118,20 +111,12 @@ export async function POST(req: NextRequest) {
             });
         }
 
-        // Check if the requested time falls within any availability slot
-        const isAvailable = availabilitySlots.some((slot) => {
-            // Check if the time falls within the slot
-            const slotStart = slot.startTime;
-            const slotEnd = slot.endTime;
-
-            // Calculate the end time of the requested session
-            const sessionEndTime = new Date(requestedDateTime);
-            sessionEndTime.setMinutes(sessionEndTime.getMinutes() + duration);
-            const sessionEndTimeString = sessionEndTime.toTimeString().slice(0, 5);
-
-            // Check if the requested time and session duration fit within the slot
-            return timeString >= slotStart && sessionEndTimeString <= slotEnd;
+        // Check if any slot matches the requested time
+        const matchingSlot = availabilitySlots.find((slot) => {
+            return slot.startTime === timeString;
         });
+
+        const isAvailable = !!matchingSlot;
 
         // Check for existing sessions that might conflict
         const existingSessions = await prisma.therapySession.findMany({
@@ -153,7 +138,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({
                 available: false,
                 message: "Therapist is not available at this time",
-                suggestedSlots: getSuggestedSlotsFromDB(availabilitySlots, dayOfWeek)
+                suggestedSlots: availabilitySlots.map(slot => slot.startTime).slice(0, 5)
             });
         }
 
@@ -161,7 +146,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({
                 available: false,
                 message: "Therapist has a conflicting appointment at this time",
-                suggestedSlots: getSuggestedSlotsFromDB(availabilitySlots, dayOfWeek)
+                suggestedSlots: availabilitySlots.map(slot => slot.startTime).slice(0, 5)
             });
         }
 
@@ -182,54 +167,3 @@ export async function POST(req: NextRequest) {
         );
     }
 }
-
-// Helper function to get suggested time slots from database records
-function getSuggestedSlotsFromDB(availability: Array<{
-    therapistId: string;
-    id: string;
-    startTime: string;
-    endTime: string;
-    dayOfWeek: number | null;
-    isRecurring: boolean;
-    recurrenceType: RecurrenceType | null;
-    recurrenceDays: number[];
-    sessionDuration: number;
-    breakBetweenSessions: number;
-    isActive: boolean;
-}>, dayOfWeek: number): string[] {
-    const suggestions: string[] = [];
-
-    availability.forEach((slot) => {
-        if (!slot.isActive) return;
-
-        // Check if this slot applies to the requested day
-        const appliesToDay = slot.isRecurring && slot.recurrenceDays.includes(dayOfWeek)
-            || slot.dayOfWeek === dayOfWeek;
-
-        if (!appliesToDay) return;
-
-        // Generate suggestions within this slot
-        const startTime = new Date(`1970-01-01T${slot.startTime}:00`);
-        const endTime = new Date(`1970-01-01T${slot.endTime}:00`);
-
-        const currentTime = new Date(startTime);
-        const sessionDuration = slot.sessionDuration || 60;
-        const breakDuration = slot.breakBetweenSessions || 15;
-        const totalSlotDuration = sessionDuration + breakDuration;
-
-        while (currentTime < endTime) {
-            const sessionEnd = new Date(currentTime);
-            sessionEnd.setMinutes(currentTime.getMinutes() + sessionDuration);
-
-            if (sessionEnd <= endTime) {
-                suggestions.push(currentTime.toTimeString().slice(0, 5));
-            }
-
-            currentTime.setMinutes(currentTime.getMinutes() + totalSlotDuration);
-        }
-    });
-
-    return suggestions.slice(0, 5); // Return up to 5 suggestions
-}
-
- 
