@@ -26,14 +26,10 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get("search");
 
     // Build where clause
-    const where: Record<string, unknown> = {
-      user: {
-        isActive: true
-      }
-    };
+    const where: Record<string, unknown> = {};
 
     if (specialty) {
-      where.specializations = {
+      where.specialization = {
         has: specialty
       };
     }
@@ -45,7 +41,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (maxCost) {
-      where.sessionRate = {
+      where.session_rate = {
         lte: parseFloat(maxCost)
       };
     }
