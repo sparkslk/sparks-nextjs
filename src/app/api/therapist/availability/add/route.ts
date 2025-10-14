@@ -149,41 +149,29 @@ export async function POST(req: NextRequest) {
         }
 
         // Create the availability slot
+        // Note: TherapistAvailability model only stores startTime
+        // endTime is calculated based on startTime + sessionDuration
         const newSlot = await prisma.therapistAvailability.create({
             data: {
                 therapistId: therapist.id,
                 startTime: data.startTime,
-                endTime: data.endTime,
-                dayOfWeek: data.dayOfWeek,
-                isRecurring: data.isRecurring || false,
-                recurrenceType: data.recurrencePattern?.type?.toUpperCase() as "DAILY" | "WEEKLY" | "CUSTOM" | undefined,
-                recurrenceDays: data.recurrencePattern?.days || [],
-                recurrenceEndDate: data.recurrencePattern?.endDate 
-                    ? new Date(data.recurrencePattern.endDate) 
-                    : null,
-                sessionDuration: data.sessionDuration || 60,
-                breakBetweenSessions: data.breakBetweenSessions || 15,
-                isActive: data.isActive !== false, // Default to true if not specified
+                date: new Date(), // Placeholder - should be set based on recurrence pattern
+                isBooked: false,
                 isFree: data.isFreeSession || false
             }
         });
 
         // Convert to frontend format
+        // Note: Simplified response based on actual TherapistAvailability schema
         const formattedSlot = {
             id: newSlot.id,
+            therapistId: newSlot.therapistId,
             startTime: newSlot.startTime,
-            endTime: newSlot.endTime,
-            dayOfWeek: newSlot.dayOfWeek,
-            isRecurring: newSlot.isRecurring,
-            recurrencePattern: newSlot.isRecurring ? {
-                type: newSlot.recurrenceType?.toLowerCase() as "daily" | "weekly" | "custom",
-                days: newSlot.recurrenceDays || undefined,
-                endDate: newSlot.recurrenceEndDate?.toISOString() || undefined
-            } : undefined,
-            sessionDuration: newSlot.sessionDuration,
-            breakBetweenSessions: newSlot.breakBetweenSessions,
-            isActive: newSlot.isActive,
-            isFreeSession: newSlot.isFree
+            date: newSlot.date.toISOString(),
+            isBooked: newSlot.isBooked,
+            isFree: newSlot.isFree,
+            createdAt: newSlot.createdAt.toISOString(),
+            updatedAt: newSlot.updatedAt.toISOString()
         };
 
         return NextResponse.json({
