@@ -5,7 +5,7 @@ import { authOptions } from "@/lib/auth";
 
 const prisma = new PrismaClient();
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     // Get the current session to identify the user
     const session = await getServerSession(authOptions);
@@ -17,11 +17,78 @@ export async function GET() {
       );
     }
 
-    // For therapist users, fetch only their blogs
+    // Parse URL to get filter parameter
+    const url = new URL(request.url);
+    const filter = url.searchParams.get('filter') || 'mine';
+    
+    // Get user role from session
+    const userRole = (session.user as { role?: string }).role;
+
+    // Build query based on filter and user role
+    let whereClause = {};
+    
+    if (filter === 'all') {
+      // Get all published blogs from any therapist
+      whereClause = {
+        status: 'published'
+      };
+    } else if (filter === 'mine') {
+      // Only therapists can access their own blogs
+      if (userRole !== 'THERAPIST') {
+        // Non-therapists get all published blogs instead
+        whereClause = {
+          status: 'published'
+        };
+      } else {
+        // Get all blogs (published and draft) from the current therapist
+        whereClause = {
+          therapist_id: session.user.id
+        };
+      }
+    } else if (filter === 'published') {
+      // Only therapists can filter their own published blogs
+      if (userRole !== 'THERAPIST') {
+        // Non-therapists get all published blogs
+        whereClause = {
+          status: 'published'
+        };
+      } else {
+        // Get only published blogs from the current therapist
+        whereClause = {
+          therapist_id: session.user.id,
+          status: 'published'
+        };
+      }
+    } else if (filter === 'draft') {
+      // Only therapists can see drafts - non-therapists get published blogs
+      if (userRole !== 'THERAPIST') {
+        whereClause = {
+          status: 'published'
+        };
+      } else {
+        // Get only draft blogs from the current therapist
+        whereClause = {
+          therapist_id: session.user.id,
+          status: 'draft'
+        };
+      }
+    } else {
+      // Default behavior based on user role
+      if (userRole === 'THERAPIST') {
+        whereClause = {
+          therapist_id: session.user.id
+        };
+      } else {
+        // Parents and other users get all published blogs
+        whereClause = {
+          status: 'published'
+        };
+      }
+    }
+
+    // Fetch blogs based on filter
     const blogs = await prisma.blogs.findMany({
-      where: {
-        therapist_id: session.user.id, // Only fetch blogs for the logged-in therapist
-      },
+      where: whereClause,
       include: {
         User: {
           select: {
@@ -48,6 +115,7 @@ export async function GET() {
         imageUrl,
         image_data: undefined, // Remove binary data from response
         authorName: blog.User?.name || "Unknown Author",
+        isOwnBlog: blog.therapist_id === session.user.id, // Flag to identify if this is user's own blog
       };
     });
 
