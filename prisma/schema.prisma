@@ -103,6 +103,10 @@ model Therapist {
   user                  User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
   assignmentRequests    TherapistAssignmentRequest[] @relation("TherapistRequests")
   TherapistAvailability TherapistAvailability[]
+  documents             TherapistDocument[]
+  profile               TherapistProfile?
+  references            TherapistReference?
+  verification          TherapistVerification?
   therapySessions       TherapySession[]
   treatments            Treatment[]
   treatmentPlans        TreatmentPlan[]
@@ -131,6 +135,7 @@ model Patient {
   organization           Organization?                @relation(fields: [organizationId], references: [id])
   primaryTherapist       Therapist?                   @relation(fields: [primaryTherapistId], references: [id])
   user                   User?                        @relation(fields: [userId], references: [id])
+  payments               Payment[]
   tasks                  Task[]
   therapistRequests      TherapistAssignmentRequest[] @relation("PatientRequests")
   therapySessions        TherapySession[]
@@ -190,7 +195,7 @@ model TreatmentPlan {
   targetEndDate DateTime?
   isActive      Boolean     @default(true)
   createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  updatedAt     DateTime    @default(now())
   treatments    Treatment[]
   patient       Patient     @relation(fields: [patientId], references: [id], onDelete: Cascade)
   therapist     Therapist   @relation(fields: [therapistId], references: [id], onDelete: Cascade)
@@ -210,7 +215,7 @@ model Treatment {
   endDate         DateTime?
   isActive        Boolean       @default(true)
   createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  updatedAt       DateTime      @default(now())
   patient         Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
   therapist       Therapist     @relation(fields: [therapistId], references: [id], onDelete: Cascade)
   treatmentPlan   TreatmentPlan @relation(fields: [treatmentPlanId], references: [id], onDelete: Cascade)
@@ -230,7 +235,7 @@ model Assessment {
   recommendations String?
   assessmentDate  DateTime
   createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  updatedAt       DateTime       @default(now())
   patient         Patient        @relation(fields: [patientId], references: [id], onDelete: Cascade)
   therapist       Therapist      @relation(fields: [therapistId], references: [id], onDelete: Cascade)
 }
@@ -249,7 +254,7 @@ model Task {
   completedAt      DateTime?
   completionNotes  String?
   createdAt        DateTime   @default(now())
-  updatedAt        DateTime   @updatedAt
+  updatedAt        DateTime   @default(now())
   sessionid        String?
   patient          Patient    @relation(fields: [patientId], references: [id], onDelete: Cascade)
 }
@@ -266,7 +271,7 @@ model Notification {
   scheduledFor DateTime?
   sentAt       DateTime?
   createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
+  updatedAt    DateTime         @default(now())
   receiver     User             @relation("NotificationReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
   sender       User?            @relation("NotificationSender", fields: [senderId], references: [id])
 }
@@ -299,7 +304,7 @@ model Medication {
   discontinuedAt  DateTime?
   discontinuedBy  String?
   createdAt       DateTime            @default(now())
-  updatedAt       DateTime
+  updatedAt       DateTime            @default(now())
   Patient         Patient             @relation(fields: [patientId], references: [id], onDelete: Cascade)
   Therapist       Therapist           @relation(fields: [therapistId], references: [id], onDelete: Cascade)
   history         MedicationHistory[]
@@ -355,7 +360,7 @@ model TherapistAssignmentRequest {
   requestMessage  String?
   responseMessage String?
   createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  updatedAt       DateTime         @default(now())
   patient         Patient          @relation("PatientRequests", fields: [patientId], references: [id], onDelete: Cascade)
   therapist       Therapist        @relation("TherapistRequests", fields: [therapistId], references: [id], onDelete: Cascade)
 
@@ -380,31 +385,23 @@ model QuizSubmission {
 }
 
 model TherapistAvailability {
-  id                   String          @id
-  therapistId          String
-  startTime            String
-  endTime              String
-  dayOfWeek            Int
-  isRecurring          Boolean         @default(false)
-  recurrenceType       RecurrenceType?
-  recurrenceDays       Int[]
-  recurrenceEndDate    DateTime?
-  sessionDuration      Int             @default(60)
-  breakBetweenSessions Int             @default(15)
-  isActive             Boolean         @default(true)
-  rate                 Decimal?        @db.Decimal(10, 2)
-  createdAt            DateTime        @default(now())
-  updatedAt            DateTime
-  Therapist            Therapist       @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+  id          String    @id @default(cuid())
+  therapistId String
+  date        DateTime
+  startTime   String
+  isBooked    Boolean   @default(false)
+  isFree      Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  Therapist   Therapist @relation(fields: [therapistId], references: [id], onDelete: Cascade)
 
-  @@index([dayOfWeek])
-  @@index([isActive])
-  @@index([therapistId, dayOfWeek, isActive])
   @@index([therapistId])
+  @@index([therapistId, date])
+  @@index([therapistId, date, isBooked])
 }
 
 model SessionReschedule {
-  id                  String         @id
+  id                  String         @id @default(cuid())
   sessionId           String
   previousScheduledAt DateTime
   newScheduledAt      DateTime
@@ -413,7 +410,7 @@ model SessionReschedule {
   rescheduledByRole   String
   rescheduleReason    String?
   createdAt           DateTime       @default(now())
-  updatedAt           DateTime
+  updatedAt           DateTime       @updatedAt
   User                User           @relation(fields: [rescheduledBy], references: [id], onDelete: Cascade)
   TherapySession      TherapySession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 }
@@ -439,7 +436,7 @@ model CancelRefund {
   processedBy        String?
   adminNotes         String?
   createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
+  updatedAt          DateTime       @default(now())
   parentUser         User           @relation("RefundRequests", fields: [parentUserId], references: [id], onDelete: Cascade)
   processor          User?          @relation("ProcessedRefunds", fields: [processedBy], references: [id])
   session            TherapySession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
@@ -454,6 +451,7 @@ model Payment {
   orderId           String          @unique
   paymentId         String?         @unique
   sessionId         String?
+  patientId         String?
   amount            Decimal         @db.Decimal(10, 2)
   currency          String          @default("LKR")
   status            PaymentStatus   @default(PENDING)
@@ -466,12 +464,91 @@ model Payment {
   metadata          Json?
   createdAt         DateTime?       @default(now()) @db.Timestamp(6)
   updatedAt         DateTime?       @default(now()) @db.Timestamp(6)
+  patient           Patient?        @relation(fields: [patientId], references: [id])
   TherapySession    TherapySession? @relation(fields: [sessionId], references: [id], map: "fk_payment_session")
 
   @@index([orderId], map: "idx_orderId")
   @@index([paymentId], map: "idx_paymentId")
   @@index([sessionId], map: "idx_sessionId")
+  @@index([patientId], map: "idx_patientId")
   @@index([status], map: "idx_status")
+}
+
+model TherapistProfile {
+  id                   String    @id @default(cuid())
+  therapistId          String    @unique
+  phone                String?
+  houseNumber          String?
+  streetName           String?
+  city                 String?
+  gender               Gender?
+  dateOfBirth          DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  accountHolderName    String?
+  accountNumber        String?
+  bankName             String?
+  branchName           String?
+  profileCompleted     Boolean   @default(false)
+  profileCompletedAt   DateTime?
+  profileImage         Bytes?
+  profileImageMimeType String?
+  profileImageName     String?
+  therapist            Therapist @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+}
+
+model TherapistVerification {
+  id                     String             @id @default(cuid())
+  therapistId            String             @unique
+  status                 VerificationStatus @default(PENDING)
+  licenseNumber          String?
+  primarySpecialty       String?
+  yearsOfExperience      String?
+  highestEducation       String?
+  institution            String?
+  adhdExperience         String?
+  backgroundCheckConsent Boolean            @default(false)
+  termsAccepted          Boolean            @default(false)
+  accurateInfoCertified  Boolean            @default(false)
+  submittedAt            DateTime?
+  reviewedAt             DateTime?
+  reviewedBy             String?
+  reviewNotes            String?
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+  approvalAcknowledgedAt DateTime?
+  therapist              Therapist          @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+}
+
+model TherapistDocument {
+  id           String       @id @default(cuid())
+  therapistId  String
+  category     DocumentType
+  fileName     String
+  originalName String
+  fileSize     Int
+  mimeType     String
+  uploadedAt   DateTime     @default(now())
+  fileData     Bytes
+  therapist    Therapist    @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+
+  @@index([therapistId, category])
+}
+
+model TherapistReference {
+  id                 String          @id @default(cuid())
+  therapistId        String          @unique
+  firstName          String
+  lastName           String
+  professionalTitle  String
+  phoneNumber        String
+  email              String?
+  contactedAt        DateTime?
+  verificationStatus ReferenceStatus @default(PENDING)
+  verificationNotes  String?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  therapist          Therapist       @relation(fields: [therapistId], references: [id], onDelete: Cascade)
 }
 
 enum UserRole {
@@ -594,12 +671,6 @@ enum QuizStatus {
   ABANDONED
 }
 
-enum RecurrenceType {
-  DAILY
-  WEEKLY
-  CUSTOM
-}
-
 enum RefundStatus {
   PENDING
   PROCESSING
@@ -616,4 +687,24 @@ enum PaymentStatus {
   CHARGEDBACK
   UNKNOWN
 }
+
+enum VerificationStatus {
+  PENDING
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  REQUIRES_RESUBMISSION
+}
+
+enum DocumentType {
+  PROFESSIONAL_LICENSE
+  EDUCATIONAL_CERTIFICATE
+  ADDITIONAL_CERTIFICATION
+}
+
+enum ReferenceStatus {
+  PENDING
+  CONTACTED
+  VERIFIED
+  FAILED_VERIFICATION
 }

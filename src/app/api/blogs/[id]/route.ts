@@ -10,6 +10,15 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+
+    if (!session || !session.user) {
+      return NextResponse.json(
+        { error: "You must be logged in to view blogs" },
+        { status: 401 }
+      );
+    }
+
     const { id } = await params;
     const blogId = parseInt(id);
 
@@ -33,6 +42,19 @@ export async function GET(
       return NextResponse.json({ error: "Blog not found" }, { status: 404 });
     }
 
+    // Check access permissions: 
+    // - Own blogs (any status) can be viewed
+    // - Other therapists' blogs can only be viewed if published
+    const isOwnBlog = blog.therapist_id === session.user.id;
+    const isPublished = blog.status === 'published';
+
+    if (!isOwnBlog && !isPublished) {
+      return NextResponse.json(
+        { error: "You can only view published blogs from other therapists" },
+        { status: 403 }
+      );
+    }
+
     // Increment view count
     await prisma.blogs.update({
       where: { id: blogId },
@@ -52,6 +74,8 @@ export async function GET(
       image_data: undefined, // Remove binary data from response
       User: blog.User, // Map to match the expected structure
       user: undefined, // Remove the original user field
+      isOwnBlog: blog.therapist_id === session.user.id,
+      authorName: blog.User?.name || "Unknown Author",
     });
   } catch (error) {
     console.error("Error fetching blog:", error);

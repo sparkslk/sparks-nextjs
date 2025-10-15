@@ -8,69 +8,63 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Clock,
   Plus,
-  Save,
+  Calendar,
   Trash2,
-  Copy,
+  AlertCircle,
   CalendarDays,
   ListChecks,
-  Timer,
-  Hash,
+  Edit,
+  DollarSign,
+  Gift,
 } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { WeeklyCalendarView } from "@/components/therapist/availability/WeeklyCalendarView";
 import { AddAvailabilityModal } from "@/components/therapist/availability/AddAvailabilityModal";
+import { WeeklyCalendarView } from "@/components/therapist/availability/WeeklyCalendarView";
 
-interface TimeSlot {
+interface AvailabilitySlot {
   id: string;
+  date: string;
   startTime: string;
-  endTime: string;
-  dayOfWeek: number; // 0 = Sunday, 1 = Monday, etc.
-  isRecurring: boolean;
-  recurrencePattern?: {
-    type: "daily" | "weekly" | "custom";
-    days?: number[]; // For custom patterns
-    endDate?: string;
-  };
-  maxSessions?: number;
-  sessionDuration: number; // in minutes
-  breakBetweenSessions: number; // in minutes
-  isActive: boolean;
+  isBooked: boolean;
+  isFree: boolean;
 }
 
-interface SessionSlot {
-  id: string;
+interface AvailabilityData {
+  startDate: string;
+  endDate: string;
   startTime: string;
   endTime: string;
-  dayOfWeek: number;
-  isActive: boolean;
-  parentAvailabilityId: string;
+  recurrenceType: "None" | "Daily" | "Weekly" | "Monthly" | "Custom";
+  selectedDays?: number[];
+  isFree: boolean;
 }
 
-// interface AvailabilityStats {
-//   totalHours: number;
-//   availableDays: number;
-//   maxSessionsPerWeek: number;
-//   averageSessionsPerDay: number;
-// }
-
-function SetAvailabilityPage(): React.JSX.Element {
+function SetAvailabilityPageNew(): React.JSX.Element {
   const { status: authStatus } = useSession();
   const router = useRouter();
-  const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
+  const [slots, setSlots] = useState<AvailabilitySlot[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [editingSlot, setEditingSlot] = useState<TimeSlot | null>(null);
+  const [filter, setFilter] = useState<"all" | "upcoming" | "past">("upcoming");
   const [selectedWeekStart, setSelectedWeekStart] = useState(new Date());
-  const [prefilledData, setPrefilledData] = useState<{
-    dayOfWeek: number;
-    startHour: number;
-    selectedWeekStart: Date;
+  const [activeTab, setActiveTab] = useState<"calendar" | "list">("calendar");
+  const [modalInitialData, setModalInitialData] = useState<{
+    date?: string;
+    startTime?: string;
+    endTime?: string;
   } | null>(null);
-
-  const todayDayOfWeek = new Date().getDay();
+  const [editingSlot, setEditingSlot] = useState<AvailabilitySlot | null>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
 
   useEffect(() => {
     if (authStatus === "unauthenticated") {
@@ -89,7 +83,7 @@ function SetAvailabilityPage(): React.JSX.Element {
       const response = await fetch("/api/therapist/availability");
       if (response.ok) {
         const data = await response.json();
-        setTimeSlots(data.availability || []);
+        setSlots(data.slots || []);
       } else {
         console.error("Failed to fetch availability");
       }
@@ -100,497 +94,688 @@ function SetAvailabilityPage(): React.JSX.Element {
     }
   };
 
-  const handleAddTimeSlot = (newSlot: Omit<TimeSlot, "id">) => {
-    const slot: TimeSlot = {
-      ...newSlot,
-      id: Date.now().toString(),
-    };
-    setTimeSlots([...timeSlots, slot]);
-    setShowAddModal(false);
-  };
-
-  const handleEditTimeSlot = (updatedSlot: TimeSlot) => {
-    setTimeSlots(
-      timeSlots.map((slot) => (slot.id === updatedSlot.id ? updatedSlot : slot))
-    );
-    setEditingSlot(null);
-  };
-
-  const handleDeleteTimeSlot = (slotId: string) => {
-    setTimeSlots(timeSlots.filter((slot) => slot.id !== slotId));
-  };
-
-  const handleToggleSlot = (slotId: string) => {
-    setTimeSlots(
-      timeSlots.map((slot) =>
-        slot.id === slotId ? { ...slot, isActive: !slot.isActive } : slot
-      )
-    );
-  };
-
-  const handleDuplicateSlot = (slot: TimeSlot) => {
-    const duplicatedSlot: TimeSlot = {
-      ...slot,
-      id: Date.now().toString(),
-    };
-    setTimeSlots([...timeSlots, duplicatedSlot]);
-  };
-
-  const handleSaveAvailability = async () => {
+  const handleAddAvailability = async (data: AvailabilityData) => {
     setSaving(true);
     try {
-      const response = await fetch("/api/therapist/availability", {
-        method: "PUT",
+      const response = await fetch("/api/therapist/availability/bulk-add", {
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          availability: timeSlots
-        }),
+        body: JSON.stringify(data),
       });
 
       if (response.ok) {
-        alert("Availability saved successfully!");
+        const result = await response.json();
+        alert(`Successfully created ${result.slotsCreated} availability slots!`);
+        setShowAddModal(false);
+        fetchAvailability();
       } else {
         const errorData = await response.json();
-        alert(`Failed to save availability: ${errorData.error}`);
+        if (errorData.conflicts) {
+          alert(
+            `Failed to create slots: ${errorData.error}\n\nFirst ${errorData.conflicts.length} conflicts:\n${errorData.conflicts.join('\n')}`
+          );
+        } else {
+          alert(`Failed to create slots: ${errorData.error}`);
+        }
       }
     } catch (error) {
-      console.error("Error saving availability:", error);
-      alert("Failed to save availability. Please try again.");
+      console.error("Error creating availability:", error);
+      alert("Failed to create availability. Please try again.");
     } finally {
       setSaving(false);
     }
   };
 
-  // const calculateStats = (): AvailabilityStats => {
-  //   const activeSlots = timeSlots.filter((slot) => slot.isActive);
+  /*const handleDeleteSlot = async (slotId: string) => {
+    if (!confirm("Are you sure you want to delete this slot?")) {
+      return;
+    }
 
-  //   const totalHours = activeSlots.reduce((total, slot) => {
-  //     const start = new Date(`1970-01-01T${slot.startTime}:00`);
-  //     const end = new Date(`1970-01-01T${slot.endTime}:00`);
-  //     const hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
-  //     return total + hours;
-  //   }, 0);
-
-  //   const availableDays = new Set(activeSlots.map((slot) => slot.dayOfWeek))
-  //     .size;
-
-  //   const maxSessionsPerWeek = activeSlots.reduce((total, slot) => {
-  //     const start = new Date(`1970-01-01T${slot.startTime}:00`);
-  //     const end = new Date(`1970-01-01T${slot.endTime}:00`);
-  //     const totalMinutes = (end.getTime() - start.getTime()) / (1000 * 60);
-  //     const sessionMinutes = slot.sessionDuration + slot.breakBetweenSessions;
-  //     const sessionsPerDay = Math.floor(totalMinutes / sessionMinutes);
-
-  //     const daysPerWeek = slot.recurrencePattern?.days?.length || 1;
-  //     return total + sessionsPerDay * daysPerWeek;
-  //   }, 0);
-
-  //   const averageSessionsPerDay =
-  //     availableDays > 0 ? maxSessionsPerWeek / availableDays : 0;
-
-  //   return {
-  //     totalHours,
-  //     availableDays,
-  //     maxSessionsPerWeek,
-  //     averageSessionsPerDay,
-  //   };
-  // };
-
-  const generateSessionSlots = (timeSlots: TimeSlot[]): SessionSlot[] => {
-    const sessionSlots: SessionSlot[] = [];
-
-    timeSlots.forEach((slot) => {
-      if (!slot.isActive) return;
-
-      const days = slot.recurrencePattern?.days || [slot.dayOfWeek];
-
-      days.forEach((dayOfWeek) => {
-        const startTime = new Date(`1970-01-01T${slot.startTime}:00`);
-        const endTime = new Date(`1970-01-01T${slot.endTime}:00`);
-
-        const currentTime = new Date(startTime);
-        let sessionCount = 0;
-
-        while (currentTime < endTime) {
-          const sessionEnd = new Date(currentTime);
-          sessionEnd.setMinutes(
-            currentTime.getMinutes() + slot.sessionDuration
-          );
-
-          if (sessionEnd <= endTime) {
-            sessionSlots.push({
-              id: `${slot.id}-${dayOfWeek}-${sessionCount}`,
-              startTime: `${currentTime
-                .getHours()
-                .toString()
-                .padStart(2, "0")}:${currentTime
-                .getMinutes()
-                .toString()
-                .padStart(2, "0")}`,
-              endTime: `${sessionEnd
-                .getHours()
-                .toString()
-                .padStart(2, "0")}:${sessionEnd
-                .getMinutes()
-                .toString()
-                .padStart(2, "0")}`,
-              dayOfWeek,
-              isActive: slot.isActive,
-              parentAvailabilityId: slot.id,
-            });
-
-            // Move to next session (session duration + break)
-            currentTime.setMinutes(
-              currentTime.getMinutes() +
-                slot.sessionDuration +
-                slot.breakBetweenSessions
-            );
-            sessionCount++;
-          } else {
-            break;
-          }
-        }
+    try {
+      const response = await fetch(`/api/therapist/availability/${slotId}`, {
+        method: "DELETE",
       });
-    });
 
-    return sessionSlots;
-  };
-
-  const sessionSlots = generateSessionSlots(timeSlots);
-
-  const getStats = () => {
-    const sessionsToday = sessionSlots.filter(
-      (slot) => slot.dayOfWeek === todayDayOfWeek && slot.isActive
-    ).length;
-
-    const availableDaysSet = new Set(
-      sessionSlots.filter((slot) => slot.isActive).map((slot) => slot.dayOfWeek)
-    );
-    const availableDays = availableDaysSet.size;
-
-    let totalMinutes = 0;
-    sessionSlots.forEach((slot) => {
-      if (slot.isActive) {
-        const [sh, sm] = slot.startTime.split(":").map(Number);
-        const [eh, em] = slot.endTime.split(":").map(Number);
-        totalMinutes += eh * 60 + em - (sh * 60 + sm);
+      if (response.ok) {
+        alert("Slot deleted successfully!");
+        fetchAvailability();
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to delete slot: ${errorData.error}`);
       }
-    });
-    const totalHours = totalMinutes / 60;
+    } catch (error) {
+      console.error("Error deleting slot:", error);
+      alert("Failed to delete slot. Please try again.");
+    }
+  };*/
 
-    const totalSessions = sessionSlots.filter((slot) => slot.isActive).length;
+  const handleClearAll = async () => {
+    if (!confirm("Are you sure you want to clear all unbooked availability slots?")) {
+      return;
+    }
 
-    return { sessionsToday, availableDays, totalHours, totalSessions };
+    try {
+      const response = await fetch("/api/therapist/availability", {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        alert("All unbooked slots cleared successfully!");
+        fetchAvailability();
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to clear slots: ${errorData.error}`);
+      }
+    } catch (error) {
+      console.error("Error clearing slots:", error);
+      alert("Failed to clear slots. Please try again.");
+    }
   };
 
-  const stats = getStats();
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
 
-  const handleOpenModalWithPrefill = (dayOfWeek: number, startHour: number) => {
-    setPrefilledData({ dayOfWeek, startHour, selectedWeekStart });
+  const formatTime = (timeStr: string) => {
+    const [hours, minutes] = timeStr.split(":").map(Number);
+    const hour12 = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+    const ampm = hours >= 12 ? "PM" : "AM";
+    return `${hour12}:${minutes.toString().padStart(2, "0")} ${ampm}`;
+  };
+
+  // Handle editing a slot (toggle free/paid)
+  const handleEditSlot = (slot: AvailabilitySlot) => {
+    setEditingSlot(slot);
+    setShowEditDialog(true);
+  };
+
+  // Toggle free/paid status
+  const handleToggleFreeStatus = async () => {
+    if (!editingSlot) return;
+
+    try {
+      const response = await fetch(`/api/therapist/availability/${editingSlot.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          isFree: !editingSlot.isFree,
+        }),
+      });
+
+      if (response.ok) {
+        alert(`Slot updated to ${!editingSlot.isFree ? "Free" : "Paid"} successfully!`);
+        setShowEditDialog(false);
+        setEditingSlot(null);
+        fetchAvailability();
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to update slot: ${errorData.error}`);
+      }
+    } catch (error) {
+      console.error("Error updating slot:", error);
+      alert("Failed to update slot. Please try again.");
+    }
+  };
+
+  // Delete slot from edit dialog
+  const handleDeleteFromDialog = async () => {
+    if (!editingSlot) return;
+
+    if (!confirm("Are you sure you want to delete this slot?")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/therapist/availability/${editingSlot.id}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        alert("Slot deleted successfully!");
+        setShowEditDialog(false);
+        setEditingSlot(null);
+        fetchAvailability();
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to delete slot: ${errorData.error}`);
+      }
+    } catch (error) {
+      console.error("Error deleting slot:", error);
+      alert("Failed to delete slot. Please try again.");
+    }
+  };
+
+  // Handle calendar slot selection (when user clicks/drags on calendar)
+  const handleCalendarSlotSelect = (dayOfWeek: number, startTime: string, endTime: string) => {
+    // Get the week dates
+    const getWeekDates = (startDate: Date) => {
+      const dates = [];
+      const firstDay = new Date(startDate);
+      const day = firstDay.getDay();
+      const diff = day === 0 ? -6 : 1 - day;
+      firstDay.setDate(firstDay.getDate() + diff);
+      
+      for (let i = 0; i < 7; i++) {
+        const date = new Date(firstDay);
+        date.setDate(firstDay.getDate() + i);
+        dates.push(date);
+      }
+      return dates;
+    };
+
+    const weekDates = getWeekDates(selectedWeekStart);
+    
+    // Convert dayOfWeek (0=Sunday, 1=Monday, etc.) to array index (0=Monday, 6=Sunday)
+    const dayIndex = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    const selectedDate = weekDates[dayIndex];
+    
+    // Format date as YYYY-MM-DD
+    const dateStr = selectedDate.toISOString().split('T')[0];
+    
+    // Set initial data for modal
+    setModalInitialData({
+      date: dateStr,
+      startTime: startTime,
+      endTime: endTime,
+    });
+    
+    // Open modal
     setShowAddModal(true);
   };
 
-  const handleCloseModal = () => {
-    setShowAddModal(false);
-    setEditingSlot(null);
-    setPrefilledData(null);
+  // Convert new slot format to old TimeSlot format for calendar
+  const convertSlotsToTimeSlots = () => {
+    // Get the week range for filtering
+    const getWeekRange = (startDate: Date) => {
+      const firstDay = new Date(startDate);
+      const day = firstDay.getDay();
+      const diff = day === 0 ? -6 : 1 - day; // if Sunday (0), go back 6 days, else go to Monday
+      firstDay.setDate(firstDay.getDate() + diff);
+      firstDay.setHours(0, 0, 0, 0);
+      
+      const lastDay = new Date(firstDay);
+      lastDay.setDate(firstDay.getDate() + 6);
+      lastDay.setHours(23, 59, 59, 999);
+      
+      return { start: firstDay, end: lastDay };
+    };
+
+    const weekRange = getWeekRange(selectedWeekStart);
+
+    // Filter slots to only include those in the selected week
+    const weekSlots = slots.filter(slot => {
+      const slotDate = new Date(slot.date);
+      return slotDate >= weekRange.start && slotDate <= weekRange.end;
+    });
+
+    // Convert directly without grouping to preserve individual slot information
+    const timeSlots: Array<{
+      id: string;
+      startTime: string;
+      endTime: string;
+      dayOfWeek: number;
+      isRecurring: boolean;
+      recurrencePattern?: {
+        type: "daily" | "weekly" | "custom";
+        days?: number[];
+        endDate?: string;
+      };
+      isActive: boolean;
+      isFreeSession?: boolean;
+      isBooked?: boolean;
+    }> = [];
+
+    weekSlots.forEach(slot => {
+      const [hours, minutes] = slot.startTime.split(':').map(Number);
+      const endHours = hours;
+      const endMinutes = minutes + 45;
+      const endTime = `${endHours.toString().padStart(2, '0')}:${(endMinutes % 60).toString().padStart(2, '0')}:00`;
+      const slotDate = new Date(slot.date);
+      
+      timeSlots.push({
+        id: slot.id,
+        startTime: slot.startTime,
+        endTime,
+        dayOfWeek: slotDate.getDay(),
+        isRecurring: false,
+        isActive: true, // Always true for display, booking status handled separately
+        isFreeSession: slot.isFree,
+        isBooked: slot.isBooked, // Pass booking status
+      });
+    });
+
+    return timeSlots;
   };
 
-  if (authStatus === "loading" || loading) {
-    return <LoadingSpinner message="Loading availability settings..." />;
+  // Convert to SessionSlot format (similar to TimeSlot but for sessions)
+  const convertSlotsToSessionSlots = () => {
+    // Get the week range for filtering
+    const getWeekRange = (startDate: Date) => {
+      const firstDay = new Date(startDate);
+      const day = firstDay.getDay();
+      const diff = day === 0 ? -6 : 1 - day;
+      firstDay.setDate(firstDay.getDate() + diff);
+      firstDay.setHours(0, 0, 0, 0);
+      
+      const lastDay = new Date(firstDay);
+      lastDay.setDate(firstDay.getDate() + 6);
+      lastDay.setHours(23, 59, 59, 999);
+      
+      return { start: firstDay, end: lastDay };
+    };
+
+    const weekRange = getWeekRange(selectedWeekStart);
+
+    // Filter slots to only include those in the selected week
+    const weekSlots = slots.filter(slot => {
+      const slotDate = new Date(slot.date);
+      return slotDate >= weekRange.start && slotDate <= weekRange.end;
+    });
+
+    return weekSlots.map(slot => {
+      const [hours, minutes] = slot.startTime.split(':').map(Number);
+      const endHours = hours;
+      const endMinutes = minutes + 45;
+      const endTime = `${endHours.toString().padStart(2, '0')}:${(endMinutes % 60).toString().padStart(2, '0')}:00`;
+      const slotDate = new Date(slot.date);
+      
+      return {
+        id: slot.id,
+        startTime: slot.startTime,
+        endTime,
+        dayOfWeek: slotDate.getDay(),
+        isActive: true, // Always show as active (not deleted)
+        parentAvailabilityId: slot.id,
+        isFreeSession: slot.isFree,
+        isBooked: slot.isBooked, // Pass booking status separately
+      };
+    });
+  };
+
+  const getFilteredSlots = () => {
+    const now = new Date();
+    const today = now.toISOString().split("T")[0];
+
+    if (filter === "upcoming") {
+      return slots.filter((slot) => slot.date >= today);
+    } else if (filter === "past") {
+      return slots.filter((slot) => slot.date < today);
+    }
+    return slots;
+  };
+
+  const groupSlotsByDate = (slots: AvailabilitySlot[]) => {
+    const grouped: { [date: string]: AvailabilitySlot[] } = {};
+    slots.forEach((slot) => {
+      if (!grouped[slot.date]) {
+        grouped[slot.date] = [];
+      }
+      grouped[slot.date].push(slot);
+    });
+    return grouped;
+  };
+
+  const filteredSlots = getFilteredSlots();
+  const groupedSlots = groupSlotsByDate(filteredSlots);
+  const dates = Object.keys(groupedSlots).sort();
+
+  const stats = {
+    total: slots.length,
+    booked: slots.filter((s) => s.isBooked).length,
+    available: slots.filter((s) => !s.isBooked).length,
+    free: slots.filter((s) => s.isFree).length,
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <LoadingSpinner />
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto p-6 max-w-7xl">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-[#8159A8]">
-            Set Availability
-          </h1>
-          <p className="text-gray-600 mt-2">
-            Manage your schedule and set recurring availability patterns
-          </p>
-        </div>
-
-        <div className="flex gap-2">
-          <Button
-            onClick={() => setShowAddModal(true)}
-            className="bg-[#8159A8] hover:bg-[#6D4C93] text-white"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Add Availability
-          </Button>
-          <Button
-            onClick={handleSaveAvailability}
-            disabled={saving}
-            variant="outline"
-            className="border-[#8159A8] text-[#8159A8] hover:bg-[#F5F3FB]"
-          >
-            {saving ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#8159A8] mr-2"></div>
-                Saving...
-              </>
-            ) : (
-              <>
-                <Save className="mr-2 h-4 w-4" />
-                Save Changes
-              </>
-            )}
-          </Button>
-        </div>
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-[#8159A8] mb-2">
+          Manage Availability
+        </h1>
+        <p className="text-gray-600">
+          Set your available time slots. Each slot is 45 minutes long.
+        </p>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 rounded-lg" style={{ background: "#F5F3FB" }}>
-                <ListChecks className="h-6 w-6" color="#8159A8" />
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Total Slots</p>
+                <p className="text-2xl font-bold text-[#8159A8]">{stats.total}</p>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">
-                  Sessions Today
-                </p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {stats.sessionsToday}
-                </p>
-              </div>
+              <Calendar className="h-8 w-8 text-[#8159A8] opacity-50" />
             </div>
           </CardContent>
         </Card>
-        <Card className="shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 rounded-lg" style={{ background: "#F5F3FB" }}>
-                <CalendarDays className="h-6 w-6" color="#8159A8" />
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Booked</p>
+                <p className="text-2xl font-bold text-blue-600">{stats.booked}</p>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">
-                  Available Days (This Week)
-                </p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {stats.availableDays}
-                </p>
-              </div>
+              <Clock className="h-8 w-8 text-blue-600 opacity-50" />
             </div>
           </CardContent>
         </Card>
-        <Card className="shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 rounded-lg" style={{ background: "#F5F3FB" }}>
-                <Timer className="h-6 w-6" color="#8159A8" />
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Available</p>
+                <p className="text-2xl font-bold text-green-600">{stats.available}</p>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">
-                  Total Hours (This Week)
-                </p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {stats.totalHours.toFixed(1)}
-                </p>
-              </div>
+              <Clock className="h-8 w-8 text-green-600 opacity-50" />
             </div>
           </CardContent>
         </Card>
-        <Card className="shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 rounded-lg" style={{ background: "#F5F3FB" }}>
-                <Hash className="h-6 w-6" color="#8159A8" />
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Free Sessions</p>
+                <p className="text-2xl font-bold text-amber-600">{stats.free}</p>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">
-                  Total Sessions (This Week)
-                </p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {stats.totalSessions}
-                </p>
-              </div>
+              <AlertCircle className="h-8 w-8 text-amber-600 opacity-50" />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Main Content */}
-      <Tabs defaultValue="calendar" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="calendar">Calendar View</TabsTrigger>
-          <TabsTrigger value="list">List View</TabsTrigger>
-        </TabsList>
+      {/* Tabs for Calendar and List Views */}
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "calendar" | "list")} className="space-y-4">
+        <div className="flex justify-between items-center">
+          <TabsList>
+            <TabsTrigger value="calendar" className="flex items-center gap-2">
+              <CalendarDays className="h-4 w-4" />
+              Calendar View
+            </TabsTrigger>
+            <TabsTrigger value="list" className="flex items-center gap-2">
+              <ListChecks className="h-4 w-4" />
+              List View
+            </TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="calendar" className="space-y-6">
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={handleClearAll}
+              disabled={stats.available === 0}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Clear All Unbooked
+            </Button>
+            <Button
+              onClick={() => setShowAddModal(true)}
+              className="bg-[#8159A8] hover:bg-[#6D4C93]"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add Availability
+            </Button>
+          </div>
+        </div>
+
+        {/* Calendar View Tab */}
+        <TabsContent value="calendar" className="mt-0">
           <WeeklyCalendarView
-            timeSlots={timeSlots}
-            sessionSlots={sessionSlots}
+            timeSlots={convertSlotsToTimeSlots()}
+            sessionSlots={convertSlotsToSessionSlots()}
             selectedWeekStart={selectedWeekStart}
             onWeekChange={setSelectedWeekStart}
-            onEditSlot={setEditingSlot}
-            onDeleteSlot={handleDeleteTimeSlot}
-            onToggleSlot={handleToggleSlot}
-            onCreateSlot={handleOpenModalWithPrefill}
+            onDragSelect={handleCalendarSlotSelect}
+            onSlotClick={(slotId) => {
+              const slot = slots.find(s => s.id === slotId);
+              if (slot && !slot.isBooked) {
+                handleEditSlot(slot);
+              }
+            }}
           />
         </TabsContent>
 
-        <TabsContent value="list" className="space-y-6">
-          <Card className="shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-xl text-[#8159A8]">
-                Availability Slots
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {timeSlots.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="w-16 h-16 bg-[#F5F3FB] rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Clock className="h-8 w-8 text-[#8159A8]" />
-                  </div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    No availability set
-                  </h3>
-                  <p className="text-gray-600 mb-4">
-                    Add your first availability slot to start accepting
-                    appointments
-                  </p>
-                  <Button
-                    onClick={() => setShowAddModal(true)}
-                    className="bg-[#8159A8] hover:bg-[#6D4C93] text-white"
-                  >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Availability
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {timeSlots.map((slot) => (
-                    <div
-                      key={slot.id}
-                      className={`p-4 border rounded-lg ${
-                        slot.isActive
-                          ? "bg-white border-gray-200"
-                          : "bg-gray-50 border-gray-300 opacity-60"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <h4 className="font-semibold text-gray-900">
-                              {
-                                [
-                                  "Sunday",
-                                  "Monday",
-                                  "Tuesday",
-                                  "Wednesday",
-                                  "Thursday",
-                                  "Friday",
-                                  "Saturday",
-                                ][slot.dayOfWeek]
-                              }
-                            </h4>
-                            <Badge
-                              className={
-                                slot.isActive
-                                  ? "bg-green-100 text-green-800"
-                                  : "bg-gray-100 text-gray-800"
-                              }
-                            >
-                              {slot.isActive ? "Active" : "Inactive"}
-                            </Badge>
-                            {slot.isRecurring && (
-                              <Badge variant="outline">Recurring</Badge>
-                            )}
-                          </div>
-
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-600">
-                            <div>
-                              <span className="font-medium">Time:</span>
-                              <p>
-                                {slot.startTime} - {slot.endTime}
-                              </p>
-                            </div>
-                            <div>
-                              <span className="font-medium">
-                                Session Duration:
-                              </span>
-                              <p>{slot.sessionDuration} minutes</p>
-                            </div>
-                            <div>
-                              <span className="font-medium">Break:</span>
-                              <p>{slot.breakBetweenSessions} minutes</p>
-                            </div>
-                            {slot.recurrencePattern && (
-                              <div>
-                                <span className="font-medium">Pattern:</span>
-                                <p>{slot.recurrencePattern.type}</p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleToggleSlot(slot.id)}
-                            className="text-gray-600 hover:text-[#8159A8]"
-                          >
-                            {slot.isActive ? "Disable" : "Enable"}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDuplicateSlot(slot)}
-                            className="text-gray-600 hover:text-[#8159A8]"
-                          >
-                            <Copy className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setEditingSlot(slot)}
-                            className="text-gray-600 hover:text-[#8159A8]"
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteTimeSlot(slot.id)}
-                            className="text-red-600 hover:text-red-800"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+        {/* List View Tab */}
+        <TabsContent value="list" className="mt-0 space-y-4">
+          {/* Filter Buttons */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex gap-2">
+                <Button
+                  variant={filter === "upcoming" ? "default" : "outline"}
+                  onClick={() => setFilter("upcoming")}
+                  className={filter === "upcoming" ? "bg-[#8159A8]" : ""}
+                >
+                  Upcoming
+                </Button>
+                <Button
+                  variant={filter === "all" ? "default" : "outline"}
+                  onClick={() => setFilter("all")}
+                  className={filter === "all" ? "bg-[#8159A8]" : ""}
+                >
+                  All
+                </Button>
+                <Button
+                  variant={filter === "past" ? "default" : "outline"}
+                  onClick={() => setFilter("past")}
+                  className={filter === "past" ? "bg-[#8159A8]" : ""}
+                >
+                  Past
+                </Button>
+              </div>
             </CardContent>
           </Card>
+
+          {/* Slots List */}
+          {dates.length === 0 ? (
+            <Card>
+              <CardContent className="pt-12 pb-12 text-center">
+                <Calendar className="h-16 w-16 mx-auto mb-4 text-gray-400" />
+                <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                  No Availability Slots
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  Click &quot;Add Availability&quot; to create your first time slots.
+                </p>
+                <Button
+                  onClick={() => setShowAddModal(true)}
+                  className="bg-[#8159A8] hover:bg-[#6D4C93]"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Availability
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {dates.map((date) => (
+                <Card key={date}>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Calendar className="h-5 w-5 text-[#8159A8]" />
+                      {formatDate(date)}
+                      <Badge variant="outline">{groupedSlots[date].length} slots</Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                      {groupedSlots[date]
+                        .sort((a, b) => a.startTime.localeCompare(b.startTime))
+                        .map((slot) => (
+                          <div
+                            key={slot.id}
+                            onClick={() => !slot.isBooked && handleEditSlot(slot)}
+                            className={`p-4 rounded-lg border-2 cursor-pointer ${
+                              slot.isBooked
+                                ? "border-blue-200 bg-blue-50 cursor-not-allowed"
+                                : "border-gray-200 bg-white hover:border-[#8159A8] transition-colors"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <Clock className="h-4 w-4 text-[#8159A8]" />
+                                <span className="font-semibold">
+                                  {formatTime(slot.startTime)}
+                                </span>
+                              </div>
+                              {!slot.isBooked && (
+                                <Edit className="h-4 w-4 text-gray-400" />
+                              )}
+                            </div>
+                            <div className="flex gap-2 flex-wrap">
+                              <Badge
+                                variant="outline"
+                                className="text-xs bg-[#8159A8] text-white"
+                              >
+                                45min
+                              </Badge>
+                              {slot.isBooked && (
+                                <Badge variant="outline" className="text-xs bg-blue-100 text-blue-800">
+                                  Booked
+                                </Badge>
+                              )}
+                              {slot.isFree && (
+                                <Badge variant="outline" className="text-xs bg-green-100 text-green-800">
+                                  Free
+                                </Badge>
+                              )}
+                              {!slot.isFree && !slot.isBooked && (
+                                <Badge variant="outline" className="text-xs bg-purple-100 text-purple-800">
+                                  Paid
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
 
-      {/* Add/Edit Modal */}
+      {/* Add Availability Modal */}
       <AddAvailabilityModal
-        isOpen={showAddModal || editingSlot !== null}
-        onClose={handleCloseModal}
-        onSave={(slot) => {
-          if ("id" in slot) {
-            handleEditTimeSlot(slot);
-          } else {
-            handleAddTimeSlot(slot);
-          }
+        isOpen={showAddModal}
+        onClose={() => {
+          setShowAddModal(false);
+          setModalInitialData(null);
         }}
-        editingSlot={editingSlot}
-        prefilledData={prefilledData}
+        onSave={handleAddAvailability}
+        initialDate={modalInitialData?.date}
+        initialStartTime={modalInitialData?.startTime}
+        initialEndTime={modalInitialData?.endTime}
       />
+
+      {/* Loading Overlay */}
+      {saving && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card className="p-6">
+            <div className="flex items-center gap-4">
+              <LoadingSpinner />
+              <span className="text-lg">Creating availability slots...</span>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Edit Slot Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Availability Slot</DialogTitle>
+            <DialogDescription>
+              Change the pricing or delete this availability slot
+            </DialogDescription>
+          </DialogHeader>
+
+          {editingSlot && (
+            <div className="space-y-4">
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-gray-600">Date</p>
+                    <p className="font-semibold">{formatDate(editingSlot.date)}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-600">Time</p>
+                    <p className="font-semibold">{formatTime(editingSlot.startTime)}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-600">Duration</p>
+                    <p className="font-semibold">45 minutes</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-600">Current Status</p>
+                    <Badge variant="outline" className={`${
+                      editingSlot.isFree 
+                        ? "bg-green-100 text-green-800" 
+                        : "bg-purple-100 text-purple-800"
+                    }`}>
+                      {editingSlot.isFree ? "Free" : "Paid"}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <Button
+                  onClick={handleToggleFreeStatus}
+                  variant="outline"
+                  className="w-full"
+                >
+                  {editingSlot.isFree ? (
+                    <>
+                      <DollarSign className="mr-2 h-4 w-4" />
+                      Make Paid
+                    </>
+                  ) : (
+                    <>
+                      <Gift className="mr-2 h-4 w-4" />
+                      Make Free
+                    </>
+                  )}
+                </Button>
+
+                <Button
+                  onClick={handleDeleteFromDialog}
+                  variant="outline"
+                  className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
-export default SetAvailabilityPage;
+export default SetAvailabilityPageNew;
