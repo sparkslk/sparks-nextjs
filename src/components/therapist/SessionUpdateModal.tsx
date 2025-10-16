@@ -397,6 +397,23 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
     }
   };
 
+  // Add the formatTimeManual function (same as in session details page)
+  const formatTimeManual = (dateString: string) => {
+    // Extract just the time part manually to avoid timezone issues
+    if (dateString.includes('T')) {
+      const timePart = dateString.split('T')[1];
+      const timeOnly = timePart.split('.')[0]; // Remove milliseconds if present
+      const finalTime = timeOnly.split('Z')[0]; // Remove Z if present
+      
+      // Convert to 24-hour format
+      const [hours, minutes] = finalTime.split(':');
+      return `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`;
+    }
+    
+    // Fallback to original method
+    return format(new Date(dateString), "HH:mm");
+  };
+
   if (!session) return null;
 
   const currentSession = detailedSession || session;
@@ -431,7 +448,7 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
                 </div>
                 <div className="flex items-center gap-2">
                   <Clock className="w-4 h-4" />
-                  <span>{format(new Date(currentSession.scheduledAt), "hh:mm a")} ({currentSession.duration} min)</span>
+                  <span>{formatTimeManual(currentSession.scheduledAt)} ({currentSession.duration} min)</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <User className="w-4 h-4" />
