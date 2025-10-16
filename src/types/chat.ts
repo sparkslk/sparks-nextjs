@@ -41,7 +41,8 @@ export interface ConversationWithDetails extends Conversation {
   therapistAvatar?: string;
   participantName: string;
   participantAvatar?: string;
-  patientName?: string; // For parent conversations
+  patientName?: string; // For parent conversations (first patient for backward compatibility)
+  patientNames?: string[]; // All patient names for parent conversations
   lastMessage?: string;
   unreadCount: number;
 }

@@ -67,12 +67,42 @@ export async function GET(request: NextRequest) {
           });
 
           let patientName = undefined;
-          if (conv.participantType === 'PARENT' && conv.patientId) {
+          let patientNames: string[] = [];
+          
+          if (conv.participantType === 'PARENT') {
+            // Get all patients for this parent who have this therapist
+            const parentGuardians = await prisma.parentGuardian.findMany({
+              where: {
+                userId: conv.participantId,
+                patient: {
+                  primaryTherapistId: therapist.id,
+                },
+              },
+              include: {
+                patient: {
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                  },
+                },
+              },
+            });
+
+            patientNames = parentGuardians.map(
+              (pg) => `${pg.patient.firstName} ${pg.patient.lastName}`
+            );
+            
+            // For backward compatibility, set patientName to first patient
+            patientName = patientNames.length > 0 ? patientNames[0] : undefined;
+          } else if (conv.patientId) {
+            // Single patient (PATIENT type conversation)
             const patient = await prisma.patient.findUnique({
               where: { id: conv.patientId },
               select: { firstName: true, lastName: true },
             });
             patientName = patient ? `${patient.firstName} ${patient.lastName}` : undefined;
+            patientNames = patientName ? [patientName] : [];
           }
 
           const unreadCount = await (prisma as any).message.count({
@@ -100,6 +130,7 @@ export async function GET(request: NextRequest) {
             participantName: participant?.name || 'Unknown',
             participantAvatar: participant?.image,
             patientName,
+            patientNames, // Add array of all patient names
             lastMessage,
             unreadCount,
             isOnline: false, // TODO: Implement online status

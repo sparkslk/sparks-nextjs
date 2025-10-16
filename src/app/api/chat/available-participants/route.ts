@@ -72,37 +72,53 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // Format the response
-    const participants = patients.flatMap((patient) => {
-      const result: any[] = [];
+    // Format the response - Group parents by userId to avoid duplicates
+    const participantMap = new Map<string, any>();
 
+    patients.forEach((patient) => {
       // Add patient if they have a user account
       if (patient.user) {
-        result.push({
+        participantMap.set(`patient-${patient.user.id}`, {
           type: 'PATIENT',
           userId: patient.user.id,
           patientId: patient.id,
           name: patient.user.name || `${patient.firstName} ${patient.lastName}`,
           avatar: patient.user.image,
           patientName: `${patient.firstName} ${patient.lastName}`,
+          patientNames: [`${patient.firstName} ${patient.lastName}`],
         });
       }
 
-      // Add all parents/guardians
+      // Add all parents/guardians (group by userId)
       patient.parentGuardians.forEach((guardian) => {
-        result.push({
-          type: 'PARENT',
-          userId: guardian.user.id,
-          patientId: patient.id,
-          name: guardian.user.name || 'Parent/Guardian',
-          avatar: guardian.user.image,
-          patientName: `${patient.firstName} ${patient.lastName}`,
-          relationship: guardian.relationship,
-        });
+        const parentKey = `parent-${guardian.user.id}`;
+        const patientFullName = `${patient.firstName} ${patient.lastName}`;
+        
+        if (participantMap.has(parentKey)) {
+          // Parent already exists, add this patient to their list
+          const existing = participantMap.get(parentKey);
+          if (!existing.patientNames.includes(patientFullName)) {
+            existing.patientNames.push(patientFullName);
+            existing.patientIds.push(patient.id);
+          }
+        } else {
+          // New parent entry
+          participantMap.set(parentKey, {
+            type: 'PARENT',
+            userId: guardian.user.id,
+            patientId: patient.id, // First patient (for backward compatibility)
+            patientIds: [patient.id], // All patient IDs
+            name: guardian.user.name || 'Parent/Guardian',
+            avatar: guardian.user.image,
+            patientName: patientFullName, // First patient (for backward compatibility)
+            patientNames: [patientFullName], // All patient names
+            relationship: guardian.relationship,
+          });
+        }
       });
-
-      return result;
     });
+
+    const participants = Array.from(participantMap.values());
 
     return NextResponse.json({
       success: true,

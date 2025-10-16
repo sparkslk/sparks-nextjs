@@ -414,8 +414,17 @@ export default function TherapistMessagesPage() {
                                         </Badge>
                                       </div>
                                       <p className="text-sm text-gray-500">
-                                        Patient: {participant.patientName}
-                                        {participant.relationship && ` (${participant.relationship})`}
+                                        {participant.type === 'PARENT' && participant.patientNames && participant.patientNames.length > 1 ? (
+                                          <>
+                                            Patients: {participant.patientNames.join(', ')}
+                                            {participant.relationship && ` (${participant.relationship})`}
+                                          </>
+                                        ) : (
+                                          <>
+                                            Patient: {participant.patientName}
+                                            {participant.relationship && ` (${participant.relationship})`}
+                                          </>
+                                        )}
                                       </p>
                                     </div>
                                   </div>
@@ -477,8 +486,10 @@ export default function TherapistMessagesPage() {
                                 {conversation.participantName || 'User'}
                               </h3>
                               <p className="text-xs text-gray-500">
-                                {conversation.participantType === 'PARENT' && conversation.patientName 
-                                  ? `Parent of ${conversation.patientName}` 
+                                {conversation.participantType === 'PARENT' && conversation.patientNames && conversation.patientNames.length > 0
+                                  ? conversation.patientNames.length > 1
+                                    ? `Parent of ${conversation.patientNames.join(', ')}`
+                                    : `Parent of ${conversation.patientNames[0]}`
                                   : "Patient"}
                               </p>
                             </div>
@@ -529,8 +540,10 @@ export default function TherapistMessagesPage() {
                           {selectedConversation.participantName || 'User'}
                         </h3>
                         <p className="text-sm text-gray-600">
-                          {selectedConversation.participantType === 'PARENT' && selectedConversation.patientName 
-                            ? `Parent of ${selectedConversation.patientName}` 
+                          {selectedConversation.participantType === 'PARENT' && selectedConversation.patientNames && selectedConversation.patientNames.length > 0
+                            ? selectedConversation.patientNames.length > 1
+                              ? `Parent of ${selectedConversation.patientNames.join(', ')}`
+                              : `Parent of ${selectedConversation.patientNames[0]}`
                             : "Patient"}
                         </p>
                       </div>
