@@ -64,21 +64,15 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    if (!conversation) {
-      return NextResponse.json(
-        { success: false, error: 'Conversation not found or could not be created' },
-        { status: 404 }
-      );
-    }
-
     // Check if user is part of this conversation
-    const isTherapistInConv = await prisma.therapist.findFirst({
+    const therapist = await prisma.therapist.findFirst({
       where: { 
         id: conversation.therapistId,
-        userId: senderId 
       },
+      select: { userId: true }
     });
     
+    const isTherapistInConv = therapist && therapist.userId === senderId;
     const isParticipant = conversation.participantId === senderId;
     const canSend = isTherapistInConv || isParticipant;
 
@@ -89,6 +83,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Determine actual receiver userId (not therapist record ID)
+    let actualReceiverId = receiverId;
+    if (isParticipant && therapist) {
+      // Parent/Patient sending to therapist - use therapist's userId
+      actualReceiverId = therapist.userId;
+    } else if (isTherapistInConv) {
+      // Therapist sending to parent/patient - use conversation's participantId
+      actualReceiverId = conversation.participantId;
+    }
+
     // Encrypt the message
     const encryptedContent = encryptMessage(content);
 
@@ -97,7 +101,7 @@ export async function POST(request: NextRequest) {
       data: {
         conversationId: conversation.id,
         senderId,
-        receiverId,
+        receiverId: actualReceiverId,
         encryptedContent,
         isRead: false,
       },

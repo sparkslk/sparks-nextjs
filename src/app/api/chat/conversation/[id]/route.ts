@@ -17,7 +17,7 @@ import type { Message } from '@/types/chat';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -29,7 +29,7 @@ export async function GET(
       );
     }
 
-    const conversationId = params.id;
+    const { id: conversationId } = await params;
     const userId = session.user.id;
     const userRole = session.user.role as UserRole;
 
