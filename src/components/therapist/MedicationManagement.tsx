@@ -31,7 +31,9 @@ import {
   AlertCircle, 
   History,
   Clock,
-  User
+  User,
+  Check,
+  ChevronsUpDown
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { 
@@ -44,6 +46,89 @@ import {
   MEAL_TIMING_LABELS,
   HISTORY_ACTION_LABELS
 } from '@/types/medications';
+import { cn } from '@/lib/utils';
+
+// Common ADHD and related medications
+const COMMON_MEDICATIONS = [
+  // Stimulants - Methylphenidate-based
+  "Ritalin",
+  "Ritalin LA",
+  "Ritalin SR",
+  "Concerta",
+  "Metadate CD",
+  "Metadate ER",
+  "Methylin",
+  "Daytrana",
+  "Quillivant XR",
+  "Quillichew ER",
+  "Cotempla XR-ODT",
+  "Adhansia XR",
+  "Aptensio XR",
+  "Relexxii",
+  
+  // Stimulants - Amphetamine-based
+  "Adderall",
+  "Adderall XR",
+  "Vyvanse",
+  "Dexedrine",
+  "Dextrostat",
+  "ProCentra",
+  "Zenzedi",
+  "Evekeo",
+  "Evekeo ODT",
+  "Dynavel XR",
+  "Adzenys XR-ODT",
+  "Mydayis",
+  
+  // Non-stimulants
+  "Strattera",
+  "Atomoxetine",
+  "Wellbutrin",
+  "Wellbutrin XL",
+  "Wellbutrin SR",
+  "Bupropion",
+  "Intuniv",
+  "Guanfacine",
+  "Kapvay",
+  "Clonidine",
+  "Qelbree",
+  "Viloxazine",
+  
+  // Antidepressants (sometimes used for ADHD)
+  "Effexor",
+  "Effexor XR",
+  "Venlafaxine",
+  "Cymbalta",
+  "Duloxetine",
+  "Pristiq",
+  "Desvenlafaxine",
+  "Tofranil",
+  "Imipramine",
+  "Norpramin",
+  "Desipramine",
+  
+  // Sleep medications (often needed with ADHD treatment)
+  "Melatonin",
+  "Clonidine ER",
+  "Trazodone",
+  "Ambien",
+  "Zolpidem",
+  "Lunesta",
+  "Eszopiclone",
+  
+  // Mood stabilizers
+  "Lamictal",
+  "Lamotrigine",
+  "Depakote",
+  "Valproic Acid",
+  "Lithium",
+  "Seroquel",
+  "Quetiapine",
+  "Abilify",
+  "Aripiprazole",
+  "Risperdal",
+  "Risperidone"
+].sort();
 
 interface MedicationManagementProps {
   patientId: string;
@@ -113,6 +198,111 @@ const formatFieldValue = (key: string, value: unknown): string => {
   }
 };
 
+// Searchable Medication Input Component
+interface SearchableMedicationInputProps {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  required?: boolean;
+}
+
+const SearchableMedicationInput: React.FC<SearchableMedicationInputProps> = ({
+  value,
+  onChange,
+  placeholder = "e.g., Adderall XR",
+  required = false
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [filteredMedications, setFilteredMedications] = useState<string[]>([]);
+
+  // Filter medications based on input
+  useEffect(() => {
+    if (value.length === 0) {
+      setFilteredMedications(COMMON_MEDICATIONS.slice(0, 10)); // Show first 10 when empty
+    } else {
+      const filtered = COMMON_MEDICATIONS.filter(med =>
+        med.toLowerCase().includes(value.toLowerCase())
+      ).slice(0, 8); // Limit to 8 results
+      setFilteredMedications(filtered);
+    }
+  }, [value]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    onChange(newValue);
+    setIsOpen(true);
+  };
+
+  const handleMedicationSelect = (medication: string) => {
+    onChange(medication);
+    setIsOpen(false);
+  };
+
+  const handleInputFocus = () => {
+    // Only open if there's already some text or user clicks the dropdown arrow
+    if (value.length > 0) {
+      setIsOpen(true);
+    }
+  };
+
+  const handleDropdownToggle = () => {
+    setIsOpen(!isOpen);
+  };
+
+  const handleInputBlur = () => {
+    // Delay closing to allow for medication selection
+    setTimeout(() => setIsOpen(false), 150);
+  };
+
+  return (
+    <div className="relative">
+      <Input
+        value={value}
+        onChange={handleInputChange}
+        onFocus={handleInputFocus}
+        onBlur={handleInputBlur}
+        placeholder={placeholder}
+        required={required}
+        className="pr-8"
+      />
+      <ChevronsUpDown 
+        className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 cursor-pointer hover:text-gray-600" 
+        onClick={handleDropdownToggle}
+      />
+      
+      {isOpen && (filteredMedications.length > 0 || value.length > 0) && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
+          {filteredMedications.length > 0 ? (
+            filteredMedications.map((medication, index) => (
+              <div
+                key={index}
+                className="px-3 py-2 cursor-pointer hover:bg-gray-100 text-sm border-b border-gray-100 last:border-b-0"
+                onMouseDown={(e) => e.preventDefault()} // Prevent blur
+                onClick={() => handleMedicationSelect(medication)}
+              >
+                <div className="font-medium">{medication}</div>
+              </div>
+            ))
+          ) : null}
+          
+          {value.length > 0 && !COMMON_MEDICATIONS.some(med => 
+            med.toLowerCase() === value.toLowerCase()
+          ) && (
+            <div className="px-3 py-2 bg-blue-50 border-t border-blue-200">
+              <div className="text-sm text-blue-700 font-medium">
+                Use custom medication: "{value}"
+              </div>
+              <div className="text-xs text-blue-600">
+                This will be saved as entered
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // Separate MedicationForm component to prevent re-rendering issues
 interface MedicationFormProps {
   formData: MedicationFormData;
@@ -148,10 +338,9 @@ const MedicationFormComponent: React.FC<MedicationFormProps> = ({
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>
         <Label htmlFor="name">Medication Name *</Label>
-        <Input
-          id="name"
+        <SearchableMedicationInput
           value={formData.name}
-          onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+          onChange={(value) => setFormData(prev => ({ ...prev, name: value }))}
           placeholder="e.g., Adderall XR"
           required
         />
