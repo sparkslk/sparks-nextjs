@@ -28,9 +28,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { conversationId, receiverId, content, patientId } = body;
 
-    if (!receiverId || !content) {
+    if (!receiverId) {
       return NextResponse.json(
-        { success: false, error: 'Missing required fields' },
+        { success: false, error: 'Missing receiverId' },
         { status: 400 }
       );
     }
@@ -42,6 +42,27 @@ export async function POST(request: NextRequest) {
     const conversation = conversationId
       ? await (prisma as any).conversation.findUnique({ where: { id: conversationId } })
       : await getOrCreateConversation(senderId, receiverId, patientId);
+
+    if (!conversation) {
+      return NextResponse.json(
+        { success: false, error: 'Conversation not found or could not be created' },
+        { status: 404 }
+      );
+    }
+
+    // If no content provided, just return the conversation (used for creating empty conversations)
+    if (!content || content.trim() === '') {
+      return NextResponse.json({
+        success: true,
+        conversation: {
+          id: conversation.id,
+          therapistId: conversation.therapistId,
+          participantId: conversation.participantId,
+          patientId: conversation.patientId,
+          participantType: conversation.participantType,
+        },
+      });
+    }
 
     if (!conversation) {
       return NextResponse.json(

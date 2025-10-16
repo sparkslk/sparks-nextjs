@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Search, Send, Paperclip, Smile, Clock, CheckCheck, Check, AlertCircle, Plus } from "lucide-react";
+import { Search, MoreVertical, Send, Clock, CheckCheck, Check, AlertCircle, Plus, Filter } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getConversations, sendMessage, getMessages, startMessagePolling } from "@/lib/chat-api";
 import type { ConversationWithDetails, Message } from "@/types/chat";
@@ -35,6 +35,8 @@ export default function TherapistMessagesPage() {
   const [showNewChatDialog, setShowNewChatDialog] = useState(false);
   const [availableParticipants, setAvailableParticipants] = useState<any[]>([]);
   const [loadingParticipants, setLoadingParticipants] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterType, setFilterType] = useState<'ALL' | 'PATIENT' | 'PARENT'>('ALL');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const stopPollingRef = useRef<(() => void) | null>(null);
 
@@ -169,36 +171,44 @@ export default function TherapistMessagesPage() {
     setLoadingParticipants(false);
   };
 
-  const handleStartNewChat = async (participant: any) => {
-    setSending(true);
-    setError(null);
-    
+    const handleStartNewChat = async (participant: any) => {
     try {
-      const result = await sendMessage({
-        receiverId: participant.userId,
-        content: "Hello! I'd like to discuss your progress.",
-        patientId: participant.patientId,
+      // Create conversation without sending a message
+      const response = await fetch('/api/chat/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          receiverId: participant.userId,
+          content: '', // Empty content to just create conversation
+          patientId: participant.patientId,
+        }),
       });
-      
-      if (result.success) {
-        setShowNewChatDialog(false);
-        // Reload conversations to show the new one
+
+      if (response.ok) {
         await loadConversations();
         
-        // Select the newly created conversation
-        const newConversation = conversations.find(c => c.participantId === participant.userId);
-        if (newConversation) {
-          setSelectedConversation(newConversation);
+        // Find and select the new conversation
+        const result = await getConversations();
+        if (result.success && result.conversations) {
+          const newConv = result.conversations.find(
+            (c: any) => c.participantId === participant.userId
+          );
+          if (newConv) {
+            setSelectedConversation(newConv);
+          }
         }
+        
+        setShowNewChatDialog(false);
+        setSearchQuery('');
+        setFilterType('ALL');
       } else {
-        setError(result.error || "Failed to start conversation");
+        const error = await response.json();
+        alert(error.error || 'Failed to start new chat. Please try again.');
       }
     } catch (error) {
-      console.error('Error starting new chat:', error);
-      setError("Failed to start conversation");
+      console.error('Failed to start new chat:', error);
+      alert('Failed to start new chat. Please try again.');
     }
-    
-    setSending(false);
   };
 
   const filteredConversations = conversations.filter(conv =>
@@ -297,20 +307,80 @@ export default function TherapistMessagesPage() {
                             Select a patient or parent to start a conversation
                           </DialogDescription>
                         </DialogHeader>
+                        
+                        {/* Search and Filter */}
+                        <div className="space-y-3 pb-2 border-b">
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            <Input
+                              placeholder="Search by name..."
+                              value={searchQuery}
+                              onChange={(e) => setSearchQuery(e.target.value)}
+                              className="pl-10"
+                            />
+                          </div>
+                          
+                          <div className="flex gap-2">
+                            <Button
+                              variant={filterType === 'ALL' ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() => setFilterType('ALL')}
+                              className={filterType === 'ALL' ? 'bg-[#8159A8] hover:bg-[#8159A8]/90' : 'text-gray-600'}
+                            >
+                              All
+                            </Button>
+                            <Button
+                              variant={filterType === 'PATIENT' ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() => setFilterType('PATIENT')}
+                              className={filterType === 'PATIENT' ? 'bg-[#8159A8] hover:bg-[#8159A8]/90' : 'text-gray-600'}
+                            >
+                              Patients
+                            </Button>
+                            <Button
+                              variant={filterType === 'PARENT' ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() => setFilterType('PARENT')}
+                              className={filterType === 'PARENT' ? 'bg-[#8159A8] hover:bg-[#8159A8]/90' : 'text-gray-600'}
+                            >
+                              Parents
+                            </Button>
+                          </div>
+                        </div>
+                        
                         <div className="py-4 max-h-[400px] overflow-y-auto">
                           {loadingParticipants ? (
                             <div className="text-center py-8">
                               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#8159A8] mx-auto"></div>
                               <p className="mt-2 text-gray-500">Loading participants...</p>
                             </div>
-                          ) : availableParticipants.length === 0 ? (
+                          ) : availableParticipants.filter(p => {
+                            // Apply type filter
+                            if (filterType !== 'ALL' && p.type !== filterType) return false;
+                            // Apply search filter
+                            if (searchQuery && !p.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+                            return true;
+                          }).length === 0 ? (
                             <div className="text-center py-8 text-gray-500">
-                              <p>No participants available</p>
-                              <p className="text-sm mt-2">You need assigned patients first</p>
+                              <p>No participants found</p>
+                              <p className="text-sm mt-2">
+                                {searchQuery || filterType !== 'ALL' 
+                                  ? 'Try adjusting your search or filters'
+                                  : 'You need assigned patients first'
+                                }
+                              </p>
                             </div>
                           ) : (
                             <div className="space-y-2">
-                              {availableParticipants.map((participant, index) => (
+                              {availableParticipants
+                                .filter(p => {
+                                  // Apply type filter
+                                  if (filterType !== 'ALL' && p.type !== filterType) return false;
+                                  // Apply search filter
+                                  if (searchQuery && !p.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+                                  return true;
+                                })
+                                .map((participant, index) => (
                                 <div
                                   key={`${participant.userId}-${index}`}
                                   onClick={() => handleStartNewChat(participant)}
@@ -554,14 +624,6 @@ export default function TherapistMessagesPage() {
                 {/* Message Input */}
                 <div className="border-t border-gray-200 p-4 bg-white flex-shrink-0">
                   <div className="flex items-end space-x-2">
-                    <div className="flex items-center space-x-2">
-                      <Button variant="outline" size="sm" className="text-[#8159A8] border-[#8159A8]/20 hover:bg-[#F5F3FB]">
-                        <Paperclip className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" size="sm" className="text-[#8159A8] border-[#8159A8]/20 hover:bg-[#F5F3FB]">
-                        <Smile className="h-4 w-4" />
-                      </Button>
-                    </div>
                     <Textarea
                       placeholder="Type your message..."
                       value={newMessage}

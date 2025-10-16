@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Search, MoreVertical, Send, Paperclip, Smile, Clock, CheckCheck, Check, AlertCircle, Plus } from "lucide-react";
+import { Search, MoreVertical, Send, Clock, CheckCheck, Check, AlertCircle, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getConversations, sendMessage, getMessages, startMessagePolling } from "@/lib/chat-api";
 import type { ConversationWithDetails, Message } from "@/types/chat";
@@ -178,24 +178,33 @@ export default function ParentMessagesPage() {
     setSending(true);
     setError(null);
 
-    // Send initial message to create conversation
-    const result = await sendMessage({
-      receiverId: therapist.userId,
-      content: "Hello! I'd like to discuss my child's progress.",
-      patientId: therapist.patientId,
-    });
+    // Create conversation without sending a message
+    try {
+      const response = await fetch('/api/chat/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          receiverId: therapist.userId,
+          content: '', // Empty content to just create conversation
+          patientId: therapist.patientId,
+        }),
+      });
 
-    if (result.success) {
-      // Reload conversations to show the new one
-      await loadConversations();
-      
-      // Select the new conversation
-      const newConv = conversations.find(c => c.therapistId === therapist.id);
-      if (newConv) {
-        setSelectedConversation(newConv);
+      if (response.ok) {
+        // Reload conversations to show the new one
+        await loadConversations();
+        
+        // Select the new conversation
+        const newConv = conversations.find(c => c.therapistId === therapist.id);
+        if (newConv) {
+          setSelectedConversation(newConv);
+        }
+      } else {
+        const error = await response.json();
+        setError(error.error || 'Failed to start conversation');
       }
-    } else {
-      setError(result.error || 'Failed to start conversation');
+    } catch (err) {
+      setError('Failed to start conversation');
     }
 
     setSending(false);
@@ -552,14 +561,6 @@ export default function ParentMessagesPage() {
                 {/* Message Input */}
                 <div className="border-t border-border p-4 bg-card flex-shrink-0 rounded-b-lg">
                   <div className="flex items-end space-x-2">
-                    <div className="flex items-center space-x-2">
-                      <Button variant="outline" size="sm" className="text-primary border-primary/20 hover:bg-muted">
-                        <Paperclip className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" size="sm" className="text-primary border-primary/20 hover:bg-muted">
-                        <Smile className="h-4 w-4" />
-                      </Button>
-                    </div>
                     <Textarea
                       placeholder="Type your message..."
                       value={newMessage}
