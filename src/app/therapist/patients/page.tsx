@@ -1,4 +1,3 @@
-
 "use client";
 import Image from "next/image";
 
@@ -46,8 +45,7 @@ interface PatientAvatarProps {
 
 function PatientAvatar({ patient, size = "sm" }: PatientAvatarProps) {
     const [imageError, setImageError] = useState(false);
-    const [imageLoaded, setImageLoaded] = useState(false);
-    
+
     const sizeClasses = size === "sm" 
         ? "w-10 h-10" 
         : "w-10 h-10 lg:w-12 lg:h-12";
@@ -55,17 +53,9 @@ function PatientAvatar({ patient, size = "sm" }: PatientAvatarProps) {
         ? "h-5 w-5" 
         : "h-5 w-5 lg:h-6 lg:w-6";
 
-    const handleImageError = () => {
-        setImageError(true);
-        setImageLoaded(false);
-    };
+    const handleImageError = () => setImageError(true);
 
-    const handleImageLoad = () => {
-        setImageLoaded(true);
-        setImageError(false);
-    };
-
-    const showUserIcon = !patient.image || imageError || !imageLoaded;
+    const showUserIcon = !patient.image || imageError;
 
     return (
         <div className={`${sizeClasses} bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden relative`}>
@@ -75,8 +65,6 @@ function PatientAvatar({ patient, size = "sm" }: PatientAvatarProps) {
                     alt={`${patient.firstName} ${patient.lastName}`}
                     className="w-full h-full object-cover"
                     onError={handleImageError}
-                    onLoad={handleImageLoad}
-                    style={{ display: imageLoaded && !imageError ? 'block' : 'none' }}
                     fill
                     sizes="100vw"
                 />
@@ -352,7 +340,6 @@ export default function PatientsPage() {
                                                         </p>
                                                     </div>
                                                 </div>
-                                                {getStatusBadge(patient.status)}
                                             </div>
 
                                             <div className="grid grid-cols-2 gap-3 text-xs">
@@ -445,8 +432,6 @@ export default function PatientsPage() {
                                                     </p>
                                                 </div>
 
-                                                {getStatusBadge(patient.status)}
-
                                                 <div className="flex items-center space-x-1 lg:space-x-2">
                                                     <Button
                                                         variant="ghost"
@@ -464,14 +449,6 @@ export default function PatientsPage() {
                                                     >
                                                         <MessageCircle className="h-3 w-3 lg:h-4 lg:w-4" />
                                                     </Button>
-                                                    {/* <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        onClick={() => router.push(`/therapist/appointments/new?patientId=${patient.id}`)}
-                                                        className="h-8 w-8 lg:h-10 lg:w-10"
-                                                    >
-                                                        <Edit3 className="h-3 w-3 lg:h-4 lg:w-4" />
-                                                    </Button> */}
                                                 </div>
                                             </div>
                                         </div>

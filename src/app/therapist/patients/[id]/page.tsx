@@ -11,6 +11,7 @@ import { Calendar, Clock, User, FileText,  Eye, ArrowLeft, Plus } from "lucide-r
 import MedicationManagement from "@/components/therapist/MedicationManagement";
 import { Medication } from "@/types/medications";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import Image from "next/image"; // Add this import for the Image component
 
 interface TherapySession {
   id: string;
@@ -33,6 +34,8 @@ interface Patient {
   firstName: string;
   lastName: string;
   initials: string;
+  // Optional image URL for patient avatar/profile picture
+  image?: string;
   dateOfBirth: string;
   age: number;
   gender: string;
@@ -255,67 +258,6 @@ export default function PatientDetailsPage() {
     );
   }
 
-  // For now, keeping the hardcoded data for other sections as they don't exist in the API yet
-  // These can be moved to the API later
-
-  // Medical History data (commented out as unused)
-  // const medicalHistory = {
-  //   adherenceRate: "89%",
-  //   missedDoses: 12,
-  //   totalDoses: 247,
-  //   currentStreak: 7,
-  //   weeklyPattern: [
-  //     { day: "Mon", status: "taken" },
-  //     { day: "Tue", status: "taken" },
-  //     { day: "Wed", status: "taken" },
-  //     { day: "Thu", status: "taken" },
-  //     { day: "Fri", status: "missed" },
-  //     { day: "Sat", status: "taken" },
-  //     { day: "Sun", status: "taken" }
-  //   ],
-  //   detailedHistory: [
-  //     {
-  //       id: 1,
-  //       date: "June 25, 2025",
-  //       medication: "Adderall XR 20mg",
-  //       time: "8:00 AM & 2:30 PM",
-  //       status: "EXCELLENT",
-  //       notes: "Feeling focused and alert. No side effects noticed. Taking with breakfast as recommended."
-  //     },
-  //     {
-  //       id: 2,
-  //       date: "June 23, 2025",
-  //       medication: "Adderall XR 20mg",
-  //       time: "8:15 AM & Evening: Missed",
-  //       status: "PARTIAL",
-  //       notes: "Forgot evening dose due to busy work meeting. Recommend to set alarms, reminders."
-  //     },
-  //     {
-  //       id: 3,
-  //       date: "June 21, 2025",
-  //       medication: "Adderall XR 20mg",
-  //       time: "7:45 AM & 2:30 PM",
-  //       status: "EXCELLENT",
-  //       notes: "Completely forgot about morning. Need to set multiple reminders."
-  //     },
-  //     {
-  //       id: 4,
-  //       date: "June 20, 2025",
-  //       medication: "Adderall XR 20mg",
-  //       time: "Morning: Missed",
-  //       status: "MISSED",
-  //       notes: "Woke up late and rushed to work. Completely forgot about medication. Need to set automatic reminders."
-  //     },
-  //     {
-  //       id: 5,
-  //       date: "June 18, 2025",
-  //       medication: "Strattera 40mg",
-  //       time: "9:02 AM",
-  //       status: "EXCELLENT",
-  //       notes: "Once daily medication. Patient compliance is Adhered ok. Monitoring for effectiveness and side effects during medication switch."
-  //     }
-  //   ]
-  // };
 
   // Assigned Tasks data
   const assignedAssessments = [
@@ -415,8 +357,18 @@ export default function PatientDetailsPage() {
             <div className="flex flex-col space-y-4 sm:hidden">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="bg-[#a174c6] text-white text-lg font-semibold w-12 h-12 rounded-full flex items-center justify-center">
-                    {patient.initials}
+                  <div className="relative w-12 h-12 rounded-full overflow-hidden bg-[#a174c6] text-white text-lg font-semibold flex items-center justify-center">
+                    {patient.image ? (
+                      <Image
+                        src={patient.image}
+                        alt={`${patient.firstName} ${patient.lastName}`}
+                        className="object-cover"
+                        fill
+                        sizes="48px"
+                      />
+                    ) : (
+                      patient.initials
+                    )}
                   </div>
                   <div>
                     <h2 className="text-lg font-bold text-[#8159A8]">
@@ -425,9 +377,7 @@ export default function PatientDetailsPage() {
                     <p className="text-xs text-gray-600">Age: {patient.age}</p>
                   </div>
                 </div>
-                <div className="bg-green-100 text-green-700 font-medium px-3 py-1 rounded-full text-xs">
-                  {patient.status}
-                </div>
+                {/* Removed status badge */}
               </div>
               <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
                 <span>ID: {patient.id}</span>
@@ -439,8 +389,18 @@ export default function PatientDetailsPage() {
             {/* Desktop Layout */}
             <div className="hidden sm:flex items-center justify-between">
               <div className="flex items-center gap-4 lg:gap-6">
-                <div className="bg-[#a174c6] text-white text-xl font-semibold w-12 h-12 lg:w-16 lg:h-16 rounded-full flex items-center justify-center">
-                  {patient.initials}
+                <div className="relative w-12 h-12 lg:w-16 lg:h-16 rounded-full overflow-hidden bg-[#a174c6] text-white text-xl font-semibold flex items-center justify-center">
+                  {patient.image ? (
+                    <Image
+                      src={patient.image}
+                      alt={`${patient.firstName} ${patient.lastName}`}
+                      className="object-cover"
+                      fill
+                      sizes="(max-width: 1024px) 48px, 64px"
+                    />
+                  ) : (
+                    patient.initials
+                  )}
                 </div>
                 <div>
                   <h2 className="text-lg lg:text-xl font-bold text-[#8159A8]">
@@ -454,9 +414,7 @@ export default function PatientDetailsPage() {
                   </div>
                 </div>
               </div>
-              <div className="bg-green-100 text-green-700 font-medium px-3 lg:px-4 py-1 rounded-full text-sm">
-                {patient.status}
-              </div>
+              {/* Removed status badge */}
             </div>
           </CardContent>
         </Card>
@@ -502,7 +460,6 @@ export default function PatientDetailsPage() {
             <h3 className="text-base sm:text-lg font-semibold text-[#8159A8] mb-2 border-b border-[#8159A8]">Treatment Information</h3>
             <div className="space-y-2 text-sm sm:text-base">
               <p><strong>Registration Date:</strong> {patient.registeredDate}</p>
-              <p><strong>Treatment Status:</strong> {patient.status}</p>
             </div>
           </section>
         </TabsContent>

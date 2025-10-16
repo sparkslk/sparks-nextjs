@@ -100,6 +100,11 @@ export async function GET(
                 primaryTherapistId: user.therapistProfile.id
             },
             include: {
+                user: {
+                    select: {
+                        image: true
+                    }
+                },
                 therapySessions: {
                     include: {
                         therapist: {
@@ -172,6 +177,7 @@ export async function GET(
             firstName: patient.firstName,
             lastName: patient.lastName,
             initials: `${patient.firstName[0]}${patient.lastName[0]}`,
+            image: patient.user?.image || null,
             dateOfBirth: patient.dateOfBirth.toISOString().split('T')[0],
             age: calculateAge(patient.dateOfBirth),
             gender: patient.gender,
