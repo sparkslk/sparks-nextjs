@@ -6,13 +6,13 @@
  * Returns therapists the current user (parent/patient) can message
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth';
 import { UserRole } from '@prisma/client';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     
@@ -71,7 +71,14 @@ export async function GET(request: NextRequest) {
     }
 
     // Collect all available therapists
-    const therapists: any[] = [];
+    const therapists: {
+      id: string;
+      userId: string;
+      name: string | null;
+      avatar: string | null;
+      patientId: string;
+      patientName: string;
+    }[] = [];
     const therapistIds = new Set<string>();
 
     // Patient's own therapist

@@ -16,7 +16,7 @@ export interface Message {
   isRead: boolean;
   readAt: Date | null;
   createdAt: Date;
-  updatedAt: Date;
+  updatedAt?: Date; // Optional as some DB models may not have it
 }
 
 export interface Conversation {
@@ -27,20 +27,20 @@ export interface Conversation {
   patientId: string | null;
   lastMessageAt: Date | null;
   createdAt: Date;
-  updatedAt: Date;
+  updatedAt?: Date; // Optional as some DB models may not have it
   messages?: Message[];
   // Additional fields for display
   participantName?: string;
-  participantAvatar?: string;
+  participantAvatar?: string | null;
   unreadCount?: number;
   isOnline?: boolean;
 }
 
 export interface ConversationWithDetails extends Conversation {
   therapistName: string;
-  therapistAvatar?: string;
+  therapistAvatar?: string | null;
   participantName: string;
-  participantAvatar?: string;
+  participantAvatar?: string | null;
   patientName?: string; // For parent conversations (first patient for backward compatibility)
   patientNames?: string[]; // All patient names for parent conversations
   lastMessage?: string;

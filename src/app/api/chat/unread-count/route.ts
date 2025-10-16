@@ -6,12 +6,12 @@
  * Returns the total number of unread messages for the current user
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     
@@ -24,8 +24,8 @@ export async function GET(request: NextRequest) {
 
     const userId = session.user.id;
 
-    // Count unread messages where the current user is the receiver
-    const unreadCount = await (prisma as any).message.count({
+    // Count unread messages where user is the receiver
+    const unreadCount = await prisma.message.count({
       where: {
         receiverId: userId,
         isRead: false,

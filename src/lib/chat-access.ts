@@ -23,7 +23,7 @@ export async function canAccessConversation(
   conversationId: string
 ): Promise<boolean> {
   try {
-    const conversation = await (prisma as any).conversation.findUnique({
+    const conversation = await prisma.conversation.findUnique({
       where: { id: conversationId },
       select: {
         therapistId: true,
@@ -232,7 +232,7 @@ export async function getOrCreateConversation(
     }
 
     // Try to find existing conversation
-    let conversation = await (prisma as any).conversation.findFirst({
+    let conversation = await prisma.conversation.findFirst({
       where: {
         therapistId: therapist.id,
         participantId: participantUserId,
@@ -242,7 +242,7 @@ export async function getOrCreateConversation(
 
     // Create new conversation if doesn't exist
     if (!conversation) {
-      conversation = await (prisma as any).conversation.create({
+      conversation = await prisma.conversation.create({
         data: {
           therapistId: therapist.id,
           participantId: participantUserId,

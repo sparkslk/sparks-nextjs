@@ -34,7 +34,14 @@ export default function ParentMessagesPage() {
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
   const [showNewChatDialog, setShowNewChatDialog] = useState(false);
-  const [availableTherapists, setAvailableTherapists] = useState<any[]>([]);
+  const [availableTherapists, setAvailableTherapists] = useState<{
+    id: string;
+    userId: string;
+    name: string | null;
+    avatar: string | null;
+    patientId: string;
+    patientName: string;
+  }[]>([]);
   const [loadingTherapists, setLoadingTherapists] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const stopPollingRef = useRef<(() => void) | null>(null);
@@ -43,12 +50,31 @@ export default function ParentMessagesPage() {
     setMounted(true);
   }, []);
 
+  const loadConversations = async () => {
+    setLoading(true);
+    setError(null);
+    
+    const result = await getConversations();
+    
+    if (result.success && result.conversations) {
+      setConversations(result.conversations);
+      if (result.conversations.length > 0 && !selectedConversation) {
+        setSelectedConversation(result.conversations[0]);
+      }
+    } else {
+      setError(result.error || "Failed to load conversations");
+    }
+    
+    setLoading(false);
+  };
+
   // Load conversations on mount
   useEffect(() => {
     if (session?.user) {
       loadConversations();
     }
-  }, [session]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Load messages when conversation is selected
   useEffect(() => {
@@ -68,7 +94,7 @@ export default function ParentMessagesPage() {
           if (result.success && result.messages) {
             // Check if new messages arrived
             if (result.messages.length > previousMessageCount && previousMessageCount > 0) {
-              // New message received - notify to update unread count
+              // New message received - notify sidebar to update unread count
               chatEvents.notifyMessageReceived(selectedConversation.id);
             }
             previousMessageCount = result.messages.length;
@@ -87,6 +113,7 @@ export default function ParentMessagesPage() {
         stopPollingRef.current = null;
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedConversation?.id]);
 
   // Scroll to bottom when messages change
@@ -96,24 +123,6 @@ export default function ParentMessagesPage() {
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  const loadConversations = async () => {
-    setLoading(true);
-    setError(null);
-    
-    const result = await getConversations();
-    
-    if (result.success && result.conversations) {
-      setConversations(result.conversations);
-      if (result.conversations.length > 0 && !selectedConversation) {
-        setSelectedConversation(result.conversations[0]);
-      }
-    } else {
-      setError(result.error || "Failed to load conversations");
-    }
-    
-    setLoading(false);
   };
 
   const loadMessages = async (conversationId: string) => {
@@ -186,7 +195,7 @@ export default function ParentMessagesPage() {
     }
   };
 
-  const handleStartNewChat = async (therapist: any) => {
+  const handleStartNewChat = async (therapist: typeof availableTherapists[0]) => {
     setShowNewChatDialog(false);
     setSending(true);
     setError(null);
@@ -213,10 +222,10 @@ export default function ParentMessagesPage() {
           setSelectedConversation(newConv);
         }
       } else {
-        const error = await response.json();
-        setError(error.error || 'Failed to start conversation');
+        const errorData = await response.json();
+        setError(errorData.error || 'Failed to start conversation');
       }
-    } catch (err) {
+    } catch {
       setError('Failed to start conversation');
     }
 
@@ -340,9 +349,9 @@ export default function ParentMessagesPage() {
                                 >
                                   <div className="flex items-center space-x-3">
                                     <Avatar className="h-10 w-10">
-                                      <AvatarImage src={therapist.avatar} />
-                                      <AvatarFallback className="bg-primary text-primary-foreground">
-                                        {getInitials(therapist.name)}
+                                      <AvatarImage src={therapist.avatar || undefined} />
+                                      <AvatarFallback className="bg-[#8159A8] text-white">
+                                        {getInitials(therapist.name || 'Unknown')}
                                       </AvatarFallback>
                                     </Avatar>
                                     <div>
@@ -393,7 +402,7 @@ export default function ParentMessagesPage() {
                       <div className="flex items-center space-x-3">
                         <div className="relative">
                           <Avatar className="h-10 w-10">
-                            <AvatarImage src={conversation.therapistAvatar} />
+                            <AvatarImage src={conversation.therapistAvatar || undefined} />
                             <AvatarFallback className="bg-primary text-primary-foreground">
                               {getInitials(conversation.therapistName)}
                             </AvatarFallback>
@@ -447,7 +456,7 @@ export default function ParentMessagesPage() {
                     <div className="flex items-center space-x-3">
                       <div className="relative">
                         <Avatar className="h-10 w-10">
-                          <AvatarImage src={selectedConversation.therapistAvatar} />
+                          <AvatarImage src={selectedConversation.therapistAvatar || undefined} />
                           <AvatarFallback className="bg-primary text-primary-foreground">
                             {getInitials(selectedConversation.therapistName)}
                           </AvatarFallback>

@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Search, MoreVertical, Send, Clock, CheckCheck, Check, AlertCircle, Plus, Filter } from "lucide-react";
+import { Search, Send, Clock, CheckCheck, Check, AlertCircle, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getConversations, sendMessage, getMessages, startMessagePolling } from "@/lib/chat-api";
 import type { ConversationWithDetails, Message } from "@/types/chat";
@@ -34,7 +34,17 @@ export default function TherapistMessagesPage() {
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
   const [showNewChatDialog, setShowNewChatDialog] = useState(false);
-  const [availableParticipants, setAvailableParticipants] = useState<any[]>([]);
+  const [availableParticipants, setAvailableParticipants] = useState<{
+    type: string;
+    userId: string;
+    patientId: string;
+    patientIds?: string[];
+    name: string;
+    avatar: string | null;
+    patientName: string;
+    patientNames: string[];
+    relationship?: string;
+  }[]>([]);
   const [loadingParticipants, setLoadingParticipants] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'ALL' | 'PATIENT' | 'PARENT'>('ALL');
@@ -45,12 +55,31 @@ export default function TherapistMessagesPage() {
     setMounted(true);
   }, []);
 
+  const loadConversations = async () => {
+    setLoading(true);
+    setError(null);
+    
+    const result = await getConversations();
+    
+    if (result.success && result.conversations) {
+      setConversations(result.conversations);
+      if (result.conversations.length > 0 && !selectedConversation) {
+        setSelectedConversation(result.conversations[0]);
+      }
+    } else {
+      setError(result.error || "Failed to load conversations");
+    }
+    
+    setLoading(false);
+  };
+
   // Load conversations on mount
   useEffect(() => {
     if (session?.user) {
       loadConversations();
     }
-  }, [session]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Load messages when conversation is selected
   useEffect(() => {
@@ -89,6 +118,7 @@ export default function TherapistMessagesPage() {
         stopPollingRef.current = null;
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedConversation?.id]);
 
   // Scroll to bottom when messages change
@@ -98,24 +128,6 @@ export default function TherapistMessagesPage() {
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  const loadConversations = async () => {
-    setLoading(true);
-    setError(null);
-    
-    const result = await getConversations();
-    
-    if (result.success && result.conversations) {
-      setConversations(result.conversations);
-      if (result.conversations.length > 0 && !selectedConversation) {
-        setSelectedConversation(result.conversations[0]);
-      }
-    } else {
-      setError(result.error || "Failed to load conversations");
-    }
-    
-    setLoading(false);
   };
 
   const loadMessages = async (conversationId: string) => {
@@ -184,7 +196,7 @@ export default function TherapistMessagesPage() {
     setLoadingParticipants(false);
   };
 
-    const handleStartNewChat = async (participant: any) => {
+  const handleStartNewChat = async (participant: typeof availableParticipants[0]) => {
     try {
       // Create conversation without sending a message
       const response = await fetch('/api/chat/send', {
@@ -204,7 +216,7 @@ export default function TherapistMessagesPage() {
         const result = await getConversations();
         if (result.success && result.conversations) {
           const newConv = result.conversations.find(
-            (c: any) => c.participantId === participant.userId
+            (c) => c.participantId === participant.userId
           );
           if (newConv) {
             setSelectedConversation(newConv);
@@ -215,16 +227,15 @@ export default function TherapistMessagesPage() {
         setSearchQuery('');
         setFilterType('ALL');
       } else {
-        const error = await response.json();
-        alert(error.error || 'Failed to start new chat. Please try again.');
+        const errorData = await response.json();
+        alert(errorData.error || 'Failed to start new chat. Please try again.');
       }
-    } catch (error) {
-      console.error('Failed to start new chat:', error);
+    } catch {
       alert('Failed to start new chat. Please try again.');
     }
   };
 
-  const filteredConversations = conversations.filter(conv =>
+  const filteredConversations = conversations.filter((conv: ConversationWithDetails) =>
     conv.participantName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     conv.patientName?.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -401,7 +412,7 @@ export default function TherapistMessagesPage() {
                                 >
                                   <div className="flex items-center space-x-3">
                                     <Avatar className="h-10 w-10">
-                                      <AvatarImage src={participant.avatar} />
+                                      <AvatarImage src={participant.avatar || undefined} />
                                       <AvatarFallback className="bg-[#8159A8] text-white">
                                         {getInitials(participant.name)}
                                       </AvatarFallback>
@@ -469,7 +480,7 @@ export default function TherapistMessagesPage() {
                       <div className="flex items-center space-x-3">
                         <div className="relative">
                           <Avatar className="h-10 w-10">
-                            <AvatarImage src={conversation.participantAvatar} />
+                            <AvatarImage src={conversation.participantAvatar || undefined} />
                             <AvatarFallback className="bg-[#8159A8] text-white">
                               {getInitials(conversation.participantName || 'User')}
                             </AvatarFallback>
@@ -526,7 +537,7 @@ export default function TherapistMessagesPage() {
                     <div className="flex items-center space-x-3">
                       <div className="relative">
                         <Avatar className="h-10 w-10">
-                          <AvatarImage src={selectedConversation.participantAvatar} />
+                          <AvatarImage src={selectedConversation.participantAvatar || undefined} />
                           <AvatarFallback className="bg-[#8159A8] text-white">
                             {getInitials(selectedConversation.participantName || 'User')}
                           </AvatarFallback>

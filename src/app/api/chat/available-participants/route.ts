@@ -6,13 +6,13 @@
  * Returns: List of patients and their parents that the therapist can message
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth';
 import { UserRole } from '@prisma/client';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     
@@ -73,7 +73,17 @@ export async function GET(request: NextRequest) {
     });
 
     // Format the response - Group parents by userId to avoid duplicates
-    const participantMap = new Map<string, any>();
+    const participantMap = new Map<string, {
+      type: string;
+      userId: string;
+      patientId: string;
+      patientIds?: string[];
+      name: string;
+      avatar: string | null;
+      patientName: string;
+      patientNames: string[];
+      relationship?: string;
+    }>();
 
     patients.forEach((patient) => {
       // Add patient if they have a user account
@@ -97,9 +107,9 @@ export async function GET(request: NextRequest) {
         if (participantMap.has(parentKey)) {
           // Parent already exists, add this patient to their list
           const existing = participantMap.get(parentKey);
-          if (!existing.patientNames.includes(patientFullName)) {
+          if (existing && !existing.patientNames.includes(patientFullName)) {
             existing.patientNames.push(patientFullName);
-            existing.patientIds.push(patient.id);
+            existing.patientIds?.push(patient.id);
           }
         } else {
           // New parent entry

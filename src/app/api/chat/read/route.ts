@@ -34,8 +34,8 @@ export async function POST(request: NextRequest) {
 
     const userId = session.user.id;
 
-    // Mark all messages in this conversation as read for this user
-    await (prisma as any).message.updateMany({
+    // Mark messages as read
+    await prisma.message.updateMany({
       where: {
         conversationId,
         receiverId: userId,

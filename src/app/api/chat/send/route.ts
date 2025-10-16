@@ -10,9 +10,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth';
-import { getOrCreateConversation, canSendMessage } from '@/lib/chat-access';
+import { getOrCreateConversation } from '@/lib/chat-access';
 import { encryptMessage } from '@/lib/encryption';
-import { UserRole } from '@prisma/client';
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,11 +35,10 @@ export async function POST(request: NextRequest) {
     }
 
     const senderId = session.user.id;
-    const senderRole = session.user.role as UserRole;
 
     // Get or create conversation
     const conversation = conversationId
-      ? await (prisma as any).conversation.findUnique({ where: { id: conversationId } })
+      ? await prisma.conversation.findUnique({ where: { id: conversationId } })
       : await getOrCreateConversation(senderId, receiverId, patientId);
 
     if (!conversation) {
@@ -97,7 +95,7 @@ export async function POST(request: NextRequest) {
     const encryptedContent = encryptMessage(content);
 
     // Create message
-    const message = await (prisma as any).message.create({
+    const message = await prisma.message.create({
       data: {
         conversationId: conversation.id,
         senderId,
@@ -108,7 +106,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Update conversation's lastMessageAt
-    await (prisma as any).conversation.update({
+    await prisma.conversation.update({
       where: { id: conversation.id },
       data: { lastMessageAt: new Date() },
     });

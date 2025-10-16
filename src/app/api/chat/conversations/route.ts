@@ -8,15 +8,15 @@
  * - For parents/patients: Only conversation with their assigned therapist
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth';
 import { UserRole } from '@prisma/client';
 import { decryptMessage } from '@/lib/encryption';
-import type { ConversationWithDetails } from '@/types/chat';
+import type { ConversationWithDetails, ConversationType } from '@/types/chat';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
       }
 
       // Get all conversations for this therapist
-      const rawConversations = await (prisma as any).conversation.findMany({
+      const rawConversations = await prisma.conversation.findMany({
         where: { therapistId: therapist.id },
         include: {
           Message: {
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
 
       // Get participant details and unread counts
       conversations = await Promise.all(
-        rawConversations.map(async (conv: any) => {
+        rawConversations.map(async (conv) => {
           const participant = await prisma.user.findUnique({
             where: { id: conv.participantId },
             select: { id: true, name: true, image: true },
@@ -105,7 +105,7 @@ export async function GET(request: NextRequest) {
             patientNames = patientName ? [patientName] : [];
           }
 
-          const unreadCount = await (prisma as any).message.count({
+          const unreadCount = await prisma.message.count({
             where: {
               conversationId: conv.id,
               receiverId: userId,
@@ -134,7 +134,7 @@ export async function GET(request: NextRequest) {
             lastMessage,
             unreadCount,
             isOnline: false, // TODO: Implement online status
-          } as ConversationWithDetails;
+          };
         })
       );
     } else {
@@ -195,7 +195,7 @@ export async function GET(request: NextRequest) {
       }
 
       // Get conversations with these therapists
-      const rawConversations = await (prisma as any).conversation.findMany({
+      const rawConversations = await prisma.conversation.findMany({
         where: {
           participantId: userId,
           therapistId: { in: Array.from(therapists) },
@@ -210,8 +210,18 @@ export async function GET(request: NextRequest) {
       });
 
       // Get therapist details
+      // Get therapist details for each conversation
       conversations = await Promise.all(
-        rawConversations.map(async (conv: any) => {
+        rawConversations.map(async (conv: { 
+          id: string; 
+          therapistId: string; 
+          participantId: string;
+          participantType: ConversationType; 
+          patientId: string | null; 
+          lastMessageAt: Date | null;
+          createdAt: Date;
+          Message: { encryptedContent: string }[] 
+        }) => {
           const therapist = await prisma.therapist.findUnique({
             where: { id: conv.therapistId },
             include: { user: true },
@@ -223,10 +233,12 @@ export async function GET(request: NextRequest) {
               where: { id: conv.patientId },
               select: { firstName: true, lastName: true },
             });
-            patientName = patient ? `${patient.firstName} ${patient.lastName}` : undefined;
+            if (patient) {
+              patientName = `${patient.firstName} ${patient.lastName}`;
+            }
           }
 
-          const unreadCount = await (prisma as any).message.count({
+          const unreadCount = await prisma.message.count({
             where: {
               conversationId: conv.id,
               receiverId: userId,
@@ -254,7 +266,7 @@ export async function GET(request: NextRequest) {
             lastMessage,
             unreadCount,
             isOnline: false, // TODO: Implement online status
-          } as ConversationWithDetails;
+          };
         })
       );
     }

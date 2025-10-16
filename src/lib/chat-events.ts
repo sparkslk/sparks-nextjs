@@ -6,7 +6,7 @@
  */
 
 type ChatEventType = 'message-received' | 'message-read' | 'unread-count-changed';
-type ChatEventListener = (data?: any) => void;
+type ChatEventListener = (data?: Record<string, unknown>) => void;
 
 class ChatEventEmitter {
   private listeners: Map<ChatEventType, Set<ChatEventListener>> = new Map();
@@ -25,7 +25,7 @@ class ChatEventEmitter {
     }
   }
 
-  emit(event: ChatEventType, data?: any) {
+  emit(event: ChatEventType, data?: Record<string, unknown>) {
     const eventListeners = this.listeners.get(event);
     if (eventListeners) {
       eventListeners.forEach(listener => listener(data));

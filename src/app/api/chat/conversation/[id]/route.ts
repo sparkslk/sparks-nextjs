@@ -34,7 +34,7 @@ export async function GET(
     const userRole = session.user.role as UserRole;
 
     // Check if conversation exists
-    const conversation = await (prisma as any).conversation.findUnique({
+    const conversation = await prisma.conversation.findUnique({
       where: { id: conversationId },
     });
 
@@ -55,13 +55,13 @@ export async function GET(
     }
 
     // Get all messages
-    const rawMessages = await (prisma as any).message.findMany({
+    const rawMessages = await prisma.message.findMany({
       where: { conversationId },
       orderBy: { createdAt: 'asc' },
     });
 
     // Decrypt messages
-    const messages: Message[] = rawMessages.map((msg: any) => {
+    const messages: Message[] = rawMessages.map((msg) => {
       try {
         return {
           id: msg.id,
@@ -89,7 +89,7 @@ export async function GET(
     });
 
     // Mark messages as read for the current user
-    await (prisma as any).message.updateMany({
+    await prisma.message.updateMany({
       where: {
         conversationId,
         receiverId: userId,
