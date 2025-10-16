@@ -389,10 +389,6 @@ export default function TherapistSessionsPage() {
         <CardHeader className="pb-4">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-sm" 
-                   style={{ background: 'linear-gradient(to bottom right, #8159A8, #6b46a0)' }}>
-                {session.patientName.split(' ').map(n => n[0]).join('').substring(0, 2)}
-              </div>
               <div>
                 <CardTitle className="text-lg font-bold text-gray-900">{session.patientName}</CardTitle>
                 <p className="text-sm text-gray-500">
@@ -438,41 +434,41 @@ export default function TherapistSessionsPage() {
         </CardHeader>
         
         <CardContent className="pt-0">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-            <div className="flex items-center gap-2">
-              <Calendar className="w-6 h-6 text-primary" />
-              <div>
-                <p className="text-xs text-gray-500">Date</p>
-                <p className="text-sm font-medium">{formatDate(session.scheduledAt)}</p>
+          <div className="flex flex-wrap items-center justify-between gap-6">
+            <div className="flex flex-wrap gap-6 md:gap-8 lg:gap-48">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-6 h-6 text-primary" />
+                <div>
+                  <p className="text-xs text-gray-500">Date</p>
+                  <p className="text-sm font-medium">{formatDate(session.scheduledAt)}</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Clock className="w-6 h-6 text-primary" />
+                <div>
+                  <p className="text-xs text-gray-500">Time</p>
+                  <p className="text-sm font-medium">{formatTimeManual(session.scheduledAt)}</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <FileText className="w-6 h-6 text-primary" />
+                <div>
+                  <p className="text-xs text-gray-500">Type</p>
+                  <p className="text-sm font-medium capitalize">{session.type}</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Hourglass  className="w-6 h-6 text-primary" />
+                <div>
+                  <p className="text-xs text-gray-500">Duration</p>
+                  <p className="text-sm font-medium">{session.duration} min</p>
+                </div>
               </div>
             </div>
             
-            <div className="flex items-center gap-2">
-              <Clock className="w-6 h-6 text-primary" />
-              <div>
-                <p className="text-xs text-gray-500">Time</p>
-                <p className="text-sm font-medium">{formatTimeManual(session.scheduledAt)}</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <FileText className="w-6 h-6 text-primary" />
-              <div>
-                <p className="text-xs text-gray-500">Type</p>
-                <p className="text-sm font-medium capitalize">{session.type}</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <Hourglass  className="w-6 h-6 text-primary" />
-              <div>
-                <p className="text-xs text-gray-500">Duration</p>
-                <p className="text-sm font-medium">{session.duration} min</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="flex justify-end mt-4">
             <div className="flex flex-wrap gap-2">
               {/* Future Sessions: Show Reschedule and Cancel buttons (only if not already requested) */}
               {isFutureSession && isScheduledStatus && !isRescheduleRequested && (
