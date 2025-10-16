@@ -1,4 +1,3 @@
-
 "use client";
 import Image from "next/image";
 
@@ -352,7 +351,6 @@ export default function PatientsPage() {
                                                         </p>
                                                     </div>
                                                 </div>
-                                                {getStatusBadge(patient.status)}
                                             </div>
 
                                             <div className="grid grid-cols-2 gap-3 text-xs">
@@ -445,8 +443,6 @@ export default function PatientsPage() {
                                                     </p>
                                                 </div>
 
-                                                {getStatusBadge(patient.status)}
-
                                                 <div className="flex items-center space-x-1 lg:space-x-2">
                                                     <Button
                                                         variant="ghost"
@@ -464,14 +460,6 @@ export default function PatientsPage() {
                                                     >
                                                         <MessageCircle className="h-3 w-3 lg:h-4 lg:w-4" />
                                                     </Button>
-                                                    {/* <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        onClick={() => router.push(`/therapist/appointments/new?patientId=${patient.id}`)}
-                                                        className="h-8 w-8 lg:h-10 lg:w-10"
-                                                    >
-                                                        <Edit3 className="h-3 w-3 lg:h-4 lg:w-4" />
-                                                    </Button> */}
                                                 </div>
                                             </div>
                                         </div>

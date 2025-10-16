@@ -255,67 +255,6 @@ export default function PatientDetailsPage() {
     );
   }
 
-  // For now, keeping the hardcoded data for other sections as they don't exist in the API yet
-  // These can be moved to the API later
-
-  // Medical History data (commented out as unused)
-  // const medicalHistory = {
-  //   adherenceRate: "89%",
-  //   missedDoses: 12,
-  //   totalDoses: 247,
-  //   currentStreak: 7,
-  //   weeklyPattern: [
-  //     { day: "Mon", status: "taken" },
-  //     { day: "Tue", status: "taken" },
-  //     { day: "Wed", status: "taken" },
-  //     { day: "Thu", status: "taken" },
-  //     { day: "Fri", status: "missed" },
-  //     { day: "Sat", status: "taken" },
-  //     { day: "Sun", status: "taken" }
-  //   ],
-  //   detailedHistory: [
-  //     {
-  //       id: 1,
-  //       date: "June 25, 2025",
-  //       medication: "Adderall XR 20mg",
-  //       time: "8:00 AM & 2:30 PM",
-  //       status: "EXCELLENT",
-  //       notes: "Feeling focused and alert. No side effects noticed. Taking with breakfast as recommended."
-  //     },
-  //     {
-  //       id: 2,
-  //       date: "June 23, 2025",
-  //       medication: "Adderall XR 20mg",
-  //       time: "8:15 AM & Evening: Missed",
-  //       status: "PARTIAL",
-  //       notes: "Forgot evening dose due to busy work meeting. Recommend to set alarms, reminders."
-  //     },
-  //     {
-  //       id: 3,
-  //       date: "June 21, 2025",
-  //       medication: "Adderall XR 20mg",
-  //       time: "7:45 AM & 2:30 PM",
-  //       status: "EXCELLENT",
-  //       notes: "Completely forgot about morning. Need to set multiple reminders."
-  //     },
-  //     {
-  //       id: 4,
-  //       date: "June 20, 2025",
-  //       medication: "Adderall XR 20mg",
-  //       time: "Morning: Missed",
-  //       status: "MISSED",
-  //       notes: "Woke up late and rushed to work. Completely forgot about medication. Need to set automatic reminders."
-  //     },
-  //     {
-  //       id: 5,
-  //       date: "June 18, 2025",
-  //       medication: "Strattera 40mg",
-  //       time: "9:02 AM",
-  //       status: "EXCELLENT",
-  //       notes: "Once daily medication. Patient compliance is Adhered ok. Monitoring for effectiveness and side effects during medication switch."
-  //     }
-  //   ]
-  // };
 
   // Assigned Tasks data
   const assignedAssessments = [
@@ -425,9 +364,7 @@ export default function PatientDetailsPage() {
                     <p className="text-xs text-gray-600">Age: {patient.age}</p>
                   </div>
                 </div>
-                <div className="bg-green-100 text-green-700 font-medium px-3 py-1 rounded-full text-xs">
-                  {patient.status}
-                </div>
+                {/* Removed status badge */}
               </div>
               <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
                 <span>ID: {patient.id}</span>
@@ -454,9 +391,7 @@ export default function PatientDetailsPage() {
                   </div>
                 </div>
               </div>
-              <div className="bg-green-100 text-green-700 font-medium px-3 lg:px-4 py-1 rounded-full text-sm">
-                {patient.status}
-              </div>
+              {/* Removed status badge */}
             </div>
           </CardContent>
         </Card>
@@ -502,7 +437,6 @@ export default function PatientDetailsPage() {
             <h3 className="text-base sm:text-lg font-semibold text-[#8159A8] mb-2 border-b border-[#8159A8]">Treatment Information</h3>
             <div className="space-y-2 text-sm sm:text-base">
               <p><strong>Registration Date:</strong> {patient.registeredDate}</p>
-              <p><strong>Treatment Status:</strong> {patient.status}</p>
             </div>
           </section>
         </TabsContent>
