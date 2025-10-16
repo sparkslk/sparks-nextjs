@@ -24,7 +24,6 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { DeleteConfirmationModal } from '@/components/ui/delete-confirmation-modal';
 import { 
   Plus, 
   Edit, 
@@ -122,6 +121,7 @@ interface MedicationFormProps {
   onCancel: () => void;
   isLoading: boolean;
   error: string;
+  successMessage: string;
   editingMedication: Medication | null;
 }
 
@@ -132,6 +132,7 @@ const MedicationFormComponent: React.FC<MedicationFormProps> = ({
   onCancel,
   isLoading,
   error,
+  successMessage,
   editingMedication
 }) => (
   <form onSubmit={onSubmit} className="space-y-4">
@@ -141,6 +142,8 @@ const MedicationFormComponent: React.FC<MedicationFormProps> = ({
         <span className="text-red-700 text-sm">{error}</span>
       </div>
     )}
+
+    
 
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>
@@ -230,6 +233,7 @@ const MedicationFormComponent: React.FC<MedicationFormProps> = ({
           id="startDate"
           type="date"
           value={formData.startDate ? format(formData.startDate, 'yyyy-MM-dd') : ''}
+          min={!editingMedication ? format(new Date(), 'yyyy-MM-dd') : undefined}
           onChange={(e) => setFormData(prev => ({ 
             ...prev, 
             startDate: e.target.value ? new Date(e.target.value) : undefined 
@@ -244,6 +248,7 @@ const MedicationFormComponent: React.FC<MedicationFormProps> = ({
           id="endDate"
           type="date"
           value={formData.endDate ? format(formData.endDate, 'yyyy-MM-dd') : ''}
+          min={formData.startDate ? format(new Date(formData.startDate.getTime() + 24 * 60 * 60 * 1000), 'yyyy-MM-dd') : undefined}
           onChange={(e) => setFormData(prev => ({ 
             ...prev, 
             endDate: e.target.value ? new Date(e.target.value) : undefined 
@@ -275,6 +280,17 @@ const MedicationFormComponent: React.FC<MedicationFormProps> = ({
         Cancel
       </Button>
     </div>
+
+    {successMessage && (
+      <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center gap-2">
+        <div className="h-4 w-4 text-green-600 flex items-center justify-center">
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+          </svg>
+        </div>
+        <span className="text-green-700 text-sm">{successMessage}</span>
+      </div>
+    )}
   </form>
 );
 
@@ -296,7 +312,7 @@ const initialFormData: MedicationFormData = {
   customFrequency: '',
   instructions: '',
   mealTiming: MealTiming.NONE,
-  startDate: undefined,
+  startDate: new Date(),
   endDate: undefined,
 };
 
@@ -318,13 +334,16 @@ export default function MedicationManagement({
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [error, setError] = useState<string>('');
+  const [successMessage, setSuccessMessage] = useState<string>('');
+  const [discontinueSuccess, setDiscontinueSuccess] = useState<boolean>(false);
 
   const resetForm = () => {
     setFormData(initialFormData);
     setError('');
+    setSuccessMessage('');
   };
 
-  // Reset form when dialog opens
+  // Reset form when add dialog opens
   useEffect(() => {
     if (isAddOpen && !editingMedication) {
       resetForm();
@@ -411,6 +430,19 @@ export default function MedicationManagement({
         return;
       }
 
+      // Validate end date is after start date
+      if (formData.endDate && formData.startDate) {
+        const startDate = new Date(formData.startDate);
+        const endDate = new Date(formData.endDate);
+        startDate.setHours(0, 0, 0, 0);
+        endDate.setHours(0, 0, 0, 0);
+        
+        if (endDate <= startDate) {
+          setError('End date must be after the start date');
+          return;
+        }
+      }
+
       const medicationData = {
         patientId,
         name: formData.name,
@@ -487,10 +519,19 @@ export default function MedicationManagement({
       }
 
       // Success
-      resetForm();
-      setIsAddOpen(false);
-      setIsEditOpen(false);
-      setEditingMedication(null);
+      const successMsg = editingMedication ? 'Medication updated successfully!' : 'Medication added successfully!';
+      setSuccessMessage(successMsg);
+      setError('');
+      
+      // Clear success message and close modal after a delay
+      setTimeout(() => {
+        setSuccessMessage('');
+        resetForm();
+        setIsAddOpen(false);
+        setIsEditOpen(false);
+        setEditingMedication(null);
+      }, 1500);
+      
       onMedicationUpdate();
     } catch (error) {
       console.error('Error saving medication:', error);
@@ -514,10 +555,17 @@ export default function MedicationManagement({
         throw new Error(errorData.error || 'Failed to discontinue medication');
       }
 
+      // Show success in the modal
+      setDiscontinueSuccess(true);
+      
+      // Close modal after showing success message
+      setTimeout(() => {
+        setDiscontinueSuccess(false);
+        setIsDiscontinueConfirmOpen(false);
+        setMedicationToDiscontinue(null);
+      }, 1500);
+
       onMedicationUpdate();
-      // Close the confirmation modal
-      setIsDiscontinueConfirmOpen(false);
-      setMedicationToDiscontinue(null);
     } catch (error) {
       console.error('Error discontinuing medication:', error);
       setError(error instanceof Error ? error.message : 'Failed to discontinue medication');
@@ -538,6 +586,7 @@ export default function MedicationManagement({
   };
 
   const handleCancelDiscontinue = () => {
+    setDiscontinueSuccess(false);
     setIsDiscontinueConfirmOpen(false);
     setMedicationToDiscontinue(null);
   };
@@ -681,7 +730,14 @@ export default function MedicationManagement({
         {/* Add Medication Button */}
         <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-[#8159A8] hover:bg-[#6d4a8f] text-white" size="sm">
+            <Button 
+              className="bg-[#8159A8] hover:bg-[#6d4a8f] text-white" 
+              size="sm"
+              onClick={() => {
+                setEditingMedication(null);
+                resetForm();
+              }}
+            >
               <Plus className="w-4 h-4 mr-2" />
               Add Medication
             </Button>
@@ -697,6 +753,7 @@ export default function MedicationManagement({
               onCancel={handleCancel}
               isLoading={isLoading}
               error={error}
+              successMessage={successMessage}
               editingMedication={editingMedication}
             />
           </DialogContent>
@@ -947,6 +1004,7 @@ export default function MedicationManagement({
             onCancel={handleCancel}
             isLoading={isLoading}
             error={error}
+            successMessage={successMessage}
             editingMedication={editingMedication}
           />
         </DialogContent>
@@ -1073,16 +1131,81 @@ export default function MedicationManagement({
       </Dialog>
 
       {/* Discontinue Confirmation Modal */}
-      <DeleteConfirmationModal
-        isOpen={isDiscontinueConfirmOpen}
-        onClose={handleCancelDiscontinue}
-        onDelete={handleConfirmDiscontinue}
-        title="Discontinue Medication"
-        description="Are you sure you want to discontinue this medication"
-        itemName={medicationToDiscontinue?.name}
-        buttonLabel="Discontinue"
-        buttonVariant="destructive"
-      />
+      <Dialog open={isDiscontinueConfirmOpen} onOpenChange={setIsDiscontinueConfirmOpen}>
+        <DialogContent className="sm:max-w-md">
+          <div className="flex flex-col items-center text-center pt-4">
+            {discontinueSuccess ? (
+              // Success State
+              <>
+                <div className="h-20 w-20 rounded-full bg-green-100 flex items-center justify-center mb-4">
+                  <svg className="w-10 h-10 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <h2 className="text-xl font-bold text-gray-900 mb-2">Medication Discontinued</h2>
+                <p className="text-gray-600 mb-6">
+                  <strong>{medicationToDiscontinue?.name}</strong> has been successfully discontinued.
+                </p>
+              </>
+            ) : (
+              // Confirmation State
+              <>
+                <div className="h-20 w-20 rounded-full bg-red-100 flex items-center justify-center mb-4">
+                  <svg
+                    width="40"
+                    height="40"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M3 6H5H21"
+                      stroke="#F43F5E"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z"
+                      stroke="#F43F5E"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </div>
+                <h2 className="text-xl font-bold text-gray-900 mb-2">Discontinue Medication</h2>
+                <p className="text-gray-600 mb-6">
+                  Are you sure you want to discontinue this medication
+                  {medicationToDiscontinue && (
+                    <>
+                      <br />
+                      <span className="font-semibold">&ldquo;{medicationToDiscontinue.name}&rdquo;</span>
+                    </>
+                  )}
+                  ? This action cannot be undone.
+                </p>
+              </>
+            )}
+          </div>
+
+          {!discontinueSuccess && (
+            <DialogFooter className="flex flex-row justify-center gap-4 sm:justify-center">
+              <Button variant="outline" onClick={handleCancelDiscontinue} className="min-w-24">
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleConfirmDiscontinue}
+                disabled={isLoading}
+                className="min-w-24 bg-red-500 hover:bg-red-600"
+              >
+                {isLoading ? 'Discontinuing...' : 'Discontinue'}
+              </Button>
+            </DialogFooter>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
