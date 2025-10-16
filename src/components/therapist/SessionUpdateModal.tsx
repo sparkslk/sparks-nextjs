@@ -119,7 +119,7 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
         const newPatientEngagement = sessionData.patientEngagement ?? "";
         const newRiskAssessment = sessionData.riskAssessment ?? "";
         const newFocusAreas = sessionData.primaryFocusAreas ?? [];
-        const newSessionNotes = sessionData.sessionNotes ?? (sessionData.notes || "");
+        const newSessionNotes = sessionData.sessionNotes ?? "";
         const newNextSessionGoals = sessionData.nextSessionGoals ?? "";
         
         // Debug log to check what's being received from API

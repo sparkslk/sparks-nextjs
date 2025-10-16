@@ -28,6 +28,15 @@ interface Session {
   patientMood?: number;
   engagement?: number;
   progressNotes?: string;
+  
+  // Clinical documentation fields
+  attendanceStatus?: string;
+  overallProgress?: string;
+  patientEngagement?: string;
+  riskAssessment?: string;
+  primaryFocusAreas?: string[];
+  sessionNotes?: string;
+  nextSessionGoals?: string;
 }
 
 export default function TherapistSessionsPage() {
