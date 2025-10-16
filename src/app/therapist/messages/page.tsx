@@ -12,6 +12,7 @@ import { Search, MoreVertical, Send, Clock, CheckCheck, Check, AlertCircle, Plus
 import { cn } from "@/lib/utils";
 import { getConversations, sendMessage, getMessages, startMessagePolling } from "@/lib/chat-api";
 import type { ConversationWithDetails, Message } from "@/types/chat";
+import { chatEvents } from "@/lib/chat-events";
 import {
   Dialog,
   DialogContent,
@@ -61,10 +62,19 @@ export default function TherapistMessagesPage() {
         stopPollingRef.current();
       }
       
+      let previousMessageCount = 0;
+      
       stopPollingRef.current = startMessagePolling(
         selectedConversation.id,
         (result) => {
           if (result.success && result.messages) {
+            // Check if new messages arrived
+            if (result.messages.length > previousMessageCount && previousMessageCount > 0) {
+              // New message received - notify sidebar to update unread count
+              chatEvents.notifyMessageReceived(selectedConversation.id);
+            }
+            previousMessageCount = result.messages.length;
+            
             setMessages(result.messages);
             scrollToBottom();
           }
@@ -113,6 +123,9 @@ export default function TherapistMessagesPage() {
     
     if (result.success && result.messages) {
       setMessages(result.messages);
+      
+      // Messages are marked as read when loaded - notify sidebar
+      chatEvents.notifyMessagesRead(conversationId);
     } else {
       setError(result.error || "Failed to load messages");
     }

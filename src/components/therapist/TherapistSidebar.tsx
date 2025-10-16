@@ -4,6 +4,7 @@ import * as React from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import NotificationBell from "@/components/NotificationBell";
+import { chatEvents } from "@/lib/chat-events";
 import {
   CalendarDays,
   Clock,
@@ -157,13 +158,7 @@ export function TherapistSidebar({ children }: TherapistSidebarProps) {
         }
         
         // Fetch unread message count
-        const unreadResponse = await fetch("/api/chat/unread-count");
-        if (unreadResponse.ok) {
-          const unreadData = await unreadResponse.json();
-          if (unreadData.success) {
-            setUnreadCount(unreadData.count);
-          }
-        }
+        await fetchUnreadCount();
       } catch (error) {
         console.error("Failed to fetch therapist data:", error);
       } finally {
@@ -171,10 +166,7 @@ export function TherapistSidebar({ children }: TherapistSidebarProps) {
       }
     };
 
-    fetchTherapistData();
-    
-    // Poll for unread count every 30 seconds
-    const interval = setInterval(async () => {
+    const fetchUnreadCount = async () => {
       try {
         const unreadResponse = await fetch("/api/chat/unread-count");
         if (unreadResponse.ok) {
@@ -186,9 +178,26 @@ export function TherapistSidebar({ children }: TherapistSidebarProps) {
       } catch (error) {
         console.error("Failed to fetch unread count:", error);
       }
-    }, 30000); // 30 seconds
+    };
+
+    fetchTherapistData();
     
-    return () => clearInterval(interval);
+    // Poll for unread count every 30 seconds
+    const interval = setInterval(fetchUnreadCount, 30000);
+    
+    // Listen for chat events to update immediately
+    const handleUnreadCountChanged = () => {
+      fetchUnreadCount();
+    };
+    
+    chatEvents.on('unread-count-changed', handleUnreadCountChanged);
+    chatEvents.on('message-received', handleUnreadCountChanged);
+    
+    return () => {
+      clearInterval(interval);
+      chatEvents.off('unread-count-changed', handleUnreadCountChanged);
+      chatEvents.off('message-received', handleUnreadCountChanged);
+    };
   }, []);
 
   const handleSignOut = async () => {
