@@ -407,14 +407,7 @@ export default function AssessmentsPage() {
                       </p>
                     </div>
 
-                    {/* Assessment Info */}
-                    <div className="space-y-2">
-                      <div className="flex items-center text-sm text-gray-500">
-                        <Users className="w-4 h-4 mr-2" />
-                        {assessment.assignedPatients.length} patients assigned
-                      </div>
-                      
-                    </div>
+                    
 
                     {/* Action Buttons */}
                     <div className="flex justify-between pt-4 border-t mt-4">
@@ -459,3 +452,6 @@ export default function AssessmentsPage() {
     </div>
   );
 }
+
+
+

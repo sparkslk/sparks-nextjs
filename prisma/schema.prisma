@@ -236,7 +236,7 @@ model Assessment {
   id          String  @id @default(cuid())
   type        String
   description String?
-  name        String?
+  title       String?
   link        String?
   image       String?
 }
