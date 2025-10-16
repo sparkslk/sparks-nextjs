@@ -3,6 +3,25 @@ import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 
+// Define types for the session data
+type SessionWithPaymentAndPatient = {
+  id: string;
+  status: string;
+  type: string | null;
+  bookedRate: Prisma.Decimal | null;
+  scheduledAt: Date;
+  duration: number;
+  patient: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  };
+  Payment: {
+    status: string;
+    amount: Prisma.Decimal;
+  }[];
+};
+
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession();
@@ -74,7 +93,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Fetch all sessions matching criteria
-    const sessions = await prisma.therapySession.findMany({
+    const sessions: SessionWithPaymentAndPatient[] = await prisma.therapySession.findMany({
       where: whereClause,
       include: {
         patient: {
@@ -98,28 +117,28 @@ export async function GET(req: NextRequest) {
     const totalSessions = sessions.length;
     
     // Count by status
-    const completedSessions = sessions.filter((s: { status: string }) => s.status === "COMPLETED").length;
-    const scheduledSessions = sessions.filter((s: { status: string }) => 
+    const completedSessions = sessions.filter((s) => s.status === "COMPLETED").length;
+    const scheduledSessions = sessions.filter((s) => 
       ["SCHEDULED", "APPROVED"].includes(s.status)
     ).length;
-    const cancelledSessions = sessions.filter((s: { status: string }) => 
+    const cancelledSessions = sessions.filter((s) => 
       ["CANCELLED"].includes(s.status)
     ).length;
-    const noShowSessions = sessions.filter((s: { status: string }) => s.status === "NO_SHOW").length;
+    const noShowSessions = sessions.filter((s) => s.status === "NO_SHOW").length;
 
     // Calculate paid vs free sessions
-    const paidSessions = sessions.filter((s: { bookedRate: any }) => 
+    const paidSessions = sessions.filter((s) => 
       s.bookedRate && Number(s.bookedRate) > 0
     ).length;
-    const freeSessions = sessions.filter((s: { bookedRate: any }) => 
+    const freeSessions = sessions.filter((s) => 
       !s.bookedRate || Number(s.bookedRate) === 0
     ).length;
 
     // Calculate total income
-    const totalIncome = sessions.reduce((sum: number, session: any) => {
+    const totalIncome = sessions.reduce((sum: number, session) => {
       // Check if session has completed payment
       const hasCompletedPayment = session.Payment.some(
-        (payment: { status: string }) => payment.status === "COMPLETED"
+        (payment) => payment.status === "COMPLETED"
       );
       
       if (hasCompletedPayment && session.bookedRate) {
@@ -156,7 +175,7 @@ export async function GET(req: NextRequest) {
     });
 
     // Prepare session breakdown by type
-    const sessionsByType = sessions.reduce((acc: Record<string, number>, session: any) => {
+    const sessionsByType = sessions.reduce((acc: Record<string, number>, session) => {
       const type = session.type || "Other";
       if (!acc[type]) {
         acc[type] = 0;
@@ -191,9 +210,9 @@ export async function GET(req: NextRequest) {
         },
       });
 
-      const monthIncome = monthSessions.reduce((sum: number, session: any) => {
+      const monthIncome = monthSessions.reduce((sum: number, session) => {
         const hasCompletedPayment = session.Payment.some(
-          (payment: { status: string }) => payment.status === "COMPLETED"
+          (payment) => payment.status === "COMPLETED"
         );
         if (hasCompletedPayment && session.bookedRate) {
           return sum + Number(session.bookedRate);
@@ -204,7 +223,7 @@ export async function GET(req: NextRequest) {
       monthlyIncomeData.push({
         month: monthDate.toLocaleDateString("en-US", { month: "short", year: "numeric" }),
         income: monthIncome,
-        sessions: monthSessions.filter((s: { status: string }) => s.status === "COMPLETED").length,
+        sessions: monthSessions.filter((s) => s.status === "COMPLETED").length,
       });
     }
 
@@ -245,7 +264,7 @@ export async function GET(req: NextRequest) {
         monthlyIncomeData,
       },
       patients,
-      sessions: sessions.map((session: any) => ({
+      sessions: sessions.map((session) => ({
         id: session.id,
         patientName: `${session.patient.firstName} ${session.patient.lastName}`,
         patientId: session.patient.id,
@@ -254,7 +273,7 @@ export async function GET(req: NextRequest) {
         type: session.type,
         status: session.status,
         bookedRate: session.bookedRate ? Number(session.bookedRate) : 0,
-        isPaid: session.Payment.some((p: { status: string }) => p.status === "COMPLETED"),
+        isPaid: session.Payment.some((p) => p.status === "COMPLETED"),
       })),
     });
   } catch (error) {

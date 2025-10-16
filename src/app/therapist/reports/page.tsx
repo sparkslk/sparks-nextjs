@@ -455,9 +455,10 @@ export default function TherapistReportsPage() {
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={({ status, count, percent }: any) => 
-                          count > 0 ? `${status}: ${(percent * 100).toFixed(0)}%` : ""
-                        }
+                        label={(props) => {
+                          const entry = props as unknown as { status: string; count: number; percent: number };
+                          return entry.count > 0 ? `${entry.status}: ${(entry.percent * 100).toFixed(0)}%` : "";
+                        }}
                         outerRadius={100}
                         fill="#8884d8"
                         dataKey="count"
