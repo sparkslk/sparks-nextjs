@@ -8,18 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Search, MoreVertical, Send, Paperclip, Smile, Clock, CheckCheck, Check, AlertCircle, Plus } from "lucide-react";
+import { Search, MoreVertical, Send, Paperclip, Smile, Clock, CheckCheck, Check, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getConversations, sendMessage, getMessages, startMessagePolling } from "@/lib/chat-api";
 import type { ConversationWithDetails, Message } from "@/types/chat";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 
 export default function ParentMessagesPage() {
   const { data: session } = useSession();
@@ -32,9 +24,6 @@ export default function ParentMessagesPage() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
-  const [showNewChatDialog, setShowNewChatDialog] = useState(false);
-  const [availableTherapists, setAvailableTherapists] = useState<any[]>([]);
-  const [loadingTherapists, setLoadingTherapists] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const stopPollingRef = useRef<(() => void) | null>(null);
 
@@ -44,10 +33,8 @@ export default function ParentMessagesPage() {
 
   // Load conversations on mount
   useEffect(() => {
-    if (session?.user) {
-      loadConversations();
-    }
-  }, [session]);
+    loadConversations();
+  }, []);
 
   // Load messages when conversation is selected
   useEffect(() => {
@@ -117,14 +104,15 @@ export default function ParentMessagesPage() {
   };
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !selectedConversation || sending || !session?.user) return;
+    if (!newMessage.trim() || !selectedConversation || sending) return;
     
     setSending(true);
     setError(null);
     
+    // Find therapist user ID from conversation
     const result = await sendMessage({
       conversationId: selectedConversation.id,
-      receiverId: selectedConversation.therapistId,
+      receiverId: selectedConversation.therapistId, // This needs to be therapist's userId
       content: newMessage.trim(),
     });
     
@@ -152,53 +140,6 @@ export default function ParentMessagesPage() {
         conv.id === conversation.id ? { ...conv, unreadCount: 0 } : conv
       )
     );
-  };
-
-  const loadAvailableTherapists = async () => {
-    setLoadingTherapists(true);
-    try {
-      const response = await fetch('/api/chat/available-therapists');
-      const result = await response.json();
-      
-      if (result.success && result.therapists) {
-        setAvailableTherapists(result.therapists);
-      } else {
-        setError(result.error || 'Failed to load therapists');
-      }
-    } catch (error) {
-      console.error('Error loading therapists:', error);
-      setError('Failed to load therapists');
-    } finally {
-      setLoadingTherapists(false);
-    }
-  };
-
-  const handleStartNewChat = async (therapist: any) => {
-    setShowNewChatDialog(false);
-    setSending(true);
-    setError(null);
-
-    // Send initial message to create conversation
-    const result = await sendMessage({
-      receiverId: therapist.userId,
-      content: "Hello! I'd like to discuss my child's progress.",
-      patientId: therapist.patientId,
-    });
-
-    if (result.success) {
-      // Reload conversations to show the new one
-      await loadConversations();
-      
-      // Select the new conversation
-      const newConv = conversations.find(c => c.therapistId === therapist.id);
-      if (newConv) {
-        setSelectedConversation(newConv);
-      }
-    } else {
-      setError(result.error || 'Failed to start conversation');
-    }
-
-    setSending(false);
   };
 
   const filteredConversations = conversations.filter(conv =>
@@ -256,7 +197,7 @@ export default function ParentMessagesPage() {
   }
 
   return (
-    <div className="min-h-screen font-inter text-foreground">
+    <div className="min-h-screen  font-inter text-foreground">
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="mb-6">
           <h1 className="text-4xl font-extrabold bg-gradient-to-r from-primary to-foreground bg-clip-text text-transparent tracking-tight mb-1">Messages</h1>
@@ -277,70 +218,9 @@ export default function ParentMessagesPage() {
               <CardHeader className="bg-card border-b border-border pb-4 rounded-t-lg">
                 <div className="flex items-center justify-between mb-4">
                   <CardTitle className="text-lg font-semibold text-foreground">Conversations</CardTitle>
-                  <div className="flex items-center gap-2">
-                    <Dialog open={showNewChatDialog} onOpenChange={setShowNewChatDialog}>
-                      <DialogTrigger asChild>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={loadAvailableTherapists}
-                          className="text-primary border-primary hover:bg-primary/10"
-                        >
-                          <Plus className="h-4 w-4 mr-1" />
-                          New Chat
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="sm:max-w-[425px]">
-                        <DialogHeader>
-                          <DialogTitle>Start New Chat</DialogTitle>
-                          <DialogDescription>
-                            Select a therapist to start a conversation about your child&apos;s progress
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="py-4">
-                          {loadingTherapists ? (
-                            <div className="text-center py-8">
-                              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                              <p className="mt-2 text-muted-foreground">Loading therapists...</p>
-                            </div>
-                          ) : availableTherapists.length === 0 ? (
-                            <div className="text-center py-8 text-muted-foreground">
-                              <p>No therapists available</p>
-                              <p className="text-sm mt-2">Your child needs an assigned therapist first</p>
-                            </div>
-                          ) : (
-                            <div className="space-y-2">
-                              {availableTherapists.map((therapist) => (
-                                <div
-                                  key={therapist.id}
-                                  onClick={() => handleStartNewChat(therapist)}
-                                  className="p-3 rounded-lg border border-border hover:bg-muted cursor-pointer transition-colors"
-                                >
-                                  <div className="flex items-center space-x-3">
-                                    <Avatar className="h-10 w-10">
-                                      <AvatarImage src={therapist.avatar} />
-                                      <AvatarFallback className="bg-primary text-primary-foreground">
-                                        {getInitials(therapist.name)}
-                                      </AvatarFallback>
-                                    </Avatar>
-                                    <div>
-                                      <h4 className="font-medium text-foreground">{therapist.name}</h4>
-                                      <p className="text-sm text-muted-foreground">
-                                        For: {therapist.patientName}
-                                      </p>
-                                    </div>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-                    <Badge variant="secondary" className="bg-primary text-primary-foreground">
-                      {conversations.reduce((sum, conv) => sum + (conv.unreadCount || 0), 0)} unread
-                    </Badge>
-                  </div>
+                  <Badge variant="secondary" className="bg-primary text-primary-foreground">
+                    {conversations.reduce((sum, conv) => sum + (conv.unreadCount || 0), 0)} unread
+                  </Badge>
                 </div>
                 {/* Search */}
                 <div className="relative">
@@ -481,21 +361,84 @@ export default function ParentMessagesPage() {
                           "flex-1 max-w-xs",
                           isMyMessage(message) && "flex justify-end"
                         )}>
+          <div className="lg:col-span-2">
+            {selectedConversation ? (
+              <Card className="h-full shadow-sm flex flex-col bg-card border border-border rounded-lg">
+                {/* Chat Header */}
+                <CardHeader className="bg-card border-b border-border flex-shrink-0 rounded-t-lg">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="relative">
+                        <Avatar className="h-10 w-10">
+                          <AvatarImage src={selectedConversation.avatar} />
+                          <AvatarFallback className="bg-primary text-primary-foreground">
+                            {getInitials(selectedConversation.therapistName)}
+                          </AvatarFallback>
+                        </Avatar>
+                        {selectedConversation.isOnline && (
+                          <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 border-2 border-card rounded-full"></div>
+                        )}
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-foreground">
+                          {selectedConversation.therapistName}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          Regarding: {selectedConversation.childName}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Button variant="outline" size="sm" className="text-primary border-primary hover:bg-muted">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                {/* Messages Area */}
+                <div className="flex-1 p-4 overflow-y-auto bg-background rounded-b-lg">
+                  {/* Date Header */}
+                  <div className="text-center mb-6">
+                    <span className="text-sm text-muted-foreground bg-card px-3 py-1 rounded-full shadow-sm">Today</span>
+                  </div>
+                  <div className="space-y-4">
+                    {selectedConversation.messages.map((message) => (
+                      <div
+                        key={message.id}
+                        className={cn(
+                          "flex items-end space-x-2",
+                          message.sender === 'parent' && "flex-row-reverse space-x-reverse"
+                        )}
+                      >
+                        {/* Avatar */}
+                        <Avatar className="h-8 w-8 mb-1 shadow-md">
+                          <AvatarFallback className={cn(
+                            "text-white text-sm font-medium",
+                            message.sender === 'parent' ? 'bg-green-500' : 'bg-primary'
+                          )}>
+                            {message.sender === 'parent' ? 'ME' : 'DR'}
+                          </AvatarFallback>
+                        </Avatar>
+                        {/* Message Bubble */}
+                        <div className={cn(
+                          "flex-1 max-w-xs",
+                          message.sender === 'parent' && "flex justify-end"
+                        )}>
                           <div
                             className={cn(
                               "px-4 py-3 rounded-2xl relative border",
-                              isMyMessage(message)
+                              message.sender === 'parent'
                                 ? 'bg-primary text-primary-foreground rounded-br-md border-primary/30 shadow-lg'
                                 : 'bg-card text-foreground rounded-bl-md border-border shadow-sm'
                             )}
                           >
-                            <p className="text-sm leading-relaxed font-sans">{message.content}</p>
+                            <p className="text-sm leading-relaxed font-sans">{message.text}</p>
                             <div className={cn(
                               "flex items-center justify-between mt-2 gap-2",
-                              isMyMessage(message) ? 'text-primary-foreground/70' : 'text-muted-foreground'
+                              message.sender === 'parent' ? 'text-primary-foreground/70' : 'text-muted-foreground'
                             )}>
-                              <span className="text-xs font-mono">{formatTime(message.createdAt)}</span>
-                              {isMyMessage(message) && (
+                              <span className="text-xs font-mono">{formatTime(message.timestamp)}</span>
+                              {message.sender === 'parent' && (
                                 <div className="flex items-center">
                                   {message.isRead ? (
                                     <CheckCheck className="h-3 w-3" />
@@ -509,7 +452,6 @@ export default function ParentMessagesPage() {
                         </div>
                       </div>
                     ))}
-                    <div ref={messagesEndRef} />
                   </div>
                 </div>
                 {/* Quick Actions */}
@@ -571,11 +513,10 @@ export default function ParentMessagesPage() {
                           handleSendMessage();
                         }
                       }}
-                      disabled={sending}
                     />
                     <Button
                       onClick={handleSendMessage}
-                      disabled={!newMessage.trim() || sending}
+                      disabled={!newMessage.trim()}
                       className="bg-primary hover:bg-primary/80 text-primary-foreground shadow-md"
                     >
                       <Send className="h-4 w-4" />
