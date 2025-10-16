@@ -8,10 +8,18 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Search, Send, Paperclip, Smile, Clock, CheckCheck, Check, AlertCircle } from "lucide-react";
+import { Search, Send, Paperclip, Smile, Clock, CheckCheck, Check, AlertCircle, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getConversations, sendMessage, getMessages, startMessagePolling } from "@/lib/chat-api";
 import type { ConversationWithDetails, Message } from "@/types/chat";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 export default function TherapistMessagesPage() {
   const { data: session } = useSession();
@@ -24,6 +32,9 @@ export default function TherapistMessagesPage() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [showNewChatDialog, setShowNewChatDialog] = useState(false);
+  const [availableParticipants, setAvailableParticipants] = useState<any[]>([]);
+  const [loadingParticipants, setLoadingParticipants] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const stopPollingRef = useRef<(() => void) | null>(null);
 
@@ -137,10 +148,57 @@ export default function TherapistMessagesPage() {
     
     // Mark conversation as read locally
     setConversations(prev =>
-      prev.map(conv =>
-        conv.id === conversation.id ? { ...conv, unreadCount: 0 } : conv
-      )
+      prev.map(c => c.id === conversation.id ? { ...c, unreadCount: 0 } : c)
     );
+  };
+
+  const loadAvailableParticipants = async () => {
+    setLoadingParticipants(true);
+    try {
+      const response = await fetch('/api/chat/available-participants');
+      const data = await response.json();
+      
+      if (data.success && data.participants) {
+        setAvailableParticipants(data.participants);
+      } else {
+        console.error('Failed to load participants:', data.error);
+      }
+    } catch (error) {
+      console.error('Error loading participants:', error);
+    }
+    setLoadingParticipants(false);
+  };
+
+  const handleStartNewChat = async (participant: any) => {
+    setSending(true);
+    setError(null);
+    
+    try {
+      const result = await sendMessage({
+        receiverId: participant.userId,
+        content: "Hello! I'd like to discuss your progress.",
+        patientId: participant.patientId,
+      });
+      
+      if (result.success) {
+        setShowNewChatDialog(false);
+        // Reload conversations to show the new one
+        await loadConversations();
+        
+        // Select the newly created conversation
+        const newConversation = conversations.find(c => c.participantId === participant.userId);
+        if (newConversation) {
+          setSelectedConversation(newConversation);
+        }
+      } else {
+        setError(result.error || "Failed to start conversation");
+      }
+    } catch (error) {
+      console.error('Error starting new chat:', error);
+      setError("Failed to start conversation");
+    }
+    
+    setSending(false);
   };
 
   const filteredConversations = conversations.filter(conv =>
@@ -216,12 +274,79 @@ export default function TherapistMessagesPage() {
           {/* Conversations List */}
           <div className="lg:col-span-1">
             <Card className="h-full shadow-sm">
-              <CardHeader className="bg-white border-b border-gray-200 pb-4">
+              <CardHeader className="bg-gray-50 border-b border-gray-200">
                 <div className="flex items-center justify-between mb-4">
                   <CardTitle className="text-lg font-semibold text-gray-900">Conversations</CardTitle>
-                  <Badge variant="secondary" className="bg-[#8159A8] text-white">
-                    {conversations.reduce((sum, conv) => sum + (conv.unreadCount || 0), 0)} unread
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Dialog open={showNewChatDialog} onOpenChange={setShowNewChatDialog}>
+                      <DialogTrigger asChild>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={loadAvailableParticipants}
+                          className="text-[#8159A8] border-[#8159A8] hover:bg-[#8159A8]/10"
+                        >
+                          <Plus className="h-4 w-4 mr-1" />
+                          New Chat
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-[500px]">
+                        <DialogHeader>
+                          <DialogTitle>Start New Chat</DialogTitle>
+                          <DialogDescription>
+                            Select a patient or parent to start a conversation
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="py-4 max-h-[400px] overflow-y-auto">
+                          {loadingParticipants ? (
+                            <div className="text-center py-8">
+                              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#8159A8] mx-auto"></div>
+                              <p className="mt-2 text-gray-500">Loading participants...</p>
+                            </div>
+                          ) : availableParticipants.length === 0 ? (
+                            <div className="text-center py-8 text-gray-500">
+                              <p>No participants available</p>
+                              <p className="text-sm mt-2">You need assigned patients first</p>
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              {availableParticipants.map((participant, index) => (
+                                <div
+                                  key={`${participant.userId}-${index}`}
+                                  onClick={() => handleStartNewChat(participant)}
+                                  className="p-3 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors"
+                                >
+                                  <div className="flex items-center space-x-3">
+                                    <Avatar className="h-10 w-10">
+                                      <AvatarImage src={participant.avatar} />
+                                      <AvatarFallback className="bg-[#8159A8] text-white">
+                                        {getInitials(participant.name)}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-2">
+                                        <h4 className="font-medium text-gray-900">{participant.name}</h4>
+                                        <Badge variant="outline" className="text-xs">
+                                          {participant.type}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-gray-500">
+                                        Patient: {participant.patientName}
+                                        {participant.relationship && ` (${participant.relationship})`}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                    <Badge variant="secondary" className="bg-[#8159A8] text-white">
+                      {conversations.reduce((sum, conv) => sum + (conv.unreadCount || 0), 0)} unread
+                    </Badge>
+                  </div>
                 </div>
                 {/* Search */}
                 <div className="relative">
