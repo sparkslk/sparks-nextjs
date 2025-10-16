@@ -17,13 +17,11 @@ interface Assessment {
   type: "QUESTIONNAIRE" | "LISTENING_TASK" | "PICTURE_DESCRIPTION" | "FIND_DIFFERENCES" | "COGNITIVE_ASSESSMENT" | "BEHAVIORAL_ASSESSMENT";
   createdAt: string;
   updatedAt: string;
-  score?: number;
   assignedPatients: {
     id: string;
     name: string;
     email?: string;
     completedAt?: string;
-    score?: number;
     deadline?: string;
   }[];
 }
@@ -77,7 +75,7 @@ export default function AssessmentsPage() {
           createdAt: "2024-07-10",
           updatedAt: "2024-07-22",
           assignedPatients: [
-            { id: "p2", name: "Pasandi Piyathma", completedAt: "2024-07-22", score: 78 },
+            { id: "p2", name: "Pasandi Piyathma", completedAt: "2024-07-22" },
             { id: "p4", name: "Anuki Tiyara" }, // Not completed yet
           ],
         },
@@ -92,6 +90,8 @@ export default function AssessmentsPage() {
             { id: "p3", name: "Niduni Fernando" },
             { id: "p5", name: "Onel Gomez" },
             { id: "p6", name: "Dinithi Aloka" },
+            { id: "p4", name: "Sanduni Perera", completedAt: "2024-08-05"},
+            { id: "p7", name: "Mithara Gethmi", completedAt: "2024-08-03" },
           ],
         },
         {
@@ -101,10 +101,9 @@ export default function AssessmentsPage() {
           type: "FIND_DIFFERENCES",
           createdAt: "2024-07-05",
           updatedAt: "2024-07-20",
-          score: 91,
           assignedPatients: [
-            { id: "p4", name: "Sanduni Perera", completedAt: "2024-08-05", score: 91 },
-            { id: "p7", name: "Mithara Gethmi", completedAt: "2024-08-03", score: 83 },
+            { id: "p4", name: "Sanduni Perera", completedAt: "2024-08-05"},
+            { id: "p7", name: "Mithara Gethmi", completedAt: "2024-08-03" },
           ],
         },
       ];
@@ -229,7 +228,7 @@ export default function AssessmentsPage() {
                 + Add Patient
               </Button>
               {showAddPatientList && (
-                <div className="mt-3">
+                <div className="mt-3 max-h-40 overflow-y-auto">
                   <h4 className="font-semibold text-gray-700 mb-2">Select a patient to add</h4>
                   {availablePatients.length > 0 ? (
                     <ul className="space-y-2">
@@ -238,7 +237,6 @@ export default function AssessmentsPage() {
                           <div>
                             <span className="font-medium text-gray-800">{patient.name}</span>
                             <span className="ml-2 text-xs text-gray-500">{patient.email}</span>
-                            {/* Deadline input on next line */}
                             <div className="mt-2 flex items-center space-x-2">
                               <Calendar className="w-4 h-4 text-orange-600" />
                               <span className="text-xs text-gray-600 font-medium">Deadline</span>
@@ -251,7 +249,7 @@ export default function AssessmentsPage() {
                                     [patient.id]: e.target.value,
                                   }))
                                 }
-                                className="w-38" // Increased width from w-32 to w-48
+                                className="w-38"
                                 title="Select deadline"
                               />
                             </div>
@@ -262,7 +260,7 @@ export default function AssessmentsPage() {
                             className="text-green-700 border-green-300"
                             onClick={() => handleAddPatient(patient)}
                             title="Add Patient"
-                            disabled={!patientDeadlines[patient.id]} // Disable if no deadline
+                            disabled={!patientDeadlines[patient.id]}
                           >
                             <UserPlus className="w-4 h-4" />
                           </Button>
@@ -280,7 +278,7 @@ export default function AssessmentsPage() {
                 </div>
               )}
             </div>
-            <div className="space-y-3">
+            <div className="space-y-3 max-h-60 overflow-y-auto">
               {selectedAssessment.assignedPatients.map((patient) => (
                 <div
                   key={patient.id}
@@ -309,11 +307,6 @@ export default function AssessmentsPage() {
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    {patient.score && (
-                      <Badge className="bg-blue-100 text-blue-800">
-                        Score: {patient.score}
-                      </Badge>
-                    )}
                     <Badge
                       className={
                         patient.completedAt
@@ -420,12 +413,7 @@ export default function AssessmentsPage() {
                         <Users className="w-4 h-4 mr-2" />
                         {assessment.assignedPatients.length} patients assigned
                       </div>
-                      {assessment.score && (
-                        <div className="flex items-center text-sm text-gray-500">
-                          <ClipboardList className="w-4 h-4 mr-2" />
-                          Latest Score: {assessment.score}%
-                        </div>
-                      )}
+                      
                     </div>
 
                     {/* Action Buttons */}
@@ -448,7 +436,7 @@ export default function AssessmentsPage() {
                         className="bg-[#FAF8FB] hover:bg-[#FAF8FB] text-[#8159A8]"
                         onClick={(e) => handleViewPatients(e, assessment)}
                       >
-                        Assigned Patients
+                        Assign Patients
                       </Button>
                     </div>
                   </div>
