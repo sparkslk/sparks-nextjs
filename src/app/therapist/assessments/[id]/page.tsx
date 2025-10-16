@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { ArrowLeft, Calendar, ClipboardList, Users, BarChart3 } from "lucide-react";
+import { ArrowLeft, ClipboardList, Users } from "lucide-react";
 
 interface Assessment {
   id: string;
