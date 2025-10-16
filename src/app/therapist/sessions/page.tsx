@@ -7,11 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, Clock, User, FileText, Edit, Eye, CheckCircle, Plus, Hourglass , RotateCcw, Video, Search, Filter, X, ChevronDown, ChevronRight } from "lucide-react";
+import { Calendar, Clock, User, FileText, Edit, Eye, CheckCircle, Plus, Hourglass , RotateCcw, Video, Search, Filter, X, ChevronDown, ChevronRight, AlertTriangle } from "lucide-react";
 import { SessionUpdateModal } from "@/components/therapist/SessionUpdateModal";
 import { RescheduleModal } from "@/components/therapist/RescheduleModal";
 import MedicationManagement from "@/components/therapist/MedicationManagement";
-import { Dialog, DialogContent} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Medication } from "@/types/medications";
 
 interface Session {
@@ -56,6 +56,9 @@ export default function TherapistSessionsPage() {
   const [isRescheduleSectionsOpen, setIsRescheduleSectionsOpen] = useState(false);
   // Add state for scheduled section collapse
   const [isScheduledSectionsOpen, setIsScheduledSectionsOpen] = useState(true);
+  // Add state for no availability popup
+  const [showNoAvailabilityPopup, setShowNoAvailabilityPopup] = useState(false);
+  const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
 
   const hardcodedTasks = [
     {
@@ -342,15 +345,61 @@ export default function TherapistSessionsPage() {
     setSelectedSession(null);
   };
 
-  const handleRescheduleSession = (session: Session) => {
-    setSelectedSession(session);
-    setIsRescheduleModalOpen(true);
+  // Function to check if the current therapist has available upcoming slots
+  // Note: The API endpoint automatically filters by the authenticated therapist
+  const checkAvailableSlots = async (patientId: string) => {
+    try {
+      setIsCheckingAvailability(true);
+      // This endpoint returns availability only for the current logged-in therapist
+      const response = await fetch("/api/therapist/availability");
+      
+      if (response.ok) {
+        const data = await response.json();
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Set to start of today
+        
+        // Filter for upcoming free slots only (not booked and date is today or future)
+        const availableSlots = data.slots?.filter((slot: any) => {
+          const slotDate = new Date(slot.date);
+          slotDate.setHours(0, 0, 0, 0); // Set to start of day for comparison
+          return !slot.isBooked && slotDate >= today;
+        }) || [];
+        
+        return availableSlots.length;
+      } else {
+        console.error("Failed to fetch availability");
+        return 0;
+      }
+    } catch (error) {
+      console.error("Error checking availability:", error);
+      return 0;
+    } finally {
+      setIsCheckingAvailability(false);
+    }
+  };
+
+  const handleRescheduleSession = async (session: Session) => {
+    // Check if there are available slots before opening reschedule modal
+    const availableSlotsCount = await checkAvailableSlots(session.patientId);
+    
+    if (availableSlotsCount === 0) {
+      // Show no availability popup
+      setShowNoAvailabilityPopup(true);
+    } else {
+      // Proceed with reschedule
+      setSelectedSession(session);
+      setIsRescheduleModalOpen(true);
+    }
   };
 
   const handleRescheduleConfirmed = () => {
     fetchSessions();
     setIsRescheduleModalOpen(false);
     setSelectedSession(null);
+  };
+  
+  const handleRedirectToAvailability = () => {
+    window.location.href = '/therapist/setAvailability';
   };
 
   
@@ -478,9 +527,19 @@ export default function TherapistSessionsPage() {
                     variant="outline"
                     className="text-sm border-black-300 text-black-700 hover:bg-purple-50"
                     size="sm"
+                    disabled={isCheckingAvailability}
                   >
-                    <RotateCcw className="w-4 h-4 mr-2" />
-                    Reschedule
+                    {isCheckingAvailability ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-700 mr-2"></div>
+                        Checking...
+                      </>
+                    ) : (
+                      <>
+                        <RotateCcw className="w-4 h-4 mr-2" />
+                        Reschedule
+                      </>
+                    )}
                   </Button>
                 </>
               )}
@@ -1084,6 +1143,38 @@ export default function TherapistSessionsPage() {
           }}
           onRescheduleConfirmed={handleRescheduleConfirmed}
         />
+
+        {/* No Availability Popup */}
+        <Dialog open={showNoAvailabilityPopup} onOpenChange={setShowNoAvailabilityPopup}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-red-600">
+                <AlertTriangle className="w-5 h-5" />
+                No Available Slots
+              </DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <p className="text-gray-600 mb-4">
+                You don't have any available time slots to reschedule this session. Please set up your availability first.
+              </p>
+              <div className="flex gap-3 justify-end">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowNoAvailabilityPopup(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  style={{ backgroundColor: "#8159A8" }}
+                  onClick={handleRedirectToAvailability}
+                  className="text-white hover:brightness-110"
+                >
+                  Set Availability
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Updated Medications Modal with MedicationManagement component */}
         <Dialog open={showMedications} onOpenChange={setShowMedications}>
