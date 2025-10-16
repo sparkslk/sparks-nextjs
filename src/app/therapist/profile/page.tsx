@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -78,11 +78,17 @@ interface TherapistProfile {
   profileCompletion: number;
 }
 
-export default function TherapistProfilePage() {
+// Search params handler component (must be wrapped in Suspense)
+function SearchParamsHandler({ children }: { children: (isCompletionMode: boolean) => React.ReactNode }) {
   const searchParams = useSearchParams();
+  const isCompletionMode = searchParams.get('complete') === 'true';
+  return <>{children(isCompletionMode)}</>;
+}
+
+// Main profile content component
+function TherapistProfileContent({ isCompletionMode }: { isCompletionMode: boolean }) {
   const router = useRouter();
   const { data: session } = useSession();
-  const isCompletionMode = searchParams.get('complete') === 'true';
 
   const [profile, setProfile] = useState<TherapistProfile | null>(null);
   const [activeSection, setActiveSection] = useState<string | null>(null);
@@ -978,5 +984,27 @@ export default function TherapistProfilePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Export wrapper with Suspense boundary
+export default function TherapistProfilePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <h2 className="text-xl font-semibold text-gray-700">Loading profile...</h2>
+            </div>
+          </div>
+        </div>
+      </div>
+    }>
+      <SearchParamsHandler>
+        {(isCompletionMode) => <TherapistProfileContent isCompletionMode={isCompletionMode} />}
+      </SearchParamsHandler>
+    </Suspense>
   );
 }

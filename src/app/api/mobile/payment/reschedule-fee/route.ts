@@ -124,13 +124,40 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Format amount with 2 decimal places (required by PayHere)
+    const formattedAmount = parseFloat(amount).toFixed(2);
+
+    // Generate PayHere hash for security
+    // Formula: MD5(merchant_id + order_id + amount + currency + MD5(merchant_secret).toUpperCase()).toUpperCase()
+    const merchantId = process.env.PAYHERE_MERCHANT_ID || "";
+    const merchantSecret = process.env.PAYHERE_MERCHANT_SECRET || "";
+
+    const hashedSecret = crypto
+      .createHash("md5")
+      .update(merchantSecret)
+      .digest("hex")
+      .toUpperCase();
+
+    const hash = crypto
+      .createHash("md5")
+      .update(
+        merchantId +
+        payment.orderId +
+        formattedAmount +
+        payment.currency +
+        hashedSecret
+      )
+      .digest("hex")
+      .toUpperCase();
+
     // Prepare payment details for PayHere
+    // IMPORTANT: DO NOT send merchantSecret to mobile app!
     const paymentDetails = {
       orderId: payment.orderId,
-      amount: payment.amount.toString(),
+      amount: formattedAmount,
       currency: payment.currency,
-      merchantId: process.env.PAYHERE_MERCHANT_ID || "",
-      merchantSecret: process.env.PAYHERE_MERCHANT_SECRET || "",
+      merchantId: merchantId,
+      hash: hash, // Security hash generated server-side
       returnUrl: `${process.env.BASE_URL}/api/payment/return`,
       cancelUrl: `${process.env.BASE_URL}/api/payment/cancel`,
       notifyUrl: `${process.env.BASE_URL}/api/payment/notify`,
@@ -146,6 +173,7 @@ export async function POST(request: NextRequest) {
     console.log('DEBUG: Reschedule fee payment initiated for order:', payment.orderId);
     console.log('DEBUG: Session ID:', sessionId);
     console.log('DEBUG: Amount:', paymentDetails.amount, paymentDetails.currency);
+    console.log('DEBUG: Hash generated successfully');
 
     return NextResponse.json(paymentDetails);
 

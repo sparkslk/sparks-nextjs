@@ -176,35 +176,209 @@ export async function POST(request: NextRequest) {
       paymentId: payment_id,
     });
 
-    // If payment is completed, create notifications
-    if (paymentStatus === "COMPLETED" && payment.TherapySession) {
-      const session = payment.TherapySession;
-      const patientUserId = session.patient.userId;
+    // If payment is completed, create therapy session and notifications
+    if (paymentStatus === "COMPLETED") {
+      // Check if booking details exist in metadata (for new bookings)
+      const metadata = payment.metadata as Record<string, unknown>;
+      const bookingDetails = metadata?.bookingDetails as {
+        date: string;
+        timeSlot: string;
+        therapistId: string;
+        sessionType: string;
+        availabilitySlotId: string;
+        patientId: string;
+      } | undefined;
 
-      // Only create notifications if patient has a userId
-      if (patientUserId) {
-        await prisma.notification.createMany({
-          data: [
-            // Notification for patient
-            {
-              receiverId: patientUserId,
-              type: "PAYMENT",
-              title: "Payment Successful",
-              message: `Your payment of LKR ${payhere_amount} for the therapy session has been confirmed.`,
-              isRead: false,
+      // If we have booking details and no session created yet, create the session
+      if (bookingDetails && !payment.TherapySession) {
+        console.log("Creating therapy session from payment notification...");
+        console.log("Booking details:", bookingDetails);
+
+        try {
+          // Parse the date and time
+          const inputDate = new Date(bookingDetails.date);
+          const [timeSlotStart] = bookingDetails.timeSlot.split("-");
+          const cleanTimeSlot = timeSlotStart.trim();
+
+          // Parse time
+          let hours: number, minutes: number;
+          const time24Match = cleanTimeSlot.match(/^(\d{1,2}):(\d{2})$/);
+          if (time24Match) {
+            hours = parseInt(time24Match[1]);
+            minutes = parseInt(time24Match[2]);
+          } else {
+            const time12Match = cleanTimeSlot.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+            if (time12Match) {
+              const h = parseInt(time12Match[1]);
+              minutes = parseInt(time12Match[2]);
+              const period = time12Match[3].toUpperCase();
+              hours = period === "AM" ? (h === 12 ? 0 : h) : (h === 12 ? 12 : h + 12);
+            } else {
+              throw new Error(`Invalid time format: "${cleanTimeSlot}"`);
+            }
+          }
+
+          // Create session datetime
+          const dateStr = `${inputDate.getFullYear()}-${(inputDate.getMonth() + 1).toString().padStart(2, '0')}-${inputDate.getDate().toString().padStart(2, '0')}`;
+          const timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`;
+          const sessionDate = new Date(`${dateStr}T${timeStr}.000Z`);
+
+          // Get therapist info to determine session rate
+          const therapist = await prisma.therapist.findUnique({
+            where: { id: bookingDetails.therapistId },
+            select: { session_rate: true },
+          });
+
+          // Get availability slot to check if it's free
+          const availabilitySlot = await prisma.therapistAvailability.findUnique({
+            where: { id: bookingDetails.availabilitySlotId },
+            select: { isFree: true, isBooked: true },
+          });
+
+          const sessionRate = availabilitySlot?.isFree ? 0 : (therapist?.session_rate || 0);
+
+          // Create session and mark availability slot as booked in a transaction
+          await prisma.$transaction(async (tx) => {
+            // Mark the availability slot as booked (only if not already booked)
+            if (availabilitySlot && !availabilitySlot.isBooked) {
+              await tx.therapistAvailability.update({
+                where: { id: bookingDetails.availabilitySlotId },
+                data: { isBooked: true },
+              });
+            }
+
+            // Create therapy session
+            const therapySession = await tx.therapySession.create({
+              data: {
+                patientId: bookingDetails.patientId,
+                therapistId: bookingDetails.therapistId,
+                scheduledAt: sessionDate,
+                duration: 45,
+                status: "SCHEDULED",
+                type: bookingDetails.sessionType || "Individual",
+                bookedRate: sessionRate,
+              },
+            });
+
+            // Link session to payment
+            await tx.payment.update({
+              where: { id: payment.id },
+              data: { sessionId: therapySession.id },
+            });
+
+            console.log("Therapy session created successfully:", therapySession.id);
+          });
+
+          // Get the created session for notifications
+          const updatedPayment = await prisma.payment.findUnique({
+            where: { orderId: order_id },
+            include: {
+              TherapySession: {
+                include: {
+                  patient: {
+                    select: {
+                      userId: true,
+                      firstName: true,
+                      lastName: true,
+                    },
+                  },
+                  therapist: {
+                    include: {
+                      user: {
+                        select: {
+                          id: true,
+                          name: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
             },
+          });
+
+          // Create notifications if session was created successfully
+          if (updatedPayment?.TherapySession) {
+            const session = updatedPayment.TherapySession;
+            const patientUserId = session.patient.userId;
+            const initiatedBy = (metadata?.initiatedBy as { userId?: string }) || {};
+
+            const notificationData = [];
+
+            // Notification for patient (if they have a userId)
+            if (patientUserId) {
+              notificationData.push({
+                receiverId: patientUserId,
+                type: "PAYMENT" as const,
+                title: "Payment Successful",
+                message: `Your payment of LKR ${payhere_amount} for the therapy session has been confirmed.`,
+                isRead: false,
+              });
+            }
+
+            // Notification for parent (if different from patient)
+            if (initiatedBy.userId && initiatedBy.userId !== patientUserId) {
+              notificationData.push({
+                receiverId: initiatedBy.userId,
+                type: "APPOINTMENT" as const,
+                title: "Booking Confirmed",
+                message: `Session booking for ${session.patient.firstName} ${session.patient.lastName} on ${sessionDate.toLocaleDateString()} has been confirmed. Payment of LKR ${payhere_amount} received.`,
+                isRead: false,
+              });
+            }
+
             // Notification for therapist
-            {
+            notificationData.push({
               receiverId: session.therapist.user.id,
-              type: "PAYMENT",
-              title: "Payment Received",
-              message: `Payment of LKR ${payhere_amount} received for session with ${session.patient.firstName} ${session.patient.lastName}.`,
+              type: "APPOINTMENT" as const,
+              title: "New Session Booked",
+              message: `New session booked with ${session.patient.firstName} ${session.patient.lastName} on ${sessionDate.toLocaleDateString()}. Payment of LKR ${payhere_amount} received.`,
               isRead: false,
-            },
-          ],
-        });
+            });
 
-        console.log("Notifications created for completed payment");
+            await prisma.notification.createMany({
+              data: notificationData,
+            });
+
+            console.log("Notifications created for completed booking");
+          }
+
+        } catch (sessionError) {
+          console.error("Error creating therapy session:", sessionError);
+          // Don't fail the payment notification - the payment is still successful
+          // Admin can manually create the session or we can retry
+        }
+
+      } else if (payment.TherapySession) {
+        // Session already exists (for reschedule fees, etc.), just send notifications
+        const session = payment.TherapySession;
+        const patientUserId = session.patient.userId;
+
+        // Only create notifications if patient has a userId
+        if (patientUserId) {
+          await prisma.notification.createMany({
+            data: [
+              // Notification for patient
+              {
+                receiverId: patientUserId,
+                type: "PAYMENT",
+                title: "Payment Successful",
+                message: `Your payment of LKR ${payhere_amount} for the therapy session has been confirmed.`,
+                isRead: false,
+              },
+              // Notification for therapist
+              {
+                receiverId: session.therapist.user.id,
+                type: "PAYMENT",
+                title: "Payment Received",
+                message: `Payment of LKR ${payhere_amount} received for session with ${session.patient.firstName} ${session.patient.lastName}.`,
+                isRead: false,
+              },
+            ],
+          });
+
+          console.log("Notifications created for completed payment");
+        }
       }
     }
 

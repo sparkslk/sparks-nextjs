@@ -1,100 +1,90 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyMobileToken } from "@/lib/mobile-auth";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
 
 /**
- * Initiate a payment for a therapy session booking
- * Mobile API endpoint - uses JWT token authentication
+ * Initiate a payment for a therapy session booking (Parent Web Interface)
  *
  * This endpoint creates a Payment record with booking details and returns
  * the details needed to initialize PayHere payment gateway.
  * The session is NOT created until payment is completed.
  *
  * Body (JSON):
- * - bookingDetails: { date, timeSlot, therapistId, sessionType }
+ * - childId: Patient ID
+ * - date: Session date (YYYY-MM-DD)
+ * - timeSlot: Time slot (e.g., "09:00-10:00")
+ * - sessionType: Type of session (default: "Individual")
  * - amount: Payment amount in LKR
- * - firstName: Customer first name
- * - lastName: Customer last name
- * - email: Customer email
- * - phone: Customer phone number
- * - address: Customer address (optional)
- * - city: Customer city (optional)
+ * - customerInfo: { firstName, lastName, email, phone, address?, city? }
  */
 export async function POST(request: NextRequest) {
   try {
-    const authHeader = request.headers.get("authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const token = authHeader.substring(7);
-    const payload = await verifyMobileToken(token);
-
-    if (!payload || payload.role !== "NORMAL_USER") {
+    // Authenticate parent user
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const {
-      bookingDetails,
+      childId,
+      date,
+      timeSlot,
+      sessionType = "Individual",
       amount,
-      firstName,
-      lastName,
-      email,
-      phone,
-      address,
-      city,
+      customerInfo,
     } = await request.json();
 
     // Validate required fields
-    if (!bookingDetails || !amount || !firstName || !lastName || !email || !phone) {
+    if (!childId || !date || !timeSlot || !amount || !customerInfo) {
       return NextResponse.json(
-        { error: "Missing required payment information" },
+        { error: "Missing required fields" },
         { status: 400 }
       );
     }
 
-    const { date, timeSlot, therapistId, sessionType } = bookingDetails;
+    const { firstName, lastName, email, phone, address, city } = customerInfo;
 
-    if (!date || !timeSlot || !therapistId) {
+    if (!firstName || !lastName || !email || !phone) {
       return NextResponse.json(
-        { error: "Missing required booking details" },
+        { error: "Missing required customer information" },
         { status: 400 }
       );
     }
 
-    // Get the patient
-    const patient = await prisma.patient.findUnique({
-      where: { userId: payload.userId },
-    });
-
-    if (!patient) {
-      return NextResponse.json(
-        { error: "Patient profile not found" },
-        { status: 404 }
-      );
-    }
-
-    // Verify therapist exists
-    const therapist = await prisma.therapist.findUnique({
-      where: { id: therapistId },
-      include: {
-        user: {
-          select: {
-            name: true,
-          },
-        },
+    // Get the child and verify parent ownership
+    const child = await prisma.patient.findFirst({
+      where: {
+        id: childId,
+        parentGuardians: {
+          some: {
+            userId: session.user.id
+          }
+        }
       },
+      include: {
+        primaryTherapist: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true
+              }
+            }
+          }
+        }
+      }
     });
 
-    if (!therapist) {
+    if (!child || !child.primaryTherapist) {
       return NextResponse.json(
-        { error: "Therapist not found" },
+        { error: "Child not found or no therapist assigned" },
         { status: 404 }
       );
     }
 
-    // Parse the date and validate availability
+    // Parse the date
     const inputDate = new Date(date);
     if (isNaN(inputDate.getTime())) {
       return NextResponse.json(
@@ -116,7 +106,7 @@ export async function POST(request: NextRequest) {
     // Check if slot is available
     const availabilitySlot = await prisma.therapistAvailability.findFirst({
       where: {
-        therapistId: therapistId,
+        therapistId: child.primaryTherapistId!,
         startTime: cleanTimeSlot,
         isBooked: false,
         date: {
@@ -134,14 +124,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate unique order ID
-    const orderId = `ORDER_${Date.now()}_${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
+    const orderId = `PARENT_${Date.now()}_${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
 
     // Create payment record with booking details in metadata
     const payment = await prisma.payment.create({
       data: {
         orderId,
         sessionId: null, // No session yet - will be created after payment
-        patientId: patient.id,
+        patientId: child.id,
         amount: parseFloat(amount),
         currency: "LKR",
         status: "PENDING",
@@ -157,11 +147,19 @@ export async function POST(request: NextRequest) {
           bookingDetails: {
             date,
             timeSlot,
-            therapistId,
-            sessionType: sessionType || "Individual",
+            therapistId: child.primaryTherapistId,
+            sessionType,
             availabilitySlotId: availabilitySlot.id,
+            patientId: child.id,
+          },
+          // Track who initiated the payment
+          initiatedBy: {
+            userId: session.user.id,
+            userName: session.user.name,
+            userEmail: session.user.email,
           },
           initiatedAt: new Date().toISOString(),
+          paymentSource: "parent_web",
         },
       },
     });
@@ -193,17 +191,19 @@ export async function POST(request: NextRequest) {
       .toUpperCase();
 
     // Prepare payment details for PayHere
-    // IMPORTANT: DO NOT send merchantSecret to mobile app!
+    // IMPORTANT: DO NOT send merchantSecret to frontend!
+    // Note: Using localhost for return/cancel URLs to avoid ngrok interstitial
+    // Webhooks (notify_url) still use BASE_URL for external access
     const paymentDetails = {
       orderId: payment.orderId,
       amount: formattedAmount,
       currency: payment.currency,
       merchantId: merchantId,
       hash: hash, // Security hash generated server-side
-      returnUrl: `${process.env.BASE_URL}/api/payment/return`,
-      cancelUrl: `${process.env.BASE_URL}/api/payment/cancel`,
+      returnUrl: `http://localhost:3000/api/payment/return`,
+      cancelUrl: `http://localhost:3000/api/payment/cancel`,
       notifyUrl: `${process.env.BASE_URL}/api/payment/notify`,
-      items: `Therapy Session Booking - ${therapist.user.name}`,
+      items: `Therapy Session - ${child.firstName} ${child.lastName} with Dr. ${child.primaryTherapist.user.name}`,
       customerFirstName: firstName,
       customerLastName: lastName,
       customerEmail: email,
@@ -212,17 +212,17 @@ export async function POST(request: NextRequest) {
       customerCity: city || "",
     };
 
-    console.log('DEBUG: Payment initiated for order:', payment.orderId);
-    console.log('DEBUG: BASE_URL:', process.env.BASE_URL);
-    console.log('DEBUG: Notify URL:', paymentDetails.notifyUrl);
-    console.log('DEBUG: Merchant ID:', paymentDetails.merchantId);
+    console.log('DEBUG: Parent payment initiated for order:', payment.orderId);
+    console.log('DEBUG: Child:', child.firstName, child.lastName);
+    console.log('DEBUG: Therapist:', child.primaryTherapist.user.name);
+    console.log('DEBUG: Date:', date, 'Time:', timeSlot);
     console.log('DEBUG: Amount:', paymentDetails.amount, paymentDetails.currency);
     console.log('DEBUG: Hash generated successfully');
 
     return NextResponse.json(paymentDetails);
 
   } catch (error) {
-    console.error("Error initiating payment:", error);
+    console.error("Error initiating parent payment:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
