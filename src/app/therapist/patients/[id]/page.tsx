@@ -11,6 +11,7 @@ import { Calendar, Clock, User, FileText,  Eye, ArrowLeft, Plus } from "lucide-r
 import MedicationManagement from "@/components/therapist/MedicationManagement";
 import { Medication } from "@/types/medications";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import Image from "next/image"; // Add this import for the Image component
 
 interface TherapySession {
   id: string;
@@ -33,6 +34,8 @@ interface Patient {
   firstName: string;
   lastName: string;
   initials: string;
+  // Optional image URL for patient avatar/profile picture
+  image?: string;
   dateOfBirth: string;
   age: number;
   gender: string;
@@ -354,8 +357,18 @@ export default function PatientDetailsPage() {
             <div className="flex flex-col space-y-4 sm:hidden">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="bg-[#a174c6] text-white text-lg font-semibold w-12 h-12 rounded-full flex items-center justify-center">
-                    {patient.initials}
+                  <div className="relative w-12 h-12 rounded-full overflow-hidden bg-[#a174c6] text-white text-lg font-semibold flex items-center justify-center">
+                    {patient.image ? (
+                      <Image
+                        src={patient.image}
+                        alt={`${patient.firstName} ${patient.lastName}`}
+                        className="object-cover"
+                        fill
+                        sizes="48px"
+                      />
+                    ) : (
+                      patient.initials
+                    )}
                   </div>
                   <div>
                     <h2 className="text-lg font-bold text-[#8159A8]">
@@ -376,8 +389,18 @@ export default function PatientDetailsPage() {
             {/* Desktop Layout */}
             <div className="hidden sm:flex items-center justify-between">
               <div className="flex items-center gap-4 lg:gap-6">
-                <div className="bg-[#a174c6] text-white text-xl font-semibold w-12 h-12 lg:w-16 lg:h-16 rounded-full flex items-center justify-center">
-                  {patient.initials}
+                <div className="relative w-12 h-12 lg:w-16 lg:h-16 rounded-full overflow-hidden bg-[#a174c6] text-white text-xl font-semibold flex items-center justify-center">
+                  {patient.image ? (
+                    <Image
+                      src={patient.image}
+                      alt={`${patient.firstName} ${patient.lastName}`}
+                      className="object-cover"
+                      fill
+                      sizes="(max-width: 1024px) 48px, 64px"
+                    />
+                  ) : (
+                    patient.initials
+                  )}
                 </div>
                 <div>
                   <h2 className="text-lg lg:text-xl font-bold text-[#8159A8]">
