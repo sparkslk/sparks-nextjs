@@ -235,23 +235,17 @@ model Treatment {
 }
 
 model Assessment {
-  id              String         @id @default(cuid())
-  patientId       String
-  therapistId     String
-  type            AssessmentType
-  title           String
-  description     String?
-  questions       Json
-  responses       Json?
-  score           Float?
-  interpretation  String?
-  recommendations String?
-  assessmentDate  DateTime
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @default(now())
-  patient         Patient        @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  therapist       Therapist      @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+  id          String    @id @default(cuid())
+  type        String
+  description String?
+  title       String?
+  link        String?
+  image       String?
+  createdAt   DateTime? @default(now()) @db.Timestamp(6)
+  updatedAt   DateTime? @default(now()) @db.Timestamp(6)
 }
+
+
 
 model Task {
   id               String     @id @default(cuid())
@@ -747,13 +741,6 @@ enum TaskStatus {
   IN_PROGRESS
   COMPLETED
   OVERDUE
-}
-
-enum AssessmentType {
-  INITIAL
-  PROGRESS
-  FINAL
-  FOLLOW_UP
 }
 
 enum NotificationType {
