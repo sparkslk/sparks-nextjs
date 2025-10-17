@@ -15,6 +15,7 @@ interface Assessment {
   title: string;
   description: string;
   type: string;
+  image?: string;
   createdAt: string;
   updatedAt: string;
   assignedPatients: {
@@ -429,7 +430,7 @@ export default function AssessmentsPage() {
                     {/* Image */}
                     <div className="relative w-full h-40">
                       <Image
-                        src={assessment.image ? `/images/assessments/${assessment.image}` : '/images/assessments/default.png'}
+                        src={assessment.image ? `/images/assessments/${assessment.image}` : '/images/assessments/1.jpg'}
                         alt={assessment.title}
                         layout="fill"
                         objectFit="cover"
