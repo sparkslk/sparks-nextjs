@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { ClipboardList, Users,  UserPlus, UserMinus, Search, ChevronDown } from "lucide-react";
-import Image from "next/image";
+/* import Image from "next/image"; */
 
 interface Assessment {
   id: string;
