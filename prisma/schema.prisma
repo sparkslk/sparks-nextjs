@@ -233,13 +233,17 @@ model Treatment {
 }
 
 model Assessment {
-  id          String  @id @default(cuid())
+  id          String    @id @default(cuid())
   type        String
   description String?
   title       String?
   link        String?
   image       String?
+  createdAt   DateTime? @default(now()) @db.Timestamp(6)
+  updatedAt   DateTime? @default(now()) @db.Timestamp(6)
 }
+
+
 
 model Task {
   id               String     @id @default(cuid())

@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { ClipboardList, Users, CheckCircle, UserPlus, UserMinus, Calendar } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import Image from "next/image";
 
 interface Assessment {
   id: string;
@@ -397,6 +398,17 @@ export default function AssessmentsPage() {
                       </Badge>
                     </div>
 
+                    {/* Image */}
+                    <div className="relative w-full h-40">
+                      <Image
+                        src={`/images/assessments/${assessment.id}.jpg`}
+                        alt={assessment.title}
+                        layout="fill"
+                        objectFit="cover"
+                        className="rounded-lg"
+                      />
+                    </div>
+
                     {/* Title and Description */}
                     <div>
                       <h3 className="font-semibold text-lg line-clamp-2 text-gray-800 mb-2">
@@ -406,8 +418,6 @@ export default function AssessmentsPage() {
                         {assessment.description}
                       </p>
                     </div>
-
-                    
 
                     {/* Action Buttons */}
                     <div className="flex justify-between pt-4 border-t mt-4">
