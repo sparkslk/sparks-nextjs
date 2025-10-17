@@ -215,6 +215,8 @@ export async function POST(request: NextRequest) {
           where: { id: sessionId },
           data: {
             scheduledAt: newDateTime,
+            // If the session was marked RESCHEDULED (therapist requested), mark it back to SCHEDULED
+            ...(therapySession.status === 'RESCHEDULED' ? { status: 'SCHEDULED' } : {}),
             updatedAt: new Date(),
             sessionNotes: rescheduleReason
               ? `Rescheduled by parent from ${originalDateTime.toLocaleString()} to ${newDateTime.toLocaleString()}. Reason: ${rescheduleReason}`
@@ -273,6 +275,8 @@ export async function POST(request: NextRequest) {
             where: { id: sessionId },
             data: {
               scheduledAt: newDateTime,
+              // If the session was marked RESCHEDULED (therapist requested), mark it back to SCHEDULED
+              ...(therapySession.status === 'RESCHEDULED' ? { status: 'SCHEDULED' } : {}),
               updatedAt: new Date(),
               sessionNotes: rescheduleReason
                 ? `Rescheduled by parent from ${originalDateTime.toLocaleString()} to ${newDateTime.toLocaleString()}. Reason: ${rescheduleReason}`
