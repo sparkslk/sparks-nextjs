@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -53,9 +53,11 @@ import { prisma } from "@/lib/prisma";
  *         description: Internal server error
  */
 export async function GET(
-  request: NextRequest,
-  { params }: { params: { assessmentId: string } }
+  request: Request,
+  context: { params: Promise<{ assessmentId: string }> }
 ) {
+  const { assessmentId } = await context.params;
+
   try {
     const session = await getServerSession(authOptions);
     
@@ -84,8 +86,6 @@ export async function GET(
         { status: 404 }
       );
     }
-
-    const { assessmentId } = params;
 
     // Check if assessment exists and belongs to this therapist
     const assessment = await prisma.assessment.findUnique({
@@ -185,9 +185,11 @@ export async function GET(
  *         description: Internal server error
  */
 export async function POST(
-  request: NextRequest,
-  { params }: { params: { assessmentId: string } }
+  request: Request,
+  context: { params: Promise<{ assessmentId: string }> }
 ) {
+  const { assessmentId } = await context.params;
+
   try {
     const session = await getServerSession(authOptions);
     
@@ -217,7 +219,6 @@ export async function POST(
       );
     }
 
-    const { assessmentId } = params;
     const body = await request.json();
     const { patientId } = body;
 
@@ -411,9 +412,11 @@ export async function POST(
  *         description: Internal server error
  */
 export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { assessmentId: string } }
+  request: Request,
+  context: { params: Promise<{ assessmentId: string }> }
 ) {
+  const { assessmentId } = await context.params;
+
   try {
     const session = await getServerSession(authOptions);
     
@@ -443,7 +446,6 @@ export async function DELETE(
       );
     }
 
-    const { assessmentId } = params;
     const body = await request.json();
     const { patientId } = body;
 

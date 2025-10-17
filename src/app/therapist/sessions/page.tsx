@@ -356,7 +356,7 @@ export default function TherapistSessionsPage() {
 
   // Function to check if the current therapist has available upcoming slots
   // Note: The API endpoint automatically filters by the authenticated therapist
-  const checkAvailableSlots = async (patientId: string) => {
+  const checkAvailableSlots = async () => {
     try {
       setIsCheckingAvailability(true);
       // This endpoint returns availability only for the current logged-in therapist
@@ -368,7 +368,7 @@ export default function TherapistSessionsPage() {
         today.setHours(0, 0, 0, 0); // Set to start of today
         
         // Filter for upcoming free slots only (not booked and date is today or future)
-        const availableSlots = data.slots?.filter((slot: any) => {
+        const availableSlots = data.slots?.filter((slot: { date: string; isBooked: boolean }) => {
           const slotDate = new Date(slot.date);
           slotDate.setHours(0, 0, 0, 0); // Set to start of day for comparison
           return !slot.isBooked && slotDate >= today;
@@ -389,7 +389,7 @@ export default function TherapistSessionsPage() {
 
   const handleRescheduleSession = async (session: Session) => {
     // Check if there are available slots before opening reschedule modal
-    const availableSlotsCount = await checkAvailableSlots(session.patientId);
+    const availableSlotsCount = await checkAvailableSlots();
     
     if (availableSlotsCount === 0) {
       // Show no availability popup
@@ -1164,7 +1164,7 @@ export default function TherapistSessionsPage() {
             </DialogHeader>
             <div className="py-4">
               <p className="text-gray-600 mb-4">
-                You don't have any available time slots to reschedule this session. Please set up your availability first.
+                You don&apos;t have any available time slots to reschedule this session. Please set up your availability first.
               </p>
               <div className="flex gap-3 justify-end">
                 <Button

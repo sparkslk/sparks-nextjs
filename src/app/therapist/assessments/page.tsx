@@ -26,6 +26,15 @@ interface Assessment {
   }[];
 }
 
+interface Patient {
+  id: string;
+  firstName?: string;
+  lastName?: string;
+  name?: string;
+  email?: string;
+  user?: { email?: string };
+}
+
 export default function AssessmentsPage() {
   const { status: authStatus } = useSession();
   const router = useRouter();
@@ -60,9 +69,9 @@ export default function AssessmentsPage() {
       const response = await fetch('/api/therapist/patients');
       if (response.ok) {
         const data = await response.json();
-        const formattedPatients = data.patients.map((patient: any) => ({
+        const formattedPatients = data.patients.map((patient: Patient) => ({
           id: patient.id,
-          name: `${patient.firstName} ${patient.lastName}`.trim(),
+          name: `${patient.firstName ?? ""} ${patient.lastName ?? ""}`.trim() || patient.name || "",
           email: patient.user?.email || patient.email || ''
         }));
         setPossiblePatients(formattedPatients);
@@ -86,7 +95,7 @@ export default function AssessmentsPage() {
       
       // Fetch assignment data for each assessment
       const assessmentsWithAssignments = await Promise.all(
-        data.assessments.map(async (assessment: any) => {
+        data.assessments.map(async (assessment: Assessment) => {
           const assignmentResponse = await fetch(`/api/therapist/assessments/${assessment.id}/assignments`);
           
           if (assignmentResponse.ok) {

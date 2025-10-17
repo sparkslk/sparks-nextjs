@@ -32,7 +32,6 @@ import {
   History,
   Clock,
   User,
-  Check,
   ChevronsUpDown
 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -46,7 +45,6 @@ import {
   MEAL_TIMING_LABELS,
   HISTORY_ACTION_LABELS
 } from '@/types/medications';
-import { cn } from '@/lib/utils';
 
 // Common ADHD and related medications
 const COMMON_MEDICATIONS = [
@@ -290,7 +288,7 @@ const SearchableMedicationInput: React.FC<SearchableMedicationInputProps> = ({
           ) && (
             <div className="px-3 py-2 bg-blue-50 border-t border-blue-200">
               <div className="text-sm text-blue-700 font-medium">
-                Use custom medication: "{value}"
+                Use custom medication: &quot;{value}&quot;
               </div>
               <div className="text-xs text-blue-600">
                 This will be saved as entered
