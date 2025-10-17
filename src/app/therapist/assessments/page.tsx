@@ -34,6 +34,7 @@ export default function AssessmentsPage() {
   const [selectedAssessment, setSelectedAssessment] = useState<Assessment | null>(null);
   const [showPatientsModal, setShowPatientsModal] = useState(false);
   const [showAddPatientList, setShowAddPatientList] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string>("");
 
   // Replace hardcoded patients with dynamic data
   const [possiblePatients, setPossiblePatients] = useState<Array<{ id: string; name: string; email: string }>>([]);
@@ -143,7 +144,7 @@ export default function AssessmentsPage() {
     }
   };
 
-  // Update handleAddPatient to remove deadline logic
+  // Update handleAddPatient to show success message
   const handleAddPatient = async (patient: { id: string; name: string; email: string }) => {
     if (!selectedAssessment) return;
     
@@ -172,6 +173,10 @@ export default function AssessmentsPage() {
         );
         setAvailablePatients((prev) => prev.filter((p) => p.id !== patient.id));
         setShowAddPatientList(false);
+        
+        // Show success message
+        setSuccessMessage(`${patient.name} has been successfully assigned to this assessment.`);
+        setTimeout(() => setSuccessMessage(""), 3000);
       } else {
         console.error('Failed to assign patient');
       }
@@ -211,6 +216,10 @@ export default function AssessmentsPage() {
         if (found) {
           setAvailablePatients((prev) => [...prev, found]);
         }
+        
+        // Show success message
+        setSuccessMessage(`${patient.name} has been successfully unassigned from this assessment.`);
+        setTimeout(() => setSuccessMessage(""), 3000);
       } else {
         console.error('Failed to unassign patient');
       }
@@ -257,12 +266,25 @@ export default function AssessmentsPage() {
               </h3>
               <Button
                 variant="ghost"
-                onClick={() => setShowPatientsModal(false)}
+                onClick={() => {
+                  setShowPatientsModal(false);
+                  setSuccessMessage("");
+                }}
                 className="text-gray-500 hover:text-gray-700"
               >
                 ✕
               </Button>
             </div>
+            
+            {/* Success Message Bar */}
+            {successMessage && (
+              <div className="mb-4 p-3 bg-green-100 border border-green-300 text-green-800 rounded-lg flex items-center">
+                <div className="w-5 h-5 mr-2 text-green-600">
+                  ✓
+                </div>
+                <span className="text-sm font-medium">{successMessage}</span>
+              </div>
+            )}
             <div className="mb-4">
               <Button
                 variant="outline"
