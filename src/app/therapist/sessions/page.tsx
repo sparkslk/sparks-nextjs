@@ -64,7 +64,7 @@ export default function TherapistSessionsPage() {
 
   // Add assessment management state
   const [assessmentPatientId, setAssessmentPatientId] = useState<string | null>(null);
-  const [isLoadingAssessments, setIsLoadingAssessments] = useState(false);
+  const [isLoadingAssessments] = useState(false);
 
   // Add state for reschedule section collapse
   const [isRescheduleSectionsOpen, setIsRescheduleSectionsOpen] = useState(false);
