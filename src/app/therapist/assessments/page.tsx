@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { ClipboardList, Users,  UserPlus, UserMinus } from "lucide-react";
+import { ClipboardList, Users,  UserPlus, UserMinus, Search, ChevronDown } from "lucide-react";
 import Image from "next/image";
 
 interface Assessment {
@@ -36,6 +36,7 @@ export default function AssessmentsPage() {
   const [showPatientsModal, setShowPatientsModal] = useState(false);
   const [showAddPatientList, setShowAddPatientList] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
   // Replace hardcoded patients with dynamic data
   const [possiblePatients, setPossiblePatients] = useState<Array<{ id: string; name: string; email: string }>>([]);
@@ -255,12 +256,25 @@ export default function AssessmentsPage() {
     return <LoadingSpinner message="Loading assessments..." />;
   }
 
+  // Filter functions for search
+  const filteredAssignedPatients = selectedAssessment?.assignedPatients.filter(patient =>
+    patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    patient.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (patient.email && patient.email.toLowerCase().includes(searchQuery.toLowerCase()))
+  ) || [];
+
+  const filteredAvailablePatients = availablePatients.filter(patient =>
+    patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    patient.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    patient.email.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#F5F3FB] via-white to-[#F5F3FB] p-6">
       {/* Patients Modal */}
       {showPatientsModal && selectedAssessment && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+          <div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden flex flex-col">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-semibold text-gray-800">
                 Assigned Patients - {selectedAssessment.title}
@@ -270,6 +284,7 @@ export default function AssessmentsPage() {
                 onClick={() => {
                   setShowPatientsModal(false);
                   setSuccessMessage("");
+                  setSearchQuery("");
                 }}
                 className="text-gray-500 hover:text-gray-700"
               >
@@ -286,42 +301,75 @@ export default function AssessmentsPage() {
                 <span className="text-sm font-medium">{successMessage}</span>
               </div>
             )}
+
+            {/* Search Bar */}
+            <div className="mb-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <input
+                  type="text"
+                  placeholder="Search patients by name, ID, or email..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#8159A8] focus:border-transparent outline-none"
+                />
+              </div>
+            </div>
+
+            {/* Add Patient Section */}
             <div className="mb-4">
               <Button
                 variant="outline"
                 size="sm"
-                className="bg-[#FAF8FB] hover:bg-[#FAF8FB] text-[#8159A8]"
+                className={`bg-[#FAF8FB] hover:bg-[#FAF8FB] text-[#8159A8] flex items-center transition-all duration-200 ${showAddPatientList ? "border-[#8159A8] shadow" : ""}`}
                 onClick={() => setShowAddPatientList((prev) => !prev)}
+                aria-expanded={showAddPatientList}
+                aria-controls="add-patient-list"
               >
-                + Add Patient
+                <span className="mr-2">Add Patient</span>
+                <ChevronDown
+                  className={`w-4 h-4 transition-transform duration-200 ${showAddPatientList ? "rotate-180" : ""}`}
+                />
               </Button>
               {showAddPatientList && (
-                <div className="mt-3 max-h-40 overflow-y-auto">
-                  <h4 className="font-semibold text-gray-700 mb-2">Select a patient to add</h4>
-                  {availablePatients.length > 0 ? (
-                    <ul className="space-y-2">
-                      {availablePatients.map((patient) => (
-                        <li key={patient.id} className="flex items-center justify-between bg-gray-50 p-2 rounded">
-                          <div>
-                            <span className="font-medium text-gray-800">{patient.name}</span>
-                            <span className="ml-2 text-xs text-gray-500">{patient.email}</span>
-                          </div>
-                          <Button
-                            size="icon"
-                            variant="outline"
-                            className="text-green-700 border-green-300"
-                            onClick={() => handleAddPatient(patient)}
-                            title="Add Patient"
-                          >
-                            <UserPlus className="w-4 h-4" />
-                          </Button>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-sm text-gray-500">No more patients to add.</p>
-                  )}
-                  <div className="flex justify-end mt-2">
+                <div className="mt-3" id="add-patient-list">
+                  <h4 className="font-semibold text-gray-700 mb-3">Select a patient to add</h4>
+                  <div className="border rounded-lg bg-gray-50 max-h-64 overflow-y-auto">
+                    {filteredAvailablePatients.length > 0 ? (
+                      <ul className="divide-y divide-gray-200">
+                        {filteredAvailablePatients.map((patient) => (
+                          <li key={patient.id} className="flex items-center justify-between p-3 hover:bg-white transition-colors">
+                            <div className="flex items-center space-x-3">
+                              <div className="w-8 h-8 bg-[#8159A8] text-white rounded-full flex items-center justify-center text-sm font-medium">
+                                {patient.name.charAt(0)}
+                              </div>
+                              <div>
+                                <span className="font-medium text-gray-800 block">{patient.name}</span>
+                                <span className="text-xs text-gray-500">{patient.email}</span>
+                                <span className="text-xs text-gray-400 block">ID: {patient.id}</span>
+                              </div>
+                            </div>
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              className="text-green-700 border-green-300 hover:bg-green-50"
+                              onClick={() => handleAddPatient(patient)}
+                              title="Add Patient"
+                            >
+                              <UserPlus className="w-4 h-4" />
+                            </Button>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <div className="p-4 text-center">
+                        <p className="text-sm text-gray-500">
+                          {searchQuery ? "No patients found matching your search." : "No more patients to add."}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex justify-end mt-3">
                     <Button size="sm" variant="ghost" onClick={() => setShowAddPatientList(false)}>
                       Cancel
                     </Button>
@@ -329,44 +377,68 @@ export default function AssessmentsPage() {
                 </div>
               )}
             </div>
-            <div className="space-y-3 max-h-60 overflow-y-auto">
-              {selectedAssessment.assignedPatients.map((patient) => (
-                <div
-                  key={patient.id}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
-                >
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-[#8159A8] text-white rounded-full flex items-center justify-center text-sm font-medium">
-                      {patient.name.charAt(0)}
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-800">{patient.name}</p>
-                      {patient.email && (
-                        <p className="text-xs text-gray-500">{patient.email}</p>
-                      )}
-                      {patient.completedAt && (
-                        <p className="text-sm text-gray-500">
-                          Completed: {new Date(patient.completedAt).toLocaleDateString()}
-                        </p>
-                      )}
-                    </div>
+
+            {/* Assigned Patients Section */}
+            <div className="flex-1 overflow-hidden flex flex-col">
+              <h4 className="font-semibold text-gray-700 mb-3">
+                Assigned Patients ({filteredAssignedPatients.length})
+              </h4>
+              <div className="border rounded-lg bg-gray-50 flex-1 overflow-y-auto min-h-[300px]">
+                {filteredAssignedPatients.length > 0 ? (
+                  <div className="divide-y divide-gray-200">
+                    {filteredAssignedPatients.map((patient) => (
+                      <div
+                        key={patient.id}
+                        className="flex items-center justify-between p-4 hover:bg-white transition-colors"
+                      >
+                        <div className="flex items-center space-x-3">
+                          <div className="w-8 h-8 bg-[#8159A8] text-white rounded-full flex items-center justify-center text-sm font-medium">
+                            {patient.name.charAt(0)}
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-800">{patient.name}</p>
+                            {patient.email && (
+                              <p className="text-xs text-gray-500">{patient.email}</p>
+                            )}
+                            <p className="text-xs text-gray-400">ID: {patient.id}</p>
+                            {patient.completedAt && (
+                              <p className="text-sm text-gray-500">
+                                Completed: {new Date(patient.completedAt).toLocaleDateString()}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Badge
+                            className={
+                              patient.completedAt
+                                ? "bg-green-100 text-green-800"
+                                : "bg-amber-100 text-amber-800"
+                            }
+                          >
+                            {patient.completedAt ? "Completed" : "Pending"}
+                          </Badge>
+                          <Button 
+                            size="icon" 
+                            variant="outline" 
+                            className="text-red-700 border-red-300 hover:bg-red-50" 
+                            onClick={() => handleUnassignPatient(patient)} 
+                            title="Unassign Patient"
+                          >
+                            <UserMinus className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Badge
-                      className={
-                        patient.completedAt
-                          ? "bg-green-100 text-green-800"
-                          : "bg-amber-100 text-amber-800"
-                      }
-                    >
-                      {patient.completedAt ? "Completed" : "Pending"}
-                    </Badge>
-                    <Button size="icon" variant="outline" className="text-red-700 border-red-300" onClick={() => handleUnassignPatient(patient)} title="Unassign Patient">
-                      <UserMinus className="w-4 h-4" />
-                    </Button>
+                ) : (
+                  <div className="flex items-center justify-center h-full">
+                    <p className="text-sm text-gray-500">
+                      {searchQuery ? "No assigned patients found matching your search." : "No patients assigned to this assessment yet."}
+                    </p>
                   </div>
-                </div>
-              ))}
+                )}
+              </div>
             </div>
           </div>
         </div>
