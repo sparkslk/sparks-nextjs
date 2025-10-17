@@ -73,10 +73,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Cannot reschedule a completed session" }, { status: 400 });
     }
 
-    if (therapySession.status === "RESCHEDULED") {
-      return NextResponse.json({ error: "This session has already been rescheduled. Check the updated session time or cancel if needed." }, { status: 400 });
-    }
-
     // Get the current therapist rate and the rate at time of booking
     const currentTherapistRate = therapySession.therapist.session_rate || 0;
     const bookedRate = therapySession.bookedRate || 0;
@@ -203,14 +199,13 @@ export async function POST(request: NextRequest) {
     // const therapistName = therapySession.therapist.user.name || therapySession.therapist.user.email;
     const parentName = user.name || user.email;
 
-    // Update the session with new date and time and change status to RESCHEDULED
+    // Update the session with new date and time (keep status as SCHEDULED)
     const updatedSession = await prisma.therapySession.update({
       where: {
         id: sessionId
       },
       data: {
         scheduledAt: newDateTime,
-        status: "RESCHEDULED",
         updatedAt: new Date(),
         sessionNotes: rescheduleReason
           ? `Rescheduled by parent from ${originalDateTime.toLocaleString()} to ${newDateTime.toLocaleString()}. Reason: ${rescheduleReason}`
