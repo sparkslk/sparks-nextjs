@@ -71,7 +71,6 @@ export async function GET(req: NextRequest) {
         }
 
         const requestedDate = new Date(date);
-        const dayOfWeek = requestedDate.getDay();
 
         // Get therapist and their availability from the new table
         const therapist = await prisma.therapist.findUnique({
@@ -90,18 +89,11 @@ export async function GET(req: NextRequest) {
         const availabilitySlots = await prisma.therapistAvailability.findMany({
             where: {
                 therapistId: therapist.id,
-                isActive: true,
-                OR: [
-                    // Direct day match
-                    { dayOfWeek: dayOfWeek },
-                    // Recurrence pattern match
-                    {
-                        isRecurring: true,
-                        recurrenceDays: {
-                            has: dayOfWeek
-                        }
-                    }
-                ]
+                date: {
+                    gte: new Date(requestedDate.setHours(0, 0, 0, 0)),
+                    lt: new Date(requestedDate.setHours(23, 59, 59, 999))
+                },
+                isFree: true
             }
         });
 
@@ -111,36 +103,10 @@ export async function GET(req: NextRequest) {
 
         const availableSlots: string[] = [];
 
-        // Generate session slots from availability blocks
-        availabilitySlots.forEach((block) => {
-            // Generate individual session slots within this availability block
-            const startTime = new Date(`1970-01-01T${block.startTime}:00`);
-            const endTime = new Date(`1970-01-01T${block.endTime}:00`);
-            const currentTime = new Date(startTime);
-            const sessionDuration = block.sessionDuration || 60;
-            const breakDuration = block.breakBetweenSessions || 15;
-
-            while (currentTime < endTime) {
-                const sessionEnd = new Date(currentTime);
-                sessionEnd.setMinutes(currentTime.getMinutes() + sessionDuration);
-
-                if (sessionEnd <= endTime) {
-                    // This is a valid session slot
-                    availableSlots.push(currentTime.toTimeString().slice(0, 5));
-                    
-                    // Move to next potential session (current session + break)
-                    currentTime.setMinutes(
-                        currentTime.getMinutes() + sessionDuration + breakDuration
-                    );
-                } else {
-                    // Check if we can fit one more session without a trailing break
-                    const finalSessionEnd = new Date(currentTime.getTime() + sessionDuration * 60 * 1000);
-                    if (finalSessionEnd <= endTime) {
-                        availableSlots.push(currentTime.toTimeString().slice(0, 5));
-                    }
-                    break;
-                }
-            }
+        // Process availability slots - each slot represents a single available time
+        availabilitySlots.forEach((slot) => {
+            // Each availability slot is already a specific time slot
+            availableSlots.push(slot.startTime);
         });
 
         // Get existing sessions for this therapist on this date
