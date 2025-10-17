@@ -1,9 +1,19 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, AlertTriangle, MessageCircle } from "lucide-react";
 import { Appointment } from "@/types/appointments";
 import Image from "next/image";
+
+interface TimeSlot {
+  slot: string;
+  startTime: string;
+  isAvailable: boolean;
+  isBooked: boolean;
+  isBlocked: boolean;
+  isFree: boolean;
+  cost: number;
+}
 
 interface RescheduleModalProps {
   open: boolean;
@@ -21,8 +31,16 @@ export default function RescheduleModal({ open, onOpenChange, appointment, onRes
   const [rescheduleReason, setRescheduleReason] = useState("");
   const [rescheduling, setRescheduling] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
-  const [availableSlots, setAvailableSlots] = useState<Array<{slot: string, isAvailable: boolean, isBooked?: boolean, isBlocked?: boolean}>>([]);
+  const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
+  const [isTherapistRescheduleRequest, setIsTherapistRescheduleRequest] = useState(false);
+  const [rescheduleRequestMessage, setRescheduleRequestMessage] = useState("");
+  const [rateChangeWarning, setRateChangeWarning] = useState<{ show: boolean, originalRate: number, currentRate: number, message: string }>({
+    show: false,
+    originalRate: 0,
+    currentRate: 0,
+    message: ""
+  });
   const [therapistInfo, setTherapistInfo] = useState<{
     name: string;
     cost: number;
@@ -40,24 +58,92 @@ export default function RescheduleModal({ open, onOpenChange, appointment, onRes
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const firstDay = new Date(year, month, 1).getDay();
 
-  // Fetch available slots when date changes
+  // Check if this is a therapist reschedule request and check for rate changes
+  useEffect(() => {
+    const checkRescheduleStatus = async () => {
+      if (!appointment?.id || !open) return;
+
+      // Check if session status is RESCHEDULED (therapist requested reschedule)
+      if (appointment.status === "RESCHEDULED") {
+        setIsTherapistRescheduleRequest(true);
+        // Extract reschedule message from session notes if available
+        if (appointment.sessionNotes && appointment.sessionNotes.includes("Rescheduled by")) {
+          setRescheduleRequestMessage("Your therapist has requested to reschedule this session. Please select a new time slot below.");
+        } else {
+          setRescheduleRequestMessage("Your therapist has requested to reschedule this session. Please select a new time slot below.");
+        }
+      } else {
+        setIsTherapistRescheduleRequest(false);
+        setRescheduleRequestMessage("");
+      }
+
+      // Check for rate changes
+      try {
+        const response = await fetch('/api/parent/sessions/check-reschedule', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            sessionId: appointment.id
+          }),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          if (error.reason === "RATE_CHANGED") {
+            setRateChangeWarning({
+              show: true,
+              originalRate: error.originalRate,
+              currentRate: error.currentRate,
+              message: error.message
+            });
+          }
+        } else {
+          setRateChangeWarning({
+            show: false,
+            originalRate: 0,
+            currentRate: 0,
+            message: ""
+          });
+        }
+      } catch (error) {
+        console.error("Error checking reschedule status:", error);
+      }
+    };
+
+    checkRescheduleStatus();
+  }, [appointment, open]);
+
+  // Fetch available slots when date changes - Same as SessionBookingModal
   useEffect(() => {
     const fetchAvailableSlots = async () => {
       if (!appointment?.childId) return;
-      
+
       setLoadingSlots(true);
       try {
+        // Format date to YYYY-MM-DD without timezone conversion issues - Same as SessionBookingModal
+        const year = selectedDate.getFullYear();
+        const month = (selectedDate.getMonth() + 1).toString().padStart(2, '0');
+        const day = selectedDate.getDate().toString().padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
+
+        console.log(`RescheduleModal: Selected date object:`, selectedDate);
+        console.log(`RescheduleModal: Sending date string to API:`, dateStr);
+        console.log(`RescheduleModal: Date validation - year: ${year}, month: ${month}, day: ${day}`);
+
         const response = await fetch(
-          `/api/parent/sessions/available-slots?childId=${appointment.childId}&date=${selectedDate.toISOString()}`
+          `/api/parent/sessions/available-slots?childId=${appointment.childId}&date=${dateStr}`
         );
-        
+
+        console.log(`RescheduleModal: API response status:`, response.status);
+
         if (response.ok) {
           const data = await response.json();
-          setAvailableSlots(data.slots || []);
+          setAvailableSlots(data.availableSlots || []);
+          // Update therapist info from response
           setTherapistInfo(prev => ({
             ...prev,
-            cost: data.cost || prev.cost,
-            duration: data.sessionDuration || prev.duration,
             name: data.therapistName || prev.name,
             image: data.therapistImage
           }));
@@ -91,34 +177,39 @@ export default function RescheduleModal({ open, onOpenChange, appointment, onRes
 
     setRescheduling(true);
     try {
-      console.log('Sending reschedule request:', {
+      // Format date consistently with SessionBookingModal
+      const year = selectedDate.getFullYear();
+      const month = (selectedDate.getMonth() + 1).toString().padStart(2, '0');
+      const day = selectedDate.getDate().toString().padStart(2, '0');
+      const formattedDate = `${year}-${month}-${day}`;
+
+      const requestData = {
         sessionId: appointment.id,
-        newDate: selectedDate.toISOString(),
-        newTime: selectedSlot,
-        rescheduleReason: rescheduleReason.trim()
-      });
+        newDate: formattedDate,
+        newTime: selectedSlot, // Pass the slot directly like SessionBookingModal
+        rescheduleReason: isTherapistRescheduleRequest
+          ? "Parent selected new time slot in response to therapist reschedule request"
+          : rescheduleReason.trim()
+      };
+
+      console.log('Sending reschedule request:', requestData);
 
       const response = await fetch('/api/parent/sessions/reschedule', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          sessionId: appointment.id,
-          newDate: selectedDate.toISOString(),
-          newTime: selectedSlot,
-          rescheduleReason: rescheduleReason.trim()
-        }),
+        body: JSON.stringify(requestData),
       });
 
       if (response.ok) {
         // Show success dialog
         setShowSuccessDialog(true);
-        
+
         // Reset form states
         setSelectedSlot(null);
         setRescheduleReason("");
-        
+
         // Auto-close success dialog after 3 seconds and refresh data
         setTimeout(() => {
           setShowSuccessDialog(false);
@@ -127,7 +218,7 @@ export default function RescheduleModal({ open, onOpenChange, appointment, onRes
         }, 3000);
       } else {
         const error = await response.json();
-        
+
         // Handle rate change scenario specifically
         if (error.error === "RATE_CHANGED") {
           alert(
@@ -155,11 +246,61 @@ export default function RescheduleModal({ open, onOpenChange, appointment, onRes
         <DialogContent className="max-w-2xl w-full p-0 sm:p-0 overflow-y-auto max-h-[90vh] rounded-2xl shadow-2xl border border-border">
           <div className="bg-background rounded-2xl p-0 sm:p-0">
             <DialogHeader className="px-8 pt-8 pb-2 border-b border-border">
-              <DialogTitle className="text-left text-2xl font-bold mb-1 text-primary">Reschedule Session</DialogTitle>
+              <DialogTitle className="text-left text-2xl font-bold mb-1 text-primary">
+                {isTherapistRescheduleRequest ? "Reschedule Request" : "Reschedule Session"}
+              </DialogTitle>
               <DialogDescription className="text-left mb-2 text-muted-foreground text-base">
-                Select a new date and time for your therapy session
+                {isTherapistRescheduleRequest
+                  ? "Your therapist has requested to reschedule this session"
+                  : "Select a new date and time for your therapy session"
+                }
               </DialogDescription>
             </DialogHeader>
+
+            {/* Therapist Reschedule Request Message */}
+            {isTherapistRescheduleRequest && (
+              <div className="px-8 pt-6 pb-2">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-start gap-2">
+                    <MessageCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm">
+                      <p className="font-medium text-blue-800 mb-1">Reschedule Request</p>
+                      <p className="text-blue-700">
+                        {rescheduleRequestMessage}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Rate Change Warning */}
+            {rateChangeWarning.show && (
+              <div className="px-8 pt-6 pb-2">
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm">
+                      <p className="font-medium text-red-800 mb-2">Rate Change Notice</p>
+                      <p className="text-red-700 mb-2">{rateChangeWarning.message}</p>
+                      <div className="bg-white p-3 rounded border border-red-200 space-y-1">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-red-600">Original Rate:</span>
+                          <span className="font-medium">Rs.{rateChangeWarning.originalRate}</span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-red-600">Current Rate:</span>
+                          <span className="font-medium">Rs.{rateChangeWarning.currentRate}</span>
+                        </div>
+                      </div>
+                      <p className="text-red-700 text-xs mt-2 font-medium">
+                        Please cancel this session and book a new one at the current rate.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Current Session Info */}
             {appointment && (
@@ -181,12 +322,12 @@ export default function RescheduleModal({ open, onOpenChange, appointment, onRes
             <div className="px-8 pt-2 pb-2">
               <div className="font-semibold text-sm text-muted-foreground mb-2">Your Therapist</div>
               <div className="flex items-center gap-4 bg-card rounded-xl p-4 shadow border border-border">
-                <Image 
-                  src={therapistInfo.image || '/images/therapist.png'} 
-                  alt={therapistInfo.name} 
-                  width={48} 
-                  height={48} 
-                  className="object-cover w-12 h-12 rounded-full border-2 border-primary" 
+                <Image
+                  src={therapistInfo.image || '/images/therapist.png'}
+                  alt={therapistInfo.name}
+                  width={48}
+                  height={48}
+                  className="object-cover w-12 h-12 rounded-full border-2 border-primary"
                 />
                 <div>
                   <div className="font-bold text-base text-foreground mb-1">Dr. {therapistInfo.name}</div>
@@ -281,38 +422,50 @@ export default function RescheduleModal({ open, onOpenChange, appointment, onRes
                     <Button
                       key={slotData.slot}
                       variant={selectedSlot === slotData.slot ? "default" : "outline"}
-                      className={`rounded-xl px-4 py-2 text-base font-semibold shadow-sm ${
-                        selectedSlot === slotData.slot 
-                          ? "bg-primary text-white" 
-                          : slotData.isAvailable 
-                          ? "hover:bg-primary/10" 
+                      className={`rounded-xl px-4 py-3 text-sm font-semibold shadow-sm flex flex-col items-center gap-1 h-auto ${selectedSlot === slotData.slot
+                        ? "bg-primary text-white"
+                        : slotData.isAvailable
+                          ? "hover:bg-primary/10"
                           : "opacity-50 cursor-not-allowed bg-muted text-muted-foreground"
-                      }`}
+                        }`}
                       onClick={() => slotData.isAvailable && handleSlotClick(slotData.slot)}
                       disabled={!slotData.isAvailable}
                     >
-                      {slotData.slot} {!slotData.isAvailable && (slotData.isBooked ? "(Booked)" : "(Blocked)")}
+                      <span className="text-base font-bold">{slotData.slot}</span>
+                      {slotData.isAvailable ? (
+                        <span className={`text-xs ${slotData.isFree ? "text-green-600 font-bold" : "text-muted-foreground"}`}>
+                          {slotData.isFree ? "FREE" : `Rs.${slotData.cost}`}
+                        </span>
+                      ) : (
+                        <span className="text-xs">
+                          {slotData.isBooked ? "(Booked)" : "(Blocked)"}
+                        </span>
+                      )}
                     </Button>
                   ))}
                 </div>
               )}
             </div>
 
-            {/* Reschedule Reason */}
-            <div className="px-8 pt-2 pb-2">
-              <div className="font-semibold text-sm text-muted-foreground mb-2">Reason for Rescheduling (Optional)</div>
-              <textarea
-                value={rescheduleReason}
-                onChange={(e) => setRescheduleReason(e.target.value)}
-                className="w-full p-3 border rounded-lg resize-none focus:ring-2 focus:ring-primary focus:border-primary"
-                rows={3}
-                placeholder="Please let us know why you're rescheduling..."
-              />
-            </div>
+            {/* Reschedule Reason - Only show for parent-initiated reschedules */}
+            {!isTherapistRescheduleRequest && (
+              <div className="px-8 pt-2 pb-2">
+                <div className="font-semibold text-sm text-muted-foreground mb-2">Reason for Rescheduling (Optional)</div>
+                <textarea
+                  value={rescheduleReason}
+                  onChange={(e) => setRescheduleReason(e.target.value)}
+                  className="w-full p-3 border rounded-lg resize-none focus:ring-2 focus:ring-primary focus:border-primary"
+                  rows={3}
+                  placeholder="Please let us know why you're rescheduling..."
+                />
+              </div>
+            )}
 
             {/* Reschedule Summary */}
             <div className="px-8 pt-4 pb-8">
-              <div className="font-semibold text-sm text-muted-foreground mb-2">Reschedule Summary</div>
+              <div className="font-semibold text-sm text-muted-foreground mb-2">
+                {isTherapistRescheduleRequest ? "New Session Details" : "Reschedule Summary"}
+              </div>
               <div className="bg-muted rounded-xl p-6 border border-border shadow-sm">
                 <div className="mb-3 font-bold text-lg text-foreground">New Session Details</div>
                 <div className="flex justify-between text-sm mb-2 text-muted-foreground">
@@ -340,13 +493,27 @@ export default function RescheduleModal({ open, onOpenChange, appointment, onRes
                   >
                     Cancel
                   </Button>
-                  <Button 
-                    className="flex-1 bg-primary text-white text-base py-3 rounded-xl font-semibold shadow" 
-                    disabled={!selectedSlot || rescheduling} 
-                    onClick={handleRescheduleSession}
-                  >
-                    {rescheduling ? "Rescheduling..." : "Confirm Reschedule"}
-                  </Button>
+                  {rateChangeWarning.show ? (
+                    <Button
+                      variant="destructive"
+                      className="flex-1 text-base py-3 rounded-xl font-semibold shadow"
+                      onClick={() => {
+                        // Redirect to cancel session or show cancel modal
+                        alert("Please use the cancel option to cancel this session and book a new one.");
+                        onOpenChange(false);
+                      }}
+                    >
+                      Cancel Session Instead
+                    </Button>
+                  ) : (
+                    <Button
+                      className="flex-1 bg-primary text-white text-base py-3 rounded-xl font-semibold shadow"
+                      disabled={!selectedSlot || rescheduling}
+                      onClick={handleRescheduleSession}
+                    >
+                      {rescheduling ? "Rescheduling..." : isTherapistRescheduleRequest ? "Confirm New Time" : "Confirm Reschedule"}
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>
@@ -360,16 +527,19 @@ export default function RescheduleModal({ open, onOpenChange, appointment, onRes
           <DialogHeader>
             <DialogTitle className="text-green-600">Session Rescheduled Successfully!</DialogTitle>
             <DialogDescription>
-              Your therapy session has been rescheduled and both you and the therapist have been notified.
+              {isTherapistRescheduleRequest
+                ? "Your new session time has been confirmed and your therapist has been notified."
+                : "Your therapy session has been rescheduled and both you and the therapist have been notified."
+              }
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="flex items-center justify-center py-4">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
               <CheckCircle className="w-8 h-8 text-green-600" />
             </div>
           </div>
-          
+
           {selectedSlot && (
             <div className="text-center space-y-2">
               <div className="p-3 bg-green-50 rounded-lg border border-green-200">

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
-import { getRoleBasedDashboard } from "@/lib/role-redirect";
+import { getRoleBasedDashboardSync } from "@/lib/role-redirect";
 
 const PUBLIC_PATHS = [
   "/",
@@ -102,7 +102,7 @@ export async function middleware(req: NextRequest) {
 
   if (!allowed && !isApiRoute(pathname)) {
     // Redirect to their dashboard
-    const dashboard = getRoleBasedDashboard(role);
+    const dashboard = getRoleBasedDashboardSync(role);
     return NextResponse.redirect(new URL(dashboard, req.url));
   } // User onboarding: check if NORMAL_USER has a profile when accessing dashboard
   // (Removed API call from middleware. Move this logic to the dashboard page/server component.)

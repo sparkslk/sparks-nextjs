@@ -128,19 +128,29 @@ export async function POST(request: NextRequest) {
 
       // Find and update the corresponding therapist availability slot to make it available again
       const sessionDate = new Date(therapySession.scheduledAt);
-      const timeString = sessionDate.toTimeString().slice(0, 5); // Format as "HH:mm"
 
-      // Get the date only (without time) for comparison
-      const dateOnly = new Date(sessionDate.getFullYear(), sessionDate.getMonth(), sessionDate.getDate());
-      const nextDay = new Date(dateOnly);
-      nextDay.setDate(nextDay.getDate() + 1);
+      // Extract time in HH:mm format from the session date
+      // Use UTC methods to ensure consistent timezone handling
+      const hours = sessionDate.getUTCHours().toString().padStart(2, '0');
+      const minutes = sessionDate.getUTCMinutes().toString().padStart(2, '0');
+      const timeString = `${hours}:${minutes}`;
 
-      await tx.therapistAvailability.updateMany({
+      // Create date range for matching (same logic as booking)
+      const year = sessionDate.getUTCFullYear();
+      const month = (sessionDate.getUTCMonth() + 1).toString().padStart(2, '0');
+      const day = sessionDate.getUTCDate().toString().padStart(2, '0');
+      const dateStr = `${year}-${month}-${day}`;
+
+      const targetDate = new Date(dateStr + 'T00:00:00.000Z');
+      const nextDay = new Date(dateStr + 'T00:00:00.000Z');
+      nextDay.setUTCDate(nextDay.getUTCDate() + 1);
+
+      const updateResult = await tx.therapistAvailability.updateMany({
         where: {
           therapistId: therapySession.therapistId,
           startTime: timeString,
           date: {
-            gte: dateOnly,
+            gte: targetDate,
             lt: nextDay
           },
           isBooked: true
@@ -149,6 +159,53 @@ export async function POST(request: NextRequest) {
           isBooked: false
         }
       });
+
+      console.log(`Availability update result for cancellation: updated ${updateResult.count} slots`);
+      console.log(`Looking for therapistId: ${therapySession.therapistId}, startTime: ${timeString}, date between ${targetDate.toISOString()} and ${nextDay.toISOString()}`);
+
+      // If no slots were updated, try to find what availability slots exist for debugging
+      if (updateResult.count === 0) {
+        const availableSlots = await tx.therapistAvailability.findMany({
+          where: {
+            therapistId: therapySession.therapistId,
+            date: {
+              gte: targetDate,
+              lt: nextDay
+            }
+          }
+        });
+        console.log(`Available slots for therapist ${therapySession.therapistId} on ${dateStr}:`, availableSlots);
+
+        // Try alternative time formats in case the original format doesn't match
+        const alternativeTimeFormats = [
+          sessionDate.toISOString().substr(11, 5), // Extract HH:mm from ISO string
+          sessionDate.getHours().toString().padStart(2, '0') + ':' + sessionDate.getMinutes().toString().padStart(2, '0'), // Local time
+        ];
+
+        for (const altTime of alternativeTimeFormats) {
+          if (altTime !== timeString) {
+            const altUpdateResult = await tx.therapistAvailability.updateMany({
+              where: {
+                therapistId: therapySession.therapistId,
+                startTime: altTime,
+                date: {
+                  gte: targetDate,
+                  lt: nextDay
+                },
+                isBooked: true
+              },
+              data: {
+                isBooked: false
+              }
+            });
+
+            if (altUpdateResult.count > 0) {
+              console.log(`Successfully updated availability using alternative time format ${altTime}: updated ${altUpdateResult.count} slots`);
+              break;
+            }
+          }
+        }
+      }
 
       return [session];
     });

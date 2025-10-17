@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
+import { useSession } from "next-auth/react";
 
 interface Therapist {
   name: string;
@@ -36,6 +37,7 @@ interface SessionBookingModalProps {
 const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, onOpenChange, child, onConfirmBooking }) => {
+  const { data: session } = useSession();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [showCalendar, setShowCalendar] = useState(false);
@@ -50,6 +52,7 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
     duration: 45
   });
   const [booking, setBooking] = useState(false);
+  const [paymentProcessing, setPaymentProcessing] = useState(false);
 
   const year = selectedDate.getFullYear();
   const month = selectedDate.getMonth();
@@ -110,6 +113,25 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
   };
 
   const handleConfirm = async () => {
+    if (!selectedSlot || !session?.user) return;
+
+    const selectedSlotData = availableSlots.find(slot => slot.slot === selectedSlot);
+    if (!selectedSlotData) {
+      alert("Selected time slot is no longer available");
+      return;
+    }
+
+    // If the slot is free, skip payment and book directly
+    if (selectedSlotData.isFree) {
+      await handleDirectBooking();
+      return;
+    }
+
+    // Otherwise, initiate payment flow
+    await handlePaymentBooking(selectedSlotData.cost);
+  };
+
+  const handleDirectBooking = async () => {
     if (!selectedSlot) return;
 
     setBooking(true);
@@ -145,6 +167,101 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
       console.error("Error booking session:", error);
       alert("An error occurred while booking the session");
     } finally {
+      setBooking(false);
+    }
+  };
+
+  const handlePaymentBooking = async (amount: number) => {
+    if (!selectedSlot || !session?.user) {
+      return;
+    }
+
+    setPaymentProcessing(true);
+    setBooking(true);
+
+    try {
+      // Initiate payment
+      const response = await fetch('/api/parent/payment/initiate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          childId: child.id,
+          date: `${selectedDate.getFullYear()}-${(selectedDate.getMonth() + 1).toString().padStart(2, '0')}-${selectedDate.getDate().toString().padStart(2, '0')}`,
+          timeSlot: selectedSlot,
+          sessionType: "Individual",
+          amount: amount,
+          customerInfo: {
+            firstName: session.user.name?.split(' ')[0] || 'Parent',
+            lastName: session.user.name?.split(' ').slice(1).join(' ') || 'User',
+            email: session.user.email || '',
+            phone: '0000000000', // TODO: Get from user profile
+            address: 'N/A',
+            city: 'Colombo',
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to initiate payment');
+      }
+
+      const paymentDetails = await response.json();
+
+      console.log('=== PayHere Payment Request ===');
+      console.log('Redirecting to PayHere checkout...');
+      console.log('Merchant ID:', paymentDetails.merchantId);
+      console.log('Order ID:', paymentDetails.orderId);
+      console.log('Amount:', paymentDetails.amount, paymentDetails.currency);
+      console.log('Hash (first 20 chars):', paymentDetails.hash?.substring(0, 20) + '...');
+      console.log('===============================');
+
+      // Create a form and submit to PayHere (full page redirect)
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = 'https://sandbox.payhere.lk/pay/checkout'; // Use sandbox URL
+
+      // Add all payment fields as hidden inputs
+      const fields = {
+        merchant_id: paymentDetails.merchantId,
+        return_url: paymentDetails.returnUrl,
+        cancel_url: paymentDetails.cancelUrl,
+        notify_url: paymentDetails.notifyUrl,
+        order_id: paymentDetails.orderId,
+        items: paymentDetails.items,
+        amount: paymentDetails.amount,
+        currency: paymentDetails.currency,
+        hash: paymentDetails.hash,
+        first_name: paymentDetails.customerFirstName,
+        last_name: paymentDetails.customerLastName,
+        email: paymentDetails.customerEmail,
+        phone: paymentDetails.customerPhone,
+        address: paymentDetails.customerAddress,
+        city: paymentDetails.customerCity,
+        country: 'Sri Lanka',
+      };
+
+      // Create hidden input for each field
+      Object.entries(fields).forEach(([key, value]) => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = value || '';
+        form.appendChild(input);
+      });
+
+      // Append form to body and submit
+      document.body.appendChild(form);
+      form.submit();
+
+      // Note: User will be redirected away, so no need to update state
+
+    } catch (error) {
+      console.error("Error initiating payment:", error);
+      alert(error instanceof Error ? error.message : "An error occurred while processing payment");
+      setPaymentProcessing(false);
       setBooking(false);
     }
   };
@@ -307,10 +424,19 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
               </div>
               <Button
                 className="w-full bg-primary text-white text-base py-3 rounded-xl font-semibold shadow"
-                disabled={!selectedSlot || bookingConfirmed || booking}
+                disabled={!selectedSlot || bookingConfirmed || booking || paymentProcessing}
                 onClick={handleConfirm}
               >
-                {booking ? "Booking..." : bookingConfirmed ? "Booking Confirmed!" : "Confirm Booking"}
+                {paymentProcessing
+                  ? "Processing Payment..."
+                  : booking
+                    ? "Booking..."
+                    : bookingConfirmed
+                      ? "Booking Confirmed!"
+                      : selectedSlot && availableSlots.find(slot => slot.slot === selectedSlot)?.isFree
+                        ? "Confirm Booking"
+                        : "Proceed to Payment"
+                }
               </Button>
               {bookingConfirmed && (
                 <div className="mt-3 text-center text-success font-semibold animate-fade-in">Your session has been booked!</div>
