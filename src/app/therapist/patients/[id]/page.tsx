@@ -67,6 +67,13 @@ export default function PatientDetailsPage() {
   const [tab, setTab] = useState("info");
   const [showAssignTask, setShowAssignTask] = useState(false);
 
+  // Assessment states
+  const [assignedAssessments, setAssignedAssessments] = useState<any[]>([]);
+  const [unassignedAssessments, setUnassignedAssessments] = useState<any[]>([]);
+  const [loadingAssessments, setLoadingAssessments] = useState(false);
+  const [loadingUnassigned, setLoadingUnassigned] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
   // Filter states
   const [statusFilter, setStatusFilter] = useState("");
   const [dateFilter, setDateFilter] = useState("");
@@ -167,6 +174,7 @@ export default function PatientDetailsPage() {
     if (status === "authenticated" && params?.id) {
       fetchPatientData(params.id as string);
       fetchMedications(params.id as string);
+      fetchAssignedAssessments(params.id as string);
     }
   }, [status, params?.id, router]);
 
@@ -222,6 +230,112 @@ export default function PatientDetailsPage() {
     }
   };
 
+  const fetchAssignedAssessments = async (patientId: string) => {
+    try {
+      setLoadingAssessments(true);
+      const response = await fetch(`/api/therapist/patients/${patientId}/assessments`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setAssignedAssessments(data.assessments);
+      } else {
+        console.error("Failed to fetch assigned assessments:", response.statusText);
+      }
+    } catch (error) {
+      console.error("Error fetching assigned assessments:", error);
+    } finally {
+      setLoadingAssessments(false);
+    }
+  };
+
+  const fetchUnassignedAssessments = async (patientId: string) => {
+    try {
+      setLoadingUnassigned(true);
+      const response = await fetch(`/api/therapist/patients/${patientId}/assessments/unassigned`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUnassignedAssessments(data.assessments);
+      } else {
+        console.error("Failed to fetch unassigned assessments:", response.statusText);
+      }
+    } catch (error) {
+      console.error("Error fetching unassigned assessments:", error);
+    } finally {
+      setLoadingUnassigned(false);
+    }
+  };
+
+  const handleAssignAssessment = async (assessmentId: string) => {
+    if (!params?.id) return;
+
+    try {
+      const response = await fetch(`/api/therapist/patients/${params.id}/assessments`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ assessmentId }),
+      });
+
+      if (response.ok) {
+        // Refresh both assigned and unassigned assessments
+        await fetchAssignedAssessments(params.id as string);
+        await fetchUnassignedAssessments(params.id as string);
+        
+        // Show success message
+        setSuccessMessage("Assessment assigned successfully!");
+        setTimeout(() => setSuccessMessage(null), 3000);
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to assign assessment: ${errorData.error}`);
+      }
+    } catch (error) {
+      console.error("Error assigning assessment:", error);
+      alert("Error assigning assessment. Please try again.");
+    }
+  };
+
+  const handleUnassignAssessment = async (assessmentId: string) => {
+    if (!params?.id) return;
+
+    try {
+      const response = await fetch(`/api/therapist/patients/${params.id}/assessments`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ assessmentId }),
+      });
+
+      if (response.ok) {
+        // Refresh both assigned and unassigned assessments
+        await fetchAssignedAssessments(params.id as string);
+        await fetchUnassignedAssessments(params.id as string);
+        
+        // Show success message
+        setSuccessMessage("Assessment unassigned successfully!");
+        setTimeout(() => setSuccessMessage(null), 3000);
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to unassign assessment: ${errorData.error}`);
+      }
+    } catch (error) {
+      console.error("Error unassigning assessment:", error);
+      alert("Error unassigning assessment. Please try again.");
+    }
+  };
+
   if (status === "loading" || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -258,30 +372,6 @@ export default function PatientDetailsPage() {
     );
   }
 
-
-  // Assigned Tasks data
-  const assignedAssessments = [
-  {
-    id: "1",
-    title: "Auditory Processing - Listening Task",
-    type: "LISTENING_TASK",
-    assignedDate: "July 10, 2024",
-    deadline: "July 25, 2024", // <-- Added deadline
-    status: "Completed",
-    score: 78,
-    completedAt: "July 22, 2024",
-  },
-  {
-    id: "2",
-    title: "Visual Perception - Picture Description",
-    type: "PICTURE_DESCRIPTION",
-    assignedDate: "July 8, 2024",
-    deadline: "July 20, 2024", // <-- Added deadline
-    status: "Pending",
-    score: null,
-    completedAt: null,
-  },
-];
 
   // Uploaded Documents data
   const uploadedDocuments = [
@@ -1042,7 +1132,22 @@ export default function PatientDetailsPage() {
       
 
         <TabsContent value="assessments" className="pt-6">
-          {assignedAssessments && assignedAssessments.length > 0 ? (
+          {/* Success Message */}
+          {successMessage && (
+            <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded-lg flex items-center">
+              <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              {successMessage}
+            </div>
+          )}
+          
+          {loadingAssessments ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <p className="ml-2 text-muted-foreground">Loading assessments...</p>
+            </div>
+          ) : assignedAssessments && assignedAssessments.length > 0 ? (
             <div className="space-y-6">
               {/* Assigned Assessments Header */}
               <div className="bg-transparent">
@@ -1053,43 +1158,25 @@ export default function PatientDetailsPage() {
                   </div>
                   
                   <div className="text-right">
-                    <div className="grid grid-cols-3 gap-4 text-center">
-                      <div className="bg-gray-50 rounded-lg p-3 border">
-                        <div className="text-2xl font-bold text-[#8159A8]">{assignedAssessments.length}</div>
-                        <div className="text-sm text-gray-600">Total</div>
+                    <div className="flex gap-2 justify-end py-4">
+                      <Button
+                        style={{ backgroundColor: "#8159A8", color: "#fff" }}
+                        className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 shadow hover:brightness-110"
+                        onClick={() => {
+                          setSuccessMessage(null); // Clear any existing success message
+                          if (params?.id) {
+                            fetchUnassignedAssessments(params.id as string);
+                          }
+                          setShowAssignTask(true);
+                        }}
+                        >
+                        <Plus className="w-5 h-5" />
+                          Assign a new Assessment
+                      </Button>
                       </div>
-                      <div className="bg-gray-50 rounded-lg p-3 border">
-                        <div className="text-2xl font-bold text-[#8159A8]">
-                          {assignedAssessments.filter(a => a.status === 'Completed').length}
-                        </div>
-                        <div className="text-sm text-gray-600">Completed</div>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-3 border">
-                        <div className="text-2xl font-bold text-[#8159A8]">
-                          {assignedAssessments.length > 0
-                            ? Math.round(
-                                (assignedAssessments.filter(a => a.status === 'Completed').length /
-                                  assignedAssessments.length) *
-                                  100
-                              )
-                            : 0}
-                        %
-                        </div>
-                        <div className="text-sm text-gray-600">Completion Rate</div>
-                      </div>
-                    </div>
                   </div>
                 </div>
-                <div className="flex gap-2 justify-end py-4">
-                  <Button
-                  style={{ backgroundColor: "#8159A8", color: "#fff" }}
-                  className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 shadow hover:brightness-110"
-                  onClick={() => setShowAssignTask(true)}
-                  >
-                  <Plus className="w-5 h-5" />
-                  Assign a new Assessment
-                  </Button>
-                </div>
+                
               </div>
 
               {/* Assessments List */}
@@ -1099,49 +1186,46 @@ export default function PatientDetailsPage() {
                     key={assessment.id}
                     className="bg-[#FAF8FB] rounded-xl p-5 shadow-md hover:shadow-lg transition-shadow flex flex-col h-full border border-[#e9e1f3]"
                   >
-                    {/* Badges on top */}
-                    <div className="flex gap-2 mb-2">
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                          assessment.status === 'Completed'
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-yellow-100 text-yellow-700'
-                        }`}
-                      >
-                        {assessment.status}
+                    
+                    {/* Title */}
+                    <h4 className="text-lg font-semibold text-[#8159A8] mb-2 truncate">{assessment.title}</h4>
+                    
+                    {/* Type Badge */}
+                    <div className="mb-3">
+                      <span className="text-xs font-semibold px-3 py-1 rounded-full bg-blue-100 text-blue-700">
+                        {assessment.type}
                       </span>
                     </div>
-                    {/* Title below badges */}
-                    <h4 className="text-lg font-semibold text-[#8159A8] mb-2 truncate">{assessment.title}</h4>
+                    
+                    {/* Description */}
                     <div className="flex flex-col gap-1 text-sm text-gray-700 flex-1 mt-1">
-                      <div>
-                        <span className="font-medium text-black">Assigned:</span> {assessment.assignedDate}
-                      </div>
-                      <div>
-                        <span className="font-medium text-black">Deadline:</span> {assessment.deadline}
-                      </div>
-                      {assessment.completedAt && (
-                      <div>
-                        <div>
-                        <span className="font-medium text-black">Completed:</span> {assessment.completedAt}
-                        </div>
-                        <div>
-                        <span className="font-medium text-black">Score: </span> {assessment.score}
-                        </div>
-                      </div>
-                      )}
+                      <p className="leading-relaxed line-clamp-3">{assessment.description}</p>
                     </div>
+                    
+                    {/* Action Buttons */}
                     <div className="mt-4 flex gap-2">
                       <div className="flex-1 flex justify-end">
-                        {assessment.status === 'Pending' && (
+                        {assessment.link && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="mr-2 hover:bg-blue-50 text-blue-600"
+                            onClick={() => {
+                              if (assessment.link) {
+                                window.open(assessment.link, '_blank');
+                              }
+                            }}
+                          >
+                            <Eye className="w-4 h-4 mr-1" />
+                            View Assessment
+                          </Button>
+                        )}
+                        {assessment.status === 'PENDING' && (
                           <Button
                             variant="outline"
                             size="sm"
                             className="hover:bg-red-50 text-red-600"
-                            onClick={() => {
-                              // TODO: Replace with API call to unassign the assessment
-                              alert(`Unassigned "${assessment.title}" (mock action)`);
-                            }}
+                            onClick={() => handleUnassignAssessment(assessment.id)}
                           >
                             Unassign
                           </Button>
@@ -1153,7 +1237,23 @@ export default function PatientDetailsPage() {
               </div>
             </div>
           ) : (
-            <p className="text-muted-foreground">No assigned assessments found.</p>
+            <div className="text-center py-8">
+              <p className="text-muted-foreground mb-4">No assigned assessments found.</p>
+              <Button
+                style={{ backgroundColor: "#8159A8", color: "#fff" }}
+                className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 shadow hover:brightness-110"
+                onClick={() => {
+                  setSuccessMessage(null); // Clear any existing success message
+                  if (params?.id) {
+                    fetchUnassignedAssessments(params.id as string);
+                  }
+                  setShowAssignTask(true);
+                }}
+              >
+                <Plus className="w-5 h-5" />
+                Assign a new Assessment
+              </Button>
+            </div>
           )}
         </TabsContent>
 
@@ -1242,46 +1342,59 @@ export default function PatientDetailsPage() {
         </Card>
       </div>
 
-      {/* Assign Task Dialog - Place this outside of the main content, just before the closing </div> */}
+      {/* Assign Assessment Dialog */}
       <Dialog open={showAssignTask} onOpenChange={setShowAssignTask}>
         <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>Assign an Assessment</DialogTitle>
           </DialogHeader>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {availableTasks.map((task) => (
-              <div key={task.id} className="bg-[#fcfafd] rounded-2xl shadow p-6 flex flex-col h-full border border-[#f0eef5]">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className={`text-xs font-semibold px-3 py-1 rounded-full ${task.typeColor}`}>
-                    {task.type}
-                  </span>
+          
+          {/* Success Message in Dialog */}
+          {successMessage && (
+            <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded-lg flex items-center">
+              <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              {successMessage}
+            </div>
+          )}
+          
+          {loadingUnassigned ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <p className="ml-2 text-muted-foreground">Loading available assessments...</p>
+            </div>
+          ) : unassignedAssessments.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {unassignedAssessments.map((assessment) => (
+                <div key={assessment.id} className="bg-[#fcfafd] rounded-2xl shadow p-6 flex flex-col h-full border border-[#f0eef5]">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className={`text-xs font-semibold px-3 py-1 rounded-full ${assessment.typeColor}`}>
+                      {assessment.type}
+                    </span>
+                  </div>
+                  <div className="font-bold text-lg text-[#3b2562] mb-2">{assessment.title}</div>
+                  <div className="text-sm text-gray-600 mb-4 flex-1">{assessment.description}</div>
+                  
+                  <div className="flex gap-2 mt-auto">
+                    <Button
+                      variant="outline"
+                      className="border-green-400 text-green-700 hover:bg-green-50 px-3 py-1 text-s font-semibold"
+                      style={{ borderColor: "#1ac600ff" }}
+                      onClick={() => handleAssignAssessment(assessment.id)}
+                    >
+                      Assign
+                    </Button>
+                  </div>
                 </div>
-                <div className="font-bold text-lg text-[#3b2562] mb-2">{task.title}</div>
-                <div className="text-sm text-gray-600 mb-4 flex-1">{task.description}</div>
-                <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
-                  <User className="w-4 h-4" />
-                  {task.assignedCount} patients assigned
-                  {task.latestScore && (
-                    <>
-                      <span className="mx-2">|</span>
-                      <FileText className="w-4 h-4" />
-                      Latest Score: {task.latestScore}
-                    </>
-                  )}
-                </div>
-                <div className="flex gap-2 mt-auto">
-                  <Button
-                    variant="outline"
-                    className="border-green-400 text-green-700 hover:bg-green-50 px-3 py-1 text-s font-semibold"
-                    style={{ borderColor: "#1ac600ff" }}
-                    // onClick={() => handleAssignTask(task.id)}
-                  >
-                    Assign
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-gray-600 mb-4">All available assessments are already assigned to this patient.</p>
+              <p className="text-sm text-gray-500">No new assessments to assign at this time.</p>
+            </div>
+          )}
           <div className="flex justify-end mt-6">
             <Button
               style={{ backgroundColor: "#8159A8", color: "#fff" }}
