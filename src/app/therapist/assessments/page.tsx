@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { ClipboardList, Users, CheckCircle, UserPlus, UserMinus, Calendar } from "lucide-react";
+import { ClipboardList, Users,  UserPlus, UserMinus, Calendar } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import Image from "next/image";
 
@@ -229,22 +229,7 @@ export default function AssessmentsPage() {
                           <div>
                             <span className="font-medium text-gray-800">{patient.name}</span>
                             <span className="ml-2 text-xs text-gray-500">{patient.email}</span>
-                            <div className="mt-2 flex items-center space-x-2">
-                              <Calendar className="w-4 h-4 text-orange-600" />
-                              <span className="text-xs text-gray-600 font-medium">Deadline</span>
-                              <Input
-                                type="date"
-                                value={patientDeadlines[patient.id] || ""}
-                                onChange={e =>
-                                  setPatientDeadlines(prev => ({
-                                    ...prev,
-                                    [patient.id]: e.target.value,
-                                  }))
-                                }
-                                className="w-38"
-                                title="Select deadline"
-                              />
-                            </div>
+                            
                           </div>
                           <Button
                             size="icon"
@@ -320,8 +305,8 @@ export default function AssessmentsPage() {
       )}
 
       <div className="max-w-7xl mx-auto space-y-8">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
+        {/* Header with Stats */}
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div>
             <h1 className="text-3xl font-bold text-[#8159A8] mb-2">
               Assessment Management
@@ -330,45 +315,30 @@ export default function AssessmentsPage() {
               Create and manage patient assessments and evaluations.
             </p>
           </div>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="bg-white p-6 rounded-lg border shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center justify-between">
-            <div className="text-left">
-              <div className="text-3xl font-bold text-[#8159A8]">
-                {totalAssessments}
+          <div className="flex flex-col md:flex-row gap-4">
+            <Card className="bg-primary-foreground p-6 rounded-lg border shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center justify-between min-w-[200px]">
+              <div className="text-left">
+                <div className="text-3xl font-bold text-[#8159A8]">
+                  {totalAssessments}
+                </div>
+                <div className="text-gray-500 text-sm">Total Assessments</div>
               </div>
-              <div className="text-gray-500 text-sm">Total Assessments</div>
-            </div>
-            <div className="flex-shrink-0 ml-4">
-              <ClipboardList className="w-10 h-10 text-[#8159A8]" />
-            </div>
-          </Card>
-
-          <Card className="bg-white p-6 rounded-lg border shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center justify-between">
-            <div className="text-left">
-              <div className="text-3xl font-bold text-[#8159A8]">
-                {totalPatients}
+              <div className="flex-shrink-0 ml-4">
+                <ClipboardList className="w-10 h-10 text-[#8159A8]" />
               </div>
-              <div className="text-gray-500 text-sm">Total Assignments</div>
-            </div>
-            <div className="flex-shrink-0 ml-4">
-              <Users className="w-10 h-10 text-[#8159A8]" />
-            </div>
-          </Card>
-
-          <Card className="bg-white p-6 rounded-lg border shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center justify-between">
-            <div className="text-left">
-              <div className="text-3xl font-bold text-[#8159A8]">
-                {assessments.filter(a => a.assignedPatients.some(p => p.completedAt)).length}
+            </Card>
+            <Card className="bg-primary-foreground p-6 rounded-lg border shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center justify-between min-w-[200px]">
+              <div className="text-left">
+                <div className="text-3xl font-bold text-[#8159A8]">
+                  {totalPatients}
+                </div>
+                <div className="text-gray-500 text-sm">Total Assignments</div>
               </div>
-              <div className="text-gray-500 text-sm">Assessments with Completions</div>
-            </div>
-            <div className="flex-shrink-0 ml-4">
-              <CheckCircle className="w-10 h-10 text-[#8159A8]" />
-            </div>
-          </Card>
+              <div className="flex-shrink-0 ml-4">
+                <Users className="w-10 h-10 text-[#8159A8]" />
+              </div>
+            </Card>
+          </div>
         </div>
 
         {/* Assessment Grid */}
