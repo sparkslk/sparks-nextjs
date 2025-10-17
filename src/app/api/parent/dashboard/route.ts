@@ -49,11 +49,16 @@ export async function GET(req: NextRequest) {
             take: 5
         });
 
-        // Count unread messages/notifications
-        const unreadMessages = await prisma.notification.count({
+        // Count unread messages that were sent by therapists
+        // (use the Message table and filter by the sender's role)
+        const unreadMessages = await prisma.message.count({
             where: {
                 receiverId: session.user.id,
-                isRead: false
+                isRead: false,
+                // relation name as defined in the schema
+                User_Message_senderIdToUser: {
+                    role: 'THERAPIST'
+                }
             }
         });
 
