@@ -253,7 +253,7 @@ export default function ParentDashboard() {
                         iconType="users"
                     />
                     <StatsCard
-                        title="Upcoming Sessions"
+                        title="Scheduled Sessions"
                         value={parentData.totalUpcomingSessions}
                         description="Scheduled sessions"
                         iconType="calendar"
