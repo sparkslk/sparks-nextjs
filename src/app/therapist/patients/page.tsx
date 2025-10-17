@@ -7,7 +7,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+
 import {
     Select,
     SelectContent,
@@ -156,22 +156,6 @@ export default function PatientsPage() {
 
         return matchesSearch && matchesAgeGroup && matchesStatus && matchesSession;
     });
-
-    const getStatusBadge = (status: string) => {
-        const config = {
-            active: { variant: "default" as const, className: "bg-green-100 text-green-800" },
-            inactive: { variant: "secondary" as const, className: "bg-red-100 text-red-800" },
-            completed: { variant: "outline" as const, className: "" }
-        };
-
-        const statusConfig = config[status as keyof typeof config] || config.inactive;
-
-        return (
-            <Badge variant={statusConfig.variant} className={statusConfig.className}>
-                {status.charAt(0).toUpperCase() + status.slice(1)}
-            </Badge>
-        );
-    };
 
     const clearAllFilters = () => {
         setSearchTerm("");

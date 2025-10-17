@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SessionUpdateModal } from "@/components/therapist/SessionUpdateModal";
 import MedicationManagement from "@/components/therapist/MedicationManagement";
+import AssessmentManagement from "@/components/therapist/AssessmentManagement";
 import { Medication } from "@/types/medications";
 import {
   Calendar,
@@ -87,25 +88,6 @@ interface SessionHistory {
 
 // Remove hardcodedMedications array as we'll use real data
 
-const hardcodedTasks = [
-  {
-    id: "1",
-    title: "Auditory Processing - Listening Task",
-    assignedDate: "2024-07-10",
-    completedDate: "2024-07-22",
-    deadline: "2024-08-22",
-    status: "Completed",
-    score: 78,
-  },
-  {
-    id: "2",
-    title: "Visual Perception - Picture Description",
-    assignedDate: "2024-07-08",
-    deadline: "2024-06-15",
-    status: "Pending",
-  }
-];
-
 export default function SessionDetailsPage() {
   const { status: authStatus } = useSession();
   const [session, setSession] = useState<DetailedSession | null>(null);
@@ -114,11 +96,11 @@ export default function SessionDetailsPage() {
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [showMedications, setShowMedications] = useState(false);
   const [showTasks, setShowTasks] = useState(false);
-  const [showAssignTask, setShowAssignTask] = useState(false);
   
   // Add medications state
   const [medications, setMedications] = useState<Medication[]>([]);
   const [isLoadingMedications, setIsLoadingMedications] = useState(false);
+  const [isLoadingAssessments, setIsLoadingAssessments] = useState(false);
   
   // Remove medication-related states that are now handled by MedicationManagement
   // const [showAddMedication, setShowAddMedication] = useState(false);
@@ -127,7 +109,7 @@ export default function SessionDetailsPage() {
   
   const params = useParams();
   const router = useRouter();
-  const sessionId = params.id as string;
+  const sessionId = params?.id as string;
 
   // Debug logging
   console.log("Component mounted/re-rendered");
@@ -645,145 +627,26 @@ export default function SessionDetailsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Tasks Modal */}
+      {/* Tasks Modal - Updated with AssessmentManagement component */}
       <Dialog open={showTasks} onOpenChange={setShowTasks}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>Assessment Updates for This Patient</DialogTitle>
-          </DialogHeader>
-          <div className="flex items-center justify-between mb-4">
-            
-            <div className="flex gap-2">
-              <Badge variant="outline" className="text-sm">
-                {hardcodedTasks.filter(t => t.status === "Pending").length} Pending
-              </Badge>
-              <Badge variant="outline" className="text-sm bg-green-50 text-green-700">
-                {hardcodedTasks.filter(t => t.status === "Completed").length} Completed
-              </Badge>
-            </div>
-            <Button
-              style={{ backgroundColor: "#8159A8", color: "#fff" }}
-              className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 shadow hover:brightness-110"
-              onClick={() => setShowAssignTask(true)}
-            >
-              <Plus className="w-5 h-5" />
-              Assign a new Assessment
-            </Button>
-          </div>
-          <div className="space-y-6">
-            {hardcodedTasks.length === 0 ? (
-              <Card>
-                <CardContent className="p-8 text-center">
-                  <CheckSquare className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No tasks assigned.</p>
-                </CardContent>
-              </Card>
-            ) : (
-              hardcodedTasks.map((task, idx) => (
-                <div
-                  key={task.id}
-                  className="flex flex-col md:flex-row items-start md:items-center justify-between bg-[#fcfafd] rounded-xl shadow-sm px-6 py-4"
-                  style={{ borderBottom: idx !== hardcodedTasks.length - 1 ? "1px solid #f0eef5" : undefined }}
-                >
-                  <div>
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <span className="text-base md:text-xl font-semibold text-[#8159A8]">{task.title}</span>
-                      {task.status === "Completed" && (
-                        <span className="bg-green-100 text-green-700 text-xs font-semibold px-2 py-0.5 rounded-full">
-                          Completed
-                        </span>
-                      )}
-                      {task.status === "Pending" && (
-                        <span className="bg-yellow-100 text-yellow-700 text-xs font-semibold px-2 py-0.5 rounded-full">
-                          Pending
-                        </span>
-                      )}
-                      {"score" in task && (
-                        <span className="bg-blue-100 text-blue-700 text-xs font-semibold px-2 py-0.5 rounded-full">
-                          Score: {task.score}
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-xs text-black font-medium">
-                      Assigned: {format(new Date(task.assignedDate), "MMM dd, yyyy")}
-                      {task.completedDate && (
-                      <span className="ml-3">
-                        Completed: {format(new Date(task.completedDate), "MMM dd, yyyy")}
-                      </span>
-                      )}
-                      <span className="ml-3">
-                      Deadline: {format(new Date(task.deadline), "MMM dd, yyyy")}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex gap-2 mt-3 md:mt-0">
-                    <Button
-                      variant="outline"
-                      className="border-red-400 text-red-700 hover:bg-red-50 px-3 py-1 text-xs font-semibold"
-                      style={{ borderColor: "#EF4444" }}
-                    >
-                      Unassign
-                    </Button>
-                  </div>
-                </div>
-              ))
-            )}
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden">
+          <div className="overflow-y-auto max-h-[calc(90vh-8rem)] pr-2">
+            {isLoadingAssessments ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#8159A8]"></div>
+                <span className="ml-2">Loading assessments...</span>
+              </div>
+            ) : session?.patientId ? (
+              <AssessmentManagement 
+                patientId={session.patientId}
+                onAssessmentUpdate={() => {
+                  console.log('Assessment updated');
+                }}
+              />
+            ) : null}
           </div>
         </DialogContent>
       </Dialog>
-
-     {/* Assign Task Modal */}
-      <Dialog open={showAssignTask} onOpenChange={setShowAssignTask}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>Assign an Assessment</DialogTitle>
-          </DialogHeader>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      {availableTasks.map((task) => (
-        <div key={task.id} className="bg-[#fcfafd] rounded-2xl shadow p-6 flex flex-col h-full border border-[#f0eef5]">
-          <div className="flex items-center gap-2 mb-2">
-            <span className={`text-xs font-semibold px-3 py-1 rounded-full ${task.typeColor}`}>
-              {task.type}
-            </span>
-          </div>
-          <div className="font-bold text-lg text-[#3b2562] mb-2">{task.title}</div>
-          <div className="text-sm text-gray-600 mb-4 flex-1">{task.description}</div>
-          <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
-            <User className="w-4 h-4" />
-            {task.assignedCount} patients assigned
-            {task.latestScore && (
-              <>
-                <span className="mx-2">|</span>
-                <FileText className="w-4 h-4" />
-                Latest Score: {task.latestScore}
-              </>
-            )}
-          </div>
-          <div className="flex gap-2 mt-auto">
-            <Button
-              variant="outline"
-              className="border-green-400 text-green-700 hover:bg-green-50 px-3 py-1 text-s font-semibold"
-              style={{ borderColor: "#1ac600ff" }}
-              // onClick={() => handleAssignTask(task.id)}
-            >
-              Assign
-            </Button>
-            
-          </div>
-        </div>
-      ))}
-    </div>
-    <div className="flex justify-end mt-6">
-      <Button
-        style={{ backgroundColor: "#8159A8", color: "#fff" }}
-        className="font-semibold px-6 py-2 rounded-lg"
-        onClick={() => setShowAssignTask(false)}
-      >
-        Done
-      </Button>
-    </div>
-        </DialogContent>
-      </Dialog> 
 
       {/* Session Update Modal */}
       <SessionUpdateModal

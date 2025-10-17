@@ -7,10 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Calendar, Clock, User, FileText,  Eye, ArrowLeft, Plus } from "lucide-react";
+import { Calendar, Clock, User, FileText, Eye, ArrowLeft } from "lucide-react";
 import MedicationManagement from "@/components/therapist/MedicationManagement";
+import AssessmentManagement from "@/components/therapist/AssessmentManagement";
 import { Medication } from "@/types/medications";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import Image from "next/image"; // Add this import for the Image component
 
 interface TherapySession {
@@ -65,7 +65,6 @@ export default function PatientDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState("info");
-  const [showAssignTask, setShowAssignTask] = useState(false);
 
   // Filter states
   const [statusFilter, setStatusFilter] = useState("");
@@ -164,11 +163,11 @@ export default function PatientDetailsPage() {
       return;
     }
 
-    if (status === "authenticated" && params.id) {
+    if (status === "authenticated" && params?.id) {
       fetchPatientData(params.id as string);
       fetchMedications(params.id as string);
     }
-  }, [status, params.id, router]);
+  }, [status, params?.id, router]);
 
   const fetchPatientData = async (patientId: string) => {
     try {
@@ -222,6 +221,8 @@ export default function PatientDetailsPage() {
     }
   };
 
+
+
   if (status === "loading" || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -258,30 +259,6 @@ export default function PatientDetailsPage() {
     );
   }
 
-
-  // Assigned Tasks data
-  const assignedAssessments = [
-  {
-    id: "1",
-    title: "Auditory Processing - Listening Task",
-    type: "LISTENING_TASK",
-    assignedDate: "July 10, 2024",
-    deadline: "July 25, 2024", // <-- Added deadline
-    status: "Completed",
-    score: 78,
-    completedAt: "July 22, 2024",
-  },
-  {
-    id: "2",
-    title: "Visual Perception - Picture Description",
-    type: "PICTURE_DESCRIPTION",
-    assignedDate: "July 8, 2024",
-    deadline: "July 20, 2024", // <-- Added deadline
-    status: "Pending",
-    score: null,
-    completedAt: null,
-  },
-];
 
   // Uploaded Documents data
   const uploadedDocuments = [
@@ -423,13 +400,13 @@ export default function PatientDetailsPage() {
         <Card className="shadow-sm hover:shadow-md transition-shadow bg-white dark:bg-slate-950">
           <CardContent className="p-6">
             <Tabs defaultValue="info" value={tab} onValueChange={setTab} className="w-full">              
-                <TabsList className="grid w-full grid-cols-5 mb-6">
+                <TabsList className="grid w-full grid-cols-4 mb-6">
                 <TabsTrigger value="info" className="text-xs sm:text-sm">Information</TabsTrigger>
                 <TabsTrigger value="sessions" className="text-xs sm:text-sm">Sessions</TabsTrigger>
                 <TabsTrigger value="medications" className="text-xs sm:text-sm">Medication</TabsTrigger>
                 <TabsTrigger value="assessments" className="text-xs sm:text-sm">Assessments</TabsTrigger>
-                <TabsTrigger value="docs" className="text-xs sm:text-sm">Documents</TabsTrigger>
-              </TabsList>
+{/*                 <TabsTrigger value="docs" className="text-xs sm:text-sm">Documents</TabsTrigger>
+ */}              </TabsList>
 
         {/* Tab Panels */}
         <TabsContent value="info" className="pt-4 sm:pt-6">
@@ -1030,129 +1007,27 @@ export default function PatientDetailsPage() {
         </TabsContent>
 
         <TabsContent value="medications" className="pt-6">
-          <MedicationManagement 
-            patientId={params.id as string} 
-            medications={medications}
-            onMedicationUpdate={() => fetchMedications(params.id as string)}
-          />       
+          {params?.id && (
+            <MedicationManagement 
+              patientId={params.id as string} 
+              medications={medications}
+              onMedicationUpdate={() => fetchMedications(params.id as string)}
+            />
+          )}       
         </TabsContent>
 
       
 
         <TabsContent value="assessments" className="pt-6">
-          {assignedAssessments && assignedAssessments.length > 0 ? (
-            <div className="space-y-6">
-              {/* Assigned Assessments Header */}
-              <div className="bg-transparent">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h3 className="text-2xl font-bold mb-2 text-[#8159A8]">Assigned Assessments</h3>
-                    <p className="text-gray-600">Assessments assigned by the therapist</p>
-                  </div>
-                  
-                  <div className="text-right">
-                    <div className="grid grid-cols-3 gap-4 text-center">
-                      <div className="bg-gray-50 rounded-lg p-3 border">
-                        <div className="text-2xl font-bold text-[#8159A8]">{assignedAssessments.length}</div>
-                        <div className="text-sm text-gray-600">Total</div>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-3 border">
-                        <div className="text-2xl font-bold text-[#8159A8]">
-                          {assignedAssessments.filter(a => a.status === 'Completed').length}
-                        </div>
-                        <div className="text-sm text-gray-600">Completed</div>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-3 border">
-                        <div className="text-2xl font-bold text-[#8159A8]">
-                          {assignedAssessments.length > 0
-                            ? Math.round(
-                                (assignedAssessments.filter(a => a.status === 'Completed').length /
-                                  assignedAssessments.length) *
-                                  100
-                              )
-                            : 0}
-                        %
-                        </div>
-                        <div className="text-sm text-gray-600">Completion Rate</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex gap-2 justify-end py-4">
-                  <Button
-                  style={{ backgroundColor: "#8159A8", color: "#fff" }}
-                  className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 shadow hover:brightness-110"
-                  onClick={() => setShowAssignTask(true)}
-                  >
-                  <Plus className="w-5 h-5" />
-                  Assign a new Assessment
-                  </Button>
-                </div>
-              </div>
-
-              {/* Assessments List */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {assignedAssessments.map((assessment) => (
-                  <div
-                    key={assessment.id}
-                    className="bg-[#FAF8FB] rounded-xl p-5 shadow-md hover:shadow-lg transition-shadow flex flex-col h-full border border-[#e9e1f3]"
-                  >
-                    {/* Badges on top */}
-                    <div className="flex gap-2 mb-2">
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                          assessment.status === 'Completed'
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-yellow-100 text-yellow-700'
-                        }`}
-                      >
-                        {assessment.status}
-                      </span>
-                    </div>
-                    {/* Title below badges */}
-                    <h4 className="text-lg font-semibold text-[#8159A8] mb-2 truncate">{assessment.title}</h4>
-                    <div className="flex flex-col gap-1 text-sm text-gray-700 flex-1 mt-1">
-                      <div>
-                        <span className="font-medium text-black">Assigned:</span> {assessment.assignedDate}
-                      </div>
-                      <div>
-                        <span className="font-medium text-black">Deadline:</span> {assessment.deadline}
-                      </div>
-                      {assessment.completedAt && (
-                      <div>
-                        <div>
-                        <span className="font-medium text-black">Completed:</span> {assessment.completedAt}
-                        </div>
-                        <div>
-                        <span className="font-medium text-black">Score: </span> {assessment.score}
-                        </div>
-                      </div>
-                      )}
-                    </div>
-                    <div className="mt-4 flex gap-2">
-                      <div className="flex-1 flex justify-end">
-                        {assessment.status === 'Pending' && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="hover:bg-red-50 text-red-600"
-                            onClick={() => {
-                              // TODO: Replace with API call to unassign the assessment
-                              alert(`Unassigned "${assessment.title}" (mock action)`);
-                            }}
-                          >
-                            Unassign
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <p className="text-muted-foreground">No assigned assessments found.</p>
-          )}
+          {params?.id && (
+            <AssessmentManagement 
+              patientId={params.id as string} 
+              onAssessmentUpdate={() => {
+                // Optional callback for any updates needed in parent component
+                console.log('Assessment updated');
+              }}
+            />
+          )}       
         </TabsContent>
 
         <TabsContent value="docs" className="pt-6">
@@ -1240,57 +1115,7 @@ export default function PatientDetailsPage() {
         </Card>
       </div>
 
-      {/* Assign Task Dialog - Place this outside of the main content, just before the closing </div> */}
-      <Dialog open={showAssignTask} onOpenChange={setShowAssignTask}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>Assign an Assessment</DialogTitle>
-          </DialogHeader>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {availableTasks.map((task) => (
-              <div key={task.id} className="bg-[#fcfafd] rounded-2xl shadow p-6 flex flex-col h-full border border-[#f0eef5]">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className={`text-xs font-semibold px-3 py-1 rounded-full ${task.typeColor}`}>
-                    {task.type}
-                  </span>
-                </div>
-                <div className="font-bold text-lg text-[#3b2562] mb-2">{task.title}</div>
-                <div className="text-sm text-gray-600 mb-4 flex-1">{task.description}</div>
-                <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
-                  <User className="w-4 h-4" />
-                  {task.assignedCount} patients assigned
-                  {task.latestScore && (
-                    <>
-                      <span className="mx-2">|</span>
-                      <FileText className="w-4 h-4" />
-                      Latest Score: {task.latestScore}
-                    </>
-                  )}
-                </div>
-                <div className="flex gap-2 mt-auto">
-                  <Button
-                    variant="outline"
-                    className="border-green-400 text-green-700 hover:bg-green-50 px-3 py-1 text-s font-semibold"
-                    style={{ borderColor: "#1ac600ff" }}
-                    // onClick={() => handleAssignTask(task.id)}
-                  >
-                    Assign
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="flex justify-end mt-6">
-            <Button
-              style={{ backgroundColor: "#8159A8", color: "#fff" }}
-              className="font-semibold px-6 py-2 rounded-lg"
-              onClick={() => setShowAssignTask(false)}
-            >
-              Done
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+
     </div>
   );
 }
