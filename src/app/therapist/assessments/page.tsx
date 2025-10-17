@@ -7,8 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { ClipboardList, Users,  UserPlus, UserMinus, Calendar } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { ClipboardList, Users,  UserPlus, UserMinus } from "lucide-react";
 import Image from "next/image";
 
 interface Assessment {
@@ -23,7 +22,6 @@ interface Assessment {
     name: string;
     email?: string;
     completedAt?: string;
-    deadline?: string;
   }[];
 }
 
@@ -37,18 +35,9 @@ export default function AssessmentsPage() {
   const [showPatientsModal, setShowPatientsModal] = useState(false);
   const [showAddPatientList, setShowAddPatientList] = useState(false);
 
-  // Hardcoded possible patients to add
-  const possiblePatients = [
-    { id: 'p10', name: 'Nimal Perera', email: 'nimal@email.com' },
-    { id: 'p11', name: 'Kamal Silva', email: 'kamal@email.com' },
-    { id: 'p12', name: 'Sunethra Jayasuriya', email: 'sunethra@email.com' },
-    { id: 'p13', name: 'Ruwanthi Fernando', email: 'ruwanthi@email.com' },
-  ];
-  
-  const [availablePatients, setAvailablePatients] = useState(possiblePatients);
-
-  // Add deadline state for each patient to be assigned
-  const [patientDeadlines, setPatientDeadlines] = useState<{ [id: string]: string }>({});
+  // Replace hardcoded patients with dynamic data
+  const [possiblePatients, setPossiblePatients] = useState<Array<{ id: string; name: string; email: string }>>([]);
+  const [availablePatients, setAvailablePatients] = useState<Array<{ id: string; name: string; email: string }>>([]);
 
   useEffect(() => {
     if (authStatus === "unauthenticated") {
@@ -58,8 +47,27 @@ export default function AssessmentsPage() {
 
     if (authStatus === "authenticated") {
       fetchAssessments();
+      fetchTherapistPatients(); // Add this line
     }
   }, [authStatus, router]);
+
+  // Add function to fetch therapist's patients
+  const fetchTherapistPatients = async () => {
+    try {
+      const response = await fetch('/api/therapist/patients');
+      if (response.ok) {
+        const data = await response.json();
+        const formattedPatients = data.patients.map((patient: any) => ({
+          id: patient.id,
+          name: `${patient.firstName} ${patient.lastName}`.trim(),
+          email: patient.user?.email || patient.email || ''
+        }));
+        setPossiblePatients(formattedPatients);
+      }
+    } catch (error) {
+      console.error("Error fetching patients:", error);
+    }
+  };
 
   const fetchAssessments = async () => {
     setLoading(true);
@@ -73,38 +81,27 @@ export default function AssessmentsPage() {
 
       const data = await response.json();
       
-      // Add mock assigned patients data to each assessment
-      const assessmentsWithMockPatients: Assessment[] = data.assessments.map((assessment: any, index: number) => {
-        // Mock assigned patients based on assessment type for demo purposes
-        let mockPatients: Assessment['assignedPatients'] = [];
-        
-        if (index === 0) {
-          mockPatients = [
-            { id: "p2", name: "Pasandi Piyathma", completedAt: "2024-07-22" },
-            { id: "p4", name: "Anuki Tiyara" },
-          ];
-        } else if (index === 1) {
-          mockPatients = [
-            { id: "p3", name: "Niduni Fernando" },
-            { id: "p5", name: "Onel Gomez" },
-            { id: "p6", name: "Dinithi Aloka" },
-            { id: "p4", name: "Sanduni Perera", completedAt: "2024-08-05"},
-            { id: "p7", name: "Mithara Gethmi", completedAt: "2024-08-03" },
-          ];
-        } else if (index === 2) {
-          mockPatients = [
-            { id: "p4", name: "Sanduni Perera", completedAt: "2024-08-05"},
-            { id: "p7", name: "Mithara Gethmi", completedAt: "2024-08-03" },
-          ];
-        }
+      // Fetch assignment data for each assessment
+      const assessmentsWithAssignments = await Promise.all(
+        data.assessments.map(async (assessment: any) => {
+          const assignmentResponse = await fetch(`/api/therapist/assessments/${assessment.id}/assignments`);
+          
+          if (assignmentResponse.ok) {
+            const assignmentData = await assignmentResponse.json();
+            return {
+              ...assessment,
+              assignedPatients: assignmentData.assignments || []
+            };
+          }
+          
+          return {
+            ...assessment,
+            assignedPatients: []
+          };
+        })
+      );
 
-        return {
-          ...assessment,
-          assignedPatients: mockPatients
-        };
-      });
-
-      setAssessments(assessmentsWithMockPatients);
+      setAssessments(assessmentsWithAssignments);
     } catch (err) {
       console.error("Error fetching assessments:", err);
     } finally {
@@ -112,57 +109,113 @@ export default function AssessmentsPage() {
     }
   };
 
-  const handleViewPatients = (e: React.MouseEvent, assessment: Assessment) => {
+  const handleViewPatients = async (e: React.MouseEvent, assessment: Assessment) => {
     e.stopPropagation();
-    setSelectedAssessment(assessment);
-    setShowPatientsModal(true);
-    // Remove already assigned patients from availablePatients
-    const assignedIds = new Set(assessment.assignedPatients.map(p => p.id));
-    setAvailablePatients(possiblePatients.filter(p => !assignedIds.has(p.id)));
-    setShowAddPatientList(false);
+    
+    try {
+      // Fetch fresh assignment data for this assessment
+      const assignmentResponse = await fetch(`/api/therapist/assessments/${assessment.id}/assignments`);
+      
+      let updatedAssessment = assessment;
+      if (assignmentResponse.ok) {
+        const assignmentData = await assignmentResponse.json();
+        updatedAssessment = {
+          ...assessment,
+          assignedPatients: assignmentData.assignments || []
+        };
+      }
+      
+      setSelectedAssessment(updatedAssessment);
+      setShowPatientsModal(true);
+      
+      // Remove already assigned patients from availablePatients
+      const assignedIds = new Set(updatedAssessment.assignedPatients.map(p => p.id));
+      setAvailablePatients(possiblePatients.filter(p => !assignedIds.has(p.id)));
+      setShowAddPatientList(false);
+    } catch (error) {
+      console.error('Error fetching assignment data:', error);
+      // Fall back to cached data
+      setSelectedAssessment(assessment);
+      setShowPatientsModal(true);
+      const assignedIds = new Set(assessment.assignedPatients.map(p => p.id));
+      setAvailablePatients(possiblePatients.filter(p => !assignedIds.has(p.id)));
+      setShowAddPatientList(false);
+    }
   };
 
-  // Update handleAddPatient to include deadline
-  const handleAddPatient = (patient: { id: string; name: string; email: string }) => {
+  // Update handleAddPatient to remove deadline logic
+  const handleAddPatient = async (patient: { id: string; name: string; email: string }) => {
     if (!selectedAssessment) return;
-    const deadline = patientDeadlines[patient.id] || "";
-    // Add patient with deadline to assignedPatients
-    setAssessments((prev) =>
-      prev.map((a) =>
-        a.id === selectedAssessment.id
-          ? { ...a, assignedPatients: [...a.assignedPatients, { ...patient, deadline }] }
-          : a
-      )
-    );
-    setSelectedAssessment((prev) =>
-      prev ? { ...prev, assignedPatients: [...prev.assignedPatients, { ...patient, deadline }] } : prev
-    );
-    setAvailablePatients((prev) => prev.filter((p) => p.id !== patient.id));
-    setShowAddPatientList(false);
-    setPatientDeadlines(prev => {
-      const copy = { ...prev };
-      delete copy[patient.id];
-      return copy;
-    });
+    
+    try {
+      const response = await fetch(`/api/therapist/assessments/${selectedAssessment.id}/assignments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          patientId: patient.id
+        }),
+      });
+
+      if (response.ok) {
+        // Update local state
+        setAssessments((prev) =>
+          prev.map((a) =>
+            a.id === selectedAssessment.id
+              ? { ...a, assignedPatients: [...a.assignedPatients, patient] }
+              : a
+          )
+        );
+        setSelectedAssessment((prev) =>
+          prev ? { ...prev, assignedPatients: [...prev.assignedPatients, patient] } : prev
+        );
+        setAvailablePatients((prev) => prev.filter((p) => p.id !== patient.id));
+        setShowAddPatientList(false);
+      } else {
+        console.error('Failed to assign patient');
+      }
+    } catch (error) {
+      console.error('Error assigning patient:', error);
+    }
   };
 
-  const handleUnassignPatient = (patient: { id: string; name: string; email?: string }) => {
+  const handleUnassignPatient = async (patient: { id: string; name: string; email?: string }) => {
     if (!selectedAssessment) return;
-    // Remove patient from assignedPatients
-    setAssessments((prev) =>
-      prev.map((a) =>
-        a.id === selectedAssessment.id
-          ? { ...a, assignedPatients: a.assignedPatients.filter((p) => p.id !== patient.id) }
-          : a
-      )
-    );
-    setSelectedAssessment((prev) =>
-      prev ? { ...prev, assignedPatients: prev.assignedPatients.filter((p) => p.id !== patient.id) } : prev
-    );
-    // Add back to availablePatients if in possiblePatients
-    const found = possiblePatients.find((p) => p.id === patient.id);
-    if (found) {
-      setAvailablePatients((prev) => [...prev, found]);
+    
+    try {
+      const response = await fetch(`/api/therapist/assessments/${selectedAssessment.id}/assignments`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          patientId: patient.id
+        }),
+      });
+
+      if (response.ok) {
+        // Update local state
+        setAssessments((prev) =>
+          prev.map((a) =>
+            a.id === selectedAssessment.id
+              ? { ...a, assignedPatients: a.assignedPatients.filter((p) => p.id !== patient.id) }
+              : a
+          )
+        );
+        setSelectedAssessment((prev) =>
+          prev ? { ...prev, assignedPatients: prev.assignedPatients.filter((p) => p.id !== patient.id) } : prev
+        );
+        // Add back to availablePatients if in possiblePatients
+        const found = possiblePatients.find((p) => p.id === patient.id);
+        if (found) {
+          setAvailablePatients((prev) => [...prev, found]);
+        }
+      } else {
+        console.error('Failed to unassign patient');
+      }
+    } catch (error) {
+      console.error('Error unassigning patient:', error);
     }
   };
 
@@ -229,7 +282,6 @@ export default function AssessmentsPage() {
                           <div>
                             <span className="font-medium text-gray-800">{patient.name}</span>
                             <span className="ml-2 text-xs text-gray-500">{patient.email}</span>
-                            
                           </div>
                           <Button
                             size="icon"
@@ -237,7 +289,6 @@ export default function AssessmentsPage() {
                             className="text-green-700 border-green-300"
                             onClick={() => handleAddPatient(patient)}
                             title="Add Patient"
-                            disabled={!patientDeadlines[patient.id]}
                           >
                             <UserPlus className="w-4 h-4" />
                           </Button>
@@ -269,12 +320,6 @@ export default function AssessmentsPage() {
                       <p className="font-medium text-gray-800">{patient.name}</p>
                       {patient.email && (
                         <p className="text-xs text-gray-500">{patient.email}</p>
-                      )}
-                      {patient.deadline && (
-                        <p className="text-xs text-orange-700 font-medium">
-                          <Calendar className="inline w-4 h-4 mr-1 mb-1" />
-                          Deadline: {new Date(patient.deadline).toLocaleDateString()}
-                        </p>
                       )}
                       {patient.completedAt && (
                         <p className="text-sm text-gray-500">

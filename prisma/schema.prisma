@@ -101,7 +101,6 @@ model Therapist {
   updatedAt             DateTime                     @updatedAt
   rating                Decimal?                     @db.Decimal(3, 2)
   session_rate          Decimal?                     @default(0) @db.Decimal(10, 2)
-  assessments           Assessment[]
   Conversation          Conversation[]
   GameAssignment        GameAssignment[]
   Medication            Medication[]
@@ -136,7 +135,7 @@ model Patient {
   createdAt              DateTime                     @default(now())
   updatedAt              DateTime                     @updatedAt
   parentConnectionStatus Boolean                      @default(true)
-  assessments            Assessment[]
+  AssessmentAssignment   AssessmentAssignment[]
   Conversation           Conversation[]
   GameAssignment         GameAssignment[]
   GameSession            GameSession[]
@@ -235,17 +234,16 @@ model Treatment {
 }
 
 model Assessment {
-  id          String    @id @default(cuid())
-  type        String
-  description String?
-  title       String?
-  link        String?
-  image       String?
-  createdAt   DateTime? @default(now()) @db.Timestamp(6)
-  updatedAt   DateTime? @default(now()) @db.Timestamp(6)
+  id                   String                 @id @default(cuid())
+  type                 String
+  description          String?
+  title                String?
+  link                 String?
+  image                String?
+  createdAt            DateTime?              @default(now()) @db.Timestamp(6)
+  updatedAt            DateTime?              @default(now()) @db.Timestamp(6)
+  AssessmentAssignment AssessmentAssignment[]
 }
-
-
 
 model Task {
   id               String     @id @default(cuid())
@@ -689,6 +687,23 @@ model Message {
   @@index([senderId])
 }
 
+model AssessmentAssignment {
+  id           String     @id @default(cuid())
+  assessmentId String
+  patientId    String
+  status       String     @default("PENDING")
+  completedAt  DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  Assessment   Assessment @relation(fields: [assessmentId], references: [id])
+  Patient      Patient    @relation(fields: [patientId], references: [id])
+
+  @@unique([assessmentId, patientId])
+  @@index([assessmentId])
+  @@index([patientId])
+  @@index([status])
+}
+
 enum UserRole {
   NORMAL_USER
   PARENT_GUARDIAN
@@ -890,4 +905,11 @@ enum SessionType {
 enum ConversationType {
   PARENT
   PATIENT
+}
+
+enum AssessmentType {
+  INITIAL
+  PROGRESS
+  FINAL
+  FOLLOW_UP
 }
