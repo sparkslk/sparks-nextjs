@@ -500,15 +500,14 @@ export default function AssessmentsPage() {
                     </div>
 
                     {/* Image */}
-                    <div className="relative w-full h-40">
+                    {/* <div className="relative w-full h-40">
                       <Image
-                        src={assessment.image ? `/images/assessments/${assessment.image}` : '/images/assessments/1.jpg'}
-                        alt={assessment.title}
+                        src={assessment.image && assessment.image.trim() ? `/images/assessments/${assessment.image.trim()}` : '/images/assessments/11.jpg'}                        alt={assessment.title}
                         layout="fill"
                         objectFit="cover"
                         className="rounded-lg"
                       />
-                    </div>
+                    </div> */}
 
                     {/* Title and Description */}
                     <div>
