@@ -461,7 +461,7 @@ export default function MyChildrenPage() {
                       disabled={!child.therapist}
                     >
                       <span className="mr-2">📅</span>
-                      Appointments
+                      Sessions
                     </Button>
                     <Button
                       variant="outline"

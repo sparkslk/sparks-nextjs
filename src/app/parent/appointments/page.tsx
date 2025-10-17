@@ -508,7 +508,7 @@ export default function AppointmentsPage() {
               value={selectedChildId}
               onChange={e => setSelectedChildId(e.target.value)}
             >
-              <option value="all">All Appoinments</option>
+              <option value="all">All Sessions</option>
               {children.map(child => (
                 <option key={child.id} value={child.id}>
                   {child.firstName} {child.lastName}
