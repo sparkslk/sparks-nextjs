@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { generateSimpleMeetingLink } from "@/lib/google-meet";
+import { generateSimpleMeetingLink, createGoogleMeetEvent } from "@/lib/google-meet";
 import { SessionType, SessionStatus, Prisma } from "@prisma/client";
 
 export async function POST(request: NextRequest) {
@@ -166,6 +166,10 @@ export async function POST(request: NextRequest) {
     // Get the rate - check if slot is free, otherwise use therapist's session rate
     const sessionRate = availabilitySlot.isFree ? 0 : (child.primaryTherapist.session_rate || 0);
 
+    // Store therapist info for use in transaction (TypeScript narrowing)
+    const therapistUserId = child.primaryTherapist.user.id;
+    const therapistName = child.primaryTherapist.user.name;
+
     // Create the therapy session and mark the slot as booked in a transaction
     const result = await prisma.$transaction(async (tx) => {
       // First, mark the availability slot as booked (double-check it's still available)
@@ -195,9 +199,68 @@ export async function POST(request: NextRequest) {
 
       // Generate meeting link for online sessions
       if (meetingType === "ONLINE" || meetingType === "HYBRID") {
-        // For now, use simple meeting link generation
-        // Can be upgraded to Google Meet integration when OAuth is configured for therapists
-        sessionData.meetingLink = generateSimpleMeetingLink(childId + "-" + Date.now());
+        try {
+          // Get therapist's Google OAuth tokens from Account table
+          const therapistAccount = await tx.account.findFirst({
+            where: {
+              userId: therapistUserId,
+              provider: "google",
+            },
+            select: {
+              access_token: true,
+              refresh_token: true,
+            },
+          });
+
+          if (therapistAccount?.access_token && therapistAccount?.refresh_token) {
+            // Get parent user details for email
+            const parentUser = await tx.user.findUnique({
+              where: { id: session.user.id },
+              select: { email: true, name: true },
+            });
+
+            // Get therapist email
+            const therapistEmail = await tx.user.findUnique({
+              where: { id: therapistUserId },
+              select: { email: true },
+            });
+
+            // Calculate session end time (45 minutes after start)
+            const sessionEnd = new Date(sessionDate);
+            sessionEnd.setMinutes(sessionEnd.getMinutes() + 45);
+
+            // Create Google Meet event with calendar integration
+            const meetingResponse = await createGoogleMeetEvent(
+              {
+                summary: `Therapy Session - ${child.firstName} ${child.lastName}`,
+                description: `Online therapy session\nSession Type: ${sessionType}\nPatient: ${child.firstName} ${child.lastName}\nTherapist: ${therapistName}\nParent: ${parentUser?.name || 'Guardian'}`,
+                startDateTime: sessionDate.toISOString(),
+                endDateTime: sessionEnd.toISOString(),
+                attendeeEmails: [
+                  ...(parentUser?.email ? [parentUser.email] : []),
+                  ...(therapistEmail?.email ? [therapistEmail.email] : []),
+                ],
+                timezone: "Asia/Colombo",
+              },
+              therapistAccount.access_token,
+              therapistAccount.refresh_token
+            );
+
+            sessionData.meetingLink = meetingResponse.meetingLink;
+            sessionData.calendarEventId = meetingResponse.eventId;
+
+            console.log(`✅ Google Meet event created: ${meetingResponse.meetingLink}`);
+          } else {
+            // Fallback to simple meeting link if therapist hasn't connected Google account
+            sessionData.meetingLink = generateSimpleMeetingLink(childId + "-" + Date.now());
+            console.log(`⚠️ Using fallback meeting link (therapist not connected to Google)`);
+          }
+        } catch (meetError) {
+          // If Google Meet creation fails, fall back to simple meeting link
+          console.error("Failed to create Google Meet event:", meetError);
+          sessionData.meetingLink = generateSimpleMeetingLink(childId + "-" + Date.now());
+          console.log(`⚠️ Using fallback meeting link (Google Meet creation failed)`);
+        }
       }
 
       const therapySession = await tx.therapySession.create({
