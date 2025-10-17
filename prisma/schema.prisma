@@ -101,6 +101,7 @@ model Therapist {
   updatedAt             DateTime                     @updatedAt
   rating                Decimal?                     @db.Decimal(3, 2)
   session_rate          Decimal?                     @default(0) @db.Decimal(10, 2)
+  assessments           Assessment[]
   Conversation          Conversation[]
   GameAssignment        GameAssignment[]
   Medication            Medication[]
@@ -135,6 +136,7 @@ model Patient {
   createdAt              DateTime                     @default(now())
   updatedAt              DateTime                     @updatedAt
   parentConnectionStatus Boolean                      @default(true)
+  assessments            Assessment[]
   Conversation           Conversation[]
   GameAssignment         GameAssignment[]
   GameSession            GameSession[]
@@ -556,24 +558,6 @@ model TherapistReference {
   therapist          Therapist       @relation(fields: [therapistId], references: [id], onDelete: Cascade)
 }
 
-model Conversation {
-  id              String           @id
-  therapistId     String
-  participantId   String
-  participantType ConversationType
-  patientId       String?
-  lastMessageAt   DateTime         @default(now())
-  createdAt       DateTime         @default(now())
-  User            User             @relation(fields: [participantId], references: [id], onDelete: Cascade)
-  Patient         Patient?         @relation(fields: [patientId], references: [id])
-  Therapist       Therapist        @relation(fields: [therapistId], references: [id], onDelete: Cascade)
-  Message         Message[]
-
-  @@unique([therapistId, participantId, participantType])
-  @@index([participantId])
-  @@index([therapistId])
-}
-
 model Donation {
   id                String                @id
   amount            Decimal               @db.Decimal(10, 2)
@@ -668,8 +652,26 @@ model GameSession {
   @@index([patientId])
 }
 
+model Conversation {
+  id              String           @id @default(cuid())
+  therapistId     String
+  participantId   String
+  participantType ConversationType
+  patientId       String?
+  lastMessageAt   DateTime         @default(now())
+  createdAt       DateTime         @default(now())
+  User            User             @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  Patient         Patient?         @relation(fields: [patientId], references: [id])
+  Therapist       Therapist        @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+  Message         Message[]
+
+  @@unique([therapistId, participantId, participantType])
+  @@index([participantId])
+  @@index([therapistId])
+}
+
 model Message {
-  id                            String       @id
+  id                            String       @id @default(cuid())
   conversationId                String
   senderId                      String
   receiverId                    String
@@ -838,18 +840,6 @@ enum ReferenceStatus {
   FAILED_VERIFICATION
 }
 
-enum AssessmentType {
-  INITIAL
-  PROGRESS
-  FINAL
-  FOLLOW_UP
-}
-
-enum ConversationType {
-  PARENT
-  PATIENT
-}
-
 enum DonationFrequency {
   ONE_TIME
   MONTHLY
@@ -895,4 +885,9 @@ enum SessionType {
   IN_PERSON
   ONLINE
   HYBRID
+}
+
+enum ConversationType {
+  PARENT
+  PATIENT
 }

@@ -1,217 +1,246 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Search, Send, Paperclip, Smile, Clock, CheckCheck, Check } from "lucide-react";
+import { Search, Send, Clock, CheckCheck, Check, AlertCircle, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-interface ChatMessage {
-  id: string;
-  text: string;
-  sender: "therapist" | "patient" | "parent";
-  timestamp: string;
-  isRead: boolean;
-  messageType?: "text" | "file" | "appointment";
-  fileInfo?: {
-    name: string;
-    size: string;
-    type: string;
-  };
-}
-
-interface Conversation {
-  id: string;
-  patientName: string;
-  parentName?: string;
-  contactType: "patient" | "parent";
-  patientId: string;
-  lastMessage: string;
-  lastMessageTime: string;
-  unreadCount: number;
-  isOnline: boolean;
-  messages: ChatMessage[];
-  avatar?: string;
-}
+import { getConversations, sendMessage, getMessages, startMessagePolling } from "@/lib/chat-api";
+import type { ConversationWithDetails, Message } from "@/types/chat";
+import { chatEvents } from "@/lib/chat-events";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 export default function TherapistMessagesPage() {
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+  const { data: session } = useSession();
+  const [conversations, setConversations] = useState<ConversationWithDetails[]>([]);
+  const [selectedConversation, setSelectedConversation] = useState<ConversationWithDetails | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [showNewChatDialog, setShowNewChatDialog] = useState(false);
+  const [availableParticipants, setAvailableParticipants] = useState<{
+    type: string;
+    userId: string;
+    patientId: string;
+    patientIds?: string[];
+    name: string;
+    avatar: string | null;
+    patientName: string;
+    patientNames: string[];
+    relationship?: string;
+  }[]>([]);
+  const [loadingParticipants, setLoadingParticipants] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterType, setFilterType] = useState<'ALL' | 'PATIENT' | 'PARENT'>('ALL');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const stopPollingRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  useEffect(() => {
-    // Simulate loading conversations data
-    setTimeout(() => {
-      const conversationData: Conversation[] = [
-        {
-          id: "1",
-          patientName: "Amal Perera",
-          parentName: "Priya Perera",
-          contactType: "parent",
-          patientId: "P001",
-          lastMessage: "Thank you for the session notes. Amal has been much better this week.",
-          lastMessageTime: "2 hours ago",
-          unreadCount: 2,
-          isOnline: true,
-          messages: [
-            {
-              id: "m1",
-              text: "Good morning Dr. Silva. I wanted to update you on Amal's progress this week.",
-              sender: "parent",
-              timestamp: "2024-01-15T09:15:00Z",
-              isRead: true
-            },
-            {
-              id: "m2",
-              text: "Good morning! I'm glad to hear from you. How has Amal been doing with his daily routines?",
-              sender: "therapist",
-              timestamp: "2024-01-15T09:18:00Z",
-              isRead: true
-            },
-            {
-              id: "m3",
-              text: "He's been much more consistent with his morning routine. The visualization exercises we discussed are really helping him.",
-              sender: "parent",
-              timestamp: "2024-01-15T09:22:00Z",
-              isRead: true
-            },
-            {
-              id: "m4",
-              text: "That's excellent progress! I'd like to introduce some new coping strategies in our next session. Are you available for a brief consultation this week?",
-              sender: "therapist",
-              timestamp: "2024-01-15T09:25:00Z",
-              isRead: true
-            },
-            {
-              id: "m5",
-              text: "Thank you for the session notes. Amal has been much better this week.",
-              sender: "parent",
-              timestamp: "2024-01-15T14:28:00Z",
-              isRead: false
-            }
-          ]
-        },
-        {
-          id: "2",
-          patientName: "Ravindi Fernando",
-          contactType: "patient",
-          patientId: "P002",
-          lastMessage: "I've been practicing the breathing exercises daily as we discussed.",
-          lastMessageTime: "5 hours ago",
-          unreadCount: 1,
-          isOnline: false,
-          messages: [
-            {
-              id: "m101",
-              text: "Hi Dr. Silva, I've been practicing the breathing exercises daily as we discussed.",
-              sender: "patient",
-              timestamp: "2024-01-15T11:00:00Z",
-              isRead: false
-            },
-            {
-              id: "m102",
-              text: "That's wonderful to hear! How are you feeling during stressful situations now?",
-              sender: "therapist",
-              timestamp: "2024-01-15T11:30:00Z",
-              isRead: true
-            }
-          ]
-        },
-        {
-          id: "3",
-          patientName: "Nimal Silva",
-          parentName: "Kamala Silva",
-          contactType: "parent",
-          patientId: "P003",
-          lastMessage: "Could we schedule an additional session this week?",
-          lastMessageTime: "1 day ago",
-          unreadCount: 0,
-          isOnline: false,
-          messages: [
-            {
-              id: "m201",
-              text: "Good afternoon Dr. Silva. I have some concerns about Nimal's medication side effects.",
-              sender: "parent",
-              timestamp: "2024-01-14T15:00:00Z",
-              isRead: true
-            },
-            {
-              id: "m202",
-              text: "I understand your concerns. Can you describe what specific side effects you've noticed?",
-              sender: "therapist",
-              timestamp: "2024-01-14T15:30:00Z",
-              isRead: true
-            },
-            {
-              id: "m203",
-              text: "Could we schedule an additional session this week?",
-              sender: "parent",
-              timestamp: "2024-01-14T16:00:00Z",
-              isRead: true
-            }
-          ]
-        }
-      ];
-
-      setConversations(conversationData);
-      if (conversationData.length > 0) {
-        setSelectedConversation(conversationData[0]);
+  const loadConversations = async () => {
+    setLoading(true);
+    setError(null);
+    
+    const result = await getConversations();
+    
+    if (result.success && result.conversations) {
+      setConversations(result.conversations);
+      if (result.conversations.length > 0 && !selectedConversation) {
+        setSelectedConversation(result.conversations[0]);
       }
-      setLoading(false);
-    }, 1000);
+    } else {
+      setError(result.error || "Failed to load conversations");
+    }
+    
+    setLoading(false);
+  };
+
+  // Load conversations on mount
+  useEffect(() => {
+    if (session?.user) {
+      loadConversations();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleSendMessage = () => {
-    if (newMessage.trim() && selectedConversation) {
-      const message: ChatMessage = {
-        id: `m${selectedConversation.messages.length + 1}`,
-        text: newMessage,
-        sender: "therapist",
-        timestamp: new Date().toISOString(),
-        isRead: true
-      };
-
-      // Update conversations list
-      setConversations(prev => 
-        prev.map(conv => 
-          conv.id === selectedConversation.id 
-            ? { 
-                ...conv, 
-                messages: [...conv.messages, message],
-                lastMessage: newMessage,
-                lastMessageTime: "now",
-                unreadCount: 0
-              }
-            : conv
-        )
+  // Load messages when conversation is selected
+  useEffect(() => {
+    if (selectedConversation) {
+      loadMessages(selectedConversation.id);
+      
+      // Start polling for new messages
+      if (stopPollingRef.current) {
+        stopPollingRef.current();
+      }
+      
+      let previousMessageCount = 0;
+      
+      stopPollingRef.current = startMessagePolling(
+        selectedConversation.id,
+        (result) => {
+          if (result.success && result.messages) {
+            // Check if new messages arrived
+            if (result.messages.length > previousMessageCount && previousMessageCount > 0) {
+              // New message received - notify sidebar to update unread count
+              chatEvents.notifyMessageReceived(selectedConversation.id);
+            }
+            previousMessageCount = result.messages.length;
+            
+            setMessages(result.messages);
+            scrollToBottom();
+          }
+        },
+        3000 // Poll every 3 seconds
       );
+    }
+    
+    return () => {
+      if (stopPollingRef.current) {
+        stopPollingRef.current();
+        stopPollingRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedConversation?.id]);
 
-      // Update selected conversation
-      setSelectedConversation(prev => 
-        prev ? { ...prev, messages: [...prev.messages, message] } : null
-      );
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
-      setNewMessage("");
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const loadMessages = async (conversationId: string) => {
+    const result = await getMessages(conversationId);
+    
+    if (result.success && result.messages) {
+      setMessages(result.messages);
+      
+      // Messages are marked as read when loaded - notify sidebar
+      chatEvents.notifyMessagesRead(conversationId);
+    } else {
+      setError(result.error || "Failed to load messages");
     }
   };
 
-  const filteredConversations = conversations.filter(conv =>
-    conv.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (conv.parentName && conv.parentName.toLowerCase().includes(searchTerm.toLowerCase()))
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() || !selectedConversation || sending || !session?.user) return;
+    
+    setSending(true);
+    setError(null);
+    
+    const result = await sendMessage({
+      conversationId: selectedConversation.id,
+      receiverId: selectedConversation.participantId,
+      content: newMessage.trim(),
+    });
+    
+    if (result.success && result.message) {
+      // Add message to local state immediately for better UX
+      setMessages(prev => [...prev, result.message!]);
+      setNewMessage("");
+      scrollToBottom();
+      
+      // Reload conversations to update last message
+      loadConversations();
+    } else {
+      setError(result.error || "Failed to send message");
+    }
+    
+    setSending(false);
+  };
+
+  const handleConversationSelect = (conversation: ConversationWithDetails) => {
+    setSelectedConversation(conversation);
+    
+    // Mark conversation as read locally
+    setConversations(prev =>
+      prev.map(c => c.id === conversation.id ? { ...c, unreadCount: 0 } : c)
+    );
+  };
+
+  const loadAvailableParticipants = async () => {
+    setLoadingParticipants(true);
+    try {
+      const response = await fetch('/api/chat/available-participants');
+      const data = await response.json();
+      
+      if (data.success && data.participants) {
+        setAvailableParticipants(data.participants);
+      } else {
+        console.error('Failed to load participants:', data.error);
+      }
+    } catch (error) {
+      console.error('Error loading participants:', error);
+    }
+    setLoadingParticipants(false);
+  };
+
+  const handleStartNewChat = async (participant: typeof availableParticipants[0]) => {
+    try {
+      // Create conversation without sending a message
+      const response = await fetch('/api/chat/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          receiverId: participant.userId,
+          content: '', // Empty content to just create conversation
+          patientId: participant.patientId,
+        }),
+      });
+
+      if (response.ok) {
+        await loadConversations();
+        
+        // Find and select the new conversation
+        const result = await getConversations();
+        if (result.success && result.conversations) {
+          const newConv = result.conversations.find(
+            (c) => c.participantId === participant.userId
+          );
+          if (newConv) {
+            setSelectedConversation(newConv);
+          }
+        }
+        
+        setShowNewChatDialog(false);
+        setSearchQuery('');
+        setFilterType('ALL');
+      } else {
+        const errorData = await response.json();
+        alert(errorData.error || 'Failed to start new chat. Please try again.');
+      }
+    } catch {
+      alert('Failed to start new chat. Please try again.');
+    }
+  };
+
+  const filteredConversations = conversations.filter((conv: ConversationWithDetails) =>
+    conv.participantName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    conv.patientName?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const formatTime = (timestamp: string) => {
+  const formatTime = (timestamp: Date | string) => {
     if (!mounted) return "";
     try {
       const date = new Date(timestamp);
@@ -221,19 +250,35 @@ export default function TherapistMessagesPage() {
     }
   };
 
+  const formatDate = (timestamp: Date | string) => {
+    if (!mounted) return "";
+    try {
+      const date = new Date(timestamp);
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      if (date.toDateString() === today.toDateString()) {
+        return "Today";
+      } else if (date.toDateString() === yesterday.toDateString()) {
+        return "Yesterday";
+      } else {
+        return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+      }
+    } catch {
+      return "";
+    }
+  };
+
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
 
-  const markAsRead = (conversationId: string) => {
-    setConversations(prev =>
-      prev.map(conv =>
-        conv.id === conversationId ? { ...conv, unreadCount: 0 } : conv
-      )
-    );
+  const isMyMessage = (message: Message) => {
+    return message.senderId === session?.user?.id;
   };
 
-  if (loading) {
+  if (loading && conversations.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#F5F3FB] via-white to-[#F5F3FB]">
         <div className="text-center">
@@ -252,16 +297,159 @@ export default function TherapistMessagesPage() {
           <p className="text-gray-600">Communicate with patients and their families</p>
         </div>
 
+        {error && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700">
+            <AlertCircle className="h-5 w-5" />
+            <span>{error}</span>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-200px)]">
           {/* Conversations List */}
           <div className="lg:col-span-1">
             <Card className="h-full shadow-sm">
-              <CardHeader className="bg-white border-b border-gray-200 pb-4">
+              <CardHeader className="bg-gray-50 border-b border-gray-200">
                 <div className="flex items-center justify-between mb-4">
                   <CardTitle className="text-lg font-semibold text-gray-900">Conversations</CardTitle>
-                  <Badge variant="secondary" className="bg-[#8159A8] text-white">
-                    {conversations.reduce((sum, conv) => sum + conv.unreadCount, 0)} unread
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Dialog open={showNewChatDialog} onOpenChange={setShowNewChatDialog}>
+                      <DialogTrigger asChild>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={loadAvailableParticipants}
+                          className="text-[#8159A8] border-[#8159A8] hover:bg-[#8159A8]/10"
+                        >
+                          <Plus className="h-4 w-4 mr-1" />
+                          New Chat
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-[500px]">
+                        <DialogHeader>
+                          <DialogTitle>Start New Chat</DialogTitle>
+                          <DialogDescription>
+                            Select a patient or parent to start a conversation
+                          </DialogDescription>
+                        </DialogHeader>
+                        
+                        {/* Search and Filter */}
+                        <div className="space-y-3 pb-2 border-b">
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            <Input
+                              placeholder="Search by name..."
+                              value={searchQuery}
+                              onChange={(e) => setSearchQuery(e.target.value)}
+                              className="pl-10"
+                            />
+                          </div>
+                          
+                          <div className="flex gap-2">
+                            <Button
+                              variant={filterType === 'ALL' ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() => setFilterType('ALL')}
+                              className={filterType === 'ALL' ? 'bg-[#8159A8] hover:bg-[#8159A8]/90' : 'text-gray-600'}
+                            >
+                              All
+                            </Button>
+                            <Button
+                              variant={filterType === 'PATIENT' ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() => setFilterType('PATIENT')}
+                              className={filterType === 'PATIENT' ? 'bg-[#8159A8] hover:bg-[#8159A8]/90' : 'text-gray-600'}
+                            >
+                              Patients
+                            </Button>
+                            <Button
+                              variant={filterType === 'PARENT' ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() => setFilterType('PARENT')}
+                              className={filterType === 'PARENT' ? 'bg-[#8159A8] hover:bg-[#8159A8]/90' : 'text-gray-600'}
+                            >
+                              Parents
+                            </Button>
+                          </div>
+                        </div>
+                        
+                        <div className="py-4 max-h-[400px] overflow-y-auto">
+                          {loadingParticipants ? (
+                            <div className="text-center py-8">
+                              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#8159A8] mx-auto"></div>
+                              <p className="mt-2 text-gray-500">Loading participants...</p>
+                            </div>
+                          ) : availableParticipants.filter(p => {
+                            // Apply type filter
+                            if (filterType !== 'ALL' && p.type !== filterType) return false;
+                            // Apply search filter
+                            if (searchQuery && !p.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+                            return true;
+                          }).length === 0 ? (
+                            <div className="text-center py-8 text-gray-500">
+                              <p>No participants found</p>
+                              <p className="text-sm mt-2">
+                                {searchQuery || filterType !== 'ALL' 
+                                  ? 'Try adjusting your search or filters'
+                                  : 'You need assigned patients first'
+                                }
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              {availableParticipants
+                                .filter(p => {
+                                  // Apply type filter
+                                  if (filterType !== 'ALL' && p.type !== filterType) return false;
+                                  // Apply search filter
+                                  if (searchQuery && !p.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+                                  return true;
+                                })
+                                .map((participant, index) => (
+                                <div
+                                  key={`${participant.userId}-${index}`}
+                                  onClick={() => handleStartNewChat(participant)}
+                                  className="p-3 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors"
+                                >
+                                  <div className="flex items-center space-x-3">
+                                    <Avatar className="h-10 w-10">
+                                      <AvatarImage src={participant.avatar || undefined} />
+                                      <AvatarFallback className="bg-[#8159A8] text-white">
+                                        {getInitials(participant.name)}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-2">
+                                        <h4 className="font-medium text-gray-900">{participant.name}</h4>
+                                        <Badge variant="outline" className="text-xs">
+                                          {participant.type}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-gray-500">
+                                        {participant.type === 'PARENT' && participant.patientNames && participant.patientNames.length > 1 ? (
+                                          <>
+                                            Patients: {participant.patientNames.join(', ')}
+                                            {participant.relationship && ` (${participant.relationship})`}
+                                          </>
+                                        ) : (
+                                          <>
+                                            Patient: {participant.patientName}
+                                            {participant.relationship && ` (${participant.relationship})`}
+                                          </>
+                                        )}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                    <Badge variant="secondary" className="bg-[#8159A8] text-white">
+                      {conversations.reduce((sum, conv) => sum + (conv.unreadCount || 0), 0)} unread
+                    </Badge>
+                  </div>
                 </div>
                 {/* Search */}
                 <div className="relative">
@@ -275,59 +463,66 @@ export default function TherapistMessagesPage() {
                 </div>
               </CardHeader>
               <CardContent className="p-0 h-[calc(100%-120px)] overflow-y-auto">
-                {filteredConversations.map((conversation) => (
-                  <div
-                    key={conversation.id}
-                    onClick={() => {
-                      setSelectedConversation(conversation);
-                      markAsRead(conversation.id);
-                    }}
-                    className={cn(
-                      "p-4 cursor-pointer border-b border-gray-100 hover:bg-gray-50 transition-colors",
-                      selectedConversation?.id === conversation.id && "bg-[#F5F3FB] border-l-4 border-l-[#8159A8]"
-                    )}
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div className="relative">
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage src={conversation.avatar} />
-                          <AvatarFallback className="bg-[#8159A8] text-white">
-                            {getInitials(conversation.contactType === "parent" && conversation.parentName 
-                              ? conversation.parentName 
-                              : conversation.patientName)}
-                          </AvatarFallback>
-                        </Avatar>
-                        {conversation.isOnline && (
-                          <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
-                        )}
-                      </div>
-                      
-                      <div className="flex-1 min-w-0">
-                        <div className="flex justify-between items-start mb-1">
-                          <div>
-                            <h3 className="font-medium text-gray-900 truncate">
-                              {conversation.contactType === "parent" && conversation.parentName 
-                                ? conversation.parentName 
-                                : conversation.patientName}
-                            </h3>
-                            <p className="text-xs text-gray-500">
-                              {conversation.contactType === "parent" 
-                                ? `Parent of ${conversation.patientName}` 
-                                : "Patient"}
-                            </p>
-                          </div>
-                          {conversation.unreadCount > 0 && (
-                            <Badge className="bg-[#8159A8] text-white text-xs px-2 py-1">
-                              {conversation.unreadCount}
-                            </Badge>
+                {filteredConversations.length === 0 ? (
+                  <div className="p-8 text-center text-gray-500">
+                    <p>No conversations yet</p>
+                  </div>
+                ) : (
+                  filteredConversations.map((conversation) => (
+                    <div
+                      key={conversation.id}
+                      onClick={() => handleConversationSelect(conversation)}
+                      className={cn(
+                        "p-4 cursor-pointer border-b border-gray-100 hover:bg-gray-50 transition-colors",
+                        selectedConversation?.id === conversation.id && "bg-[#F5F3FB] border-l-4 border-l-[#8159A8]"
+                      )}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="relative">
+                          <Avatar className="h-10 w-10">
+                            <AvatarImage src={conversation.participantAvatar || undefined} />
+                            <AvatarFallback className="bg-[#8159A8] text-white">
+                              {getInitials(conversation.participantName || 'User')}
+                            </AvatarFallback>
+                          </Avatar>
+                          {conversation.isOnline && (
+                            <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
                           )}
                         </div>
-                        <p className="text-sm text-gray-500 truncate mb-1">{conversation.lastMessage}</p>
-                        <p className="text-xs text-gray-400">{conversation.lastMessageTime}</p>
+                        
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between items-start mb-1">
+                            <div>
+                              <h3 className="font-medium text-gray-900 truncate">
+                                {conversation.participantName || 'User'}
+                              </h3>
+                              <p className="text-xs text-gray-500">
+                                {conversation.participantType === 'PARENT' && conversation.patientNames && conversation.patientNames.length > 0
+                                  ? conversation.patientNames.length > 1
+                                    ? `Parent of ${conversation.patientNames.join(', ')}`
+                                    : `Parent of ${conversation.patientNames[0]}`
+                                  : "Patient"}
+                              </p>
+                            </div>
+                            {conversation.unreadCount && conversation.unreadCount > 0 && (
+                              <Badge className="bg-[#8159A8] text-white text-xs px-2 py-1">
+                                {conversation.unreadCount}
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-500 truncate mb-1">
+                            {conversation.lastMessage || 'No messages yet'}
+                          </p>
+                          {conversation.lastMessageAt && (
+                            <p className="text-xs text-gray-400">
+                              {formatDate(conversation.lastMessageAt)}
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </CardContent>
             </Card>
           </div>
@@ -342,11 +537,9 @@ export default function TherapistMessagesPage() {
                     <div className="flex items-center space-x-3">
                       <div className="relative">
                         <Avatar className="h-10 w-10">
-                          <AvatarImage src={selectedConversation.avatar} />
+                          <AvatarImage src={selectedConversation.participantAvatar || undefined} />
                           <AvatarFallback className="bg-[#8159A8] text-white">
-                            {getInitials(selectedConversation.contactType === "parent" && selectedConversation.parentName 
-                              ? selectedConversation.parentName 
-                              : selectedConversation.patientName)}
+                            {getInitials(selectedConversation.participantName || 'User')}
                           </AvatarFallback>
                         </Avatar>
                         {selectedConversation.isOnline && (
@@ -355,28 +548,17 @@ export default function TherapistMessagesPage() {
                       </div>
                       <div>
                         <h3 className="font-semibold text-gray-900">
-                          {selectedConversation.contactType === "parent" && selectedConversation.parentName 
-                            ? selectedConversation.parentName 
-                            : selectedConversation.patientName}
+                          {selectedConversation.participantName || 'User'}
                         </h3>
                         <p className="text-sm text-gray-600">
-                          {selectedConversation.contactType === "parent" 
-                            ? `Parent of ${selectedConversation.patientName} • Patient ID: ${selectedConversation.patientId}` 
-                            : `Patient • ID: ${selectedConversation.patientId}`}
+                          {selectedConversation.participantType === 'PARENT' && selectedConversation.patientNames && selectedConversation.patientNames.length > 0
+                            ? selectedConversation.patientNames.length > 1
+                              ? `Parent of ${selectedConversation.patientNames.join(', ')}`
+                              : `Parent of ${selectedConversation.patientNames[0]}`
+                            : "Patient"}
                         </p>
                       </div>
                     </div>
-                    {/* <div className="flex items-center space-x-2">
-                      <Button variant="outline" size="sm" className="text-[#8159A8] border-[#8159A8] hover:bg-[#F5F3FB]">
-                        <Phone className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" size="sm" className="text-[#8159A8] border-[#8159A8] hover:bg-[#F5F3FB]">
-                        <Video className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" size="sm" className="text-[#8159A8] border-[#8159A8] hover:bg-[#F5F3FB]">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </div> */}
                   </div>
                 </CardHeader>
                 
@@ -384,49 +566,51 @@ export default function TherapistMessagesPage() {
                 <div className="flex-1 p-4 overflow-y-auto bg-gradient-to-b from-[#F5F3FB]/30 to-white">
                   {/* Date Header */}
                   <div className="text-center mb-6">
-                    <span className="text-sm text-gray-500 bg-white px-3 py-1 rounded-full shadow-sm">Today</span>
+                    <span className="text-sm text-gray-500 bg-white px-3 py-1 rounded-full shadow-sm">
+                      {messages.length > 0 ? formatDate(messages[0].createdAt) : 'Today'}
+                    </span>
                   </div>
                   
                   <div className="space-y-4">
-                    {selectedConversation.messages.map((message) => (
+                    {messages.map((message) => (
                       <div
                         key={message.id}
                         className={cn(
                           "flex items-end space-x-2",
-                          message.sender === 'therapist' && "flex-row-reverse space-x-reverse"
+                          isMyMessage(message) && "flex-row-reverse space-x-reverse"
                         )}
                       >
                         {/* Avatar */}
                         <Avatar className="h-8 w-8 mb-1">
                           <AvatarFallback className={cn(
                             "text-white text-sm font-medium",
-                            message.sender === 'therapist' ? 'bg-[#8159A8]' : 'bg-[#8159A8]'
+                            isMyMessage(message) ? 'bg-[#8159A8]' : 'bg-blue-500'
                           )}>
-                            {message.sender === 'therapist' ? 'DR' : 
-                             message.sender === 'parent' ? 'P' : 'PT'}
+                            {isMyMessage(message) ? 'DR' : 
+                             selectedConversation.participantType === 'PARENT' ? 'P' : 'PT'}
                           </AvatarFallback>
                         </Avatar>
                         
                         {/* Message Bubble */}
                         <div className={cn(
                           "flex-1 max-w-xs",
-                          message.sender === 'therapist' && "flex justify-end"
+                          isMyMessage(message) && "flex justify-end"
                         )}>
                           <div
                             className={cn(
                               "px-4 py-3 rounded-2xl relative",
-                              message.sender === 'therapist'
+                              isMyMessage(message)
                                 ? 'bg-[#F5F3FB] text-gray-900 rounded-br-md'
                                 : 'bg-white text-gray-900 rounded-bl-md border border-gray-100 shadow-sm'
                             )}
                           >
-                            <p className="text-sm leading-relaxed">{message.text}</p>
+                            <p className="text-sm leading-relaxed">{message.content}</p>
                             <div className={cn(
                               "flex items-center justify-between mt-2 gap-2",
-                              message.sender === 'therapist' ? 'text-purple-100' : 'text-gray-400'
+                              isMyMessage(message) ? 'text-gray-500' : 'text-gray-400'
                             )}>
-                              <span className="text-xs">{formatTime(message.timestamp)}</span>
-                              {message.sender === 'therapist' && (
+                              <span className="text-xs">{formatTime(message.createdAt)}</span>
+                              {isMyMessage(message) && (
                                 <div className="flex items-center">
                                   {message.isRead ? (
                                     <CheckCheck className="h-3 w-3" />
@@ -440,6 +624,7 @@ export default function TherapistMessagesPage() {
                         </div>
                       </div>
                     ))}
+                    <div ref={messagesEndRef} />
                   </div>
                 </div>
 
@@ -476,14 +661,6 @@ export default function TherapistMessagesPage() {
                 {/* Message Input */}
                 <div className="border-t border-gray-200 p-4 bg-white flex-shrink-0">
                   <div className="flex items-end space-x-2">
-                    <div className="flex items-center space-x-2">
-                      <Button variant="outline" size="sm" className="text-[#8159A8] border-[#8159A8]/20 hover:bg-[#F5F3FB]">
-                        <Paperclip className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" size="sm" className="text-[#8159A8] border-[#8159A8]/20 hover:bg-[#F5F3FB]">
-                        <Smile className="h-4 w-4" />
-                      </Button>
-                    </div>
                     <Textarea
                       placeholder="Type your message..."
                       value={newMessage}
@@ -495,10 +672,11 @@ export default function TherapistMessagesPage() {
                           handleSendMessage();
                         }
                       }}
+                      disabled={sending}
                     />
                     <Button
                       onClick={handleSendMessage}
-                      disabled={!newMessage.trim()}
+                      disabled={!newMessage.trim() || sending}
                       className="bg-[#8159A8] hover:bg-[#6D4C93] text-white"
                     >
                       <Send className="h-4 w-4" />
