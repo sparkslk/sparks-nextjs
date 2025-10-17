@@ -109,7 +109,7 @@ export default function ParentDashboard() {
                 setParentData({
                     children: data.children,
                     totalUpcomingSessions: 0,
-                    unreadMessages: 3,
+                    unreadMessages: 0,
                     recentUpdates: []
                 });
             }
@@ -185,7 +185,7 @@ export default function ParentDashboard() {
                     <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
                             <h1 className="text-4xl font-extrabold bg-gradient-to-r from-primary to-foreground bg-clip-text text-transparent tracking-tight mb-1">Parent Dashboard</h1>
-                
+
                         </div>
                         <p className="text-muted-foreground text-base font-medium">
                             Monitor and manage your patient&apos;s therapeutic progress
