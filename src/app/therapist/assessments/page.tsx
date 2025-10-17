@@ -429,7 +429,7 @@ export default function AssessmentsPage() {
                     {/* Image */}
                     <div className="relative w-full h-40">
                       <Image
-                        src={`/images/assessments/${assessment.id}.jpg`}
+                        src={assessment.image ? `/images/assessments/${assessment.image}` : '/images/assessments/default.png'}
                         alt={assessment.title}
                         layout="fill"
                         objectFit="cover"
