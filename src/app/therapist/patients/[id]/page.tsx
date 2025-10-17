@@ -164,11 +164,11 @@ export default function PatientDetailsPage() {
       return;
     }
 
-    if (status === "authenticated" && params.id) {
+    if (status === "authenticated" && params?.id) {
       fetchPatientData(params.id as string);
       fetchMedications(params.id as string);
     }
-  }, [status, params.id, router]);
+  }, [status, params?.id, router]);
 
   const fetchPatientData = async (patientId: string) => {
     try {
@@ -1030,11 +1030,13 @@ export default function PatientDetailsPage() {
         </TabsContent>
 
         <TabsContent value="medications" className="pt-6">
-          <MedicationManagement 
-            patientId={params.id as string} 
-            medications={medications}
-            onMedicationUpdate={() => fetchMedications(params.id as string)}
-          />       
+          {params?.id && (
+            <MedicationManagement 
+              patientId={params.id as string} 
+              medications={medications}
+              onMedicationUpdate={() => fetchMedications(params.id as string)}
+            />
+          )}       
         </TabsContent>
 
       

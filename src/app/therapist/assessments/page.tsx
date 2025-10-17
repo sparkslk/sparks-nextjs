@@ -410,15 +410,15 @@ export default function AssessmentsPage() {
                               <p className="text-xs text-gray-500">{patient.email}</p>
                             )}
                             <p className="text-xs text-gray-400">ID: {patient.id}</p>
-                            {patient.completedAt && (
+                            {/* {patient.completedAt && (
                               <p className="text-sm text-gray-500">
                                 Completed: {new Date(patient.completedAt).toLocaleDateString()}
                               </p>
-                            )}
+                            )} */}
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <Badge
+                          {/* <Badge
                             className={
                               patient.completedAt
                                 ? "bg-green-100 text-green-800"
@@ -426,7 +426,7 @@ export default function AssessmentsPage() {
                             }
                           >
                             {patient.completedAt ? "Completed" : "Pending"}
-                          </Badge>
+                          </Badge> */}
                           <Button 
                             size="icon" 
                             variant="outline" 
