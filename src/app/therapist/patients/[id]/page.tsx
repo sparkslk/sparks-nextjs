@@ -271,7 +271,7 @@ export default function PatientDetailsPage() {
       description: "Complete medical history including previous diagnoses, treatments, and family history",
       uploadedBy: "Patient"
     },
-    
+
     {
       id: 2,
       name: "Previous Therapy Records.pdf",
@@ -290,29 +290,7 @@ export default function PatientDetailsPage() {
       description: "Comprehensive ADHD assessment conducted by Dr. Anuki Wanniarachchi 2023",
       uploadedBy: "Patient"
     },
-   
-  ];
 
-  const availableTasks = [
-    {
-      id: "1",
-      type: "LISTENING_TASK",
-      typeColor: "bg-blue-100 text-blue-700",
-      title: "Auditory Processing - Listening Task",
-      description: "Assess auditory processing skills with a focused listening task.",
-      assignedCount: 12,
-      latestScore: 85,
-    },
-    {
-      id: "2",
-      type: "PICTURE_DESCRIPTION",
-      typeColor: "bg-purple-100 text-purple-700",
-      title: "Visual Perception - Picture Description",
-      description: "Evaluate visual perception by describing a complex picture.",
-      assignedCount: 8,
-      latestScore: 90,
-    },
-    // Add more tasks as needed
   ];
 
   return (
