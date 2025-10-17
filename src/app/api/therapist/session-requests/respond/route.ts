@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Update session status
-        const newStatus = action === "approve" ? SessionStatus.APPROVED : SessionStatus.DECLINED;
+        const newStatus = action === "approve" ? SessionStatus.APPROVED : SessionStatus.CANCELLED;
 
         await prisma.therapySession.update({
             where: { id: requestId },

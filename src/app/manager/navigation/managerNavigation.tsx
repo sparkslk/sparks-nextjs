@@ -16,6 +16,7 @@ const tabs = [
   //{ name: "Financial Reports", path: "/manager/reports" },
   { name: "Game Management", path: "/manager/games" },
   { name: "Assessments", path: "/manager/assessments" },
+  { name: "Resources", path: "/manager/resources" },
   //{ name: "Blogs", path: "/manager/blogs" },
 ];
 

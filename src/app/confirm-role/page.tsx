@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserRole } from "@/lib/auth";
-import { getRoleBasedDashboard } from "@/lib/role-redirect";
+import { getRoleBasedDashboardSync } from "@/lib/role-redirect";
 
 export default function ConfirmRolePage() {
     const { data: session, status } = useSession();
@@ -19,7 +19,7 @@ export default function ConfirmRolePage() {
 
             if (userRole && userRole !== UserRole.NORMAL_USER) {
                 // User already has a role assigned, redirect to their dashboard
-                const dashboardUrl = getRoleBasedDashboard(userRole);
+                const dashboardUrl = getRoleBasedDashboardSync(userRole);
                 router.push(dashboardUrl);
             }
         }

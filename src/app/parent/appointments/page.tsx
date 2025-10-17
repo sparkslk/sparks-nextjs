@@ -261,7 +261,7 @@ export default function AppointmentsPage() {
               <div className="w-16 h-16 bg-muted/20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Calendar className="h-8 w-8 text-muted-foreground" />
               </div>
-              <h3 className="text-lg font-semibold mb-2">No upcoming sessions</h3>
+              <h3 className="text-lg font-semibold mb-2">No scheduled sessions</h3>
               <p className="text-muted-foreground">
                 There are no scheduled or reschedule requests at the moment.
               </p>
@@ -508,7 +508,7 @@ export default function AppointmentsPage() {
               value={selectedChildId}
               onChange={e => setSelectedChildId(e.target.value)}
             >
-              <option value="all">All Appoinments</option>
+              <option value="all">All Sessions</option>
               {children.map(child => (
                 <option key={child.id} value={child.id}>
                   {child.firstName} {child.lastName}
