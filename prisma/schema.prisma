@@ -243,6 +243,8 @@ model Assessment {
   updatedAt   DateTime? @default(now()) @db.Timestamp(6)
 }
 
+
+
 model Task {
   id               String     @id @default(cuid())
   patientId        String
@@ -737,13 +739,6 @@ enum TaskStatus {
   IN_PROGRESS
   COMPLETED
   OVERDUE
-}
-
-enum AssessmentType {
-  INITIAL
-  PROGRESS
-  FINAL
-  FOLLOW_UP
 }
 
 enum NotificationType {

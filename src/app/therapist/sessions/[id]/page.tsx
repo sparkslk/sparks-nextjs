@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -54,7 +55,6 @@ interface DetailedSession {
     email?: string;
     medicalHistory?: string;
     tasks: Task[];
-    assessments: Assessment[];
   };
   sessionHistory: SessionHistory[];
 }
@@ -72,17 +72,6 @@ interface Task {
   completedAt?: string;
   completionNotes?: string;
   createdAt: string;
-}
-
-interface Assessment {
-  id: string;
-  type: string;
-  title: string;
-  description?: string;
-  score?: number;
-  interpretation?: string;
-  recommendations?: string;
-  assessmentDate: string;
 }
 
 interface SessionHistory {
@@ -118,6 +107,7 @@ const hardcodedTasks = [
 ];
 
 export default function SessionDetailsPage() {
+  const { status: authStatus } = useSession();
   const [session, setSession] = useState<DetailedSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -138,6 +128,15 @@ export default function SessionDetailsPage() {
   const params = useParams();
   const router = useRouter();
   const sessionId = params.id as string;
+
+  // Debug logging
+  console.log("Component mounted/re-rendered");
+  console.log("Auth status:", authStatus);
+  console.log("Session ID from params:", sessionId);
+  console.log("Params object:", params);
+  console.log("Current loading state:", loading);
+  console.log("Current error state:", error);
+  console.log("Current session state:", session);
 
   // Helper function to safely parse and format dates (from sessions page)
   const formatDate = (dateString: string) => {
@@ -175,16 +174,33 @@ export default function SessionDetailsPage() {
   const fetchSessionDetails = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/therapist/sessions/${sessionId}`);
+      setError(null); // Clear any previous errors
+      
+      console.log("Fetching session details for ID:", sessionId);
+      
+      const response = await fetch(`/api/therapist/sessions/${sessionId}`, {
+        method: 'GET',
+        credentials: 'include', // Include cookies for authentication
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      console.log("Response status:", response.status);
+      console.log("Response ok:", response.ok);
+      
       if (response.ok) {
         const data = await response.json();
+        console.log("Session data received:", data);
         setSession(data.session);
       } else {
-        setError("Failed to fetch session details");
+        const errorData = await response.text();
+        console.error("Failed to fetch session details:", response.status, errorData);
+        setError(`Failed to fetch session details: ${response.status} ${response.statusText}`);
       }
     } catch (error) {
       console.error("Error fetching session details:", error);
-      setError("An error occurred while fetching session details");
+      setError(`An error occurred while fetching session details: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
@@ -217,10 +233,22 @@ export default function SessionDetailsPage() {
   }, []);
 
   useEffect(() => {
-    if (sessionId) {
-      fetchSessionDetails();
+    console.log("useEffect triggered with sessionId:", sessionId, "auth status:", authStatus);
+    
+    if (authStatus === "unauthenticated") {
+      router.push("/login");
+      return;
     }
-  }, [sessionId, fetchSessionDetails]);
+
+    if (authStatus === "authenticated" && sessionId && sessionId !== 'undefined') {
+      fetchSessionDetails();
+    } else if (authStatus === "authenticated") {
+      console.error("Session ID is missing or invalid:", sessionId);
+      setError("Session ID is missing");
+      setLoading(false);
+    }
+    // If still loading auth, don't do anything yet
+  }, [sessionId, authStatus, fetchSessionDetails, router]);
 
   // Fetch medications when session is loaded
   useEffect(() => {
@@ -293,7 +321,7 @@ export default function SessionDetailsPage() {
     };
   }, []);
 
-  if (loading) {
+  if (loading || authStatus === "loading") {
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-purple-50/30">
         <div className="container mx-auto p-6">
@@ -303,9 +331,33 @@ export default function SessionDetailsPage() {
                 <div className="animate-spin rounded-full h-16 w-16 border-4 border-primary/20 border-t-primary mx-auto"></div>
                 <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-primary/40 animate-ping"></div>
               </div>
-              <h3 className="mt-6 text-xl font-semibold text-foreground">Loading session details...</h3>
-              <p className="mt-2 text-muted-foreground">Please wait while we fetch the detailed information.</p>
+              <h3 className="mt-6 text-xl font-semibold text-foreground">
+                {authStatus === "loading" ? "Authenticating..." : "Loading session details..."}
+              </h3>
+              <p className="mt-2 text-muted-foreground">
+                {authStatus === "loading" ? "Please wait while we verify your credentials." : "Please wait while we fetch the detailed information."}
+              </p>
             </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (authStatus === "unauthenticated") {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <AlertCircle className="w-12 h-12 text-red-600 mx-auto mb-4" />
+            <p className="text-red-600">Please log in to access this page</p>
+            <Button 
+              onClick={() => router.push("/login")} 
+              className="mt-4"
+              variant="outline"
+            >
+              Go to Login
+            </Button>
           </div>
         </div>
       </div>

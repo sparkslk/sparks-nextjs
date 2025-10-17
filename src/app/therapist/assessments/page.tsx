@@ -9,12 +9,13 @@ import { Badge } from "@/components/ui/badge";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { ClipboardList, Users, CheckCircle, UserPlus, UserMinus, Calendar } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import Image from "next/image";
 
 interface Assessment {
   id: string;
   title: string;
   description: string;
-  type: "QUESTIONNAIRE" | "LISTENING_TASK" | "PICTURE_DESCRIPTION" | "FIND_DIFFERENCES" | "COGNITIVE_ASSESSMENT" | "BEHAVIORAL_ASSESSMENT";
+  type: string;
   createdAt: string;
   updatedAt: string;
   assignedPatients: {
@@ -62,53 +63,48 @@ export default function AssessmentsPage() {
 
   const fetchAssessments = async () => {
     setLoading(true);
-    // setError(null);
 
     try {
-      // Mock data for now - replace with actual API call
-      const mockAssessments: Assessment[] = [
-        {
-          id: "1",
-          title: "Auditory Processing - Listening Task",
-          description: "Audio-based assessment to evaluate listening comprehension, auditory memory, and processing speed through various listening exercises.",
-          type: "LISTENING_TASK",
-          createdAt: "2024-07-10",
-          updatedAt: "2024-07-22",
-          assignedPatients: [
+      const response = await fetch('/api/therapist/assessments');
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch assessments');
+      }
+
+      const data = await response.json();
+      
+      // Add mock assigned patients data to each assessment
+      const assessmentsWithMockPatients: Assessment[] = data.assessments.map((assessment: any, index: number) => {
+        // Mock assigned patients based on assessment type for demo purposes
+        let mockPatients: Assessment['assignedPatients'] = [];
+        
+        if (index === 0) {
+          mockPatients = [
             { id: "p2", name: "Pasandi Piyathma", completedAt: "2024-07-22" },
-            { id: "p4", name: "Anuki Tiyara" }, // Not completed yet
-          ],
-        },
-        {
-          id: "2",
-          title: "Visual Perception - Picture Description",
-          description: "Assessment involving detailed description of complex images to evaluate visual processing, attention to detail, and verbal expression skills.",
-          type: "PICTURE_DESCRIPTION",
-          createdAt: "2024-07-08",
-          updatedAt: "2024-07-08",
-          assignedPatients: [
+            { id: "p4", name: "Anuki Tiyara" },
+          ];
+        } else if (index === 1) {
+          mockPatients = [
             { id: "p3", name: "Niduni Fernando" },
             { id: "p5", name: "Onel Gomez" },
             { id: "p6", name: "Dinithi Aloka" },
             { id: "p4", name: "Sanduni Perera", completedAt: "2024-08-05"},
             { id: "p7", name: "Mithara Gethmi", completedAt: "2024-08-03" },
-          ],
-        },
-        {
-          id: "3",
-          title: "Attention & Focus - Find the Differences",
-          description: "Visual attention task requiring patients to identify differences between similar images to assess concentration and visual attention skills.",
-          type: "FIND_DIFFERENCES",
-          createdAt: "2024-07-05",
-          updatedAt: "2024-07-20",
-          assignedPatients: [
+          ];
+        } else if (index === 2) {
+          mockPatients = [
             { id: "p4", name: "Sanduni Perera", completedAt: "2024-08-05"},
             { id: "p7", name: "Mithara Gethmi", completedAt: "2024-08-03" },
-          ],
-        },
-      ];
+          ];
+        }
 
-      setAssessments(mockAssessments);
+        return {
+          ...assessment,
+          assignedPatients: mockPatients
+        };
+      });
+
+      setAssessments(assessmentsWithMockPatients);
     } catch (err) {
       console.error("Error fetching assessments:", err);
     } finally {
@@ -179,18 +175,14 @@ export default function AssessmentsPage() {
 
   const getTypeBadgeColor = (type: string) => {
     switch (type) {
-      case "QUESTIONNAIRE":
-        return "bg-purple-100 text-purple-800";
-      case "LISTENING_TASK":
+      case "INITIAL":
         return "bg-blue-100 text-blue-800";
-      case "PICTURE_DESCRIPTION":
+      case "PROGRESS":
         return "bg-green-100 text-green-800";
-      case "FIND_DIFFERENCES":
+      case "FINAL":
+        return "bg-purple-100 text-purple-800";
+      case "FOLLOW_UP":
         return "bg-orange-100 text-orange-800";
-      case "COGNITIVE_ASSESSMENT":
-        return "bg-indigo-100 text-indigo-800";
-      case "BEHAVIORAL_ASSESSMENT":
-        return "bg-pink-100 text-pink-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
@@ -397,6 +389,17 @@ export default function AssessmentsPage() {
                       </Badge>
                     </div>
 
+                    {/* Image */}
+                    <div className="relative w-full h-40">
+                      <Image
+                        src={`/images/assessments/${assessment.id}.jpg`}
+                        alt={assessment.title}
+                        layout="fill"
+                        objectFit="cover"
+                        className="rounded-lg"
+                      />
+                    </div>
+
                     {/* Title and Description */}
                     <div>
                       <h3 className="font-semibold text-lg line-clamp-2 text-gray-800 mb-2">
@@ -405,15 +408,6 @@ export default function AssessmentsPage() {
                       <p className="text-gray-600 text-sm line-clamp-3">
                         {assessment.description}
                       </p>
-                    </div>
-
-                    {/* Assessment Info */}
-                    <div className="space-y-2">
-                      <div className="flex items-center text-sm text-gray-500">
-                        <Users className="w-4 h-4 mr-2" />
-                        {assessment.assignedPatients.length} patients assigned
-                      </div>
-                      
                     </div>
 
                     {/* Action Buttons */}
@@ -459,3 +453,6 @@ export default function AssessmentsPage() {
     </div>
   );
 }
+
+
+
