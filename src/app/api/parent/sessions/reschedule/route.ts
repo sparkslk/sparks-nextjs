@@ -8,7 +8,7 @@ const prisma = new PrismaClient();
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
     // Get the current therapist rate and the rate at time of booking
     const currentTherapistRate = therapySession.therapist.session_rate || 0;
     const bookedRate = therapySession.bookedRate || 0;
-    
+
     console.log('Current therapist rate:', currentTherapistRate);
     console.log('Original booked rate:', bookedRate);
 
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
 
     if (hasRateChanged) {
       // Rate has changed - parent cannot reschedule, must cancel and book new session
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: "RATE_CHANGED",
         message: "The therapist's rate has changed since your original booking. You cannot reschedule this session. Please cancel this session and book a new one at the current rate.",
         originalRate: bookedRate,
@@ -110,62 +110,75 @@ export async function POST(request: NextRequest) {
     let adjustedHours: number;
     let minutes: number;
     let startTime: string;
-    
+
     try {
       console.log('Parsing date:', newDate, 'time:', newTime);
-      
+
       // Parse the incoming date string (should be in ISO format from frontend)
       const inputDate = new Date(newDate);
       if (isNaN(inputDate.getTime())) {
         throw new Error("Invalid date");
       }
-      
-      // Extract start time from time slot (e.g., "10:15 AM - 11:15 AM" -> "10:15 AM")
-      const [timeSlotStart] = newTime.split(" - ");
-      startTime = timeSlotStart; // Store for notification message
-      
+
+      // Extract start time from time slot (format can be "HH:MM-HH:MM" or "HH:MM AM - HH:MM PM")
+      const [timeSlotStart] = newTime.split(/[-−]/); // Handle both regular dash and em-dash
+      startTime = timeSlotStart.trim(); // Store for notification message
+
       console.log('Extracted start time:', startTime);
-      
-      // Parse time more carefully using the same logic as book route
-      const timeMatch = startTime.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
-      if (!timeMatch) {
-        console.log("Invalid time slot format:", newTime);
-        return NextResponse.json(
-          { error: "Invalid time slot format" },
-          { status: 400 }
-        );
+
+      // Parse time (prioritize 24h format since our system uses 24h, same as book route)
+      let hours: number;
+
+      // First try 24-hour format (HH:MM)
+      const time24Match = startTime.match(/^(\d{1,2}):(\d{2})$/);
+      if (time24Match) {
+        hours = parseInt(time24Match[1]);
+        minutes = parseInt(time24Match[2]);
+        console.log(`Parsed 24h format: ${hours}:${minutes}`);
+      } else {
+        // Try 12-hour format as fallback
+        const time12Match = startTime.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+        if (time12Match) {
+          const h = parseInt(time12Match[1]);
+          minutes = parseInt(time12Match[2]);
+          const period = time12Match[3].toUpperCase();
+          hours = period === "AM" ? (h === 12 ? 0 : h) : (h === 12 ? 12 : h + 12);
+          console.log(`Parsed 12h format: ${h}${period} -> ${hours}:${minutes}`);
+        } else {
+          console.log("Invalid time slot format:", newTime);
+          return NextResponse.json(
+            { error: "Invalid time slot format" },
+            { status: 400 }
+          );
+        }
       }
-      
-      const hours = parseInt(timeMatch[1]);
-      minutes = parseInt(timeMatch[2]);
-      const period = timeMatch[3].toUpperCase();
-      
-      // Validate hours and minutes
-      if (hours < 1 || hours > 12 || minutes < 0 || minutes > 59) {
+
+      // Validate time values
+      if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
         console.log("Invalid time values:", { hours, minutes });
         return NextResponse.json(
           { error: "Invalid time values" },
           { status: 400 }
         );
       }
-      
-      adjustedHours = period === "AM" ? (hours === 12 ? 0 : hours) : (hours === 12 ? 12 : hours + 12);
-      
+
+      adjustedHours = hours;
+
       // Create the session date directly without timezone conversion
       // Store exactly what the user selects: 9:00 AM should be stored as 09:00
       const year = inputDate.getFullYear();
       const month = inputDate.getMonth();
       const day = inputDate.getDate();
-      
+
       // Create a date string in local format to avoid timezone issues
       const dateString = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}T${adjustedHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00.000Z`;
       newDateTime = new Date(dateString);
-      
-      console.log("Original selected time:", `${hours}:${minutes.toString().padStart(2, '0')} ${period}`);
+
+      console.log("Selected time slot:", newTime);
+      console.log("Parsed start time:", startTime);
       console.log("Adjusted hours (24h format):", adjustedHours);
       console.log("Final session date:", newDateTime);
-      console.log("Selected time slot:", newTime);
-      
+
     } catch (error) {
       console.log("Failed to parse date:", newDate, error);
       return NextResponse.json(
@@ -173,12 +186,12 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    
+
     // Check if the new time is in the future (with a small buffer for immediate times)
     const now = new Date();
     const timeDifference = newDateTime.getTime() - now.getTime();
     console.log("Time difference (minutes):", timeDifference / (1000 * 60));
-    
+
     if (timeDifference < -5 * 60 * 1000) { // Allow 5 minutes buffer for processing delays
       console.log("Session time is too far in the past");
       return NextResponse.json({ error: "New session time must be in the future" }, { status: 400 });
@@ -199,7 +212,7 @@ export async function POST(request: NextRequest) {
         scheduledAt: newDateTime,
         status: "RESCHEDULED",
         updatedAt: new Date(),
-        sessionNotes: rescheduleReason 
+        sessionNotes: rescheduleReason
           ? `Rescheduled by parent from ${originalDateTime.toLocaleString()} to ${newDateTime.toLocaleString()}. Reason: ${rescheduleReason}`
           : `Rescheduled by parent from ${originalDateTime.toLocaleString()} to ${newDateTime.toLocaleString()}`
       }

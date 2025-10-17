@@ -62,12 +62,45 @@ export async function GET(request: NextRequest) {
 
     console.log(`Querying for date: ${dateStr}`);
 
-    // Create target date for comparison (start and end of the day in UTC)
-    const targetDate = new Date(dateStr + 'T00:00:00.000Z');
-    const nextDay = new Date(dateStr + 'T00:00:00.000Z');
-    nextDay.setUTCDate(nextDay.getUTCDate() + 1);
+    // Parse the date string properly - handle both YYYY-MM-DD and ISO formats
+    let targetDate: Date;
+    let nextDay: Date;
 
-    console.log(`Target date range: ${targetDate.toISOString()} to ${nextDay.toISOString()}`);
+    try {
+      let datePart: string;
+
+      // Check if it's an ISO date string or contains time
+      if (dateStr.includes('T')) {
+        // ISO format: extract just the date part
+        datePart = dateStr.split('T')[0];
+        console.log(`Extracted date part from ISO: ${datePart}`);
+      } else if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        // YYYY-MM-DD format
+        datePart = dateStr;
+        console.log(`Using YYYY-MM-DD format: ${datePart}`);
+      } else {
+        throw new Error(`Unsupported date format: ${dateStr}`);
+      }
+
+      // Create dates for the start and end of the target day
+      targetDate = new Date(datePart + 'T00:00:00.000Z');
+      nextDay = new Date(datePart + 'T00:00:00.000Z');
+
+      // Validate the date
+      if (isNaN(targetDate.getTime())) {
+        throw new Error("Invalid date after parsing");
+      }
+
+      nextDay.setUTCDate(nextDay.getUTCDate() + 1);
+
+      console.log(`Target date range: ${targetDate.toISOString()} to ${nextDay.toISOString()}`);
+    } catch (error) {
+      console.error("Error parsing date:", dateStr, error);
+      return NextResponse.json(
+        { error: `Invalid date format. Expected YYYY-MM-DD or ISO date string. Received: ${dateStr}` },
+        { status: 400 }
+      );
+    }
 
     // Get all availability slots for this therapist on the exact date
     const availabilitySlots = await prisma.therapistAvailability.findMany({
