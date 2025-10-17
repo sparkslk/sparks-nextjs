@@ -14,7 +14,7 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 
-import { Users, Plus, UserPlus, RefreshCw, AlertCircle, HelpCircle } from "lucide-react";
+import { Users, Plus, UserPlus, RefreshCw, AlertCircle } from "lucide-react";
 import { AddChildForm } from "@/components/parent/AddChildForm";
 import { ConnectChildForm } from "@/components/parent/ConnectChildForm";
 import { StatsCard } from "@/components/ui/stats-card";
@@ -185,12 +185,7 @@ export default function ParentDashboard() {
                     <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
                             <h1 className="text-4xl font-extrabold bg-gradient-to-r from-primary to-foreground bg-clip-text text-transparent tracking-tight mb-1">Parent Dashboard</h1>
-                            <div className="relative group">
-                                <HelpCircle className="h-5 w-5 text-muted-foreground hover:text-primary cursor-help" />
-                                <div className="absolute left-6 top-0 bg-background text-foreground text-sm rounded-lg px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 whitespace-nowrap shadow-lg border border-border">
-                                    View and manage your children&apos; therapy progress
-                                </div>
-                            </div>
+                
                         </div>
                         <p className="text-muted-foreground text-base font-medium">
                             Monitor and manage your patient&apos;s therapeutic progress
