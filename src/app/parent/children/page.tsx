@@ -432,7 +432,7 @@ export default function MyChildrenPage() {
                       </p>
                       {child.therapist && (
                         <p className="text-xs text-muted-foreground mb-1">
-                          Upcoming Sessions: <span className="font-semibold text-foreground">{child.upcomingSessions}</span>
+                          Scheduled Sessions: <span className="font-semibold text-foreground">{child.upcomingSessions}</span>
                         </p>
                       )}
                       {child.therapist && child.lastSession && (

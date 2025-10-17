@@ -131,7 +131,7 @@ export default function AppointmentCard({
     <div>
       <div className="flex items-center space-x-2 mb-3">
         <CalendarDays className="w-4 h-4 text-green-600" />
-        <h3 className="font-semibold text-gray-900 text-sm">Upcoming Sessions</h3>
+        <h3 className="font-semibold text-gray-900 text-sm">Scheduled Sessions</h3>
       </div>
       {filteredUpcoming.length > 0 ? (
         <div className="space-y-3">
@@ -208,7 +208,7 @@ export default function AppointmentCard({
       ) : (
         <div className="p-3 bg-gradient-to-r from-gray-50 to-blue-50 rounded-lg text-center border border-gray-200">
           <Calendar className="w-6 h-6 mx-auto mb-2 text-gray-400" />
-          <p className="text-gray-500 text-xs">No upcoming sessions scheduled</p>
+          <p className="text-gray-500 text-xs">No scheduled sessions scheduled</p>
         </div>
       )}
     </div>
@@ -291,7 +291,7 @@ export default function AppointmentCard({
       ) : (
         <div className="p-3 bg-gradient-to-r from-gray-50 to-slate-50 rounded-lg text-center border border-gray-200">
           <CheckCircle className="w-6 h-6 mx-auto mb-2 text-gray-400" />
-          <p className="text-gray-500 text-xs">No past sessions</p>
+          <p className="text-gray-500 text-xs">No completed sessions</p>
         </div>
       )}
     </div>
@@ -582,7 +582,7 @@ export default function AppointmentCard({
         <Tabs value={activeTab} onValueChange={(value: string) => setActiveTab(value as 'upcoming' | 'completed' | 'cancelled' | 'no-show' | 'all')} className="w-full">
           <TabsList className="w-full flex bg-[var(--color-secondary)]/30 rounded-2xl border border-[var(--color-border)] shadow-sm">
             <TabsTrigger value="upcoming" className="flex-1 text-xs sm:text-sm">
-              Upcoming ({upcomingAppointments.length})
+              Scheduled ({upcomingAppointments.length})
             </TabsTrigger>
             <TabsTrigger value="completed" className="flex-1 text-xs sm:text-sm">
               Completed ({pastAppointments.length})
