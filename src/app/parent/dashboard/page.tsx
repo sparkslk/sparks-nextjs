@@ -14,7 +14,7 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 
-import { Users, Plus, UserPlus, RefreshCw, AlertCircle, HelpCircle } from "lucide-react";
+import { Users, Plus, UserPlus, RefreshCw, AlertCircle } from "lucide-react";
 import { AddChildForm } from "@/components/parent/AddChildForm";
 import { ConnectChildForm } from "@/components/parent/ConnectChildForm";
 import { StatsCard } from "@/components/ui/stats-card";
@@ -109,12 +109,12 @@ export default function ParentDashboard() {
                 setParentData({
                     children: data.children,
                     totalUpcomingSessions: 0,
-                    unreadMessages: 3,
+                    unreadMessages: 0,
                     recentUpdates: []
                 });
             }
         } catch (error) {
-            console.error("Error fetching children:", error);
+            console.error("Error fetching patient:", error);
         }
     };
 
@@ -130,55 +130,6 @@ export default function ParentDashboard() {
         fetchChildren();
     };
 
-    // const openBookSession = (childId: string) => {
-    //     setShowBookSession(childId);
-    //     setPopupState(prev => ({
-    //         ...prev,
-    //         [childId]: {
-    //             selectedDate: new Date(),
-    //             selectedSlot: null,
-    //             showCalendar: false
-    //         }
-    //     }));
-    // };
-    // const closeBookSession = () => setShowBookSession(null);
-
-    // const handleDateClick = (childId: string, day: number) => {
-    //     setPopupState(prev => ({
-    //         ...prev,
-    //         [childId]: {
-    //             ...prev[childId],
-    //             selectedDate: new Date(new Date().getFullYear(), new Date().getMonth(), day),
-    //             selectedSlot: null
-    //         }
-    //     }));
-    // };
-    // const handleSlotClick = (childId: string, slot: string) => {
-    //     setPopupState(prev => ({
-    //         ...prev,
-    //         [childId]: {
-    //             ...prev[childId],
-    //             selectedSlot: slot
-    //         }
-    //     }));
-    // };
-    // const toggleCalendar = (childId: string) => {
-    //     setPopupState(prev => ({
-    //         ...prev,
-    //         [childId]: {
-    //             ...prev[childId],
-    //             showCalendar: !prev[childId]?.showCalendar
-    //         }
-    //     }));
-    // };
-
-    // const handleConfirmBooking = (childId: string) => {
-    //     setBookingConfirmed(prev => ({ ...prev, [childId]: true }));
-    //     setTimeout(() => {
-    //         setBookingConfirmed(prev => ({ ...prev, [childId]: false }));
-    //         closeBookSession();
-    //     }, 2000);
-    // };
 
     if (loading) {
         return (
@@ -186,7 +137,7 @@ export default function ParentDashboard() {
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mb-4 mx-auto"></div>
                     <h3 className="text-lg font-semibold mb-2 text-gray-900">Loading Dashboard</h3>
-                    <p className="text-gray-600">Fetching your children&apos; progress data...</p>
+                    <p className="text-gray-600">Fetching your patient&apos;s progress data...</p>
                 </div>
             </div>
         );
@@ -234,15 +185,10 @@ export default function ParentDashboard() {
                     <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
                             <h1 className="text-4xl font-extrabold bg-gradient-to-r from-primary to-foreground bg-clip-text text-transparent tracking-tight mb-1">Parent Dashboard</h1>
-                            <div className="relative group">
-                                <HelpCircle className="h-5 w-5 text-muted-foreground hover:text-primary cursor-help" />
-                                <div className="absolute left-6 top-0 bg-background text-foreground text-sm rounded-lg px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 whitespace-nowrap shadow-lg border border-border">
-                                    View and manage your children&apos; therapy progress
-                                </div>
-                            </div>
+
                         </div>
                         <p className="text-muted-foreground text-base font-medium">
-                            Monitor and manage your children&apos; therapeutic progress
+                            Monitor and manage your patient&apos;s therapeutic progress
                         </p>
                         {lastUpdated && (
                             <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
@@ -255,20 +201,20 @@ export default function ParentDashboard() {
                 <div className="flex gap-2">
                     <Dialog open={showConnectChild} onOpenChange={setShowConnectChild}>
                         <DialogTrigger asChild>
-                            <Button 
+                            <Button
                                 variant="outline"
                                 className="transition-all duration-200 shadow-sm hover:shadow-md"
                                 aria-label="Connect to an existing child's account"
                             >
                                 <UserPlus className="h-4 w-4 mr-2" />
-                                Connect Child
+                                Connect Patient
                             </Button>
                         </DialogTrigger>
                         <DialogContent>
                             <DialogHeader>
                                 <DialogTitle>Connect to Existing Child</DialogTitle>
                                 <DialogDescription>
-                                    Use your child&apos;s Patient ID to connect to their account
+                                    Use your Patient&apos;s ID to connect to their account
                                 </DialogDescription>
                             </DialogHeader>
                             <ConnectChildForm onSuccess={handleChildConnected} />
@@ -277,19 +223,19 @@ export default function ParentDashboard() {
 
                     <Dialog open={showAddChild} onOpenChange={setShowAddChild}>
                         <DialogTrigger asChild>
-                            <Button 
+                            <Button
                                 className="bg-primary text-primary-foreground font-semibold px-6 py-2 rounded-xl shadow-sm hover:opacity-90 transition"
                                 aria-label="Add a new child to your account"
                             >
                                 <Plus className="h-4 w-4 mr-2" />
-                                Add Child
+                                Add Patient
                             </Button>
                         </DialogTrigger>
                         <DialogContent className="max-w-2xl">
                             <DialogHeader>
-                                <DialogTitle>Add New Child</DialogTitle>
+                                <DialogTitle>Add New Patient</DialogTitle>
                                 <DialogDescription>
-                                    Create a new patient profile for your child
+                                    Create a new patient profile for your patient
                                 </DialogDescription>
                             </DialogHeader>
                             <AddChildForm onSuccess={handleChildAdded} />
@@ -307,7 +253,7 @@ export default function ParentDashboard() {
                         iconType="users"
                     />
                     <StatsCard
-                        title="Upcoming Sessions"
+                        title="Scheduled Sessions"
                         value={parentData.totalUpcomingSessions}
                         description="Scheduled sessions"
                         iconType="calendar"
@@ -323,134 +269,136 @@ export default function ParentDashboard() {
 
             {/* Main Content Grid - only show when we have children */}
             {parentData && parentData.children.length > 0 && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Children Progress */}
-                    <Card className="shadow-md border-border bg-background">
-                        <CardHeader className="border-b border-border pb-4">
-                            <CardTitle className="text-xl font-bold flex items-center gap-2 text-foreground">
-                                <Users className="h-5 w-5" />
-                                Children Progress Overview
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-6 pt-6">
-                            {parentData.children.map((child) => (
-                                <div 
-                                    key={child.id} 
-                                    className="bg-card rounded-xl p-6 border border-border shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer hover:scale-[1.02] active:scale-95 focus-within:ring-2 focus-within:ring-primary/50"
-                                    tabIndex={0}
-                                    role="button"
-                                    aria-label={`View details for ${child.firstName} ${child.lastName}`}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter' || e.key === ' ') {
-                                            e.preventDefault();
-                                            // Navigate to child details
-                                        }
-                                    }}
-                                >
-                                    <div className="flex items-start justify-between mb-4">
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-3 mb-2">
-                                                <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm overflow-hidden bg-gradient-to-br from-primary to-primary-foreground">
-                                                    {child.image && typeof child.image === 'string' && child.image.trim() !== '' ? (
-                                                        <Image
-                                                            src={child.image}
-                                                            alt={`${child.firstName} ${child.lastName}`}
-                                                            width={40}
-                                                            height={40}
-                                                            className="object-cover w-full h-full rounded-full"
-                                                            priority
-                                                        />
-                                                    ) : (
-                                                        <span>{child.firstName.charAt(0)}{child.lastName.charAt(0)}</span>
+                <div className="space-y-6">
+                    {/* Patient Progress Overview - grid with 2 boxes per row */}
+                    <div>
+                        <Card className="shadow-md border-border bg-background">
+                            <CardHeader className="border-b border-border pb-4">
+                                <CardTitle className="text-xl font-bold flex items-center gap-2 text-foreground">
+                                    <Users className="h-5 w-5" />
+                                    Patient Progress Overview
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="pt-6">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    {parentData.children.map((child) => (
+                                        <div
+                                            key={child.id}
+                                            className="bg-card rounded-xl p-6 border border-border shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer hover:scale-[1.02] active:scale-95 focus-within:ring-2 focus-within:ring-primary/50"
+                                            tabIndex={0}
+                                            role="button"
+                                            aria-label={`View details for ${child.firstName} ${child.lastName}`}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter' || e.key === ' ') {
+                                                    e.preventDefault();
+                                                    // Navigate to child details
+                                                }
+                                            }}
+                                        >
+                                            <div className="flex items-start justify-between mb-4">
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-3 mb-2">
+                                                        <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm overflow-hidden bg-gradient-to-br from-primary to-primary-foreground">
+                                                            {child.image && typeof child.image === 'string' && child.image.trim() !== '' ? (
+                                                                <Image
+                                                                    src={child.image}
+                                                                    alt={`${child.firstName} ${child.lastName}`}
+                                                                    width={40}
+                                                                    height={40}
+                                                                    className="object-cover w-full h-full rounded-full"
+                                                                    priority
+                                                                />
+                                                            ) : (
+                                                                <span>{child.firstName.charAt(0)}{child.lastName.charAt(0)}</span>
+                                                            )}
+                                                        </div>
+                                                        <div>
+                                                            <h4 className="font-bold text-foreground text-lg">{child.firstName} {child.lastName}</h4>
+                                                            <p className="text-sm text-muted-foreground">Age: {new Date().getFullYear() - new Date(child.dateOfBirth).getFullYear()} years</p>
+                                                        </div>
+                                                    </div>
+                                                    {child.isPrimary && (
+                                                        <Badge variant="secondary" className="mb-3 text-primary border-primary/20 bg-primary/10">
+                                                            Primary Guardian
+                                                        </Badge>
                                                     )}
                                                 </div>
-                                                <div>
-                                                    <h4 className="font-bold text-foreground text-lg">{child.firstName} {child.lastName}</h4>
-                                                    <p className="text-sm text-muted-foreground">Age: {new Date().getFullYear() - new Date(child.dateOfBirth).getFullYear()} years</p>
+                                                <div className="flex flex-col items-end gap-2">
+                                                    <span className="px-3 py-1 text-xs rounded-full font-bold bg-success/10 text-success border border-success/20">
+                                                        ACTIVE
+                                                    </span>
+                                                    <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded font-mono">
+                                                        {child.id}
+                                                    </span>
                                                 </div>
                                             </div>
-                                            {child.isPrimary && (
-                                                <Badge variant="secondary" className="mb-3 text-primary border-primary/20 bg-primary/10">
-                                                    Primary Guardian
-                                                </Badge>
+
+                                            <div className="space-y-3">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-sm font-semibold text-muted-foreground">Overall Progress</span>
+                                                    <span className="text-sm font-bold text-primary">{child.progressPercentage}%</span>
+                                                </div>
+                                                <div className="relative">
+                                                    <div className="w-full bg-muted rounded-full h-3 shadow-inner">
+                                                        <div
+                                                            className="h-3 rounded-full transition-all duration-500 ease-out shadow-sm bg-gradient-to-r from-primary to-primary-foreground"
+                                                            style={{ width: `${child.progressPercentage}%` }}
+                                                        ></div>
+                                                    </div>
+                                                    <div className="absolute inset-0 rounded-full bg-gradient-to-r from-transparent via-background to-transparent opacity-30 h-3"></div>
+                                                </div>
+                                            </div>
+
+                                            {child.therapist && (
+                                                <div className="mt-4 pt-4 border-t border-border">
+                                                    <div className="flex items-center gap-2">
+                                                        {child.therapist.image && typeof child.therapist.image === 'string' && child.therapist.image.trim() !== '' ? (
+                                                            <Image
+                                                                src={child.therapist.image}
+                                                                alt={child.therapist.name}
+                                                                width={32}
+                                                                height={32}
+                                                                className="object-cover w-8 h-8 rounded-full"
+                                                                priority
+                                                            />
+                                                        ) : (
+                                                            <div className="w-8 h-8 bg-gradient-to-br from-success to-success-foreground rounded-full flex items-center justify-center text-white font-bold text-xs">
+                                                                {child.therapist.name.split(' ').map(n => n.charAt(0)).join('')}
+                                                            </div>
+                                                        )}
+                                                        <div>
+                                                            <p className="text-sm font-semibold text-foreground">Dr. {child.therapist.name}</p>
+                                                            <p className="text-xs text-muted-foreground">Assigned Therapist</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {child.lastSession && (
+                                                <div className="mt-3 text-xs text-muted-foreground bg-muted rounded-lg p-2">
+                                                    <span className="font-medium">Last Session:</span> {child.lastSession}
+                                                </div>
+                                            )}
+                                            {child.nextUpcomingSession && (
+                                                <div className="mt-2 text-xs bg-primary/10 text-primary rounded-lg p-2 border border-primary/20 flex items-center gap-2 justify-between">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="font-medium">Next Session:</span>
+                                                        <span className="font-semibold">{child.nextUpcomingSession}</span>
+                                                    </div>
+                                                    <Button size="sm" className="bg-primary text-white px-4 py-1 ml-4" aria-label="Join Session">
+                                                        Join
+                                                    </Button>
+                                                </div>
                                             )}
                                         </div>
-                                        <div className="flex flex-col items-end gap-2">
-                                            <span className="px-3 py-1 text-xs rounded-full font-bold bg-success/10 text-success border border-success/20">
-                                                ACTIVE
-                                            </span>
-                                            <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded font-mono">
-                                                {child.id}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="space-y-3">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-sm font-semibold text-muted-foreground">Overall Progress</span>
-                                            <span className="text-sm font-bold text-primary">{child.progressPercentage}%</span>
-                                        </div>
-                                        <div className="relative">
-                                            <div className="w-full bg-muted rounded-full h-3 shadow-inner">
-                                                <div
-                                                    className="h-3 rounded-full transition-all duration-500 ease-out shadow-sm bg-gradient-to-r from-primary to-primary-foreground"
-                                                    style={{ width: `${child.progressPercentage}%` }}
-                                                ></div>
-                                            </div>
-                                            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-transparent via-background to-transparent opacity-30 h-3"></div>
-                                        </div>
-                                    </div>
-
-                                    {child.therapist && (
-                                        <div className="mt-4 pt-4 border-t border-border">
-                                            <div className="flex items-center gap-2">
-                                                {child.therapist.image && typeof child.therapist.image === 'string' && child.therapist.image.trim() !== '' ? (
-                                                    <Image
-                                                        src={child.therapist.image}
-                                                        alt={child.therapist.name}
-                                                        width={32}
-                                                        height={32}
-                                                        className="object-cover w-8 h-8 rounded-full"
-                                                        priority
-                                                    />
-                                                ) : (
-                                                    <div className="w-8 h-8 bg-gradient-to-br from-success to-success-foreground rounded-full flex items-center justify-center text-white font-bold text-xs">
-                                                        {child.therapist.name.split(' ').map(n => n.charAt(0)).join('')}
-                                                    </div>
-                                                )}
-                                                <div>
-                                                    <p className="text-sm font-semibold text-foreground">Dr. {child.therapist.name}</p>
-                                                    <p className="text-xs text-muted-foreground">Assigned Therapist</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {child.lastSession && (
-                                        <div className="mt-3 text-xs text-muted-foreground bg-muted rounded-lg p-2">
-                                            <span className="font-medium">Last Session:</span> {child.lastSession}
-                                        </div>
-                                    )}
-                                    {child.nextUpcomingSession && (
-                                        <div className="mt-2 text-xs bg-primary/10 text-primary rounded-lg p-2 border border-primary/20 flex items-center gap-2 justify-between">
-                                            <div className="flex items-center gap-2">
-                                                <span className="font-medium">Next Session:</span>
-                                                <span className="font-semibold">{child.nextUpcomingSession}</span>
-                                            </div>
-                                            <Button size="sm" className="bg-primary text-white px-4 py-1 ml-4" aria-label="Join Session">
-                                                Join
-                                            </Button>
-                                        </div>
-                                    )}
+                                    ))}
                                 </div>
-                            ))}
-                        </CardContent>
-                    </Card>
+                            </CardContent>
+                        </Card>
+                    </div>
 
-                    {/* Right column: Schedule Session and Recent Updates stacked */}
-
-                    <div className="flex flex-col gap-6">
-                        {/* Schedule Session Section */}
+                    {/* Schedule Session below the overview */}
+                    <div>
                         <Card className="shadow-md border-border bg-background">
                             <CardHeader className="border-b border-border pb-4">
                                 <CardTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
@@ -468,7 +416,6 @@ export default function ParentDashboard() {
                                                 )}
                                             </div>
                                             <div className="flex gap-2 items-center">
-                                                
                                                 {child.therapist ? (
                                                     <Button
                                                         className="bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-2 min-w-[150px]"
@@ -489,47 +436,11 @@ export default function ParentDashboard() {
                                                 open={showBookSession === child.id}
                                                 onOpenChange={open => setShowBookSession(open ? child.id : null)}
                                                 child={child}
-                                                onConfirmBooking={() => {}}
+                                                onConfirmBooking={() => { }}
                                             />
                                         </div>
                                     ))}
                                 </div>
-                            </CardContent>
-                        </Card>
-
-                        {/* Recent Updates */}
-                        <Card className="shadow-md border-border bg-background">
-                            <CardHeader className="border-b border-border pb-4">
-                                <CardTitle className="text-lg font-semibold text-foreground">Recent Updates</CardTitle>
-                            </CardHeader>
-                            <CardContent className="pt-6">
-                                {parentData && parentData.recentUpdates.length > 0 ? (
-                                    <div className="space-y-4">
-                                        {parentData.recentUpdates.map((update) => (
-                                            <div key={update.id} className="border-l-4 pl-4 py-2 rounded-r  bg-primary/5">
-                                                <div className="flex items-center justify-between mb-1">
-                                                    <span className="font-semibold text-foreground">{update.message.split(':')[0] || 'System'}</span>
-                                                    <span className="text-xs text-muted-foreground bg-background px-2 py-1 rounded">{update.timestamp}</span>
-                                                </div>
-                                                <p className="text-sm text-muted-foreground">{update.message}</p>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="text-center py-12">
-                                        <Image 
-                                            src="/images/NoMsg.png" 
-                                            alt="No messages" 
-                                            width={400}
-                                            height={400}
-                                            className="mx-auto mb-6 opacity-60"
-                                        />
-                                        <h3 className="text-lg font-semibold mb-2 text-foreground">All caught up!</h3>
-                                        <p className="text-muted-foreground max-w-sm mx-auto">
-                                            You&apos;re all up to date.
-                                        </p>
-                                    </div>
-                                )}
                             </CardContent>
                         </Card>
                     </div>
@@ -541,9 +452,9 @@ export default function ParentDashboard() {
                 <Card className="shadow-md border-border bg-background">
                     <CardContent className="text-center py-12">
                         <Users className="h-16 w-16 text-muted-foreground mb-4 mx-auto" />
-                        <h3 className="text-lg font-semibold mb-2 text-foreground">No Children Enrolled</h3>
+                        <h3 className="text-lg font-semibold mb-2 text-foreground">No Patients Connected</h3>
                         <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                            You don&apos;t have any children enrolled in therapy services yet. Get started by adding your first child or connecting to an existing account.
+                            You don&apos;t have any patients enrolled in therapy services yet. Get started by adding your first patient or connecting to an existing account.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-3 justify-center">
                             <Button
@@ -553,7 +464,7 @@ export default function ParentDashboard() {
                                 aria-label="Connect to an existing child's therapy account"
                             >
                                 <UserPlus className="h-4 w-4 mr-2" />
-                                Connect Existing Child
+                                Connect Existing Patient
                             </Button>
                             <Button
                                 onClick={() => setShowAddChild(true)}
@@ -561,7 +472,7 @@ export default function ParentDashboard() {
                                 aria-label="Add a new child to start therapy services"
                             >
                                 <Plus className="h-4 w-4 mr-2" />
-                                Add New Child
+                                Add New Patient
                             </Button>
                         </div>
                         <div className="mt-6 p-4 bg-accent/10 rounded-lg border border-accent">

@@ -14,19 +14,14 @@ export async function GET(req: NextRequest) {
                     include: {
                         therapySessions: {
                             where: {
-                                scheduledAt: {
-                                    gte: new Date() // Only future sessions from current date/time
-                                },
-                                status: 'APPROVED' // Only approved upcoming sessions
+                                scheduledAt: { gte: new Date() },
+                                status: { in: ['APPROVED', 'SCHEDULED'] }
                             }
                         },
-                        assessments: {
-                            where: {
-                                assessmentDate: {
-                                    gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) // Last 30 days
-                                }
-                            }
-                        },
+                        // NOTE: The Assessments table in the database no longer contains a patientId
+                        // column in the current deployment. Avoid including assessments here to prevent
+                        // Prisma trying to select non-existent columns. We will fallback to a safe
+                        // default (0) for progressReports below.
                         primaryTherapist: {
                             include: {
                                 user: true
@@ -54,11 +49,16 @@ export async function GET(req: NextRequest) {
             take: 5
         });
 
-        // Count unread messages/notifications
-        const unreadMessages = await prisma.notification.count({
+        // Count unread messages that were sent by therapists
+        // (use the Message table and filter by the sender's role)
+        const unreadMessages = await prisma.message.count({
             where: {
                 receiverId: session.user.id,
-                isRead: false
+                isRead: false,
+                // relation name as defined in the schema
+                User_Message_senderIdToUser: {
+                    role: 'THERAPIST'
+                }
             }
         });
 
@@ -107,7 +107,7 @@ export async function GET(req: NextRequest) {
                     where: {
                         patientId: relation.patient.id,
                         status: 'SCHEDULED',
-                        // scheduledAt: { gte: now }
+                        scheduledAt: { gte: now }
                     }
                 });
 
@@ -116,7 +116,7 @@ export async function GET(req: NextRequest) {
                     where: {
                         patientId: relation.patient.id,
                         status: 'SCHEDULED',
-                        // scheduledAt: { gte: now }
+                        scheduledAt: { gte: now }
                     }
                 });
                 console.error('Debug nextUpcomingSession:', {
@@ -130,7 +130,7 @@ export async function GET(req: NextRequest) {
                     where: {
                         patientId: relation.patient.id,
                         status: 'SCHEDULED',
-                        // scheduledAt: { gte: now }
+                        scheduledAt: { gte: now }
                     },
                     orderBy: { scheduledAt: 'asc' }
                 });
@@ -155,22 +155,23 @@ export async function GET(req: NextRequest) {
                             timeZone: 'Asia/Colombo'
                         })
                         : null,
-                    progressReports: relation.patient.assessments.length,
+                    // assessments are not included to avoid querying a non-existent patientId column
+                    progressReports: 0,
                     progressPercentage,
                     lastSession: lastSession?.scheduledAt
-  ? (() => {
-      const d = new Date(lastSession.scheduledAt);
-      return d.toLocaleString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true,
-        timeZone: 'Asia/Colombo'
-      });
-    })()
-  : null,
+                        ? (() => {
+                            const d = new Date(lastSession.scheduledAt);
+                            return d.toLocaleString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                hour12: true,
+                                timeZone: 'Asia/Colombo'
+                            });
+                        })()
+                        : null,
                     therapist: relation.patient.primaryTherapist ? {
                         name: relation.patient.primaryTherapist.user.name || 'Unknown Therapist',
                         email: relation.patient.primaryTherapist.user.email || '',
@@ -218,7 +219,7 @@ export async function GET(req: NextRequest) {
                     timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
                     type: 'info'
                 }
-                
+
             ];
         }
 

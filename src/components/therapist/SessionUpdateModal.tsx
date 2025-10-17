@@ -11,6 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar, Clock, User, FileText, CheckSquare, Save, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
+import { NoShowConfirmationDialog } from "@/components/therapist/NoShowConfirmationDialog";
+import { MoveToNoShowConfirmationDialog } from "@/components/therapist/MoveToNoShowConfirmationDialog";
+import { MoveToCompletedConfirmationDialog } from "@/components/therapist/MoveToCompletedConfirmationDialog";
 
 interface Session {
   id: string;
@@ -54,6 +57,18 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [loadingSessionDetails, setLoadingSessionDetails] = useState(false);
   const [detailedSession, setDetailedSession] = useState<Session | null>(null);
+
+  // No Show confirmation state
+  const [showNoShowConfirmation, setShowNoShowConfirmation] = useState(false);
+  const [pendingAttendanceStatus, setPendingAttendanceStatus] = useState<string>("");
+
+  // Add Move to No-Show confirmation state
+  const [showMoveNoShowConfirmation, setShowMoveNoShowConfirmation] = useState(false);
+  const [moveNoShowSuccess, setMoveNoShowSuccess] = useState(false);
+
+  // Add Move to Completed confirmation state
+  const [showMoveCompletedConfirmation, setShowMoveCompletedConfirmation] = useState(false);
+  const [moveCompletedSuccess, setMoveCompletedSuccess] = useState(false);
 
   // Focus areas options
   const focusAreaOptions = [
@@ -104,7 +119,7 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
         const newPatientEngagement = sessionData.patientEngagement ?? "";
         const newRiskAssessment = sessionData.riskAssessment ?? "";
         const newFocusAreas = sessionData.primaryFocusAreas ?? [];
-        const newSessionNotes = sessionData.sessionNotes ?? (sessionData.notes || "");
+        const newSessionNotes = sessionData.sessionNotes ?? "";
         const newNextSessionGoals = sessionData.nextSessionGoals ?? "";
         
         // Debug log to check what's being received from API
@@ -176,6 +191,45 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
     });
   };
 
+  const clearClinicalFields = () => {
+    setOverallProgress("");
+    setPatientEngagement("");
+    setRiskAssessment("");
+    setFocusAreas([]);
+    setSessionNotes("");
+    setNextSessionGoals("");
+  };
+
+  const hasClinicalData = () => {
+    return overallProgress || patientEngagement || riskAssessment || 
+           focusAreas.length > 0 || sessionNotes.trim() || nextSessionGoals.trim();
+  };
+
+  const handleAttendanceStatusChange = (value: string) => {
+    if (value === "NO_SHOW" && hasClinicalData()) {
+      // Show confirmation dialog if there's existing clinical data
+      setPendingAttendanceStatus(value);
+      setShowNoShowConfirmation(true);
+    } else {
+      // Set directly if no clinical data or not "NO_SHOW"
+      setAttendanceStatus(value);
+      if (value === "NO_SHOW") {
+        clearClinicalFields();
+      }
+    }
+  };
+
+  const handleNoShowConfirmation = (confirmed: boolean) => {
+    setShowNoShowConfirmation(false);
+    if (confirmed) {
+      setAttendanceStatus(pendingAttendanceStatus);
+      clearClinicalFields();
+    }
+    setPendingAttendanceStatus("");
+  };
+
+  const isClinicalFieldsDisabled = attendanceStatus === "NO_SHOW";
+
   const handleSubmit = async (saveOnly = false) => {
     if (!session) return;
 
@@ -215,18 +269,25 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
 
       if (response.ok) {
         setSubmitSuccess(true);
-        onSessionUpdated();
-        // Close modal after a brief delay to show success message, only if marking as completed
-        if (!saveOnly) {
+        
+        // Close modal after a brief delay to show success message
+        setTimeout(() => {
+          onClose();
+          // Emit completion confirmation event after modal is closed
           setTimeout(() => {
-            onClose();
-          }, 1500);
-        } else {
-          // For save only, close after shorter delay or let user manually close
-          setTimeout(() => {
-            setSubmitSuccess(false);
-          }, 2000);
-        }
+            if (typeof window !== "undefined") {
+              const event = new CustomEvent("sessionSaved", {
+                detail: { 
+                  sessionId: session.id,
+                  attendanceStatus,
+                  patientName: session.patientName
+                }
+              });
+              window.dispatchEvent(event);
+            }
+            onSessionUpdated();
+          }, 100);
+        }, 1500);
       } else {
         const errorData = await response.json();
         console.error("Server error response:", errorData);
@@ -243,6 +304,114 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleMoveSession = async () => {
+    if (!session || !attendanceStatus) return;
+
+    // Show confirmation for No-Show moves
+    if (attendanceStatus === "NO_SHOW") {
+      setShowMoveNoShowConfirmation(true);
+      return;
+    }
+
+    // Show confirmation for Completed moves
+    if (attendanceStatus === "PRESENT" || attendanceStatus === "LATE") {
+      setShowMoveCompletedConfirmation(true);
+      return;
+    }
+
+    // Fallback for other statuses (shouldn't reach here with current logic)
+    await performMoveSession();
+  };
+
+  const performMoveSession = async () => {
+    if (!session || !attendanceStatus) return;
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+    
+    try {
+      let newStatus;
+      if (attendanceStatus === "NO_SHOW") {
+        newStatus = "NO_SHOW";
+      } else {
+        newStatus = "COMPLETED";
+      }
+
+      const updateData = {
+        sessionId: session.id,
+        attendanceStatus,
+        overallProgress: overallProgress || null,
+        patientEngagement: patientEngagement || null,
+        riskAssessment: riskAssessment || null,
+        focusAreas,
+        sessionNotes: sessionNotes.trim() || null,
+        nextSessionGoals: nextSessionGoals.trim() || null,
+        moveToStatus: newStatus // Indicate we want to move the session
+      };
+
+      const response = await fetch(`/api/therapist/sessions/${session.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updateData),
+      });
+
+      if (response.ok) {
+        if (attendanceStatus === "NO_SHOW") {
+          setMoveNoShowSuccess(true);
+        } else {
+          setMoveCompletedSuccess(true);
+        }
+        
+        // Close modal after showing success message
+        setTimeout(() => {
+          onClose();
+          onSessionUpdated();
+        }, 2000);
+      } else {
+        const errorData = await response.json();
+        setSubmitError(errorData.error || 'Failed to update session');
+      }
+    } catch (error) {
+      console.error('Error updating session:', error);
+      setSubmitError('Network error occurred. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleMoveNoShowConfirmation = (confirmed: boolean) => {
+    setShowMoveNoShowConfirmation(false);
+    if (confirmed) {
+      performMoveSession();
+    }
+  };
+
+  const handleMoveCompletedConfirmation = (confirmed: boolean) => {
+    setShowMoveCompletedConfirmation(false);
+    if (confirmed) {
+      performMoveSession();
+    }
+  };
+
+  // Add the formatTimeManual function (same as in session details page)
+  const formatTimeManual = (dateString: string) => {
+    // Extract just the time part manually to avoid timezone issues
+    if (dateString.includes('T')) {
+      const timePart = dateString.split('T')[1];
+      const timeOnly = timePart.split('.')[0]; // Remove milliseconds if present
+      const finalTime = timeOnly.split('Z')[0]; // Remove Z if present
+      
+      // Convert to 24-hour format
+      const [hours, minutes] = finalTime.split(':');
+      return `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`;
+    }
+    
+    // Fallback to original method
+    return format(new Date(dateString), "HH:mm");
   };
 
   if (!session) return null;
@@ -268,7 +437,7 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
           <div className="space-y-6">
           {/* Session Info */}
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-2">
               <CardTitle className="text-lg">Session Information</CardTitle>
             </CardHeader>
             <CardContent>
@@ -279,7 +448,7 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
                 </div>
                 <div className="flex items-center gap-2">
                   <Clock className="w-4 h-4" />
-                  <span>{format(new Date(currentSession.scheduledAt), "hh:mm a")} ({currentSession.duration} min)</span>
+                  <span>{formatTimeManual(currentSession.scheduledAt)} ({currentSession.duration} min)</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <User className="w-4 h-4" />
@@ -294,44 +463,94 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
             </CardContent>
           </Card>
 
-          {/* Clinical Documentation */}
+          {/* Attendance Status */}
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">Attendance Status</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex gap-3 items-start justify-between">
+                  <div className="flex-1 max-w-xs">
+                    <Select value={attendanceStatus} onValueChange={handleAttendanceStatusChange}>
+                      <SelectTrigger className={`mt-1 ${!attendanceStatus ? 'border-red-200' : ''}`}>
+                        <SelectValue placeholder="Select attendance status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="PRESENT">Present</SelectItem>
+                        <SelectItem value="LATE">Late</SelectItem>
+                        <SelectItem value="NO_SHOW">No Show</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {!attendanceStatus && (
+                      <p className="text-xs text-red-500 mt-1">This field is required</p>
+                    )}
+                  </div>
+                  {attendanceStatus === "NO_SHOW" && !moveNoShowSuccess && (
+                    <Button 
+                      onClick={handleMoveSession}
+                      disabled={isSubmitting}
+                      style={{ backgroundColor: '#8159A8' }}
+                      className="text-white hover:opacity-90 mt-1"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <AlertTriangle className="w-4 h-4 mr-2" />
+                          Move to No-Show
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
+                
+                {/* Move to No-Show Success Message */}
+                {moveNoShowSuccess && (
+                  <div className="bg-green-50 border border-green-200 rounded-md p-3">
+                    <div className="flex items-center">
+                      <CheckSquare className="w-5 h-5 text-green-600 mr-2" />
+                      <p className="text-green-800 font-medium">Session successfully moved to No-Show tab!</p>
+                    </div>
+                  </div>
+                )}
+                
+                {attendanceStatus === "NO_SHOW" && !moveNoShowSuccess && (
+                  <div className="p-2 bg-orange-50 border border-orange-200 rounded-md">
+                    <p className="text-xs text-orange-700">
+                      No Show selected - Clinical documentation is not required for this session.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Clinical Documentation */}
+          <Card className={isClinicalFieldsDisabled ? "opacity-50" : ""}>
+            <CardHeader className="pb-2">
               <CardTitle className="text-lg flex items-center justify-between">
                 Clinical Assessment
-                
+                {isClinicalFieldsDisabled && (
+                  <Badge variant="secondary" className="text-xs">
+                    Not Available for No Show
+                  </Badge>
+                )}
               </CardTitle>
-              <p className="text-sm text-gray-600">
-                <span className="text-red-500">*</span> Required fields. Other fields are optional.
-              </p>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-2 gap-6">
-                {/* Attendance Status */}
-                <div>
-                  <Label htmlFor="attendanceStatus">
-                    Attendance Status <span className="text-red-500">*</span>
-                  </Label>
-                  <Select value={attendanceStatus} onValueChange={setAttendanceStatus}>
-                    <SelectTrigger className={`mt-1 ${!attendanceStatus ? 'border-red-200' : ''}`}>
-                      <SelectValue placeholder="Select attendance status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="PRESENT">Present</SelectItem>
-                      <SelectItem value="LATE">Late</SelectItem>
-                      <SelectItem value="NO_SHOW">No Show</SelectItem>
-                      <SelectItem value="CANCELLED">Cancelled</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {!attendanceStatus && (
-                    <p className="text-xs text-red-500 mt-1">This field is required</p>
-                  )}
-                </div>
-
                 {/* Overall Progress */}
                 <div>
                   <Label htmlFor="overallProgress">Overall Progress</Label>
-                  <Select value={overallProgress} onValueChange={setOverallProgress}>
+                  <Select 
+                    value={overallProgress} 
+                    onValueChange={setOverallProgress}
+                    disabled={isClinicalFieldsDisabled}
+                  >
                     <SelectTrigger className="mt-1">
                       <SelectValue placeholder="Select overall progress" />
                     </SelectTrigger>
@@ -348,7 +567,11 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
                 {/* Patient Engagement */}
                 <div>
                   <Label htmlFor="patientEngagement">Patient Engagement</Label>
-                  <Select value={patientEngagement} onValueChange={setPatientEngagement}>
+                  <Select 
+                    value={patientEngagement} 
+                    onValueChange={setPatientEngagement}
+                    disabled={isClinicalFieldsDisabled}
+                  >
                     <SelectTrigger className="mt-1">
                       <SelectValue placeholder="Select patient engagement level" />
                     </SelectTrigger>
@@ -362,12 +585,15 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
                 </div>
 
                 {/* Risk Assessment */}
-                <div>
+                <div className="col-span-2">
                   <Label htmlFor="riskAssessment" className="flex items-center gap-2">
-                    
                     Risk Assessment
                   </Label>
-                  <Select value={riskAssessment} onValueChange={setRiskAssessment}>
+                  <Select 
+                    value={riskAssessment} 
+                    onValueChange={setRiskAssessment}
+                    disabled={isClinicalFieldsDisabled}
+                  >
                     <SelectTrigger className="mt-1">
                       <SelectValue placeholder="Select risk assessment level" />
                     </SelectTrigger>
@@ -378,7 +604,7 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
                       <SelectItem value="HIGH">High</SelectItem>
                     </SelectContent>
                   </Select>
-                  {riskAssessment !== 'NONE' && riskAssessment !== '' && (
+                  {riskAssessment !== 'NONE' && riskAssessment !== '' && !isClinicalFieldsDisabled && (
                     <p className="text-xs text-gray-600 mt-1">
                       {riskAssessment === 'HIGH' && 'High risk - Immediate attention may be required'}
                       {riskAssessment === 'MEDIUM' && 'Medium risk - Monitor closely and follow up'}
@@ -391,13 +617,19 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
           </Card>
 
           {/* Primary Focus Areas */}
-          <Card>
-            <CardHeader>
+          <Card className={isClinicalFieldsDisabled ? "opacity-50" : ""}>
+            <CardHeader className="pb-2">
               <CardTitle className="text-lg flex items-center gap-2">
-                
                 Primary Focus Areas
+                {isClinicalFieldsDisabled && (
+                  <Badge variant="secondary" className="text-xs">
+                    Not Available for No Show
+                  </Badge>
+                )}
               </CardTitle>
-              <p className="text-sm text-gray-600">Select 2-3 key areas addressed in this session</p>
+              {!isClinicalFieldsDisabled && (
+                <p className="text-sm text-gray-600">Select 2-3 key areas addressed in this session</p>
+              )}
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-3">
@@ -407,7 +639,7 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
                       id={area}
                       checked={focusAreas.includes(area)}
                       onCheckedChange={() => toggleFocusArea(area)}
-                      disabled={!focusAreas.includes(area) && focusAreas.length >= 3}
+                      disabled={isClinicalFieldsDisabled || (!focusAreas.includes(area) && focusAreas.length >= 3)}
                     />
                     <Label htmlFor={area} className="text-sm cursor-pointer">
                       {area}
@@ -415,7 +647,7 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
                   </div>
                 ))}
               </div>
-              {focusAreas.length > 0 && (
+              {focusAreas.length > 0 && !isClinicalFieldsDisabled && (
                 <div className="mt-4">
                   <p className="text-sm font-medium">Selected Focus Areas:</p>
                   <div className="flex flex-wrap gap-2 mt-2">
@@ -431,9 +663,16 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
           </Card>
 
           {/* Session Notes */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Session Notes</CardTitle>
+          <Card className={isClinicalFieldsDisabled ? "opacity-50" : ""}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center gap-2">
+                Session Notes
+                {isClinicalFieldsDisabled && (
+                  <Badge variant="secondary" className="text-xs">
+                    Not Available for No Show
+                  </Badge>
+                )}
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
@@ -444,6 +683,7 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
                   onChange={(e) => setSessionNotes(e.target.value)}
                   placeholder="Document key observations, patient mood, significant topics discussed, and clinical insights..."
                   className="min-h-[120px]"
+                  disabled={isClinicalFieldsDisabled}
                 />
               </div>
               <div>
@@ -454,16 +694,26 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
                   onChange={(e) => setNextSessionGoals(e.target.value)}
                   placeholder="Outline focus areas and goals for the upcoming session..."
                   className="min-h-[100px]"
+                  disabled={isClinicalFieldsDisabled}
                 />
               </div>
             </CardContent>
           </Card>
 
           {/* --- New Section: Medications & Tasks --- */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Patient Medications & Assessments</CardTitle>
-              <p className="text-sm text-gray-600">Use these options to update the patient&apos;s current medications or assign new assessments directly from this session.</p>
+          <Card className={isClinicalFieldsDisabled ? "opacity-50" : ""}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center gap-2">
+                Patient Medications & Assessments
+                {isClinicalFieldsDisabled && (
+                  <Badge variant="secondary" className="text-xs">
+                    Not Available for No Show
+                  </Badge>
+                )}
+              </CardTitle>
+              {!isClinicalFieldsDisabled && (
+                <p className="text-sm text-gray-600">Use these options to update the patient&apos;s current medications or assign new assessments directly from this session.</p>
+              )}
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex flex-col sm:flex-row gap-4">
@@ -471,10 +721,13 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
                   style={{ backgroundColor: "#FAF8FB", color: "#8159A8" }}
                   className="font-semibold px-4 py-2 rounded-lg transition-colors duration-150 hover:bg-[#E9E3F2] hover:text-[#6B399A] hover:shadow-md hover:scale-103"
                   type="button"
+                  disabled={isClinicalFieldsDisabled}
                   onClick={() => {
-                    // Open the medications modal from parent
-                    if (typeof window !== "undefined") {
-                      const event = new CustomEvent("openMedicationsModal");
+                    // Open the medications modal from parent with patient context
+                    if (typeof window !== "undefined" && currentSession.patientId) {
+                      const event = new CustomEvent("openMedicationsModal", {
+                        detail: { patientId: currentSession.patientId }
+                      });
                       window.dispatchEvent(event);
                     }
                   }}
@@ -485,6 +738,7 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
                   style={{ backgroundColor: "#FAF8FB", color: "#8159A8" }}
                   className="font-semibold px-4 py-2 rounded-lg transition-colors duration-150 hover:bg-[#E9E3F2] hover:text-[#6B399A] hover:shadow-md hover:scale-103"
                   type="button"
+                  disabled={isClinicalFieldsDisabled}
                   onClick={() => {
                     // Open the tasks modal from parent
                     if (typeof window !== "undefined") {
@@ -521,34 +775,92 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
             </div>
           )}
 
+          {/* Move to Completed Success Message */}
+          {moveCompletedSuccess && (
+            <div className="bg-green-50 border border-green-200 rounded-md p-3">
+              <div className="flex items-center">
+                <CheckSquare className="w-5 h-5 text-green-600 mr-2" />
+                <p className="text-green-800 font-medium">Session successfully moved to Completed tab!</p>
+              </div>
+            </div>
+          )}
 
           {/* Action Buttons */}
           <div className="flex justify-end gap-3 pt-4 border-t">
             <Button variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button 
-              onClick={() => handleSubmit(true)} 
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4 mr-2" />
-                  Save
-                </>
-              )}
-            </Button>
+            {/* Only show Save button when not No-Show */}
+            {attendanceStatus !== "NO_SHOW" && (
+              <Button 
+                onClick={() => handleSubmit(true)} 
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    Save
+                  </>
+                )}
+              </Button>
+            )}
+            {/* Only show Move to Completed button for Present/Late */}
+            {(attendanceStatus === "PRESENT" || attendanceStatus === "LATE") && !moveCompletedSuccess && (
+              <Button 
+                onClick={handleMoveSession}
+                disabled={isSubmitting}
+                className="bg-green-500 hover:bg-green-600 text-white"
+              >
+                {isSubmitting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <CheckSquare className="w-4 h-4 mr-2" />
+                    Move to Completed
+                  </>
+                )}
+              </Button>
+            )}
           </div>
 
           
         </div>
         )}
+
+        {/* No Show Confirmation Dialog */}
+        <NoShowConfirmationDialog
+          isOpen={showNoShowConfirmation}
+          onConfirm={() => handleNoShowConfirmation(true)}
+          onCancel={() => handleNoShowConfirmation(false)}
+        />
+
+        {/* Move to No-Show Confirmation Dialog */}
+        <MoveToNoShowConfirmationDialog
+          isOpen={showMoveNoShowConfirmation}
+          onConfirm={() => handleMoveNoShowConfirmation(true)}
+          onCancel={() => handleMoveNoShowConfirmation(false)}
+          patientName={currentSession.patientName}
+        />
+
+        {/* Move to Completed Confirmation Dialog */}
+        <MoveToCompletedConfirmationDialog
+          isOpen={showMoveCompletedConfirmation}
+          onConfirm={() => handleMoveCompletedConfirmation(true)}
+          onCancel={() => handleMoveCompletedConfirmation(false)}
+          patientName={currentSession.patientName}
+        />
+
+    
       </DialogContent>
     </Dialog>
   );
 }
+

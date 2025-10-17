@@ -30,6 +30,11 @@ export async function GET(
         console.log("Therapist profile found:", user.therapistProfile.id);
         const sessionId = id;
 
+        console.log("About to query therapySession with:", {
+            sessionId,
+            therapistId: user.therapistProfile.id
+        });
+
         // Get detailed session information
         const therapySession = await prisma.therapySession.findFirst({
             where: {
@@ -70,13 +75,6 @@ export async function GET(
                                 createdAt: 'desc'
                             }
                         },
-                        // Get patient's assessments
-                        assessments: {
-                            orderBy: {
-                                assessmentDate: 'desc'
-                            },
-                            take: 5 // Get last 5 assessments
-                        },
                         // Get patient's treatment plans
                         treatmentPlans: {
                             where: {
@@ -90,6 +88,8 @@ export async function GET(
                 }
             }
         });
+
+        console.log("therapySession query completed, result:", therapySession ? "Found" : "Not found");
 
         if (!therapySession) {
             return NextResponse.json(
@@ -119,14 +119,14 @@ export async function GET(
             duration: therapySession.duration,
             type: therapySession.type,
             status: therapySession.status,
-            // Clinical documentation fields from the database - use raw query to get actual values
-            attendanceStatus: (therapySession as unknown as Record<string, unknown>).attendanceStatus || null,
-            overallProgress: (therapySession as unknown as Record<string, unknown>).overallProgress || null,
-            patientEngagement: (therapySession as unknown as Record<string, unknown>).patientEngagement || null,
-            riskAssessment: (therapySession as unknown as Record<string, unknown>).riskAssessment || null,
-            primaryFocusAreas: (therapySession as unknown as Record<string, unknown>).primaryFocusAreas || [],
-            sessionNotes: (therapySession as unknown as Record<string, unknown>).sessionNotes || null,
-            nextSessionGoals: (therapySession as unknown as Record<string, unknown>).nextSessionGoals || null,
+            // Clinical documentation fields from the database - access directly from Prisma model
+            attendanceStatus: therapySession.attendanceStatus,
+            overallProgress: therapySession.overallProgress,
+            patientEngagement: therapySession.patientEngagement,
+            riskAssessment: therapySession.riskAssessment,
+            primaryFocusAreas: therapySession.primaryFocusAreas,
+            sessionNotes: therapySession.sessionNotes,
+            nextSessionGoals: therapySession.nextSessionGoals,
             patient: {
                 id: therapySession.patient.id,
                 firstName: therapySession.patient.firstName,
@@ -138,7 +138,6 @@ export async function GET(
                 medicalHistory: therapySession.patient.medicalHistory,
                 tasks: therapySession.patient.tasks,
                 treatments: therapySession.patient.treatments,
-                assessments: therapySession.patient.assessments,
                 treatmentPlans: therapySession.patient.treatmentPlans
             },
             sessionHistory: sessionHistory.map(session => ({
@@ -147,13 +146,13 @@ export async function GET(
                 duration: session.duration,
                 type: session.type,
                 status: session.status,
-                attendanceStatus: (session as unknown as Record<string, unknown>).attendanceStatus,
-                overallProgress: (session as unknown as Record<string, unknown>).overallProgress,
-                patientEngagement: (session as unknown as Record<string, unknown>).patientEngagement,
-                riskAssessment: (session as unknown as Record<string, unknown>).riskAssessment,
-                primaryFocusAreas: (session as unknown as Record<string, unknown>).primaryFocusAreas,
-                sessionNotes: (session as unknown as Record<string, unknown>).sessionNotes,
-                nextSessionGoals: (session as unknown as Record<string, unknown>).nextSessionGoals
+                attendanceStatus: session.attendanceStatus,
+                overallProgress: session.overallProgress,
+                patientEngagement: session.patientEngagement,
+                riskAssessment: session.riskAssessment,
+                primaryFocusAreas: session.primaryFocusAreas,
+                sessionNotes: session.sessionNotes,
+                nextSessionGoals: session.nextSessionGoals
             }))
         };
 
@@ -167,8 +166,13 @@ export async function GET(
             return error;
         }
         console.error("Error fetching session details:", error);
+        console.error("Error details:", {
+            message: error instanceof Error ? error.message : 'Unknown error',
+            stack: error instanceof Error ? error.stack : undefined,
+            sessionId: await params.then(p => p.id).catch(() => 'unknown')
+        });
         return NextResponse.json(
-            { error: "Internal server error" },
+            { error: "Internal server error", details: error instanceof Error ? error.message : 'Unknown error' },
             { status: 500 }
         );
     }
@@ -307,7 +311,7 @@ export async function PUT(
 
         console.log("Session updated successfully with ID:", sessionId);
 
-        // Create a session assessment record for clinical documentation
+        /* // Create a session assessment record for clinical documentation
         await prisma.assessment.create({
             data: {
                 patientId: existingSession.patientId,
@@ -333,7 +337,68 @@ export async function PUT(
                     documentedAt: new Date().toISOString()
                 })
             }
-        });
+        }); */
+
+        // After updating session status to COMPLETED:
+        if (newStatus === "COMPLETED") {
+            // Fetch patient and parent/guardian info
+            const completedSessionWithPatient = await prisma.therapySession.findUnique({
+                where: { id: sessionId },
+                include: {
+                    patient: {
+                        include: {
+                            user: { select: { id: true, name: true } }
+                        }
+                    }
+                }
+            });
+
+            const patientUserId = completedSessionWithPatient?.patient?.user?.id;
+            const patientName = completedSessionWithPatient?.patient?.user?.name || 
+                               `${completedSessionWithPatient?.patient?.firstName} ${completedSessionWithPatient?.patient?.lastName}`;
+            const therapistUserId = user.id;
+
+            // Find parent/guardian user
+            const parentGuardian = await prisma.parentGuardian.findFirst({
+                where: { patientId: completedSessionWithPatient?.patientId },
+                include: { user: { select: { id: true, name: true } } }
+            });
+
+            // Notification message
+            const notificationTitle = "Session Completed";
+            const patientNotificationMessage = `Your session with ${user.name || "your therapist"} has been marked as completed. You can now view the session summary and feedback.`;
+            const parentNotificationMessage = `Session for ${patientName} has been marked as completed by ${user.name || "the therapist"}. You can now view the session summary and feedback.`;
+
+            // Send notification to patient
+            if (patientUserId) {
+                await prisma.notification.create({
+                    data: {
+                        senderId: therapistUserId,
+                        receiverId: patientUserId,
+                        type: "SYSTEM",
+                        title: notificationTitle,
+                        message: patientNotificationMessage,
+                        isRead: false,
+                        isUrgent: false
+                    }
+                });
+            }
+
+            // Send notification to parent/guardian
+            if (parentGuardian?.user?.id) {
+                await prisma.notification.create({
+                    data: {
+                        senderId: therapistUserId,
+                        receiverId: parentGuardian.user.id,
+                        type: "SYSTEM",
+                        title: notificationTitle,
+                        message: parentNotificationMessage,
+                        isRead: false,
+                        isUrgent: false
+                    }
+                });
+            }
+        }
 
         // Get updated session with patient info for response
         const sessionWithPatient = await prisma.therapySession.findUnique({
@@ -357,7 +422,7 @@ export async function PUT(
 
         return NextResponse.json(
             {
-                message: "Session documentation saved successfully",
+                message: "Session documentation saved successfully!",
                 session: {
                     id: sessionWithPatient.id,
                     patientName: `${sessionWithPatient.patient.firstName} ${sessionWithPatient.patient.lastName}`,
@@ -398,3 +463,4 @@ export async function PUT(
         );
     }
 }
+            

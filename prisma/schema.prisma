@@ -35,25 +35,33 @@ model Session {
 }
 
 model User {
-  id                    String           @id @default(cuid())
-  email                 String?          @unique
-  name                  String?
-  createdAt             DateTime         @default(now())
-  updatedAt             DateTime         @updatedAt
-  emailVerified         DateTime?
-  image                 String?
-  metadata              Json?
-  password              String?
-  role                  UserRole         @default(NORMAL_USER)
-  accounts              Account[]
-  receivedNotifications Notification[]   @relation("NotificationReceiver")
-  sentNotifications     Notification[]   @relation("NotificationSender")
-  managedOrganization   Organization?    @relation("OrganizationManager")
-  parentGuardianRel     ParentGuardian[]
-  patientProfile        Patient?
-  sessions              Session[]
-  therapistProfile      Therapist?
-  blogs                 blogs[]
+  id                               String              @id @default(cuid())
+  email                            String?             @unique
+  name                             String?
+  createdAt                        DateTime            @default(now())
+  updatedAt                        DateTime            @updatedAt
+  emailVerified                    DateTime?
+  image                            String?
+  metadata                         Json?
+  password                         String?
+  role                             UserRole            @default(NORMAL_USER)
+  accounts                         Account[]
+  refundRequests                   CancelRefund[]      @relation("RefundRequests")
+  processedRefunds                 CancelRefund[]      @relation("ProcessedRefunds")
+  Conversation                     Conversation[]
+  Donation                         Donation[]
+  Game                             Game[]
+  Message_Message_receiverIdToUser Message[]           @relation("Message_receiverIdToUser")
+  Message_Message_senderIdToUser   Message[]           @relation("Message_senderIdToUser")
+  receivedNotifications            Notification[]      @relation("NotificationReceiver")
+  sentNotifications                Notification[]      @relation("NotificationSender")
+  managedOrganization              Organization?       @relation("OrganizationManager")
+  parentGuardianRel                ParentGuardian[]
+  patientProfile                   Patient?
+  sessions                         Session[]
+  SessionReschedule                SessionReschedule[]
+  therapistProfile                 Therapist?
+  blogs                            blogs[]
 }
 
 model VerificationToken {
@@ -81,55 +89,67 @@ model Organization {
 }
 
 model Therapist {
-  id              String           @id @default(cuid())
-  userId          String           @unique
-  licenseNumber   String?          @unique
-  specialization  String[]
-  experience      Int?
-  bio             String?
-  availability    Json?
-  organizationId  String?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  rating          Decimal?         @db.Decimal(3, 2)
-  assessments     Assessment[]
-  Medication      Medication[]
-  patients        Patient[]
-  organization    Organization?    @relation(fields: [organizationId], references: [id])
-  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  therapySessions TherapySession[]
-  treatments      Treatment[]
-  treatmentPlans  TreatmentPlan[]
-  assignmentRequests TherapistAssignmentRequest[] @relation("TherapistRequests")
+  id                    String                       @id @default(cuid())
+  userId                String                       @unique
+  licenseNumber         String?                      @unique
+  specialization        String[]
+  experience            Int?
+  bio                   String?
+  availability          Json?
+  organizationId        String?
+  createdAt             DateTime                     @default(now())
+  updatedAt             DateTime                     @updatedAt
+  rating                Decimal?                     @db.Decimal(3, 2)
+  session_rate          Decimal?                     @default(0) @db.Decimal(10, 2)
+  Conversation          Conversation[]
+  GameAssignment        GameAssignment[]
+  Medication            Medication[]
+  patients              Patient[]
+  organization          Organization?                @relation(fields: [organizationId], references: [id])
+  user                  User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignmentRequests    TherapistAssignmentRequest[] @relation("TherapistRequests")
+  TherapistAvailability TherapistAvailability[]
+  documents             TherapistDocument[]
+  profile               TherapistProfile?
+  references            TherapistReference?
+  verification          TherapistVerification?
+  therapySessions       TherapySession[]
+  treatments            Treatment[]
+  treatmentPlans        TreatmentPlan[]
 }
 
 model Patient {
-  id                 String           @id @default(cuid())
-  userId             String?          @unique
-  firstName          String
-  lastName           String
-  dateOfBirth        DateTime
-  gender             Gender
-  phone              String?
-  email              String?
-  address            String?
-  emergencyContact   Json?
-  medicalHistory     String?
-  organizationId     String?
-  primaryTherapistId String?
-  createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @updatedAt
-  assessments        Assessment[]
-  Medication         Medication[]
-  parentGuardians    ParentGuardian[]
-  organization       Organization?    @relation(fields: [organizationId], references: [id])
-  primaryTherapist   Therapist?       @relation(fields: [primaryTherapistId], references: [id])
-  user               User?            @relation(fields: [userId], references: [id])
-  tasks              Task[]
-  therapySessions    TherapySession[]
-  treatments         Treatment[]
-  treatmentPlans     TreatmentPlan[]
-  therapistRequests  TherapistAssignmentRequest[] @relation("PatientRequests")
+  id                     String                       @id @default(cuid())
+  userId                 String?                      @unique
+  firstName              String
+  lastName               String
+  dateOfBirth            DateTime
+  gender                 Gender
+  phone                  String?
+  email                  String?
+  address                String?
+  emergencyContact       Json?
+  medicalHistory         String?
+  organizationId         String?
+  primaryTherapistId     String?
+  createdAt              DateTime                     @default(now())
+  updatedAt              DateTime                     @updatedAt
+  parentConnectionStatus Boolean                      @default(true)
+  AssessmentAssignment   AssessmentAssignment[]
+  Conversation           Conversation[]
+  GameAssignment         GameAssignment[]
+  GameSession            GameSession[]
+  Medication             Medication[]
+  parentGuardians        ParentGuardian[]
+  organization           Organization?                @relation(fields: [organizationId], references: [id])
+  primaryTherapist       Therapist?                   @relation(fields: [primaryTherapistId], references: [id])
+  user                   User?                        @relation(fields: [userId], references: [id])
+  payments               Payment[]
+  tasks                  Task[]
+  therapistRequests      TherapistAssignmentRequest[] @relation("PatientRequests")
+  therapySessions        TherapySession[]
+  treatments             Treatment[]
+  treatmentPlans         TreatmentPlan[]
 }
 
 model ParentGuardian {
@@ -149,24 +169,31 @@ model ParentGuardian {
 }
 
 model TherapySession {
-  id                String            @id @default(cuid())
+  id                String              @id @default(cuid())
   patientId         String
   therapistId       String
   scheduledAt       DateTime
   duration          Int
-  status            SessionStatus     @default(SCHEDULED)
+  status            SessionStatus       @default(SCHEDULED)
   type              String
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
   attendanceStatus  AttendanceStatus?
+  bookedRate        Decimal?            @db.Decimal(10, 2)
+  nextSessionGoals  String?
   overallProgress   ProgressLevel?
   patientEngagement EngagementLevel?
-  riskAssessment    RiskLevel?
   primaryFocusAreas String[]
+  riskAssessment    RiskLevel?
   sessionNotes      String?
-  nextSessionGoals  String?
-  patient           Patient           @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  therapist         Therapist         @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+  calendarEventId   String?
+  meetingLink       String?
+  sessionType       SessionType         @default(IN_PERSON)
+  cancelRefund      CancelRefund?
+  Payment           Payment[]
+  SessionReschedule SessionReschedule[]
+  patient           Patient             @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  therapist         Therapist           @relation(fields: [therapistId], references: [id], onDelete: Cascade)
 }
 
 model TreatmentPlan {
@@ -180,7 +207,7 @@ model TreatmentPlan {
   targetEndDate DateTime?
   isActive      Boolean     @default(true)
   createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  updatedAt     DateTime    @default(now())
   treatments    Treatment[]
   patient       Patient     @relation(fields: [patientId], references: [id], onDelete: Cascade)
   therapist     Therapist   @relation(fields: [therapistId], references: [id], onDelete: Cascade)
@@ -200,29 +227,22 @@ model Treatment {
   endDate         DateTime?
   isActive        Boolean       @default(true)
   createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  updatedAt       DateTime      @default(now())
   patient         Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
   therapist       Therapist     @relation(fields: [therapistId], references: [id], onDelete: Cascade)
   treatmentPlan   TreatmentPlan @relation(fields: [treatmentPlanId], references: [id], onDelete: Cascade)
 }
 
 model Assessment {
-  id              String         @id @default(cuid())
-  patientId       String
-  therapistId     String
-  type            AssessmentType
-  title           String
-  description     String?
-  questions       Json
-  responses       Json?
-  score           Float?
-  interpretation  String?
-  recommendations String?
-  assessmentDate  DateTime
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  patient         Patient        @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  therapist       Therapist      @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+  id                   String                 @id @default(cuid())
+  type                 String
+  description          String?
+  title                String?
+  link                 String?
+  image                String?
+  createdAt            DateTime?              @default(now()) @db.Timestamp(6)
+  updatedAt            DateTime?              @default(now()) @db.Timestamp(6)
+  AssessmentAssignment AssessmentAssignment[]
 }
 
 model Task {
@@ -239,7 +259,7 @@ model Task {
   completedAt      DateTime?
   completionNotes  String?
   createdAt        DateTime   @default(now())
-  updatedAt        DateTime   @updatedAt
+  updatedAt        DateTime   @default(now())
   sessionid        String?
   patient          Patient    @relation(fields: [patientId], references: [id], onDelete: Cascade)
 }
@@ -256,7 +276,7 @@ model Notification {
   scheduledFor DateTime?
   sentAt       DateTime?
   createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
+  updatedAt    DateTime         @default(now())
   receiver     User             @relation("NotificationReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
   sender       User?            @relation("NotificationSender", fields: [senderId], references: [id])
 }
@@ -289,7 +309,7 @@ model Medication {
   discontinuedAt  DateTime?
   discontinuedBy  String?
   createdAt       DateTime            @default(now())
-  updatedAt       DateTime
+  updatedAt       DateTime            @default(now())
   Patient         Patient             @relation(fields: [patientId], references: [id], onDelete: Cascade)
   Therapist       Therapist           @relation(fields: [therapistId], references: [id], onDelete: Cascade)
   history         MedicationHistory[]
@@ -337,6 +357,353 @@ model blogs {
   User         User      @relation(fields: [therapist_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
+model TherapistAssignmentRequest {
+  id              String           @id @default(cuid())
+  patientId       String
+  therapistId     String
+  status          AssignmentStatus @default(PENDING)
+  requestMessage  String?
+  responseMessage String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @default(now())
+  patient         Patient          @relation("PatientRequests", fields: [patientId], references: [id], onDelete: Cascade)
+  therapist       Therapist        @relation("TherapistRequests", fields: [therapistId], references: [id], onDelete: Cascade)
+
+  @@unique([patientId, therapistId])
+  @@index([status])
+}
+
+model QuizSubmission {
+  id               String     @id @default(cuid())
+  userId           String?
+  sessionId        String
+  responses        Json
+  currentStep      Int        @default(1)
+  completionStatus QuizStatus @default(IN_PROGRESS)
+  startedAt        DateTime   @default(now())
+  completedAt      DateTime?
+  updatedAt        DateTime   @updatedAt
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([completionStatus])
+}
+
+model TherapistAvailability {
+  id          String    @id @default(cuid())
+  therapistId String
+  date        DateTime
+  startTime   String
+  isBooked    Boolean   @default(false)
+  isFree      Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  Therapist   Therapist @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+
+  @@index([therapistId])
+  @@index([therapistId, date])
+  @@index([therapistId, date, isBooked])
+}
+
+model SessionReschedule {
+  id                  String         @id @default(cuid())
+  sessionId           String
+  previousScheduledAt DateTime
+  newScheduledAt      DateTime
+  rescheduledAt       DateTime       @default(now())
+  rescheduledBy       String
+  rescheduledByRole   String
+  rescheduleReason    String?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  User                User           @relation(fields: [rescheduledBy], references: [id], onDelete: Cascade)
+  TherapySession      TherapySession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+}
+
+model CancelRefund {
+  id                 String         @id @default(cuid())
+  sessionId          String         @unique
+  parentUserId       String
+  originalAmount     Decimal        @db.Decimal(10, 2)
+  refundAmount       Decimal        @db.Decimal(10, 2)
+  refundPercentage   Decimal        @db.Decimal(5, 2)
+  cancellationTime   DateTime
+  sessionTime        DateTime
+  hoursBeforeSession Decimal        @db.Decimal(5, 2)
+  cancelReason       String?
+  bankAccountName    String
+  bankName           String
+  accountNumber      String
+  branchCode         String?
+  swiftCode          String?
+  refundStatus       RefundStatus   @default(PENDING)
+  processedAt        DateTime?
+  processedBy        String?
+  adminNotes         String?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @default(now())
+  parentUser         User           @relation("RefundRequests", fields: [parentUserId], references: [id], onDelete: Cascade)
+  processor          User?          @relation("ProcessedRefunds", fields: [processedBy], references: [id])
+  session            TherapySession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([parentUserId])
+  @@index([refundStatus])
+  @@index([createdAt])
+}
+
+model Payment {
+  id                String          @id @default(dbgenerated("gen_random_uuid()"))
+  orderId           String          @unique
+  paymentId         String?         @unique
+  sessionId         String?
+  patientId         String?
+  amount            Decimal         @db.Decimal(10, 2)
+  currency          String          @default("LKR")
+  status            PaymentStatus   @default(PENDING)
+  paymentMethod     String?
+  statusMessage     String?
+  payhereStatusCode String?
+  cardHolderName    String?
+  maskedCardNumber  String?
+  cardExpiry        String?
+  metadata          Json?
+  createdAt         DateTime?       @default(now()) @db.Timestamp(6)
+  updatedAt         DateTime?       @default(now()) @db.Timestamp(6)
+  patient           Patient?        @relation(fields: [patientId], references: [id])
+  TherapySession    TherapySession? @relation(fields: [sessionId], references: [id], map: "fk_payment_session")
+
+  @@index([orderId], map: "idx_orderId")
+  @@index([paymentId], map: "idx_paymentId")
+  @@index([sessionId], map: "idx_sessionId")
+  @@index([patientId], map: "idx_patientId")
+  @@index([status], map: "idx_status")
+}
+
+model TherapistProfile {
+  id                   String    @id @default(cuid())
+  therapistId          String    @unique
+  phone                String?
+  houseNumber          String?
+  streetName           String?
+  city                 String?
+  gender               Gender?
+  dateOfBirth          DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  accountHolderName    String?
+  accountNumber        String?
+  bankName             String?
+  branchName           String?
+  profileCompleted     Boolean   @default(false)
+  profileCompletedAt   DateTime?
+  profileImage         Bytes?
+  profileImageMimeType String?
+  profileImageName     String?
+  therapist            Therapist @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+}
+
+model TherapistVerification {
+  id                     String             @id @default(cuid())
+  therapistId            String             @unique
+  status                 VerificationStatus @default(PENDING)
+  licenseNumber          String?
+  primarySpecialty       String?
+  yearsOfExperience      String?
+  highestEducation       String?
+  institution            String?
+  adhdExperience         String?
+  backgroundCheckConsent Boolean            @default(false)
+  termsAccepted          Boolean            @default(false)
+  accurateInfoCertified  Boolean            @default(false)
+  submittedAt            DateTime?
+  reviewedAt             DateTime?
+  reviewedBy             String?
+  reviewNotes            String?
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+  approvalAcknowledgedAt DateTime?
+  therapist              Therapist          @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+}
+
+model TherapistDocument {
+  id           String       @id @default(cuid())
+  therapistId  String
+  category     DocumentType
+  fileName     String
+  originalName String
+  fileSize     Int
+  mimeType     String
+  uploadedAt   DateTime     @default(now())
+  fileData     Bytes
+  therapist    Therapist    @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+
+  @@index([therapistId, category])
+}
+
+model TherapistReference {
+  id                 String          @id @default(cuid())
+  therapistId        String          @unique
+  firstName          String
+  lastName           String
+  professionalTitle  String
+  phoneNumber        String
+  email              String?
+  contactedAt        DateTime?
+  verificationStatus ReferenceStatus @default(PENDING)
+  verificationNotes  String?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  therapist          Therapist       @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+}
+
+model Donation {
+  id                String                @id
+  amount            Decimal               @db.Decimal(10, 2)
+  currency          String                @default("LKR")
+  frequency         DonationFrequency     @default(ONE_TIME)
+  paymentMethod     String?
+  paymentStatus     DonationPaymentStatus @default(PENDING)
+  payHereOrderId    String?               @unique
+  payHerePaymentId  String?               @unique
+  payHereStatusCode String?
+  donorName         String?
+  donorEmail        String?
+  donorPhone        String?
+  isAnonymous       Boolean               @default(false)
+  message           String?
+  userId            String?
+  receiptSent       Boolean               @default(false)
+  receiptSentAt     DateTime?
+  source            String?
+  ipAddress         String?
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime
+  User              User?                 @relation(fields: [userId], references: [id])
+
+  @@index([createdAt])
+  @@index([donorEmail])
+  @@index([paymentStatus])
+}
+
+model Game {
+  id              String           @id
+  title           String
+  description     String
+  category        GameCategory
+  embedUrl        String
+  thumbnailUrl    String?
+  iframeWidth     String           @default("100%")
+  iframeHeight    String           @default("600px")
+  allowFullscreen Boolean          @default(true)
+  targetSkills    String[]
+  ageRange        String
+  difficulty      GameDifficulty
+  estimatedTime   Int
+  isActive        Boolean          @default(true)
+  addedBy         String
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime
+  User            User             @relation(fields: [addedBy], references: [id])
+  GameAssignment  GameAssignment[]
+  GameSession     GameSession[]
+
+  @@index([category])
+  @@index([isActive])
+}
+
+model GameAssignment {
+  id             String               @id
+  gameId         String
+  patientId      String
+  therapistId    String
+  status         GameAssignmentStatus @default(ACTIVE)
+  completedAt    DateTime?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime
+  assignedAt     DateTime             @default(now())
+  targetSessions Int
+  therapistNotes String?
+  Game           Game                 @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  Patient        Patient              @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  Therapist      Therapist            @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+  GameSession    GameSession[]
+
+  @@index([patientId])
+  @@index([status])
+  @@index([therapistId])
+}
+
+model GameSession {
+  id             String          @id
+  gameId         String
+  patientId      String
+  assignmentId   String?
+  startedAt      DateTime        @default(now())
+  endedAt        DateTime?
+  duration       Int?
+  gameData       Json?
+  GameAssignment GameAssignment? @relation(fields: [assignmentId], references: [id])
+  Game           Game            @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  Patient        Patient         @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([gameId])
+  @@index([patientId])
+}
+
+model Conversation {
+  id              String           @id @default(cuid())
+  therapistId     String
+  participantId   String
+  participantType ConversationType
+  patientId       String?
+  lastMessageAt   DateTime         @default(now())
+  createdAt       DateTime         @default(now())
+  User            User             @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  Patient         Patient?         @relation(fields: [patientId], references: [id])
+  Therapist       Therapist        @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+  Message         Message[]
+
+  @@unique([therapistId, participantId, participantType])
+  @@index([participantId])
+  @@index([therapistId])
+}
+
+model Message {
+  id                            String       @id @default(cuid())
+  conversationId                String
+  senderId                      String
+  receiverId                    String
+  encryptedContent              String
+  isRead                        Boolean      @default(false)
+  readAt                        DateTime?
+  createdAt                     DateTime     @default(now())
+  Conversation                  Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  User_Message_receiverIdToUser User         @relation("Message_receiverIdToUser", fields: [receiverId], references: [id], onDelete: Cascade)
+  User_Message_senderIdToUser   User         @relation("Message_senderIdToUser", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([isRead])
+  @@index([receiverId])
+  @@index([senderId])
+}
+
+model AssessmentAssignment {
+  id           String     @id @default(cuid())
+  assessmentId String
+  patientId    String
+  status       String     @default("PENDING")
+  completedAt  DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  Assessment   Assessment @relation(fields: [assessmentId], references: [id])
+  Patient      Patient    @relation(fields: [patientId], references: [id])
+
+  @@unique([assessmentId, patientId])
+  @@index([assessmentId])
+  @@index([patientId])
+  @@index([status])
+}
+
 enum UserRole {
   NORMAL_USER
   PARENT_GUARDIAN
@@ -350,9 +717,9 @@ enum SessionStatus {
   COMPLETED
   CANCELLED
   NO_SHOW
-  REQUESTED
+  RESCHEDULED
   APPROVED
-  DECLINED
+  REQUESTED
 }
 
 enum AttendanceStatus {
@@ -391,19 +758,13 @@ enum TaskStatus {
   OVERDUE
 }
 
-enum AssessmentType {
-  INITIAL
-  PROGRESS
-  FINAL
-  FOLLOW_UP
-}
-
 enum NotificationType {
   APPOINTMENT
   REMINDER
   TASK
   SYSTEM
   EMERGENCY
+  PAYMENT
 }
 
 enum Gender {
@@ -442,21 +803,6 @@ enum MedicationHistoryAction {
   FREQUENCY_CHANGED
   INSTRUCTIONS_UPDATED
 }
-model TherapistAssignmentRequest {
-  id              String           @id @default(cuid())
-  patientId       String
-  therapistId     String
-  status          AssignmentStatus @default(PENDING)
-  requestMessage  String?
-  responseMessage String?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  patient         Patient          @relation("PatientRequests", fields: [patientId], references: [id], onDelete: Cascade)
-  therapist       Therapist        @relation("TherapistRequests", fields: [therapistId], references: [id], onDelete: Cascade)
-
-  @@unique([patientId, therapistId])
-  @@index([status])
-}
 
 enum AssignmentStatus {
   PENDING
@@ -465,26 +811,105 @@ enum AssignmentStatus {
   CANCELLED
 }
 
-// Quiz-related models for SPARKS well-being assessment
-model QuizSubmission {
-  id               String     @id @default(cuid())
-  userId           String?    // Optional - can be null for anonymous users
-  sessionId        String     // For tracking anonymous sessions
-  responses        Json       // Stores all quiz answers as a JSON object
-  currentStep      Int        @default(1) // Track current quiz step (1-26)
-  completionStatus QuizStatus @default(IN_PROGRESS)
-  startedAt        DateTime   @default(now())
-  completedAt      DateTime?
-  updatedAt        DateTime   @updatedAt
-
-  // Index for better query performance
-  @@index([userId])
-  @@index([sessionId])
-  @@index([completionStatus])
-}
-
 enum QuizStatus {
   IN_PROGRESS
   COMPLETED
   ABANDONED
+}
+
+enum RefundStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+  CHARGEDBACK
+  UNKNOWN
+}
+
+enum VerificationStatus {
+  PENDING
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  REQUIRES_RESUBMISSION
+}
+
+enum DocumentType {
+  PROFESSIONAL_LICENSE
+  EDUCATIONAL_CERTIFICATE
+  ADDITIONAL_CERTIFICATION
+}
+
+enum ReferenceStatus {
+  PENDING
+  CONTACTED
+  VERIFIED
+  FAILED_VERIFICATION
+}
+
+enum DonationFrequency {
+  ONE_TIME
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+enum DonationPaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+enum GameAssignmentStatus {
+  ACTIVE
+  COMPLETED
+  PAUSED
+}
+
+enum GameCategory {
+  ATTENTION_TRAINING
+  MEMORY_EXERCISES
+  IMPULSE_CONTROL
+  EXECUTIVE_FUNCTION
+  SOCIAL_SKILLS
+  EMOTIONAL_REGULATION
+  EDUCATIONAL
+  RELAXATION
+  OTHER
+}
+
+enum GameDifficulty {
+  EASY
+  MEDIUM
+  HARD
+  ADAPTIVE
+}
+
+enum SessionType {
+  IN_PERSON
+  ONLINE
+  HYBRID
+}
+
+enum ConversationType {
+  PARENT
+  PATIENT
+}
+
+enum AssessmentType {
+  INITIAL
+  PROGRESS
+  FINAL
+  FOLLOW_UP
 }

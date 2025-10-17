@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
+import { useSession } from "next-auth/react";
 
 interface Therapist {
   name: string;
@@ -16,6 +17,16 @@ interface Child {
   therapist: Therapist | null;
 }
 
+interface TimeSlot {
+  slot: string;
+  startTime: string;
+  isAvailable: boolean;
+  isBooked: boolean;
+  isBlocked: boolean;
+  isFree: boolean;
+  cost: number;
+}
+
 interface SessionBookingModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -23,21 +34,25 @@ interface SessionBookingModalProps {
   onConfirmBooking: (date: Date, slot: string) => void;
 }
 
-const weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-const timeSlots = [
-  "9:00 AM - 10:00 AM",
-  "10:00 AM - 11:00 AM",
-  "11:00 AM - 12:00 AM",
-  "12:00 AM - 1:00 PM",
-  "1:00 PM - 2:00 PM",
-  "2:00 PM - 3:00 PM"
-];
+const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, onOpenChange, child, onConfirmBooking }) => {
+  const { data: session } = useSession();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [showCalendar, setShowCalendar] = useState(false);
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
+  const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [therapistInfo, setTherapistInfo] = useState<{
+    name: string;
+    duration: number;
+  }>({
+    name: child.therapist?.name || "Therapist",
+    duration: 45
+  });
+  const [booking, setBooking] = useState(false);
+  const [paymentProcessing, setPaymentProcessing] = useState(false);
 
   const year = selectedDate.getFullYear();
   const month = selectedDate.getMonth();
@@ -45,20 +60,210 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const firstDay = new Date(year, month, 1).getDay();
 
+  // Fetch available slots when date changes
+  useEffect(() => {
+    const fetchAvailableSlots = async () => {
+      setLoadingSlots(true);
+      try {
+        // Format date to YYYY-MM-DD without timezone conversion issues
+        const year = selectedDate.getFullYear();
+        const month = (selectedDate.getMonth() + 1).toString().padStart(2, '0');
+        const day = selectedDate.getDate().toString().padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
+
+        console.log(`Frontend: Selected date object:`, selectedDate);
+        console.log(`Frontend: Sending date string to API:`, dateStr);
+        console.log(`Frontend: Previous toISOString() would have been:`, selectedDate.toISOString().split('T')[0]);
+
+        const response = await fetch(
+          `/api/parent/sessions/available-slots?childId=${child.id}&date=${dateStr}`
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          setAvailableSlots(data.availableSlots || []);
+          // Update therapist name from response
+          setTherapistInfo(prev => ({
+            ...prev,
+            name: data.therapistName || child.therapist?.name || "Therapist"
+          }));
+        } else {
+          setAvailableSlots([]);
+        }
+      } catch (error) {
+        console.error("Error fetching available slots:", error);
+        setAvailableSlots([]);
+      } finally {
+        setLoadingSlots(false);
+      }
+    };
+
+    if (open && child.id) {
+      fetchAvailableSlots();
+    }
+  }, [selectedDate, open, child.id, child.therapist?.name]);
+
   const handleDateClick = (day: number) => {
     setSelectedDate(new Date(year, month, day));
     setSelectedSlot(null);
   };
+
   const handleSlotClick = (slot: string) => {
     setSelectedSlot(slot);
   };
-  const handleConfirm = () => {
-    setBookingConfirmed(true);
-    onConfirmBooking(selectedDate, selectedSlot!);
-    setTimeout(() => {
-      setBookingConfirmed(false);
-      onOpenChange(false);
-    }, 2000);
+
+  const handleConfirm = async () => {
+    if (!selectedSlot || !session?.user) return;
+
+    const selectedSlotData = availableSlots.find(slot => slot.slot === selectedSlot);
+    if (!selectedSlotData) {
+      alert("Selected time slot is no longer available");
+      return;
+    }
+
+    // If the slot is free, skip payment and book directly
+    if (selectedSlotData.isFree) {
+      await handleDirectBooking();
+      return;
+    }
+
+    // Otherwise, initiate payment flow
+    await handlePaymentBooking(selectedSlotData.cost);
+  };
+
+  const handleDirectBooking = async () => {
+    if (!selectedSlot) return;
+
+    setBooking(true);
+    try {
+      const response = await fetch('/api/parent/sessions/book', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          childId: child.id,
+          date: `${selectedDate.getFullYear()}-${(selectedDate.getMonth() + 1).toString().padStart(2, '0')}-${selectedDate.getDate().toString().padStart(2, '0')}`,
+          timeSlot: selectedSlot,
+          sessionType: "Individual"
+        }),
+      });
+
+      if (response.ok) {
+        setBookingConfirmed(true);
+        onConfirmBooking(selectedDate, selectedSlot);
+        setTimeout(() => {
+          setBookingConfirmed(false);
+          onOpenChange(false);
+          // Reset form
+          setSelectedSlot(null);
+          setSelectedDate(new Date());
+        }, 2000);
+      } else {
+        const error = await response.json();
+        alert(`Booking failed: ${error.error}`);
+      }
+    } catch (error) {
+      console.error("Error booking session:", error);
+      alert("An error occurred while booking the session");
+    } finally {
+      setBooking(false);
+    }
+  };
+
+  const handlePaymentBooking = async (amount: number) => {
+    if (!selectedSlot || !session?.user) {
+      return;
+    }
+
+    setPaymentProcessing(true);
+    setBooking(true);
+
+    try {
+      // Initiate payment
+      const response = await fetch('/api/parent/payment/initiate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          childId: child.id,
+          date: `${selectedDate.getFullYear()}-${(selectedDate.getMonth() + 1).toString().padStart(2, '0')}-${selectedDate.getDate().toString().padStart(2, '0')}`,
+          timeSlot: selectedSlot,
+          sessionType: "Individual",
+          amount: amount,
+          customerInfo: {
+            firstName: session.user.name?.split(' ')[0] || 'Parent',
+            lastName: session.user.name?.split(' ').slice(1).join(' ') || 'User',
+            email: session.user.email || '',
+            phone: '0000000000', // TODO: Get from user profile
+            address: 'N/A',
+            city: 'Colombo',
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to initiate payment');
+      }
+
+      const paymentDetails = await response.json();
+
+      console.log('=== PayHere Payment Request ===');
+      console.log('Redirecting to PayHere checkout...');
+      console.log('Merchant ID:', paymentDetails.merchantId);
+      console.log('Order ID:', paymentDetails.orderId);
+      console.log('Amount:', paymentDetails.amount, paymentDetails.currency);
+      console.log('Hash (first 20 chars):', paymentDetails.hash?.substring(0, 20) + '...');
+      console.log('===============================');
+
+      // Create a form and submit to PayHere (full page redirect)
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = 'https://sandbox.payhere.lk/pay/checkout'; // Use sandbox URL
+
+      // Add all payment fields as hidden inputs
+      const fields = {
+        merchant_id: paymentDetails.merchantId,
+        return_url: paymentDetails.returnUrl,
+        cancel_url: paymentDetails.cancelUrl,
+        notify_url: paymentDetails.notifyUrl,
+        order_id: paymentDetails.orderId,
+        items: paymentDetails.items,
+        amount: paymentDetails.amount,
+        currency: paymentDetails.currency,
+        hash: paymentDetails.hash,
+        first_name: paymentDetails.customerFirstName,
+        last_name: paymentDetails.customerLastName,
+        email: paymentDetails.customerEmail,
+        phone: paymentDetails.customerPhone,
+        address: paymentDetails.customerAddress,
+        city: paymentDetails.customerCity,
+        country: 'Sri Lanka',
+      };
+
+      // Create hidden input for each field
+      Object.entries(fields).forEach(([key, value]) => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = value || '';
+        form.appendChild(input);
+      });
+
+      // Append form to body and submit
+      document.body.appendChild(form);
+      form.submit();
+
+      // Note: User will be redirected away, so no need to update state
+
+    } catch (error) {
+      console.error("Error initiating payment:", error);
+      alert(error instanceof Error ? error.message : "An error occurred while processing payment");
+      setPaymentProcessing(false);
+      setBooking(false);
+    }
   };
 
   return (
@@ -75,11 +280,11 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
             <div className="flex items-center gap-4 bg-card rounded-xl p-4 shadow border border-border">
               <Image src={child.therapist?.image || '/images/therapist.png'} alt={child.therapist?.name || ''} width={48} height={48} className="object-cover w-12 h-12 rounded-full border-2 border-primary" />
               <div>
-                <div className="font-bold text-base text-foreground mb-1">Dr. {child.therapist?.name}</div>
-                <div className="text-xs text-muted-foreground mb-1">Cognitive Behavioral Therapy</div>
+                <div className="font-bold text-base text-foreground mb-1">Dr. {therapistInfo.name}</div>
+                <div className="text-xs text-muted-foreground mb-1">Cognitive Behavioral Therapy • 45 min sessions</div>
                 <div className="flex items-center gap-2">
                   <span className="text-yellow-500 font-semibold text-xs">★ 4.9</span>
-                  <span className="text-xs text-muted-foreground">Rs.3000 per session</span>
+                  <span className="text-xs text-muted-foreground">Licensed Therapist</span>
                 </div>
               </div>
             </div>
@@ -151,18 +356,43 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
           {/* Time Slots */}
           <div className="px-8 pt-4 pb-2">
             <div className="font-semibold text-sm text-muted-foreground mb-2">Available Time Slots <span className="text-primary">{selectedDate && selectedDate.toLocaleString('default', { month: 'short', day: 'numeric' })}</span></div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2">
-              {timeSlots.map(slot => (
-                <Button
-                  key={slot}
-                  variant={selectedSlot === slot ? "default" : "outline"}
-                  className={`rounded-xl px-4 py-2 text-base font-semibold shadow-sm ${selectedSlot === slot ? "bg-primary text-white" : ""}`}
-                  onClick={() => handleSlotClick(slot)}
-                >
-                  {slot}
-                </Button>
-              ))}
-            </div>
+            {loadingSlots ? (
+              <div className="text-center py-4">
+                <div className="text-sm text-muted-foreground">Loading available slots...</div>
+              </div>
+            ) : availableSlots.length === 0 ? (
+              <div className="text-center py-4">
+                <div className="text-sm text-muted-foreground">No available time slots for this date</div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2">
+                {availableSlots.map((slotData) => (
+                  <Button
+                    key={slotData.slot}
+                    variant={selectedSlot === slotData.slot ? "default" : "outline"}
+                    className={`rounded-xl px-4 py-3 text-sm font-semibold shadow-sm flex flex-col items-center gap-1 h-auto ${selectedSlot === slotData.slot
+                        ? "bg-primary text-white"
+                        : slotData.isAvailable
+                          ? "hover:bg-primary/10"
+                          : "opacity-50 cursor-not-allowed bg-muted text-muted-foreground"
+                      }`}
+                    onClick={() => slotData.isAvailable && handleSlotClick(slotData.slot)}
+                    disabled={!slotData.isAvailable}
+                  >
+                    <span className="text-base font-bold">{slotData.slot}</span>
+                    {slotData.isAvailable ? (
+                      <span className={`text-xs ${slotData.isFree ? "text-green-600 font-bold" : "text-muted-foreground"}`}>
+                        {slotData.isFree ? "FREE" : `Rs.${slotData.cost}`}
+                      </span>
+                    ) : (
+                      <span className="text-xs">
+                        {slotData.isBooked ? "(Booked)" : "(Blocked)"}
+                      </span>
+                    )}
+                  </Button>
+                ))}
+              </div>
+            )}
           </div>
           {/* Booking Summary */}
           <div className="px-8 pt-4 pb-8">
@@ -176,13 +406,37 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
                 <span>Time:</span> <span className="font-medium text-foreground">{selectedSlot || "--"}</span>
               </div>
               <div className="flex justify-between text-sm mb-2 text-muted-foreground">
-                <span>Therapist:</span> <span className="font-medium text-foreground">Dr. {child.therapist?.name}</span>
+                <span>Therapist:</span> <span className="font-medium text-foreground">Dr. {therapistInfo.name}</span>
+              </div>
+              <div className="flex justify-between text-sm mb-2 text-muted-foreground">
+                <span>Duration:</span> <span className="font-medium text-foreground">45 minutes</span>
               </div>
               <div className="flex justify-between text-sm mb-4 text-muted-foreground">
-                <span>Total Cost:</span> <span className="font-bold text-primary">Rs.3000</span>
+                <span>Total Cost:</span>
+                <span className={`font-bold ${selectedSlot && availableSlots.find(slot => slot.slot === selectedSlot)?.isFree ? 'text-green-600' : 'text-primary'}`}>
+                  {selectedSlot
+                    ? (availableSlots.find(slot => slot.slot === selectedSlot)?.isFree
+                      ? "FREE"
+                      : `Rs.${availableSlots.find(slot => slot.slot === selectedSlot)?.cost || 0}`)
+                    : "--"
+                  }
+                </span>
               </div>
-              <Button className="w-full bg-primary text-white text-base py-3 rounded-xl font-semibold shadow" disabled={!selectedSlot || bookingConfirmed} onClick={handleConfirm}>
-                {bookingConfirmed ? "Booking Confirmed!" : "Confirm Booking"}
+              <Button
+                className="w-full bg-primary text-white text-base py-3 rounded-xl font-semibold shadow"
+                disabled={!selectedSlot || bookingConfirmed || booking || paymentProcessing}
+                onClick={handleConfirm}
+              >
+                {paymentProcessing
+                  ? "Processing Payment..."
+                  : booking
+                    ? "Booking..."
+                    : bookingConfirmed
+                      ? "Booking Confirmed!"
+                      : selectedSlot && availableSlots.find(slot => slot.slot === selectedSlot)?.isFree
+                        ? "Confirm Booking"
+                        : "Proceed to Payment"
+                }
               </Button>
               {bookingConfirmed && (
                 <div className="mt-3 text-center text-success font-semibold animate-fade-in">Your session has been booked!</div>

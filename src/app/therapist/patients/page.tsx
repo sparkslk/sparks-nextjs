@@ -1,4 +1,3 @@
-
 "use client";
 import Image from "next/image";
 
@@ -8,7 +7,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+
 import {
     Select,
     SelectContent,
@@ -46,8 +45,7 @@ interface PatientAvatarProps {
 
 function PatientAvatar({ patient, size = "sm" }: PatientAvatarProps) {
     const [imageError, setImageError] = useState(false);
-    const [imageLoaded, setImageLoaded] = useState(false);
-    
+
     const sizeClasses = size === "sm" 
         ? "w-10 h-10" 
         : "w-10 h-10 lg:w-12 lg:h-12";
@@ -55,17 +53,9 @@ function PatientAvatar({ patient, size = "sm" }: PatientAvatarProps) {
         ? "h-5 w-5" 
         : "h-5 w-5 lg:h-6 lg:w-6";
 
-    const handleImageError = () => {
-        setImageError(true);
-        setImageLoaded(false);
-    };
+    const handleImageError = () => setImageError(true);
 
-    const handleImageLoad = () => {
-        setImageLoaded(true);
-        setImageError(false);
-    };
-
-    const showUserIcon = !patient.image || imageError || !imageLoaded;
+    const showUserIcon = !patient.image || imageError;
 
     return (
         <div className={`${sizeClasses} bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden relative`}>
@@ -75,8 +65,6 @@ function PatientAvatar({ patient, size = "sm" }: PatientAvatarProps) {
                     alt={`${patient.firstName} ${patient.lastName}`}
                     className="w-full h-full object-cover"
                     onError={handleImageError}
-                    onLoad={handleImageLoad}
-                    style={{ display: imageLoaded && !imageError ? 'block' : 'none' }}
                     fill
                     sizes="100vw"
                 />
@@ -169,22 +157,6 @@ export default function PatientsPage() {
         return matchesSearch && matchesAgeGroup && matchesStatus && matchesSession;
     });
 
-    const getStatusBadge = (status: string) => {
-        const config = {
-            active: { variant: "default" as const, className: "bg-green-100 text-green-800" },
-            inactive: { variant: "secondary" as const, className: "bg-red-100 text-red-800" },
-            completed: { variant: "outline" as const, className: "" }
-        };
-
-        const statusConfig = config[status as keyof typeof config] || config.inactive;
-
-        return (
-            <Badge variant={statusConfig.variant} className={statusConfig.className}>
-                {status.charAt(0).toUpperCase() + status.slice(1)}
-            </Badge>
-        );
-    };
-
     const clearAllFilters = () => {
         setSearchTerm("");
         setAgeGroupFilter("all");
@@ -231,20 +203,20 @@ export default function PatientsPage() {
                     </div>
                     <Button
                         onClick={clearAllFilters}
-                        variant="outline"
-                        className="text-purple-600"
+                        variant="default"
+                        className="text-white"
                     >
-                        Clear all
+                        View Patient Requests
                     </Button>
                 </div>
 
                 {/* Filters */}
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
                     <div className="relative">
                         <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                         <Input
                             type="text"
-                            placeholder="Search patients by name or ID"
+                            placeholder="Search by name or ID"
                             className="pl-10"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
@@ -296,6 +268,16 @@ export default function PatientsPage() {
                             <SelectItem value="old">Older than 30 days</SelectItem>
                         </SelectContent>
                     </Select>
+                    <div className="flex justify-end">
+                        <Button
+                            onClick={clearAllFilters}
+                            variant="outline"
+                            className="text-primary px-4 py-2 h-auto w-auto"
+                            style={{ minWidth: "unset" }}
+                        >
+                            Clear all
+                        </Button>
+                    </div>
                 </div>
 
                 {/* Patients List */}
@@ -342,7 +324,6 @@ export default function PatientsPage() {
                                                         </p>
                                                     </div>
                                                 </div>
-                                                {getStatusBadge(patient.status)}
                                             </div>
 
                                             <div className="grid grid-cols-2 gap-3 text-xs">
@@ -435,8 +416,6 @@ export default function PatientsPage() {
                                                     </p>
                                                 </div>
 
-                                                {getStatusBadge(patient.status)}
-
                                                 <div className="flex items-center space-x-1 lg:space-x-2">
                                                     <Button
                                                         variant="ghost"
@@ -454,14 +433,6 @@ export default function PatientsPage() {
                                                     >
                                                         <MessageCircle className="h-3 w-3 lg:h-4 lg:w-4" />
                                                     </Button>
-                                                    {/* <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        onClick={() => router.push(`/therapist/appointments/new?patientId=${patient.id}`)}
-                                                        className="h-8 w-8 lg:h-10 lg:w-10"
-                                                    >
-                                                        <Edit3 className="h-3 w-3 lg:h-4 lg:w-4" />
-                                                    </Button> */}
                                                 </div>
                                             </div>
                                         </div>

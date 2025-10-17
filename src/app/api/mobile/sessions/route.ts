@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
     const now = new Date();
     if (timeframe === "upcoming") {
       where.scheduledAt = { gte: now };
-      where.status = { in: ["PENDING", "SCHEDULED"] };
+      where.status = { in: ["REQUESTED", "APPROVED", "SCHEDULED"] };
     } else if (timeframe === "past") {
       where.OR = [
         { scheduledAt: { lt: now } },
@@ -90,6 +90,7 @@ export async function GET(request: NextRequest) {
       scheduledAt: session.scheduledAt,
       duration: session.duration,
       sessionNotes: session.sessionNotes,
+      therapistId: session.therapist.id,
       therapist: {
         id: session.therapist.id,
         name: session.therapist.user.name || "Therapist",

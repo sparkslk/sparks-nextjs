@@ -4,12 +4,14 @@ import * as React from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import NotificationBell from "@/components/NotificationBell";
+import { chatEvents } from "@/lib/chat-events";
 import {
   CalendarDays,
   Clock,
   Users,
   BarChart3,
   User,
+  UserPlus,
   ClipboardList,
   MessageSquare,
   Home,
@@ -55,7 +57,7 @@ function getInitials(name: string): string {
 }
 
 // Menu items data
-const getMenuItems = () => ({
+const getMenuItems = (unreadCount: number) => ({
   overview: [
     {
       title: "Dashboard",
@@ -69,12 +71,17 @@ const getMenuItems = () => ({
       icon: User,
       badge: pendingRequests > 0 ? pendingRequests.toString() : null,
     }, */
-  ],
-  clinical: [
+    ],
+    clinical: [
     {
       title: "Patients",
       url: "/therapist/patients",
       icon: Users,
+    },
+    {
+      title: "Patient Requests",
+      url: "/therapist/patientRequests",
+      icon: UserPlus, // Use UserPlus for a "user plus" or "add patient/request" feel
     },
     {
       title: "Sessions",
@@ -104,7 +111,7 @@ const getMenuItems = () => ({
       title: "Messages",
       url: "/therapist/messages",
       icon: MessageSquare,
-      badge: "3",
+      badge: unreadCount > 0 ? unreadCount.toString() : null,
     },
     {
       title: "Blogs",
@@ -128,11 +135,12 @@ export function TherapistSidebar({ children }: TherapistSidebarProps) {
     specialization: string[];
   } | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
+  const [unreadCount, setUnreadCount] = React.useState(0);
 
-  // Menu items data (no pendingRequests)
-  const menuItems = getMenuItems();
+  // Menu items data
+  const menuItems = getMenuItems(unreadCount);
 
-  // Fetch therapist data only
+  // Fetch therapist data and unread count
   React.useEffect(() => {
     const fetchTherapistData = async () => {
       try {
@@ -148,6 +156,9 @@ export function TherapistSidebar({ children }: TherapistSidebarProps) {
             specialization: profileData.specialization || [],
           });
         }
+        
+        // Fetch unread message count
+        await fetchUnreadCount();
       } catch (error) {
         console.error("Failed to fetch therapist data:", error);
       } finally {
@@ -155,7 +166,38 @@ export function TherapistSidebar({ children }: TherapistSidebarProps) {
       }
     };
 
+    const fetchUnreadCount = async () => {
+      try {
+        const unreadResponse = await fetch("/api/chat/unread-count");
+        if (unreadResponse.ok) {
+          const unreadData = await unreadResponse.json();
+          if (unreadData.success) {
+            setUnreadCount(unreadData.count);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch unread count:", error);
+      }
+    };
+
     fetchTherapistData();
+    
+    // Poll for unread count every 30 seconds
+    const interval = setInterval(fetchUnreadCount, 30000);
+    
+    // Listen for chat events to update immediately
+    const handleUnreadCountChanged = () => {
+      fetchUnreadCount();
+    };
+    
+    chatEvents.on('unread-count-changed', handleUnreadCountChanged);
+    chatEvents.on('message-received', handleUnreadCountChanged);
+    
+    return () => {
+      clearInterval(interval);
+      chatEvents.off('unread-count-changed', handleUnreadCountChanged);
+      chatEvents.off('message-received', handleUnreadCountChanged);
+    };
   }, []);
 
   const handleSignOut = async () => {

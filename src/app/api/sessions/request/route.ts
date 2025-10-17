@@ -197,6 +197,7 @@ export async function POST(request: NextRequest) {
                 duration: 60, // Default 60 minutes
                 type: sessionType,
                 status: SessionStatus.REQUESTED, // Use proper enum value
+                bookedRate: therapist.session_rate || 0, // Store the rate at time of booking
                 sessionNotes: notes || null // Use sessionNotes field from schema
             }
         });

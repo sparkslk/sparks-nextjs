@@ -11,7 +11,7 @@ import NotificationBell from "@/components/NotificationBell";
 
 const tabs = [
     { name: 'Overview', path: '/parent/dashboard' },
-    { name: 'My Children', path: '/parent/children' },
+    { name: 'My Patients', path: '/parent/children' },
     { name: 'Find Therapists', path: '/parent/findTherapist' },
     { name: 'Messages', path: '/parent/messages' },
     { name: 'Sessions', path: '/parent/appointments' },

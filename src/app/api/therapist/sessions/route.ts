@@ -157,13 +157,20 @@ export async function GET(request: NextRequest) {
 
         const formattedSessions = sessions.map(session => ({
             id: session.id,
+            patientId: session.patientId,
             patientName: `${session.patient.firstName} ${session.patient.lastName}`,
             scheduledAt: session.scheduledAt,
             duration: session.duration,
             type: session.type,
             status: session.status,
+            // Include all clinical documentation fields
+            attendanceStatus: session.attendanceStatus,
+            overallProgress: session.overallProgress,
+            patientEngagement: session.patientEngagement,
+            riskAssessment: session.riskAssessment,
+            primaryFocusAreas: session.primaryFocusAreas,
             sessionNotes: session.sessionNotes,
-            primaryFocusAreas: session.primaryFocusAreas
+            nextSessionGoals: session.nextSessionGoals
         }));
 
         return NextResponse.json(

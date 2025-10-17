@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { getRoleBasedDashboard } from "@/lib/role-redirect";
+import { getRoleBasedDashboardSync } from "@/lib/role-redirect";
 import { UserRole } from "@/lib/auth";
 import Header from "@/components/landingpage/Header/page";
 import Footer from "@/components/landingpage/Footer/page";
@@ -28,7 +28,7 @@ export default function LoginPage() {
     useEffect(() => {
         if (status === "authenticated" && session?.user) {
             const userRole = (session.user as { role?: UserRole }).role as UserRole;
-            const dashboardUrl = getRoleBasedDashboard(userRole);
+            const dashboardUrl = getRoleBasedDashboardSync(userRole);
             router.push(dashboardUrl);
         }
     }, [session, status, router]);

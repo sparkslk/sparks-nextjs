@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { withAuth } from "next-auth/middleware";
 import { $Enums } from "@prisma/client";
-import { isAuthorizedForRoute, getRoleBasedDashboard } from "./src/lib/role-redirect";
+import { isAuthorizedForRoute, getRoleBasedDashboardSync } from "./src/lib/role-redirect";
 
 type UserRole = $Enums.UserRole;
 
@@ -30,6 +30,7 @@ export default withAuth(
             pathname === "/set-password" ||
             pathname === "/api-docs" ||
             pathname.startsWith("/therapist/signup") ||
+            pathname.startsWith("/therapist/verification") ||
             pathname.startsWith("/manager/signup") ||
             pathname.startsWith("/admin/signup")
         ) {
@@ -60,7 +61,7 @@ export default withAuth(
             // Check if user is authorized for this route
             if (!isAuthorizedForRoute(userRole, pathname)) {
                 // Redirect to their appropriate dashboard
-                const dashboardUrl = getRoleBasedDashboard(userRole);
+                const dashboardUrl = getRoleBasedDashboardSync(userRole);
                 const redirectUrl = new URL(dashboardUrl, request.url);
                 return NextResponse.redirect(redirectUrl);
             }
@@ -95,6 +96,7 @@ export default withAuth(
                     pathname === "/api-docs" ||
                     pathname.startsWith("/quiz") ||
                     pathname.startsWith("/therapist/signup") ||
+                    pathname.startsWith("/therapist/verification") ||
                     pathname.startsWith("/manager/signup") ||
                     pathname.startsWith("/admin/signup")
                 ) {

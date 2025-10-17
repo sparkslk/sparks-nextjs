@@ -39,9 +39,11 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Debug log for emergencyContact and medicalHistory
+    // Debug log for patient data
     console.log('DEBUG: patient.emergencyContact:', patient.emergencyContact);
     console.log('DEBUG: patient.medicalHistory:', patient.medicalHistory);
+    console.log('DEBUG: patient.email:', patient.email);
+    console.log('DEBUG: patient.phone:', patient.phone);
 
     // Handle emergencyContact as object or stringified JSON
     let emergencyContactRaw = patient.emergencyContact;
@@ -60,7 +62,8 @@ export async function GET(request: NextRequest) {
         relation: typeof emergencyContactRaw.relation === 'string' ? emergencyContactRaw.relation : ''
       };
     }
-    return NextResponse.json({
+
+    const profileResponse = {
       hasProfile: true,
       profile: {
         id: patient.id,
@@ -72,7 +75,7 @@ export async function GET(request: NextRequest) {
         address: patient.address,
         emergencyContact,
         medicalHistory: patient.medicalHistory || '',
-        email: patient.user ? patient.user.email : null,
+        email: patient.email,
         image: patient.user ? patient.user.image : null,
         therapist: patient.primaryTherapist && patient.primaryTherapist.user ? {
           id: patient.primaryTherapist.id,
@@ -80,7 +83,11 @@ export async function GET(request: NextRequest) {
           email: patient.primaryTherapist.user.email
         } : null
       }
-    });
+    };
+
+    console.log('DEBUG: Returning profile response:', JSON.stringify(profileResponse, null, 2));
+
+    return NextResponse.json(profileResponse);
 
   } catch (error) {
     console.error("Error fetching profile:", error);

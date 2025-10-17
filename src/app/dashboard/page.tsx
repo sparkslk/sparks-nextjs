@@ -193,7 +193,7 @@ export default function DashboardPage() {
             title: "Resources",
             description: "Access therapy resources and exercises",
             icon: FileText,
-            onClick: () => router.push("/resources")
+            onClick: () => router.push("/parent/blogs")
         }
     ];
 

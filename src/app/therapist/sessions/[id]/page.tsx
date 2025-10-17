@@ -2,35 +2,24 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SessionUpdateModal } from "@/components/therapist/SessionUpdateModal";
+import MedicationManagement from "@/components/therapist/MedicationManagement";
+import AssessmentManagement from "@/components/therapist/AssessmentManagement";
+import { Medication } from "@/types/medications";
 import {
   Calendar,
   User,
   FileText,
-  Pill,
-  CheckSquare,
   ArrowLeft,
   AlertCircle,
-  XCircle,
   Clock3,
-  Edit,
-  Plus
+  Edit
 } from "lucide-react";
-import { format } from "date-fns";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"; // Make sure you have a Dialog component
-
-interface EditMedication {
-  name: string;
-  dosage: string;
-  frequency: string;
-  mealTiming: string;
-  startDate: string;
-  endDate?: string;
-  instructions?: string;
-}
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 interface DetailedSession {
   id: string;
@@ -64,7 +53,6 @@ interface DetailedSession {
     email?: string;
     medicalHistory?: string;
     tasks: Task[];
-    assessments: Assessment[];
   };
   sessionHistory: SessionHistory[];
 }
@@ -84,19 +72,6 @@ interface Task {
   createdAt: string;
 }
 
-
-interface Assessment {
-  id: string;
-  type: string;
-  title: string;
-  description?: string;
-  score?: number;
-  interpretation?: string;
-  recommendations?: string;
-  assessmentDate: string;
-}
-
-
 interface SessionHistory {
   id: string;
   scheduledAt: string;
@@ -108,67 +83,39 @@ interface SessionHistory {
   engagement?: number;
 }
 
-const hardcodedMedications = [
-  {
-    id: "1",
-    name: "Methylphenidate",
-    dosage: "7",
-    frequency: "Twice daily",
-    mealTiming: "Before meals",
-    startDate: "2025-07-07",
-    endDate: "2025-07-12",
-    prescribedBy: "Ravindi Fernando",
-    instructions: "Take with a full glass of water. Do not exceed recommended dose.",
-    isActive: true,
-  },
-  {
-    id: "2",
-    name: "Amoxicillin",
-    dosage: "500mg",
-    frequency: "Three times daily",
-    mealTiming: "After meals",
-    startDate: "2025-07-01",
-    endDate: "2025-07-10",
-    prescribedBy: "Dr. Nimal Perera",
-    instructions: "Complete the full course even if you feel better.",
-    isActive: true,
-  }
-];
-
-const hardcodedTasks = [
-  {
-    id: "1",
-    title: "Auditory Processing - Listening Task",
-    assignedDate: "2024-07-10",
-    completedDate: "2024-07-22",
-    deadline: "2024-08-22",
-    status: "Completed",
-    score: 78,
-  },
-  {
-    id: "2",
-    title: "Visual Perception - Picture Description",
-    assignedDate: "2024-07-08",
-    deadline: "2024-06-15",
-    status: "Pending",
-  }
-];
+// Remove hardcodedMedications array as we'll use real data
 
 export default function SessionDetailsPage() {
+  const { status: authStatus } = useSession();
   const [session, setSession] = useState<DetailedSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [showMedications, setShowMedications] = useState(false);
   const [showTasks, setShowTasks] = useState(false);
-  const [showAddMedication, setShowAddMedication] = useState(false);
-  const [showEditMedication, setShowEditMedication] = useState(false);
-  const [editMedication, setEditMedication] = useState<EditMedication | null>(null);
-  const [showAssignTask, setShowAssignTask] = useState(false);
+  
+  // Add medications state
+  const [medications, setMedications] = useState<Medication[]>([]);
+  const [isLoadingMedications, setIsLoadingMedications] = useState(false);
+  const [isLoadingAssessments] = useState(false);
+  
+  // Remove medication-related states that are now handled by MedicationManagement
+  // const [showAddMedication, setShowAddMedication] = useState(false);
+  // const [showEditMedication, setShowEditMedication] = useState(false);
+  // const [editMedication, setEditMedication] = useState<EditMedication | null>(null);
   
   const params = useParams();
   const router = useRouter();
-  const sessionId = params.id as string;
+  const sessionId = params?.id as string;
+
+  // Debug logging
+  console.log("Component mounted/re-rendered");
+  console.log("Auth status:", authStatus);
+  console.log("Session ID from params:", sessionId);
+  console.log("Params object:", params);
+  console.log("Current loading state:", loading);
+  console.log("Current error state:", error);
+  console.log("Current session state:", session);
 
   // Helper function to safely parse and format dates (from sessions page)
   const formatDate = (dateString: string) => {
@@ -206,26 +153,88 @@ export default function SessionDetailsPage() {
   const fetchSessionDetails = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/therapist/sessions/${sessionId}`);
+      setError(null); // Clear any previous errors
+      
+      console.log("Fetching session details for ID:", sessionId);
+      
+      const response = await fetch(`/api/therapist/sessions/${sessionId}`, {
+        method: 'GET',
+        credentials: 'include', // Include cookies for authentication
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      console.log("Response status:", response.status);
+      console.log("Response ok:", response.ok);
+      
       if (response.ok) {
         const data = await response.json();
+        console.log("Session data received:", data);
         setSession(data.session);
       } else {
-        setError("Failed to fetch session details");
+        const errorData = await response.text();
+        console.error("Failed to fetch session details:", response.status, errorData);
+        setError(`Failed to fetch session details: ${response.status} ${response.statusText}`);
       }
     } catch (error) {
       console.error("Error fetching session details:", error);
-      setError("An error occurred while fetching session details");
+      setError(`An error occurred while fetching session details: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
   }, [sessionId]);
 
-  useEffect(() => {
-    if (sessionId) {
-      fetchSessionDetails();
+  // Add function to fetch medications
+  const fetchMedications = useCallback(async (patientId: string) => {
+    try {
+      setIsLoadingMedications(true);
+      const response = await fetch(`/api/therapist/patients/${patientId}/medications`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setMedications(data);
+      } else {
+        console.error("Failed to fetch medications:", response.statusText);
+        setMedications([]);
+      }
+    } catch (error) {
+      console.error("Error fetching medications:", error);
+      setMedications([]);
+    } finally {
+      setIsLoadingMedications(false);
     }
-  }, [sessionId, fetchSessionDetails]);
+  }, []);
+
+  useEffect(() => {
+    console.log("useEffect triggered with sessionId:", sessionId, "auth status:", authStatus);
+    
+    if (authStatus === "unauthenticated") {
+      router.push("/login");
+      return;
+    }
+
+    if (authStatus === "authenticated" && sessionId && sessionId !== 'undefined') {
+      fetchSessionDetails();
+    } else if (authStatus === "authenticated") {
+      console.error("Session ID is missing or invalid:", sessionId);
+      setError("Session ID is missing");
+      setLoading(false);
+    }
+    // If still loading auth, don't do anything yet
+  }, [sessionId, authStatus, fetchSessionDetails, router]);
+
+  // Fetch medications when session is loaded
+  useEffect(() => {
+    if (session?.patientId) {
+      fetchMedications(session.patientId);
+    }
+  }, [session?.patientId, fetchMedications]);
 
   const handleSessionUpdated = () => {
     // Refresh the session details after update
@@ -250,66 +259,6 @@ export default function SessionDetailsPage() {
     }
   };
 
-  // const getTaskStatusIcon = (status: string) => {
-  //   switch (status.toLowerCase()) {
-  //     case 'completed':
-  //       return <CheckCircle className="w-4 h-4 text-green-600" />;
-  //     case 'in_progress':
-  //       return <Clock3 className="w-4 h-4 text-blue-600" />;
-  //     case 'overdue':
-  //       return <XCircle className="w-4 h-4 text-red-600" />;
-  //     default:
-  //       return <AlertCircle className="w-4 h-4 text-gray-600" />;
-  //   }
-  // };
-
-  // const getPriorityColor = (priority: number) => {
-  //   switch (priority) {
-  //     case 5:
-  //       return 'bg-red-100 text-red-800';
-  //     case 4:
-  //       return 'bg-orange-100 text-orange-800';
-  //     case 3:
-  //       return 'bg-yellow-100 text-yellow-800';
-  //     case 2:
-  //       return 'bg-blue-100 text-blue-800';
-  //     default:
-  //       return 'bg-gray-100 text-gray-800';
-  //   }
-  // };
-
-  // const calculateAge = (dateOfBirth: string) => {
-  //   return differenceInYears(new Date(), new Date(dateOfBirth));
-  // };
-
-  const availableTasks = [
-    {
-      id: "a1",
-      type: "Listening Task",
-      typeColor: "bg-blue-100 text-blue-700",
-      title: "Auditory Processing - Listening Task",
-      description: "Audio-based assessment to evaluate listening comprehension, auditory memory, and processing speed through various listening exercises.",
-      assignedCount: 2,
-    },
-    {
-      id: "a2",
-      type: "Picture Description",
-      typeColor: "bg-green-100 text-green-700",
-      title: "Visual Perception - Picture Description",
-      description: "Assessment involving detailed description of complex images to evaluate visual processing, attention to detail, and verbal expression skills.",
-      assignedCount: 3,
-    },
-    {
-      id: "a3",
-      type: "Find Differences",
-      typeColor: "bg-orange-100 text-orange-700",
-      title: "Attention & Focus - Find the Differences",
-      description: "Visual attention task requiring patients to identify differences between similar images to assess concentration and visual attention skills.",
-      assignedCount: 2,
-      latestScore: "91%",
-    },
-  ];
-
   useEffect(() => {
     const openMedicationsModal = () => setShowMedications(true);
     const openTasksModal = () => setShowTasks(true);
@@ -323,7 +272,7 @@ export default function SessionDetailsPage() {
     };
   }, []);
 
-  if (loading) {
+  if (loading || authStatus === "loading") {
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-purple-50/30">
         <div className="container mx-auto p-6">
@@ -333,9 +282,33 @@ export default function SessionDetailsPage() {
                 <div className="animate-spin rounded-full h-16 w-16 border-4 border-primary/20 border-t-primary mx-auto"></div>
                 <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-primary/40 animate-ping"></div>
               </div>
-              <h3 className="mt-6 text-xl font-semibold text-foreground">Loading session details...</h3>
-              <p className="mt-2 text-muted-foreground">Please wait while we fetch the detailed information.</p>
+              <h3 className="mt-6 text-xl font-semibold text-foreground">
+                {authStatus === "loading" ? "Authenticating..." : "Loading session details..."}
+              </h3>
+              <p className="mt-2 text-muted-foreground">
+                {authStatus === "loading" ? "Please wait while we verify your credentials." : "Please wait while we fetch the detailed information."}
+              </p>
             </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (authStatus === "unauthenticated") {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <AlertCircle className="w-12 h-12 text-red-600 mx-auto mb-4" />
+            <p className="text-red-600">Please log in to access this page</p>
+            <Button 
+              onClick={() => router.push("/login")} 
+              className="mt-4"
+              variant="outline"
+            >
+              Go to Login
+            </Button>
           </div>
         </div>
       </div>
@@ -603,417 +576,46 @@ export default function SessionDetailsPage() {
         </div>
       </div>
 
-      {/* Medications Modal */}
+      {/* Updated Medications Modal with MedicationManagement component */}
       <Dialog open={showMedications} onOpenChange={setShowMedications}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Medication Updates for This Patient</DialogTitle>
-          </DialogHeader>
-          <div className="flex items-center justify-between mb-2">
-            <Badge variant="outline" className="text-sm">
-              {hardcodedMedications.filter(t => t.isActive).length} Active
-            </Badge>
-            <Button
-              style={{ backgroundColor: "#8159A8", color: "#fff" }}
-              className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 shadow hover:brightness-110"
-              onClick={() => setShowAddMedication(true)}
-            >
-              <Plus className="w-5 h-5" />
-              Add Medication
-            </Button>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden">
+          <div className="overflow-y-auto max-h-[calc(90vh-8rem)] pr-2">
+            {isLoadingMedications ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#8159A8]"></div>
+                <span className="ml-2">Loading medications...</span>
+              </div>
+            ) : session?.patientId ? (
+              <MedicationManagement 
+                patientId={session.patientId}
+                medications={medications}
+                onMedicationUpdate={() => fetchMedications(session.patientId)}
+              />
+            ) : null}
           </div>
-          {hardcodedMedications.length === 0 ? (
-      <Card>
-        <CardContent className="p-8 text-center">
-          <Pill className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-          <p className="text-muted-foreground">No medications on record.</p>
-        </CardContent>
-      </Card>
-    ) : (
-      hardcodedMedications.map((med) => (
-        <Card
-          key={med.id}
-          className="mb-4 shadow-md bg-[#F8F6FB] border-0"
-        >
-          <div className="p-4 flex flex-col gap-3">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <Pill className="w-5 h-5 text-[#8159A8]" />
-                <span className="text-base font-semibold text-[#8159A8]">{med.name}</span>
-                {med.isActive ? (
-                  <Badge className="ml-2 bg-green-100 text-green-700 text-xs font-semibold">
-                    Active
-                  </Badge>
-                ) : (
-                  <Badge className="ml-2 bg-gray-100 text-gray-500 text-xs font-semibold">
-                    Inactive
-                  </Badge>
-                )}
-              </div>
-              <div className="flex gap-2">
-                
-                <Button
-                  variant="outline"
-                  className="flex items-center gap-1 border-blue-400 text-blue-700 hover:bg-blue-50 px-2 py-1 text-xs"
-                  size="sm"
-                  style={{ borderColor: "#3B82F6" }}
-                  onClick={() => {
-                    setEditMedication(med);
-                    setShowEditMedication(true);
-                  }}
-                >
-                  <Edit className="w-4 h-4" />
-                  Edit
-                </Button>
-                <Button
-                  variant="outline"
-                  className="flex items-center gap-1 border-red-400 text-red-700 hover:bg-red-50 px-2 py-1 text-xs"
-                  size="sm"
-                  style={{ borderColor: "#EF4444" }}
-                >
-                  <XCircle className="w-4 h-4" />
-                  Discontinue
-                </Button>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-2">
-              <div>
-                <p className="text-[10px] font-medium text-muted-foreground uppercase">Dosage</p>
-                <p className="text-sm font-semibold">{med.dosage}</p>
-              </div>
-              <div>
-                <p className="text-[10px] font-medium text-muted-foreground uppercase">Frequency</p>
-                <p className="text-sm font-semibold">{med.frequency}</p>
-              </div>
-              <div>
-                <p className="text-[10px] font-medium text-muted-foreground uppercase">Meal Timing</p>
-                <p className="text-sm font-semibold">{med.mealTiming}</p>
-              </div>
-              <div>
-                <p className="text-[10px] font-medium text-muted-foreground uppercase">Start Date</p>
-                <p className="text-sm font-semibold">
-                  {format(new Date(med.startDate), "MMM dd, yyyy")}
-                </p>
-              </div>
-              <div>
-                <p className="text-[10px] font-medium text-muted-foreground uppercase">End Date</p>
-                <p className="text-sm font-semibold">
-                  {format(new Date(med.endDate), "MMM dd, yyyy")}
-                </p>
-              </div>
-              <div>
-                <p className="text-[10px] font-medium text-muted-foreground uppercase">Prescribed By</p>
-                <p className="text-sm font-semibold">{med.prescribedBy}</p>
-              </div>
-            </div>
-            <div className="bg-[#EDE9F7] mt-3 p-3 rounded flex flex-col gap-1">
-              <div className="flex items-center gap-1 text-[#8159A8] font-medium text-xs">
-                <AlertCircle className="w-4 h-4" />
-                Instructions
-              </div>
-              <div className="text-[#4B3869] text-xs">{med.instructions}</div>
-            </div>
-          </div>
-        </Card>
-      ))
-    )}
-  </DialogContent>
-      </Dialog>
-
-      {/* Add Medication Modal */}
-      <Dialog open={showAddMedication} onOpenChange={setShowAddMedication}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Add New Medication</DialogTitle>
-          </DialogHeader>
-          <form className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Medication Name *</label>
-                <input className="w-full border rounded px-3 py-2 text-sm" placeholder="e.g., Adderall XR" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Dosage *</label>
-                <input className="w-full border rounded px-3 py-2 text-sm" placeholder="e.g., 10mg" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Frequency *</label>
-                <select className="w-full border rounded px-3 py-2 text-sm">
-                  <option>Select frequency</option>
-                  <option>Once daily</option>
-                  <option>Twice daily</option>
-                  <option>Three times daily</option>
-                  {/* Add more as needed */}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Meal Timing</label>
-                <select className="w-full border rounded px-3 py-2 text-sm">
-                  <option>No specific timing</option>
-                  <option>Before meals</option>
-                  <option>After meals</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Start Date *</label>
-                <input type="date" className="w-full border rounded px-3 py-2 text-sm" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">End Date (Optional)</label>
-                <input type="date" className="w-full border rounded px-3 py-2 text-sm" />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Instructions</label>
-              <textarea className="w-full border rounded px-3 py-2 text-sm" rows={3} placeholder="Special instructions for taking this medication..." />
-            </div>
-            <div className="flex justify-between mt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setShowAddMedication(false)}
-                className="font-semibold px-6 py-2 rounded-lg"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                style={{ backgroundColor: "#8159A8", color: "#fff" }}
-                className="font-semibold px-6 py-2 rounded-lg"
-              >
-                Add Medication
-              </Button>
-            </div>
-          </form>
         </DialogContent>
       </Dialog>
 
-      {/* Edit Medication Modal */}
-      <Dialog open={showEditMedication} onOpenChange={setShowEditMedication}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Edit Medication</DialogTitle>
-          </DialogHeader>
-          {editMedication && (
-            <form className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Medication Name *</label>
-                  <input
-                    className="w-full border rounded px-3 py-2 text-sm"
-                    defaultValue={editMedication.name}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Dosage *</label>
-                  <input
-                    className="w-full border rounded px-3 py-2 text-sm"
-                    defaultValue={editMedication.dosage}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Frequency *</label>
-                  <select className="w-full border rounded px-3 py-2 text-sm" defaultValue={editMedication.frequency}>
-                    <option>Select frequency</option>
-                    <option>Once daily</option>
-                    <option>Twice daily</option>
-                    <option>Three times daily</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Meal Timing</label>
-                  <select className="w-full border rounded px-3 py-2 text-sm" defaultValue={editMedication.mealTiming}>
-                    <option>No specific timing</option>
-                    <option>Before meals</option>
-                    <option>After meals</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Start Date *</label>
-                  <input
-                    type="date"
-                    className="w-full border rounded px-3 py-2 text-sm"
-                    defaultValue={editMedication.startDate}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">End Date (Optional)</label>
-                  <input
-                    type="date"
-                    className="w-full border rounded px-3 py-2 text-sm"
-                    defaultValue={editMedication.endDate}
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Instructions</label>
-                <textarea
-                  className="w-full border rounded px-3 py-2 text-sm"
-                  rows={3}
-                  defaultValue={editMedication.instructions}
-                />
-              </div>
-              <div className="flex justify-between mt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowEditMedication(false)}
-                  className="font-semibold px-6 py-2 rounded-lg"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  style={{ backgroundColor: "#8159A8", color: "#fff" }}
-                  className="font-semibold px-6 py-2 rounded-lg"
-                >
-                  Update Medication
-                </Button>
-              </div>
-                  </form>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Tasks Modal */}
+      {/* Tasks Modal - Updated with AssessmentManagement component */}
       <Dialog open={showTasks} onOpenChange={setShowTasks}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>Assessment Updates for This Patient</DialogTitle>
-          </DialogHeader>
-          <div className="flex items-center justify-between mb-4">
-            
-            <div className="flex gap-2">
-              <Badge variant="outline" className="text-sm">
-                {hardcodedTasks.filter(t => t.status === "Pending").length} Pending
-              </Badge>
-              <Badge variant="outline" className="text-sm bg-green-50 text-green-700">
-                {hardcodedTasks.filter(t => t.status === "Completed").length} Completed
-              </Badge>
-            </div>
-            <Button
-              style={{ backgroundColor: "#8159A8", color: "#fff" }}
-              className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 shadow hover:brightness-110"
-              onClick={() => setShowAssignTask(true)}
-            >
-              <Plus className="w-5 h-5" />
-              Assign a new Assessment
-            </Button>
-          </div>
-          <div className="space-y-6">
-            {hardcodedTasks.length === 0 ? (
-              <Card>
-                <CardContent className="p-8 text-center">
-                  <CheckSquare className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No tasks assigned.</p>
-                </CardContent>
-              </Card>
-            ) : (
-              hardcodedTasks.map((task, idx) => (
-                <div
-                  key={task.id}
-                  className="flex flex-col md:flex-row items-start md:items-center justify-between bg-[#fcfafd] rounded-xl shadow-sm px-6 py-4"
-                  style={{ borderBottom: idx !== hardcodedTasks.length - 1 ? "1px solid #f0eef5" : undefined }}
-                >
-                  <div>
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <span className="text-base md:text-xl font-semibold text-[#8159A8]">{task.title}</span>
-                      {task.status === "Completed" && (
-                        <span className="bg-green-100 text-green-700 text-xs font-semibold px-2 py-0.5 rounded-full">
-                          Completed
-                        </span>
-                      )}
-                      {task.status === "Pending" && (
-                        <span className="bg-yellow-100 text-yellow-700 text-xs font-semibold px-2 py-0.5 rounded-full">
-                          Pending
-                        </span>
-                      )}
-                      {"score" in task && (
-                        <span className="bg-blue-100 text-blue-700 text-xs font-semibold px-2 py-0.5 rounded-full">
-                          Score: {task.score}
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-xs text-black font-medium">
-                      Assigned: {format(new Date(task.assignedDate), "MMM dd, yyyy")}
-                      {task.completedDate && (
-                      <span className="ml-3">
-                        Completed: {format(new Date(task.completedDate), "MMM dd, yyyy")}
-                      </span>
-                      )}
-                      <span className="ml-3">
-                      Deadline: {format(new Date(task.deadline), "MMM dd, yyyy")}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex gap-2 mt-3 md:mt-0">
-                    <Button
-                      variant="outline"
-                      className="border-red-400 text-red-700 hover:bg-red-50 px-3 py-1 text-xs font-semibold"
-                      style={{ borderColor: "#EF4444" }}
-                    >
-                      Unassign
-                    </Button>
-                  </div>
-                </div>
-              ))
-            )}
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden">
+          <div className="overflow-y-auto max-h-[calc(90vh-8rem)] pr-2">
+            {isLoadingAssessments ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#8159A8]"></div>
+                <span className="ml-2">Loading assessments...</span>
+              </div>
+            ) : session?.patientId ? (
+              <AssessmentManagement 
+                patientId={session.patientId}
+                onAssessmentUpdate={() => {
+                  console.log('Assessment updated');
+                }}
+              />
+            ) : null}
           </div>
         </DialogContent>
       </Dialog>
-
-     {/* Assign Task Modal */}
-      <Dialog open={showAssignTask} onOpenChange={setShowAssignTask}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>Assign an Assessment</DialogTitle>
-          </DialogHeader>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      {availableTasks.map((task) => (
-        <div key={task.id} className="bg-[#fcfafd] rounded-2xl shadow p-6 flex flex-col h-full border border-[#f0eef5]">
-          <div className="flex items-center gap-2 mb-2">
-            <span className={`text-xs font-semibold px-3 py-1 rounded-full ${task.typeColor}`}>
-              {task.type}
-            </span>
-          </div>
-          <div className="font-bold text-lg text-[#3b2562] mb-2">{task.title}</div>
-          <div className="text-sm text-gray-600 mb-4 flex-1">{task.description}</div>
-          <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
-            <User className="w-4 h-4" />
-            {task.assignedCount} patients assigned
-            {task.latestScore && (
-              <>
-                <span className="mx-2">|</span>
-                <FileText className="w-4 h-4" />
-                Latest Score: {task.latestScore}
-              </>
-            )}
-          </div>
-          <div className="flex gap-2 mt-auto">
-            <Button
-              variant="outline"
-              className="border-green-400 text-green-700 hover:bg-green-50 px-3 py-1 text-s font-semibold"
-              style={{ borderColor: "#1ac600ff" }}
-              // onClick={() => handleAssignTask(task.id)}
-            >
-              Assign
-            </Button>
-            
-          </div>
-        </div>
-      ))}
-    </div>
-    <div className="flex justify-end mt-6">
-      <Button
-        style={{ backgroundColor: "#8159A8", color: "#fff" }}
-        className="font-semibold px-6 py-2 rounded-lg"
-        onClick={() => setShowAssignTask(false)}
-      >
-        Done
-      </Button>
-    </div>
-        </DialogContent>
-      </Dialog> 
 
       {/* Session Update Modal */}
       <SessionUpdateModal

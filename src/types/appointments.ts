@@ -28,6 +28,7 @@ export interface Appointment {
   duration: number;
   sessionStatus: string;
   notes?: string;
+  sessionNotes?: string;
   therapist: string;
   therapistEmail: string;
   therapistPhone: string;
@@ -35,4 +36,6 @@ export interface Appointment {
   mode: string;
   sessionType: string;
   objectives: string[];
+  childFirstName?: string;
+  childLastName?: string;
 }
