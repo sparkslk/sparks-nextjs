@@ -79,6 +79,22 @@ export async function GET(request: NextRequest) {
             },
           },
         },
+        cancelRefund: {
+          select: {
+            id: true,
+            originalAmount: true,
+            refundAmount: true,
+            refundPercentage: true,
+            cancellationTime: true,
+            sessionTime: true,
+            cancelReason: true,
+            bankAccountName: true,
+            bankName: true,
+            accountNumber: true,
+            branchCode: true,
+            refundStatus: true
+          },
+        },
       },
       orderBy: {
         scheduledAt: "desc", // Order by most recent first
@@ -107,6 +123,20 @@ export async function GET(request: NextRequest) {
       status: session.status,
       type: session.type,
       attendanceStatus: session.attendanceStatus,
+      refundDetails: session.cancelRefund ? {
+        id: session.cancelRefund.id,
+        originalAmount: session.cancelRefund.originalAmount,
+        refundAmount: session.cancelRefund.refundAmount,
+        refundPercentage: session.cancelRefund.refundPercentage,
+        cancellationTime: session.cancelRefund.cancellationTime,
+        sessionTime: session.cancelRefund.sessionTime,
+        cancelReason: session.cancelRefund.cancelReason,
+        bankAccountName: session.cancelRefund.bankAccountName,
+        bankName: session.cancelRefund.bankName,
+        accountNumber: session.cancelRefund.accountNumber,
+        branchCode: session.cancelRefund.branchCode,
+        refundStatus: session.cancelRefund.refundStatus,
+      } : null,
     }));
 
     console.log("API: Transformed sessions:", transformedSessions.length);
