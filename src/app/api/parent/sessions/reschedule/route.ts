@@ -200,18 +200,122 @@ export async function POST(request: NextRequest) {
     const parentName = user.name || user.email;
 
     // Update the session with new date and time (keep status as SCHEDULED)
-    const updatedSession = await prisma.therapySession.update({
-      where: {
-        id: sessionId
-      },
-      data: {
-        scheduledAt: newDateTime,
-        updatedAt: new Date(),
-        sessionNotes: rescheduleReason
-          ? `Rescheduled by parent from ${originalDateTime.toLocaleString()} to ${newDateTime.toLocaleString()}. Reason: ${rescheduleReason}`
-          : `Rescheduled by parent from ${originalDateTime.toLocaleString()} to ${newDateTime.toLocaleString()}`
+    // Also mark the new availability slot as booked and free the old slot in a transaction
+    // If the selected slot is the same as the original, skip availability updates
+    let updatedSession;
+
+    // Check if the scheduled time actually changed
+    const originalTimeMs = originalDateTime.getTime();
+    const newTimeMs = newDateTime.getTime();
+
+    try {
+      if (originalTimeMs === newTimeMs) {
+        // No time change — just update session notes/updatedAt
+        updatedSession = await prisma.therapySession.update({
+          where: { id: sessionId },
+          data: {
+            scheduledAt: newDateTime,
+            // If the session was marked RESCHEDULED (therapist requested), mark it back to SCHEDULED
+            ...(therapySession.status === 'RESCHEDULED' ? { status: 'SCHEDULED' } : {}),
+            updatedAt: new Date(),
+            sessionNotes: rescheduleReason
+              ? `Rescheduled by parent from ${originalDateTime.toLocaleString()} to ${newDateTime.toLocaleString()}. Reason: ${rescheduleReason}`
+              : `Rescheduled by parent from ${originalDateTime.toLocaleString()} to ${newDateTime.toLocaleString()}`
+          }
+        });
+      } else {
+        // Prepare time strings and date ranges for matching availability records
+        const oldHours = originalDateTime.getUTCHours().toString().padStart(2, '0');
+        const oldMinutes = originalDateTime.getUTCMinutes().toString().padStart(2, '0');
+        const oldTimeString = `${oldHours}:${oldMinutes}`;
+
+        const oldYear = originalDateTime.getUTCFullYear();
+        const oldMonth = (originalDateTime.getUTCMonth() + 1).toString().padStart(2, '0');
+        const oldDay = originalDateTime.getUTCDate().toString().padStart(2, '0');
+        const oldDateStr = `${oldYear}-${oldMonth}-${oldDay}`;
+        const oldTargetDate = new Date(oldDateStr + 'T00:00:00.000Z');
+        const oldNextDay = new Date(oldDateStr + 'T00:00:00.000Z');
+        oldNextDay.setUTCDate(oldNextDay.getUTCDate() + 1);
+
+        const newHours = newDateTime.getUTCHours().toString().padStart(2, '0');
+        const newMinutes = newDateTime.getUTCMinutes().toString().padStart(2, '0');
+        const newTimeString = `${newHours}:${newMinutes}`;
+
+        const newYear = newDateTime.getUTCFullYear();
+        const newMonth = (newDateTime.getUTCMonth() + 1).toString().padStart(2, '0');
+        const newDay = newDateTime.getUTCDate().toString().padStart(2, '0');
+        const newDateStr = `${newYear}-${newMonth}-${newDay}`;
+        const newTargetDate = new Date(newDateStr + 'T00:00:00.000Z');
+        const newNextDay = new Date(newDateStr + 'T00:00:00.000Z');
+        newNextDay.setUTCDate(newNextDay.getUTCDate() + 1);
+
+        // Transaction: mark new slot as booked (only if unbooked), update session, then free old slot
+        updatedSession = await prisma.$transaction(async (tx) => {
+          // Try to book the new availability slot
+          const bookResult = await tx.therapistAvailability.updateMany({
+            where: {
+              therapistId: therapySession.therapistId,
+              startTime: newTimeString,
+              date: {
+                gte: newTargetDate,
+                lt: newNextDay
+              },
+              isBooked: false
+            },
+            data: { isBooked: true }
+          });
+
+          if (bookResult.count === 0) {
+            // Nothing was booked — slot already taken or doesn't exist
+            throw new Error('SLOT_ALREADY_BOOKED');
+          }
+
+          // Update the therapy session
+          const session = await tx.therapySession.update({
+            where: { id: sessionId },
+            data: {
+              scheduledAt: newDateTime,
+              // If the session was marked RESCHEDULED (therapist requested), mark it back to SCHEDULED
+              ...(therapySession.status === 'RESCHEDULED' ? { status: 'SCHEDULED' } : {}),
+              updatedAt: new Date(),
+              sessionNotes: rescheduleReason
+                ? `Rescheduled by parent from ${originalDateTime.toLocaleString()} to ${newDateTime.toLocaleString()}. Reason: ${rescheduleReason}`
+                : `Rescheduled by parent from ${originalDateTime.toLocaleString()} to ${newDateTime.toLocaleString()}`
+            }
+          });
+
+          // Free the old availability slot (if present)
+          try {
+            await tx.therapistAvailability.updateMany({
+              where: {
+                therapistId: therapySession.therapistId,
+                startTime: oldTimeString,
+                date: {
+                  gte: oldTargetDate,
+                  lt: oldNextDay
+                },
+                isBooked: true
+              },
+              data: { isBooked: false }
+            });
+          } catch (freeErr) {
+            // Non-fatal: log and continue — session updated and new slot booked
+            console.warn('Failed to free old availability slot during reschedule:', freeErr);
+          }
+
+          return session;
+        });
       }
-    });
+    } catch (txError) {
+      console.error('Error updating availability/session during reschedule:', txError);
+      if ((txError as Error).message === 'SLOT_ALREADY_BOOKED') {
+        return NextResponse.json({
+          error: 'SLOT_ALREADY_BOOKED',
+          message: 'The selected time slot is no longer available. Please choose another slot.'
+        }, { status: 409 });
+      }
+      throw txError;
+    }
 
     // Create SessionReschedule record to track the reschedule history
     await prisma.sessionReschedule.create({

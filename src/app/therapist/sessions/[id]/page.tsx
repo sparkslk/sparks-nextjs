@@ -14,15 +14,12 @@ import {
   Calendar,
   User,
   FileText,
-  CheckSquare,
   ArrowLeft,
   AlertCircle,
   Clock3,
-  Edit,
-  Plus
+  Edit
 } from "lucide-react";
-import { format } from "date-fns";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 interface DetailedSession {
   id: string;
@@ -100,7 +97,7 @@ export default function SessionDetailsPage() {
   // Add medications state
   const [medications, setMedications] = useState<Medication[]>([]);
   const [isLoadingMedications, setIsLoadingMedications] = useState(false);
-  const [isLoadingAssessments, setIsLoadingAssessments] = useState(false);
+  const [isLoadingAssessments] = useState(false);
   
   // Remove medication-related states that are now handled by MedicationManagement
   // const [showAddMedication, setShowAddMedication] = useState(false);
@@ -261,34 +258,6 @@ export default function SessionDetailsPage() {
         return 'bg-gray-100 text-gray-800';
     }
   };
-
-  const availableTasks = [
-    {
-      id: "a1",
-      type: "Listening Task",
-      typeColor: "bg-blue-100 text-blue-700",
-      title: "Auditory Processing - Listening Task",
-      description: "Audio-based assessment to evaluate listening comprehension, auditory memory, and processing speed through various listening exercises.",
-      assignedCount: 2,
-    },
-    {
-      id: "a2",
-      type: "Picture Description",
-      typeColor: "bg-green-100 text-green-700",
-      title: "Visual Perception - Picture Description",
-      description: "Assessment involving detailed description of complex images to evaluate visual processing, attention to detail, and verbal expression skills.",
-      assignedCount: 3,
-    },
-    {
-      id: "a3",
-      type: "Find Differences",
-      typeColor: "bg-orange-100 text-orange-700",
-      title: "Attention & Focus - Find the Differences",
-      description: "Visual attention task requiring patients to identify differences between similar images to assess concentration and visual attention skills.",
-      assignedCount: 2,
-      latestScore: "91%",
-    },
-  ];
 
   useEffect(() => {
     const openMedicationsModal = () => setShowMedications(true);

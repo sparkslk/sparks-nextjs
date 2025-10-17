@@ -254,7 +254,7 @@ function PaymentSuccessContent({ orderId }: { orderId: string | null }) {
           {isSuccess && paymentDetails?.session && (
             <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-4">
               <p className="text-green-800 dark:text-green-200 text-center">
-                Your therapy session has been successfully booked! You can view and manage your appointments in the Appointments section.
+                Your therapy session has been successfully booked! You can view and manage your sessions in the Sessions section.
               </p>
             </div>
           )}
@@ -263,7 +263,7 @@ function PaymentSuccessContent({ orderId }: { orderId: string | null }) {
           {!isSuccess && !isFailed && (
             <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
               <p className="text-yellow-800 dark:text-yellow-200 text-center">
-                Your payment is being processed. This may take a few moments. Please check your appointments page shortly.
+                Your payment is being processed. This may take a few moments. Please check your sessions page shortly.
               </p>
             </div>
           )}
@@ -281,7 +281,7 @@ function PaymentSuccessContent({ orderId }: { orderId: string | null }) {
           <div className="flex gap-3">
             {isSuccess ? (
               <Button onClick={handleDone} className="w-full" size="lg">
-                Done - View Appointments
+                Done - View Sessions
               </Button>
             ) : (
               <>
