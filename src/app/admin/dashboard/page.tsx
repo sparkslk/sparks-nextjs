@@ -99,12 +99,12 @@ export default function AdminDashboard() {
 
     const router = useRouter();
 
-    const mappedDonationData = mockDonationData.map((donation) => ({
+    {/*const mappedDonationData = mockDonationData.map((donation) => ({
         id: donation.id.toString(),
         name: donation.donorName,
         timeAgo: donation.timeAgo,
         amount: donation.amount
-    }));
+    }));*/}
 
     useEffect(() => {
         fetchAdminData();

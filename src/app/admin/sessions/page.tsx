@@ -36,7 +36,9 @@ interface TherapySession {
     bankName: string | null;
     accountNumber: string | null;
     branchCode: string | null;
-    refundStatus: string | null;
+      refundStatus: string | null;
+      // Optional admin note stored after an admin updates the refund
+      adminNote?: string | null;
   } | null;
 }
 
@@ -56,7 +58,6 @@ export default function SessionsPage() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [selectedType, setSelectedType] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState("All Status");
   const [showFilters, setShowFilters] = useState(false);
   const [activeTab, setActiveTab] = useState<
     "all" | "scheduled" | "completed" | "cancelled" | "no-show"
@@ -1127,7 +1128,9 @@ export default function SessionsPage() {
       {/* Tabs */}
       <Tabs
         value={activeTab}
-        onValueChange={(v) => setActiveTab(v as any)}
+        onValueChange={(v: string) =>
+          setActiveTab(v as "all" | "scheduled" | "completed" | "cancelled" | "no-show")
+        }
         className="w-full"
       >
         <TabsList className="grid w-full grid-cols-5 mb-8">
@@ -1619,8 +1622,8 @@ export default function SessionsPage() {
                     <div className="pt-3 border-t border-gray-100">
                       <p className="text-xs text-gray-500 mb-2">Admin note</p>
                       <div className="bg-gray-50 rounded-md p-3 text-sm text-gray-700">
-                        {(activeRefund as any)?.adminNote
-                          ? (activeRefund as any).adminNote
+                        {activeRefund?.adminNote
+                          ? activeRefund.adminNote
                           : "No admin note provided."}
                       </div>
                       <div className="flex justify-end gap-2 mt-3">
