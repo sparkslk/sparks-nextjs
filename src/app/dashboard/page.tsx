@@ -49,6 +49,8 @@ interface SessionData {
     status: string;
     therapistName: string;
     notes?: string;
+    sessionType?: string;
+    meetingLink?: string | null;
 }
 
 interface TreatmentPlan {
@@ -160,10 +162,10 @@ export default function DashboardPage() {
 
     const quickActions = [
         {
-            title: "Request Session",
+            title: "Book Session",
             description: "Schedule a new therapy session",
             icon: Calendar,
-            onClick: requestSession
+            onClick: () => router.push("/patient/appointments")
         },
         {
             title: "Find Therapist",
@@ -172,10 +174,10 @@ export default function DashboardPage() {
             onClick: () => router.push("/dashboard/findTherapist")
         },
         {
-            title: "My Requests",
-            description: "View your session requests",
+            title: "My Appointments",
+            description: "View your booked sessions",
             icon: List,
-            onClick: () => router.push("/sessions/my-requests")
+            onClick: () => router.push("/patient/appointments")
         },
         {
             title: "View Progress",
@@ -248,9 +250,9 @@ export default function DashboardPage() {
                                 )}
                             </div>
                         </div>
-                        <Button onClick={requestSession} className="w-full sm:w-auto bg-primary hover:bg-primary/90">
+                        <Button onClick={() => router.push("/patient/appointments")} className="w-full sm:w-auto bg-primary hover:bg-primary/90">
                             <Calendar className="mr-2 h-4 w-4" />
-                            Request Session
+                            Book Session
                         </Button>
                     </div>
                 </CardContent>
@@ -344,7 +346,19 @@ export default function DashboardPage() {
                                                 })}
                                             </p>
                                         </div>
-                                        <Badge variant="outline" className="border-primary/20 self-start sm:self-center">{session.duration || 60} min</Badge>
+                                        <div className="flex items-center gap-2">
+                                            {session.meetingLink && (session.sessionType === 'ONLINE' || session.sessionType === 'HYBRID') && (
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="text-green-600 border-green-600 hover:bg-green-50"
+                                                    onClick={() => window.open(session.meetingLink!, '_blank', 'noopener,noreferrer')}
+                                                >
+                                                    Join
+                                                </Button>
+                                            )}
+                                            <Badge variant="outline" className="border-primary/20 self-start sm:self-center">{session.duration || 60} min</Badge>
+                                        </div>
                                     </div>
                                 ))
                             )}
