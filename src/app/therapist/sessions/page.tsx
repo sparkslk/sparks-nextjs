@@ -38,6 +38,7 @@ interface Session {
   primaryFocusAreas?: string[];
   sessionNotes?: string;
   nextSessionGoals?: string;
+  meetingLink?: string; // Add the meetingLink property
 }
 
 export default function TherapistSessionsPage() {
@@ -408,8 +409,11 @@ export default function TherapistSessionsPage() {
   
 
   const handleJoinSession = (session: Session) => {
-    // For now, just show an alert - will implement video call functionality later
-    alert(`Joining session with ${session.patientName}...`);
+    if (session.meetingLink) {
+      window.open(session.meetingLink, "_blank"); // Redirect to the meeting link
+    } else {
+      alert("Meeting link is not available for this session.");
+    }
   };
 
   
@@ -487,7 +491,7 @@ export default function TherapistSessionsPage() {
         
         <CardContent className="pt-0">
           <div className="flex flex-wrap items-center justify-between gap-6">
-            <div className="flex flex-wrap gap-6 md:gap-8 lg:gap-48">
+            <div className="flex flex-wrap gap-6 md:gap-8 lg:gap-42">
               <div className="flex items-center gap-2">
                 <Calendar className="w-6 h-6 text-primary" />
                 <div>

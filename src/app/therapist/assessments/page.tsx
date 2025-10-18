@@ -492,7 +492,7 @@ export default function AssessmentsPage() {
                   <div className="p-5 space-y-4">
                     {/* Header with Type */}
                     <div className="flex justify-start items-start">
-                      <Badge className={getTypeBadgeColor(assessment.type)}>
+                      <Badge className="bg-blue-100 text-blue-800">
                         {assessment.type.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
                       </Badge>
                     </div>
