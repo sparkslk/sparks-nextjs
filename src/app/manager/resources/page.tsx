@@ -16,20 +16,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Plus,
   Search,
   Eye,
   Edit,
-  MoreVertical,
   Calendar,
   FileText,
   Target,
   TrendingUp,
+  Trash2,
 } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { DeleteConfirmationModal } from "@/components/ui/delete-confirmation-modal";
 
-// Update Blog interface to match database schema
+// Blog interface matching the database schema
 interface Blog {
   id: number;
   title: string;
@@ -39,25 +38,25 @@ interface Blog {
   status: "published" | "draft" | "archived";
   category?: string;
   tags: string[];
-  imageUrl?: string | null; // Base64 image URL
+  imageUrl?: string | null;
   views: number;
   created_at: string;
   updated_at: string;
   published_at: string | null;
   authorName: string;
-  isOwnBlog: boolean; // Flag to identify if this is user's own blog
+  isOwnBlog: boolean;
   User?: {
     name: string;
     email: string;
   };
 }
 
-export default function BlogManagementPage() {
+export default function ManagerResourcesPage() {
   const { status: authStatus, data: session } = useSession();
   const router = useRouter();
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("mine");
+  const [activeTab, setActiveTab] = useState("all");
   const [error, setError] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [blogToDelete, setBlogToDelete] = useState<Blog | null>(null);
@@ -65,33 +64,26 @@ export default function BlogManagementPage() {
   const [filterCategory, setFilterCategory] = useState("all");
   const [tabCounts, setTabCounts] = useState({
     all: 0,
-    mine: 0,
     published: 0,
     draft: 0,
   });
 
-
-
   const fetchTabCounts = useCallback(async () => {
     try {
-      // Fetch counts for all tabs
-      const [allResponse, mineResponse, publishedResponse, draftResponse] = await Promise.all([
-        fetch('/api/blogs?filter=all'),
-        fetch('/api/blogs?filter=mine'),
-        fetch('/api/blogs?filter=published'),
-        fetch('/api/blogs?filter=draft')
+      const [allResponse, publishedResponse, draftResponse] = await Promise.all([
+        fetch('/api/manager/resources?filter=all'),
+        fetch('/api/manager/resources?filter=published'),
+        fetch('/api/manager/resources?filter=draft')
       ]);
 
-      const [allData, mineData, publishedData, draftData] = await Promise.all([
+      const [allData, publishedData, draftData] = await Promise.all([
         allResponse.json(),
-        mineResponse.json(),
         publishedResponse.json(),
         draftResponse.json()
       ]);
 
       setTabCounts({
         all: allData.length,
-        mine: mineData.length,
         published: publishedData.length,
         draft: draftData.length,
       });
@@ -100,21 +92,21 @@ export default function BlogManagementPage() {
     }
   }, []);
 
-    const fetchBlogs = useCallback(async () => {
+  const fetchBlogs = useCallback(async () => {
     if (!session) return;
     
     setLoading(true);
     try {
-      const response = await fetch(`/api/blogs?filter=${activeTab}`);
+      const response = await fetch(`/api/manager/resources?filter=${activeTab}`);
       if (response.ok) {
         const data = await response.json();
         setBlogs(data);
       } else {
-        setError("Failed to fetch blogs");
+        setError("Failed to fetch resources");
       }
     } catch (err) {
-      setError("Error fetching blogs");
-      console.error("Error fetching blogs:", err);
+      setError("Error fetching resources");
+      console.error("Error fetching resources:", err);
     } finally {
       setLoading(false);
     }
@@ -122,15 +114,15 @@ export default function BlogManagementPage() {
 
   const handleViewBlog = (e: React.MouseEvent, id: number) => {
     e.stopPropagation();
-    router.push(`/therapist/blogs/${id}`);
+    router.push(`/manager/resources/${id}`);
   };
 
   const handleEditBlog = (e: React.MouseEvent, id: number) => {
     e.stopPropagation();
-    router.push(`/therapist/blogs/${id}/edit`);
+    router.push(`/manager/resources/${id}/edit`);
   };
 
-  const handleArchiveBlog = async (e: React.MouseEvent, blog: Blog) => {
+  const handleDeleteBlog = async (e: React.MouseEvent, blog: Blog) => {
     e.stopPropagation();
     setBlogToDelete(blog);
     setShowDeleteModal(true);
@@ -145,21 +137,22 @@ export default function BlogManagementPage() {
     if (!blogToDelete) return;
 
     try {
-      const response = await fetch(`/api/blogs/${blogToDelete.id}`, {
+      const response = await fetch(`/api/manager/resources/${blogToDelete.id}`, {
         method: "DELETE",
       });
 
       if (!response.ok) {
-        throw new Error("Failed to delete blog");
+        throw new Error("Failed to delete resource");
       }
 
-      // Remove blog from the list
+      // Remove blog from the list and update counts
       setBlogs(blogs.filter((blog) => blog.id !== blogToDelete.id));
       setShowDeleteModal(false);
       setBlogToDelete(null);
+      fetchTabCounts();
     } catch (error) {
-      console.error("Error deleting blog:", error);
-      setError("Failed to delete blog. Please try again later.");
+      console.error("Error deleting resource:", error);
+      setError("Failed to delete resource. Please try again later.");
     }
   };
 
@@ -171,6 +164,11 @@ export default function BlogManagementPage() {
     }
 
     if (authStatus === "authenticated" && session) {
+      const userRole = (session.user as { role?: string }).role;
+      if (userRole !== "MANAGER") {
+        router.push("/dashboard");
+        return;
+      }
       fetchBlogs();
       fetchTabCounts();
     }
@@ -184,25 +182,21 @@ export default function BlogManagementPage() {
     }
   }, [activeTab, authStatus, session, fetchBlogs, fetchTabCounts]);
 
-  // Filter blogs based on search and category (status filtering is now handled by API)
+  // Filter blogs based on search and category
   const filteredBlogs = blogs.filter((blog) => {
     const matchesSearch =
       blog.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      blog.summary.toLowerCase().includes(searchTerm.toLowerCase());
+      blog.summary.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      blog.authorName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory =
       filterCategory === "all" || blog.category === filterCategory;
 
     return matchesSearch && matchesCategory;
   });
 
-
   const totalViews = blogs
-    .filter((blog) => blog.status === "published" && (activeTab === 'all' || blog.isOwnBlog))
+    .filter((blog) => blog.status === "published")
     .reduce((sum, blog) => sum + blog.views, 0);
-
-  const handleNewBlog = () => {
-    router.push("/therapist/blogs/new");
-  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -213,7 +207,7 @@ export default function BlogManagementPage() {
   };
 
   if (authStatus === "loading" || loading) {
-    return <LoadingSpinner message="Loading blog management..." />;
+    return <LoadingSpinner message="Loading resource management..." />;
   }
 
   if (error) {
@@ -237,7 +231,7 @@ export default function BlogManagementPage() {
         isOpen={showDeleteModal}
         onClose={handleCancelDelete}
         onDelete={handleConfirmDelete}
-        title="Delete Blog Post?"
+        title="Delete Resource?"
         description="Are you sure you want to delete"
         itemName={blogToDelete?.title}
       />
@@ -247,69 +241,82 @@ export default function BlogManagementPage() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold text-[#8159A8]">
-              Blog Management
+              Resource Management
             </h1>
             <p className="text-gray-600">
-              Create and manage your therapeutic content
+              View, edit, and manage all therapeutic resources
             </p>
           </div>
-          <Button
-            onClick={handleNewBlog}
-            className="bg-[#8159A8] hover:bg-[#6D4C93] text-white transition-all duration-300"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Create New Blog
-          </Button>
         </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card className="bg-primary-foreground p-6 rounded-lg border shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center justify-between min-w-[200px]">
-            <div className="text-left">
-              <div className="text-3xl font-bold text-[#8159A8]">
-                {tabCounts.mine}
+          <Card className="shadow-sm hover:shadow-md transition-shadow duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <FileText className="h-6 w-6 text-blue-600" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">
+                    Total Resources
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {tabCounts.all}
+                  </p>
+                </div>
               </div>
-              <div className="text-gray-500 text-sm">My Blogs</div>
-            </div>
-            <div className="flex-shrink-0 ml-4">
-              <FileText className="w-10 h-10 text-[#8159A8]" />
-            </div>
+            </CardContent>
           </Card>
 
-          <Card className="bg-primary-foreground p-6 rounded-lg border shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center justify-between min-w-[200px]">
-            <div className="text-left">
-              <div className="text-3xl font-bold text-[#8159A8]">
-                {tabCounts.published}
+          <Card className="shadow-sm hover:shadow-md transition-shadow duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <Target className="h-6 w-6 text-green-600" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Published</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {tabCounts.published}
+                  </p>
+                </div>
               </div>
-              <div className="text-gray-500 text-sm">My Published</div>
-            </div>
-            <div className="flex-shrink-0 ml-4">
-              <Target className="w-10 h-10 text-[#8159A8]" />
-            </div>
+            </CardContent>
           </Card>
 
-          <Card className="bg-primary-foreground p-6 rounded-lg border shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center justify-between min-w-[200px]">
-            <div className="text-left">
-              <div className="text-3xl font-bold text-[#8159A8]">
-                {tabCounts.draft}
+          <Card className="shadow-sm hover:shadow-md transition-shadow duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="p-2 bg-yellow-100 rounded-lg">
+                  <Edit className="h-6 w-6 text-yellow-600" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Drafts</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {tabCounts.draft}
+                  </p>
+                </div>
               </div>
-              <div className="text-gray-500 text-sm">My Drafts</div>
-            </div>
-            <div className="flex-shrink-0 ml-4">
-              <Edit className="w-10 h-10 text-[#8159A8]" />
-            </div>
+            </CardContent>
           </Card>
 
-          <Card className="bg-primary-foreground p-6 rounded-lg border shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center justify-between min-w-[200px]">
-            <div className="text-left">
-              <div className="text-3xl font-bold text-[#8159A8]">
-                {totalViews.toLocaleString()}
+          <Card className="shadow-sm hover:shadow-md transition-shadow duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="p-2 bg-purple-100 rounded-lg">
+                  <TrendingUp className="h-6 w-6 text-purple-600" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">
+                    Total Views
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {totalViews.toLocaleString()}
+                  </p>
+                </div>
               </div>
-              <div className="text-gray-500 text-sm">Total Views</div>
-            </div>
-            <div className="flex-shrink-0 ml-4">
-              <TrendingUp className="w-10 h-10 text-[#8159A8]" />
-            </div>
+            </CardContent>
           </Card>
         </div>
 
@@ -321,7 +328,7 @@ export default function BlogManagementPage() {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                   <Input
-                    placeholder="Search blogs..."
+                    placeholder="Search resources by title, summary, or author..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"
@@ -348,10 +355,9 @@ export default function BlogManagementPage() {
         {/* Tabs */}
         <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
           {[
-            { key: "all", label: "All Published", count: tabCounts.all },
-            { key: "mine", label: "My Blogs", count: tabCounts.mine },
-            { key: "published", label: "My Published", count: tabCounts.published },
-            { key: "draft", label: "My Drafts", count: tabCounts.draft },
+            { key: "all", label: "All Resources", count: tabCounts.all },
+            { key: "published", label: "Published", count: tabCounts.published },
+            { key: "draft", label: "Drafts", count: tabCounts.draft },
           ].map((tab) => (
             <button
               key={tab.key}
@@ -373,22 +379,13 @@ export default function BlogManagementPage() {
             <CardContent className="p-12 text-center">
               <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">
-                No blogs found
+                No resources found
               </h3>
               <p className="text-gray-600 mb-4">
                 {blogs.length === 0
-                  ? "Get started by creating your first blog post."
+                  ? "No resources have been created yet."
                   : "Try adjusting your search or filter criteria."}
               </p>
-              {blogs.length === 0 && (
-                <Button
-                  onClick={handleNewBlog}
-                  className="bg-[#8159A8] hover:bg-[#6D4C93] text-white"
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create Your First Blog
-                </Button>
-              )}
             </CardContent>
           </Card>
         ) : (
@@ -467,45 +464,36 @@ export default function BlogManagementPage() {
 
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
-                      <div className={`w-6 h-6 rounded-full text-white text-xs flex items-center justify-center font-medium ${
-                        blog.isOwnBlog ? 'bg-[#8159A8]' : 'bg-gray-500'
-                      }`}>
+                      <div className="w-6 h-6 rounded-full bg-gray-500 text-white text-xs flex items-center justify-center font-medium">
                         {blog.authorName?.charAt(0)?.toUpperCase() || "T"}
                       </div>
                       <div className="ml-2">
-                        <span className={`text-sm ${blog.isOwnBlog ? 'text-[#8159A8] font-medium' : 'text-gray-600'}`}>
-                          {blog.isOwnBlog ? 'You' : blog.authorName}
+                        <span className="text-sm text-gray-600">
+                          {blog.authorName}
                         </span>
-                        {!blog.isOwnBlog && (
-                          <span className="text-xs text-gray-500 block">
-                            by {blog.authorName}
-                          </span>
-                        )}
+                        <span className="text-xs text-gray-500 block">
+                          Therapist
+                        </span>
                       </div>
                     </div>
 
                     <div className="flex space-x-1">
-                      {/* Only show edit/delete buttons for own blogs */}
-                      {blog.isOwnBlog && (
-                        <>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => handleEditBlog(e, blog.id)}
-                            className="h-8 w-8 p-0 hover:bg-[#8159A8]/10"
-                          >
-                            <Edit className="h-4 w-4 text-[#8159A8]" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => handleArchiveBlog(e, blog)}
-                            className="h-8 w-8 p-0 hover:bg-red-50"
-                          >
-                            <MoreVertical className="h-4 w-4 text-gray-500" />
-                          </Button>
-                        </>
-                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => handleEditBlog(e, blog.id)}
+                        className="h-8 w-8 p-0 hover:bg-[#8159A8]/10"
+                      >
+                        <Edit className="h-4 w-4 text-[#8159A8]" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => handleDeleteBlog(e, blog)}
+                        className="h-8 w-8 p-0 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      </Button>
                     </div>
                   </div>
                 </CardContent>

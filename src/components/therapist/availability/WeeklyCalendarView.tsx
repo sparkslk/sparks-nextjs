@@ -467,29 +467,51 @@ export function WeeklyCalendarView({
               {getSessionSlotsForDay(weekDates[dayIndex].getDay(), weekDates[dayIndex]).map((sessionSlot) => {
                 const position = getSlotPosition(sessionSlot.startTime, sessionSlot.endTime);
 
+                // Check if this slot is in the past
+                const now = new Date();
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const slotDate = new Date(weekDates[dayIndex]);
+                slotDate.setHours(0, 0, 0, 0);
+                
+                let isSlotPast = slotDate < today;
+                
+                // If it's today, check if the slot time has passed
+                if (slotDate.getTime() === today.getTime()) {
+                  const [slotHour, slotMinute] = sessionSlot.startTime.split(':').map(Number);
+                  const slotTotalMinutes = slotHour * 60 + slotMinute;
+                  const currentTotalMinutes = now.getHours() * 60 + now.getMinutes();
+                  
+                  if (slotTotalMinutes <= currentTotalMinutes) {
+                    isSlotPast = true;
+                  }
+                }
+
                 return (
                   <div
                     key={sessionSlot.id}
-                    className={`absolute left-2 right-2 rounded border transition-all z-10 ${
-                      sessionSlot.isBooked
-                        ? "bg-blue-500 text-white border-blue-600 hover:bg-blue-600 cursor-not-allowed"
+                    className={`absolute left-2 right-2 rounded border transition-all z-[5] ${
+                      sessionSlot.isBooked || isSlotPast
+                        ? "bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200 cursor-not-allowed"
                         : !sessionSlot.isActive
                         ? "bg-gray-400 text-gray-100 border-gray-500"
                         : sessionSlot.isFreeSession
-                        ? "bg-green-500 text-white border-green-600 hover:bg-green-600 cursor-pointer"
-                        : "bg-[#8159A8] text-white border-[#6D4C93] hover:bg-[#6D4C93] cursor-pointer"
+                        ? "bg-green-100 text-green-800 border-green-200 hover:bg-green-200 cursor-pointer"
+                        : "bg-purple-100 text-purple-800 border-purple-200 hover:bg-purple-200 cursor-pointer"
                     }`}
                     style={position}
                     onMouseEnter={() => setHoveredSlot(sessionSlot.id)}
                     onMouseLeave={() => setHoveredSlot(null)}
-                    onClick={() => !sessionSlot.isBooked && onSlotClick && onSlotClick(sessionSlot.id)}
+                    onClick={() => !sessionSlot.isBooked && !isSlotPast && onSlotClick && onSlotClick(sessionSlot.id)}
                   >
                     <div className="p-1 text-center">
                       <div className="text-xs font-medium">
                         {formatTime(sessionSlot.startTime)}
                       </div>
                       <div className="text-xs opacity-90">
-                        {sessionSlot.isBooked 
+                        {isSlotPast && !sessionSlot.isBooked
+                          ? "Past"
+                          : sessionSlot.isBooked 
                           ? "Booked" 
                           : sessionSlot.isFreeSession 
                           ? "Free" 
@@ -499,7 +521,7 @@ export function WeeklyCalendarView({
 
                     {/* Session Tooltip */}
                     {hoveredSlot === sessionSlot.id && (
-                      <div className="absolute top-full left-0 mt-1 bg-white border rounded-lg shadow-lg p-3 min-w-48 z-20">
+                      <div className="absolute top-full left-0 mt-1 bg-white border rounded-lg shadow-lg p-3 min-w-48 z-[100]">
                         <div className="text-gray-900">
                           <div className="font-medium text-sm mb-2">45-Minute Session</div>
                           <div className="space-y-1 text-xs">
@@ -509,7 +531,7 @@ export function WeeklyCalendarView({
                               <span className={`ml-1 px-2 py-1 rounded text-xs ${
                                 sessionSlot.isFreeSession
                                   ? "bg-green-100 text-green-800"
-                                  : "bg-[#F5F3FB] text-[#8159A8]"
+                                  : "bg-purple-100 text-purple-800"
                               }`}>
                                 {sessionSlot.isFreeSession ? "Free Session" : "Paid Session"}
                               </span>
@@ -530,7 +552,7 @@ export function WeeklyCalendarView({
                               </span>
                             </div>
                           </div>
-                          {!sessionSlot.isBooked && (
+                          {!sessionSlot.isBooked && !isSlotPast && (
                             <div className="mt-2 pt-2 border-t text-xs text-gray-500 italic">
                               Click to edit or delete
                             </div>
@@ -549,15 +571,15 @@ export function WeeklyCalendarView({
         <div className="p-4 bg-gray-50 border-t">
           <div className="flex items-center gap-6 text-sm flex-wrap">
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-[#8159A8] rounded border border-[#6D4C93]"></div>
+              <div className="w-4 h-4 bg-purple-100 rounded border border-purple-200"></div>
               <span>Available Paid Sessions</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-green-500 rounded border border-green-600"></div>
+              <div className="w-4 h-4 bg-green-100 rounded border border-green-200"></div>
               <span>Available Free Sessions</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-blue-500 rounded border border-blue-600"></div>
+              <div className="w-4 h-4 bg-blue-100 rounded border border-blue-200"></div>
               <span>Booked Sessions</span>
             </div>
             <div className="flex items-center gap-2">

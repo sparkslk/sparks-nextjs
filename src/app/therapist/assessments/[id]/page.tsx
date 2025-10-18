@@ -31,7 +31,7 @@ export default function AssessmentDetailsPage() {
   const { status: authStatus } = useSession();
   const router = useRouter();
   const params = useParams();
-  const assessmentId = params.id as string;
+  const assessmentId = params?.id as string;
 
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [loading, setLoading] = useState(true);
