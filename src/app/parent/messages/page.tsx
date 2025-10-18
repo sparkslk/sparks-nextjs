@@ -45,9 +45,20 @@ export default function ParentMessagesPage() {
   const [loadingTherapists, setLoadingTherapists] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const stopPollingRef = useRef<(() => void) | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     setMounted(true);
+    // Create audio element for notification sound
+    if (typeof window !== 'undefined') {
+      audioRef.current = new Audio('/notification.mp3');
+      audioRef.current.volume = 0.5;
+      
+      // Request notification permission
+      if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
+    }
   }, []);
 
   const loadConversations = async () => {
@@ -96,6 +107,20 @@ export default function ParentMessagesPage() {
             if (result.messages.length > previousMessageCount && previousMessageCount > 0) {
               // New message received - notify sidebar to update unread count
               chatEvents.notifyMessageReceived(selectedConversation.id);
+              
+              // Play notification sound
+              if (audioRef.current && !document.hidden) {
+                audioRef.current.play().catch(err => console.log('Audio play failed:', err));
+              }
+              
+              // Show browser notification if permission granted
+              if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+                new Notification('New Message', {
+                  body: 'You have received a new message from your therapist',
+                  icon: '/images/sparkslogo.png',
+                  badge: '/images/sparkslogo.png',
+                });
+              }
             }
             previousMessageCount = result.messages.length;
             
@@ -103,7 +128,7 @@ export default function ParentMessagesPage() {
             scrollToBottom();
           }
         },
-        3000 // Poll every 3 seconds
+        2000 // Poll every 2 seconds for more responsive updates
       );
     }
     
@@ -368,9 +393,11 @@ export default function ParentMessagesPage() {
                         </div>
                       </DialogContent>
                     </Dialog>
-                    <Badge variant="secondary" className="bg-primary text-primary-foreground">
-                      {conversations.reduce((sum, conv) => sum + (conv.unreadCount || 0), 0)} unread
-                    </Badge>
+                    {conversations.reduce((sum, conv) => sum + (conv.unreadCount || 0), 0) > 0 && (
+                      <Badge variant="secondary" className="bg-primary text-primary-foreground">
+                        {conversations.reduce((sum, conv) => sum + (conv.unreadCount || 0), 0)} unread
+                      </Badge>
+                    )}
                   </div>
                 </div>
                 {/* Search */}
@@ -482,7 +509,7 @@ export default function ParentMessagesPage() {
                   </div>
                 </CardHeader>
                 {/* Messages Area */}
-                <div className="flex-1 p-4 overflow-y-auto bg-background rounded-b-lg">
+                <div className="flex-1 p-4 overflow-y-auto bg-background rounded-b-lg max-h-[calc(100vh-450px)]">
                   {/* Date Header */}
                   <div className="text-center mb-6">
                     <span className="text-sm text-muted-foreground bg-card px-3 py-1 rounded-full shadow-sm">
