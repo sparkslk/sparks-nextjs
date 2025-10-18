@@ -153,6 +153,7 @@ export async function GET(req: NextRequest) {
 
     // Calculate total income
     // For completed sessions: therapist gets 90% of bookedRate
+    // For NO_SHOW sessions: therapist gets 90% of bookedRate
     // For cancelled sessions with refunds:
     //   - If refundPercentage = 60%, therapist gets 30% of originalAmount
     //   - If refundPercentage = 90%, therapist gets 0%
@@ -160,6 +161,19 @@ export async function GET(req: NextRequest) {
       // Handle completed sessions
       if (session.status === "COMPLETED") {
         // Check if session has completed payment
+        const hasCompletedPayment = session.Payment.some(
+          (payment) => payment.status === "COMPLETED"
+        );
+        
+        if (hasCompletedPayment && session.bookedRate) {
+          // Therapist gets 90% of the booked rate
+          const therapistShare = Number(session.bookedRate) * 0.9;
+          return sum + therapistShare;
+        }
+      }
+      
+      // Handle NO_SHOW sessions (treat like completed)
+      if (session.status === "NO_SHOW") {
         const hasCompletedPayment = session.Payment.some(
           (payment) => payment.status === "COMPLETED"
         );
@@ -268,6 +282,17 @@ export async function GET(req: NextRequest) {
           }
         }
         
+        // Handle NO_SHOW sessions (treat like completed)
+        if (session.status === "NO_SHOW") {
+          const hasCompletedPayment = session.Payment.some(
+            (payment) => payment.status === "COMPLETED"
+          );
+          if (hasCompletedPayment && session.bookedRate) {
+            // Therapist gets 90% of the booked rate
+            return sum + (Number(session.bookedRate) * 0.9);
+          }
+        }
+        
         // Handle cancelled sessions with refunds
         if (session.status === "CANCELLED" && session.cancelRefund) {
           const refundPercentage = Number(session.cancelRefund.refundPercentage);
@@ -290,12 +315,12 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Prepare session status data for chart with pastel colors matching stats cards
+    // Prepare session status data for chart with system-aligned colors
     const sessionStatusData = [
-      { status: "Completed", count: completedSessions, color: "#66fb9dff" }, // green-300 - lighter green
-      { status: "Scheduled", count: scheduledSessions, color: "#8159A8" }, // blue-300 - lighter blue
-      { status: "Cancelled", count: cancelledSessions, color: "#d84040ff" }, // red-300 - lighter red
-      { status: "No Show", count: noShowSessions, color: "#fcad58ff" }, // orange-300 - lighter orange
+      { status: "Completed", count: completedSessions, color: "#10b981" }, // emerald-500 - professional green
+      { status: "Scheduled", count: scheduledSessions, color: "#8159A8" }, // primary purple
+      { status: "Cancelled", count: cancelledSessions, color: "#ef4444" }, // red-500 - professional red
+      { status: "No Show", count: noShowSessions, color: "#f59e0b" }, // amber-500 - professional orange
     ];
 
     // Prepare paid vs free data for chart
@@ -335,6 +360,14 @@ export async function GET(req: NextRequest) {
 
         // Calculate therapist amount based on session status
         if (session.status === "COMPLETED") {
+          const hasCompletedPayment = session.Payment.some((p) => p.status === "COMPLETED");
+          if (hasCompletedPayment && bookedRateValue > 0) {
+            therapistAmount = bookedRateValue * 0.9;
+            systemFeeOrRefund = bookedRateValue * 0.1;
+            breakdown = `Total: LKR ${bookedRateValue.toFixed(2)} | System Fee (10%): LKR ${systemFeeOrRefund.toFixed(2)} | Your Share (90%): LKR ${therapistAmount.toFixed(2)}`;
+          }
+        } else if (session.status === "NO_SHOW") {
+          // Treat NO_SHOW like completed sessions
           const hasCompletedPayment = session.Payment.some((p) => p.status === "COMPLETED");
           if (hasCompletedPayment && bookedRateValue > 0) {
             therapistAmount = bookedRateValue * 0.9;

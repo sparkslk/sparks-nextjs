@@ -241,7 +241,7 @@ export default function TherapistReportsPage() {
         therapistName: therapistName || "Therapist",
         dateRange,
         summary: reportsData.summary,
-        sessions: reportsData.sessions,
+        sessions: reportsData.sessions.filter(s => s.status !== "SCHEDULED" && s.status !== "APPROVED"),
       });
     } catch (error) {
       console.error("Error exporting PDF:", error);
@@ -643,8 +643,8 @@ export default function TherapistReportsPage() {
                     <p className="font-semibold mb-1">Income Calculation:</p>
                     <ul className="space-y-1 list-disc list-inside">
                       <li>Completed sessions: You receive 90% of the booked rate (10% system commission)</li>
-                      <li>Cancelled (60% refund): You receive 30% of the original amount</li>
-                      <li>Cancelled (90% refund): No income earned</li>
+                      <li>Cancelled (Less than 24 hours): You receive 30% of the original amount</li>
+                      <li>Cancelled (Prior to 24 hours): No income earned</li>
                     </ul>
                   </div>
                 </div>
@@ -658,7 +658,7 @@ export default function TherapistReportsPage() {
               <CardHeader>
                 <CardTitle>Transaction History</CardTitle>
                 <CardDescription>
-                  Detailed income breakdown for {reportsData.sessions.length} sessions
+                  Detailed income breakdown for {reportsData.sessions.filter(s => s.status !== "SCHEDULED" && s.status !== "APPROVED").length} processed sessions
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -676,14 +676,16 @@ export default function TherapistReportsPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {reportsData.sessions.length === 0 ? (
+                      {reportsData.sessions.filter(s => s.status !== "SCHEDULED" && s.status !== "APPROVED").length === 0 ? (
                         <tr>
                           <td colSpan={7} className="text-center p-8 text-gray-500">
-                            No sessions found for the selected filters
+                            No completed or processed sessions found for the selected filters
                           </td>
                         </tr>
                       ) : (
-                        reportsData.sessions.map((session) => (
+                        reportsData.sessions
+                          .filter(session => session.status !== "SCHEDULED" && session.status !== "APPROVED")
+                          .map((session) => (
                           <>
                             <tr 
                               key={session.id} 
@@ -728,14 +730,16 @@ export default function TherapistReportsPage() {
                               </td>
                               <td className="p-3 text-sm text-right font-medium">
                                 {session.therapistAmount > 0 ? (
-                                  <span className="text-green-600">
+                                  <span className="text-emerald-600">
                                     LKR {session.therapistAmount.toLocaleString("en-US", {
                                       minimumFractionDigits: 2,
                                       maximumFractionDigits: 2,
                                     })}
                                   </span>
                                 ) : (
-                                  <span className="text-gray-400">Free / No Income</span>
+                                  <span className="text-gray-500">
+                                    LKR 0.00
+                                  </span>
                                 )}
                               </td>
                             </tr>
@@ -751,7 +755,7 @@ export default function TherapistReportsPage() {
                                         </h4>
                                         {session.breakdown ? (
                                           <div className="bg-white p-3 rounded-md border border-purple-200 space-y-2">
-                                            {session.status === "COMPLETED" && (
+                                            {(session.status === "COMPLETED" || session.status === "NO_SHOW") && (
                                               <>
                                                 <div className="flex justify-between text-sm">
                                                   <span className="text-gray-600">Total Session Amount:</span>
@@ -767,7 +771,7 @@ export default function TherapistReportsPage() {
                                                 </div>
                                                 <div className="border-t pt-2 flex justify-between text-sm">
                                                   <span className="font-semibold text-gray-800">Your Share (90%):</span>
-                                                  <span className="font-bold text-green-600">
+                                                  <span className="font-bold text-emerald-600">
                                                     LKR {session.therapistAmount.toFixed(2)}
                                                   </span>
                                                 </div>
@@ -793,7 +797,7 @@ export default function TherapistReportsPage() {
                                                   <span className="font-semibold text-gray-800">
                                                     Your Share ({session.refundPercentage === 60 ? "30%" : "0%"}):
                                                   </span>
-                                                  <span className={`font-bold ${session.therapistAmount > 0 ? "text-green-600" : "text-gray-500"}`}>
+                                                  <span className={`font-bold ${session.therapistAmount > 0 ? "text-emerald-600" : "text-gray-500"}`}>
                                                     LKR {session.therapistAmount.toFixed(2)}
                                                   </span>
                                                 </div>

@@ -36,247 +36,252 @@ interface PDFData {
 export function generateTherapistReportPDF(data: PDFData) {
   const doc = new jsPDF();
   const primaryColor: [number, number, number] = [129, 89, 168]; // #8159A8
-  const lightPurple: [number, number, number] = [224, 212, 240]; // #e0d4f0
+  const lightPurple: [number, number, number] = [245, 243, 255]; // Very light purple for subtle backgrounds
+  const accentGreen: [number, number, number] = [16, 185, 129]; // #10b981 - emerald-500
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
 
-  // Add header with brand color
-  doc.setFillColor(...lightPurple);
-  doc.rect(0, 0, pageWidth, 35, "F");
+  // Minimalist header with thin line
+  doc.setDrawColor(...primaryColor);
+  doc.setLineWidth(0.8);
+  doc.line(15, 25, pageWidth - 15, 25);
 
-  // Add logo placeholder or text
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(24);
+  // Logo/Brand text
+  doc.setTextColor(...primaryColor);
+  doc.setFontSize(20);
   doc.setFont("helvetica", "bold");
-  doc.text("SPARKS", 20, 15);
-
-  // Report title
-  doc.setFontSize(18);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(...primaryColor); // Set to primary color
-  doc.text("Therapist Income Report", pageWidth / 2, 15, { align: "center" });
-
-  // Reset text color
-  doc.setTextColor(0, 0, 0);
-
-  // Therapist info and date range
-  doc.setFontSize(11);
+  doc.text("SPARKS", 15, 20);
+  doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
-  doc.text(`Period: ${data.dateRange}`, 20, 52);
-  doc.text(`Generated: ${new Date().toLocaleDateString("en-US", { 
-    year: "numeric", 
-    month: "long", 
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit"
-  })}`, 20, 59);
+  doc.text("ADHD Management System", 15, 24);
 
-  // Summary statistics section
-  let yPosition = 70;
-  doc.setFillColor(...lightPurple);
-  doc.rect(15, yPosition, pageWidth - 30, 8, "F");
-  
-  doc.setFontSize(13);
+  // Report title - minimalist
+  doc.setFontSize(16);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(...primaryColor);
-  doc.text("Summary Statistics", 20, yPosition + 6);
-  
-  yPosition += 15;
-  doc.setTextColor(0, 0, 0);
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
+  doc.text("Income Report", pageWidth - 15, 20, { align: "right" });
 
-  // Summary grid
+  // Date range and info - minimalist style
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(100, 100, 100);
+  doc.text(`Period: ${data.dateRange}`, 15, 40);
+  doc.text(`Generated: ${new Date().toLocaleDateString("en-US", { 
+    month: "short", 
+    day: "numeric", 
+    year: "numeric"
+  })}`, pageWidth - 15, 35, { align: "right" });
+
+  // Summary statistics section - minimalist
+  let yPosition = 52;
+  doc.setTextColor(0, 0, 0);
+  
+  // Section header
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(...primaryColor);
+  doc.text("Summary", 15, yPosition);
+  
+  yPosition += 8;
+
+  // Minimalist summary table
   const summaryData = [
     ["Total Sessions", data.summary.totalSessions.toString()],
-    ["Completed Sessions", data.summary.completedSessions.toString()],
-    ["Scheduled Sessions", data.summary.scheduledSessions.toString()],
-    ["Cancelled Sessions", data.summary.cancelledSessions.toString()],
-    ["No-Show Sessions", data.summary.noShowSessions.toString()],
+    ["Completed", data.summary.completedSessions.toString()],
+    ["No-Show", data.summary.noShowSessions.toString()],
+    ["Cancelled", data.summary.cancelledSessions.toString()],
     ["Paid Sessions", data.summary.paidSessions.toString()],
     ["Free Sessions", data.summary.freeSessions.toString()],
-    ["No-Show Rate", `${data.summary.noShowRate}%`],
-    ["Cancellation Rate", `${data.summary.cancellationRate}%`],
   ];
 
   autoTable(doc, {
     startY: yPosition,
-    head: [["Metric", "Value"]],
     body: summaryData,
-    theme: "grid",
-    headStyles: {
-      fillColor: primaryColor,
-      textColor: [255, 255, 255],
-      fontStyle: "bold",
-      fontSize: 10,
-    },
+    theme: "plain",
     styles: {
       fontSize: 9,
-      cellPadding: 3,
-    },
-    alternateRowStyles: {
-      fillColor: [249, 250, 251],
+      cellPadding: { top: 2, bottom: 2, left: 0, right: 5 },
+      textColor: [60, 60, 60],
     },
     columnStyles: {
-      0: { cellWidth: 70, fontStyle: "bold" },
-      1: { cellWidth: 40, halign: "right" },
+      0: { cellWidth: 50, fontStyle: "normal" },
+      1: { cellWidth: 20, halign: "right", fontStyle: "bold" },
     },
-    margin: { left: 20, right: 20 },
+    margin: { left: 15, right: 15 },
   });
 
-  // Income summary section
-  yPosition = (doc as any).lastAutoTable.finalY + 15;
+  // Income summary section - minimalist and prominent
+  yPosition = (doc as any).lastAutoTable.finalY + 12;
   
   // Check if we need a new page
   if (yPosition > pageHeight - 60) {
     doc.addPage();
-    yPosition = 20;
+    yPosition = 30;
   }
 
-  doc.setFillColor(...lightPurple);
-  doc.rect(15, yPosition, pageWidth - 30, 8, "F");
+  // Subtle separator line
+  doc.setDrawColor(220, 220, 220);
+  doc.setLineWidth(0.3);
+  doc.line(15, yPosition, pageWidth - 15, yPosition);
+  yPosition += 10;
   
-  doc.setFontSize(13);
+  // Total income - clean and prominent
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(100, 100, 100);
+  doc.text("Total Income Earned", 15, yPosition);
+  
+  doc.setFontSize(22);
   doc.setFont("helvetica", "bold");
-  doc.setTextColor(...primaryColor);
-  doc.text("Income Summary", 20, yPosition + 6);
-  
-  yPosition += 15;
-  
-  // Total income box - highlighted
-  doc.setFillColor(102, 251, 157); // Light green
-  doc.rect(20, yPosition, pageWidth - 40, 15, "F");
-  doc.setDrawColor(...primaryColor);
-  doc.setLineWidth(0.5);
-  doc.rect(20, yPosition, pageWidth - 40, 15, "S");
-  
-  doc.setTextColor(0, 0, 0);
-  doc.setFontSize(12);
-  doc.setFont("helvetica", "bold");
-  doc.text("Total Income Earned:", 25, yPosition + 6);
-  doc.setFontSize(16);
   doc.setTextColor(...primaryColor);
   doc.text(
     `LKR ${parseFloat(data.summary.totalIncome).toLocaleString("en-US", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })}`,
-    pageWidth - 25,
-    yPosition + 10,
-    { align: "right" }
+    15,
+    yPosition + 10
   );
 
-  yPosition += 25;
-  
-  // Income breakdown note
-  doc.setFontSize(9);
+  // Small note in italics
+  yPosition += 18;
+  doc.setFontSize(7.5);
   doc.setFont("helvetica", "italic");
-  doc.setTextColor(100, 100, 100);
-  doc.text("Note: Income includes 90% of completed session fees and applicable cancellation earnings.", 20, yPosition);
+  doc.setTextColor(140, 140, 140);
+  doc.text("* Includes 90% of completed/no-show sessions and applicable cancellation fees", 15, yPosition);
 
-  // Session details section
-  yPosition += 10;
+  // Session details section - minimalist
+  yPosition += 12;
   
   // Check if we need a new page
   if (yPosition > pageHeight - 80) {
     doc.addPage();
-    yPosition = 20;
+    yPosition = 30;
   }
 
-  doc.setFillColor(...lightPurple);
-  doc.rect(15, yPosition, pageWidth - 30, 8, "F");
+  // Subtle separator
+  doc.setDrawColor(220, 220, 220);
+  doc.setLineWidth(0.3);
+  doc.line(15, yPosition, pageWidth - 15, yPosition);
+  yPosition += 8;
   
-  doc.setFontSize(13);
+  // Section header
+  doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(...primaryColor);
-  doc.text("Session Transaction History", 20, yPosition + 6);
+  doc.text("Transaction History", 15, yPosition);
   
-  yPosition += 15;
+  yPosition += 6;
 
-  // Session table
-  const sessionRows = data.sessions.map((session) => [
+  // Filter only processed sessions (exclude SCHEDULED/APPROVED)
+  const filteredSessions = data.sessions.filter(
+    s => s.status !== "SCHEDULED" && s.status !== "APPROVED"
+  );
+
+  // Session table - minimalist with better column sizing
+  const sessionRows = filteredSessions.map((session) => [
     session.patientName,
     new Date(session.scheduledAt).toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
-      year: "numeric",
     }),
     session.type || "N/A",
-    `${session.duration} min`,
     session.status,
     session.therapistAmount > 0
-      ? `LKR ${session.therapistAmount.toFixed(2)}`
-      : "Free",
+      ? `${session.therapistAmount.toFixed(2)}`
+      : "0.00",
   ]);
 
   autoTable(doc, {
     startY: yPosition,
-    head: [["Patient", "Date", "Type", "Duration", "Status", "Amount Earned"]],
+    head: [["Patient", "Date", "Type", "Status", "Earned (LKR)"]],
     body: sessionRows,
-    theme: "grid",
+    theme: "plain",
     headStyles: {
-      fillColor: primaryColor,
-      textColor: [255, 255, 255],
+      fillColor: [255, 255, 255],
+      textColor: primaryColor,
       fontStyle: "bold",
-      fontSize: 9,
+      fontSize: 8,
+      lineWidth: 0,
+      lineColor: [220, 220, 220],
+      cellPadding: { top: 3, bottom: 3, left: 0, right: 3 },
     },
     styles: {
-      fontSize: 8,
-      cellPadding: 2,
+      fontSize: 7.5,
+      cellPadding: { top: 2.5, bottom: 2.5, left: 0, right: 3 },
+      textColor: [60, 60, 60],
+      lineWidth: 0.1,
+      lineColor: [240, 240, 240],
     },
     alternateRowStyles: {
-      fillColor: [249, 250, 251],
+      fillColor: [252, 252, 252],
     },
     columnStyles: {
-      0: { cellWidth: 40 },
-      1: { cellWidth: 30 },
-      2: { cellWidth: 35 },
-      3: { cellWidth: 20, halign: "center" },
-      4: { cellWidth: 30, halign: "center" },
-      5: { cellWidth: 35, halign: "right", fontStyle: "bold" },
+      0: { cellWidth: "auto" },
+      1: { cellWidth: 22, halign: "left" },
+      2: { cellWidth: 30, halign: "left" },
+      3: { cellWidth: 25, halign: "center", fontSize: 7 },
+      4: { cellWidth: 28, halign: "right", fontStyle: "bold" },
     },
-    margin: { left: 20, right: 20 },
+    margin: { left: 15, right: 15 },
     didParseCell: function (data) {
+      // Add subtle border below header
+      if (data.row.section === "head") {
+        data.cell.styles.lineWidth = { bottom: 0.5 };
+        data.cell.styles.lineColor = primaryColor;
+      }
+      
       // Color code status cells
-      if (data.column.index === 4 && data.cell.section === "body") {
+      if (data.column.index === 3 && data.cell.section === "body") {
         const status = data.cell.text[0];
         if (status === "COMPLETED") {
-          data.cell.styles.textColor = [34, 139, 34]; // Green
+          data.cell.styles.textColor = accentGreen;
+          data.cell.styles.fontStyle = "bold";
         } else if (status === "CANCELLED") {
-          data.cell.styles.textColor = [220, 38, 38]; // Red
+          data.cell.styles.textColor = [239, 68, 68]; // red-500
+          data.cell.styles.fontStyle = "bold";
         } else if (status === "NO_SHOW") {
-          data.cell.styles.textColor = [252, 173, 88]; // Orange
+          data.cell.styles.textColor = [245, 158, 11]; // amber-500
+          data.cell.styles.fontStyle = "bold";
         }
       }
+      
       // Color code amount cells
-      if (data.column.index === 5 && data.cell.section === "body") {
-        if (data.cell.text[0] !== "Free") {
-          data.cell.styles.textColor = [34, 139, 34]; // Green
+      if (data.column.index === 4 && data.cell.section === "body") {
+        const amount = parseFloat(data.cell.text[0]);
+        if (amount > 0) {
+          data.cell.styles.textColor = accentGreen;
         } else {
-          data.cell.styles.textColor = [150, 150, 150]; // Gray
+          data.cell.styles.textColor = [150, 150, 150];
         }
       }
     },
   });
 
-  // Footer
+  // Minimalist footer
   const totalPages = doc.getNumberOfPages();
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
-    doc.setFontSize(8);
-    doc.setTextColor(150, 150, 150);
+    
+    // Thin line above footer
+    doc.setDrawColor(220, 220, 220);
+    doc.setLineWidth(0.3);
+    doc.line(15, pageHeight - 15, pageWidth - 15, pageHeight - 15);
+    
+    // Footer text
+    doc.setFontSize(7);
+    doc.setTextColor(160, 160, 160);
     doc.setFont("helvetica", "normal");
     doc.text(
       `Page ${i} of ${totalPages}`,
-      pageWidth / 2,
-      pageHeight - 10,
-      { align: "center" }
+      15,
+      pageHeight - 10
     );
     doc.text(
-      "© 2025 Sparks ADHD Management System. All rights reserved.",
-      pageWidth / 2,
-      pageHeight - 6,
-      { align: "center" }
+      "© 2025 Sparks ADHD Management System",
+      pageWidth - 15,
+      pageHeight - 10,
+      { align: "right" }
     );
   }
 
