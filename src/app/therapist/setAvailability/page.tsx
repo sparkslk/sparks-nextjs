@@ -65,6 +65,12 @@ function SetAvailabilityPageNew(): React.JSX.Element {
   } | null>(null);
   const [editingSlot, setEditingSlot] = useState<AvailabilitySlot | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<{
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  } | null>(null);
 
   useEffect(() => {
     if (authStatus === "unauthenticated") {
@@ -152,26 +158,29 @@ function SetAvailabilityPageNew(): React.JSX.Element {
   };*/
 
   const handleClearAll = async () => {
-    if (!confirm("Are you sure you want to clear all unbooked availability slots?")) {
-      return;
-    }
+    setConfirmAction({
+      title: "Clear All Unbooked Slots",
+      message: "Are you sure you want to clear all upcoming unbooked availability slots? This action cannot be undone.",
+      onConfirm: async () => {
+        try {
+          const response = await fetch("/api/therapist/availability", {
+            method: "DELETE",
+          });
 
-    try {
-      const response = await fetch("/api/therapist/availability", {
-        method: "DELETE",
-      });
-
-      if (response.ok) {
-        toast.success("All upcoming unbooked slots cleared successfully!");
-        fetchAvailability();
-      } else {
-        const errorData = await response.json();
-        toast.error(`Failed to clear slots: ${errorData.error}`);
-      }
-    } catch (error) {
-      console.error("Error clearing slots:", error);
-      toast.error("Failed to clear slots. Please try again.");
-    }
+          if (response.ok) {
+            toast.success("All upcoming unbooked slots cleared successfully!");
+            fetchAvailability();
+          } else {
+            const errorData = await response.json();
+            toast.error(`Failed to clear slots: ${errorData.error}`);
+          }
+        } catch (error) {
+          console.error("Error clearing slots:", error);
+          toast.error("Failed to clear slots. Please try again.");
+        }
+      },
+    });
+    setShowConfirmDialog(true);
   };
 
   const formatDate = (dateStr: string) => {
@@ -231,28 +240,31 @@ function SetAvailabilityPageNew(): React.JSX.Element {
   const handleDeleteFromDialog = async () => {
     if (!editingSlot) return;
 
-    if (!confirm("Are you sure you want to delete this slot?")) {
-      return;
-    }
+    setConfirmAction({
+      title: "Delete Availability Slot",
+      message: `Are you sure you want to delete the slot on ${formatDate(editingSlot.date)} at ${formatTime(editingSlot.startTime)}? This action cannot be undone.`,
+      onConfirm: async () => {
+        try {
+          const response = await fetch(`/api/therapist/availability/${editingSlot.id}`, {
+            method: "DELETE",
+          });
 
-    try {
-      const response = await fetch(`/api/therapist/availability/${editingSlot.id}`, {
-        method: "DELETE",
-      });
-
-      if (response.ok) {
-        toast.success("Slot deleted successfully!");
-        setShowEditDialog(false);
-        setEditingSlot(null);
-        fetchAvailability();
-      } else {
-        const errorData = await response.json();
-        toast.error(`Failed to delete slot: ${errorData.error}`);
-      }
-    } catch (error) {
-      console.error("Error deleting slot:", error);
-      toast.error("Failed to delete slot. Please try again.");
-    }
+          if (response.ok) {
+            toast.success("Slot deleted successfully!");
+            setShowEditDialog(false);
+            setEditingSlot(null);
+            fetchAvailability();
+          } else {
+            const errorData = await response.json();
+            toast.error(`Failed to delete slot: ${errorData.error}`);
+          }
+        } catch (error) {
+          console.error("Error deleting slot:", error);
+          toast.error("Failed to delete slot. Please try again.");
+        }
+      },
+    });
+    setShowConfirmDialog(true);
   };
 
   // Handle calendar slot selection (when user clicks/drags on calendar)
@@ -798,6 +810,42 @@ function SetAvailabilityPageNew(): React.JSX.Element {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmation Dialog */}
+      <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold text-gray-900">
+              {confirmAction?.title}
+            </DialogTitle>
+            <DialogDescription className="text-gray-600 pt-2">
+              {confirmAction?.message}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex justify-end gap-3 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowConfirmDialog(false);
+                setConfirmAction(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                confirmAction?.onConfirm();
+                setShowConfirmDialog(false);
+                setConfirmAction(null);
+              }}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Confirm
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

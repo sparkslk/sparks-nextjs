@@ -490,7 +490,7 @@ export function WeeklyCalendarView({
                 return (
                   <div
                     key={sessionSlot.id}
-                    className={`absolute left-2 right-2 rounded border transition-all z-10 ${
+                    className={`absolute left-2 right-2 rounded border transition-all z-[5] ${
                       sessionSlot.isBooked || isSlotPast
                         ? "bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200 cursor-not-allowed"
                         : !sessionSlot.isActive
@@ -521,7 +521,7 @@ export function WeeklyCalendarView({
 
                     {/* Session Tooltip */}
                     {hoveredSlot === sessionSlot.id && (
-                      <div className="absolute top-full left-0 mt-1 bg-white border rounded-lg shadow-lg p-3 min-w-48 z-50">
+                      <div className="absolute top-full left-0 mt-1 bg-white border rounded-lg shadow-lg p-3 min-w-48 z-[100]">
                         <div className="text-gray-900">
                           <div className="font-medium text-sm mb-2">45-Minute Session</div>
                           <div className="space-y-1 text-xs">
