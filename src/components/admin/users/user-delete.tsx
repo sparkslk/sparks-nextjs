@@ -89,15 +89,15 @@ const UserDelete: React.FC<UserDeleteProps> = ({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
-              <AlertTriangle className="h-5 w-5 text-red-600" />
+            <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center">
+              <AlertTriangle className="h-5 w-5 text-orange-600" />
             </div>
             <div>
               <DialogTitle className="text-lg font-semibold text-gray-900">
-                Delete User
+                Deactivate User
               </DialogTitle>
               <DialogDescription className="text-sm text-gray-600">
-                This action cannot be undone.
+                This will deactivate the user account.
               </DialogDescription>
             </div>
           </div>
@@ -126,22 +126,22 @@ const UserDelete: React.FC<UserDeleteProps> = ({
           </div>
 
           <p className="text-sm text-gray-600 mb-4">
-            Are you sure you want to delete <strong>{user.name}</strong>? This will permanently remove:
+            Are you sure you want to deactivate <strong>{user.name}</strong>? This will:
           </p>
 
           <ul className="text-sm text-gray-600 space-y-1 mb-4 ml-4">
-            <li>• User account and profile information</li>
-            <li>• All associated data and records</li>
-            {user.role === "Patient" && <li>• Medical history and appointments</li>}
-            {user.role === "Therapist" && <li>• Client sessions and notes</li>}
-            {user.role === "Guardian" && <li>• Patient relationships and access</li>}
-            <li>• Access to the system</li>
+            <li>• Disable user account login</li>
+            <li>• Restrict access to the system</li>
+            {user.role === "Patient" && <li>• Suspend medical appointments</li>}
+            {user.role === "Therapist" && <li>• Pause client sessions</li>}
+            {user.role === "Guardian" && <li>• Suspend patient relationships</li>}
+            <li>• Account can be reactivated later</li>
           </ul>
 
           {error && (
-            <Alert className="mb-4 border-red-200 bg-red-50">
-              <AlertTriangle className="h-4 w-4 text-red-600" />
-              <AlertDescription className="text-red-700">
+            <Alert className="mb-4 border-orange-200 bg-orange-50">
+              <AlertTriangle className="h-4 w-4 text-orange-600" />
+              <AlertDescription className="text-orange-700">
                 {error}
               </AlertDescription>
             </Alert>
@@ -160,15 +160,15 @@ const UserDelete: React.FC<UserDeleteProps> = ({
           <Button
             onClick={handleDelete}
             disabled={isDeleting}
-            className="bg-red-600 hover:bg-red-700 text-white"
+            className="bg-orange-600 hover:bg-orange-700 text-white"
           >
             {isDeleting ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Deleting...
+                Deactivating...
               </>
             ) : (
-              "Delete User"
+              "Deactivate User"
             )}
           </Button>
         </DialogFooter>
