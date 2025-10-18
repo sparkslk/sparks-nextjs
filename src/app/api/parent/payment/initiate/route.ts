@@ -171,7 +171,7 @@ export async function POST(request: NextRequest) {
         const therapistName = child.primaryTherapist.user.name || "Therapist";
 
         // Get therapist's Google OAuth tokens
-        const therapistAccount = await prisma.account.findFirst({
+        let therapistAccount = await prisma.account.findFirst({
           where: {
             userId: therapistUserId,
             provider: "google",
@@ -181,6 +181,23 @@ export async function POST(request: NextRequest) {
             refresh_token: true,
           },
         });
+
+        // DEMO FALLBACK: If therapist doesn't have Google OAuth, use parent's account
+        let oauthUserId = therapistUserId;
+        if (!therapistAccount?.access_token || !therapistAccount?.refresh_token) {
+          console.log(`⚠️ Therapist doesn't have Google OAuth, using parent's account for demo`);
+          therapistAccount = await prisma.account.findFirst({
+            where: {
+              userId: session.user.id, // Use parent's account
+              provider: "google",
+            },
+            select: {
+              access_token: true,
+              refresh_token: true,
+            },
+          });
+          oauthUserId = session.user.id;
+        }
 
         if (therapistAccount?.access_token && therapistAccount?.refresh_token) {
           // Get parent user details
@@ -214,7 +231,7 @@ export async function POST(request: NextRequest) {
             },
             therapistAccount.access_token,
             therapistAccount.refresh_token,
-            therapistUserId
+            oauthUserId
           );
 
           meetingLink = meetingResponse.meetingLink;
