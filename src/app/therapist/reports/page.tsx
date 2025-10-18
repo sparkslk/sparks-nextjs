@@ -14,7 +14,6 @@ import {
   DollarSign,
   Users,
   Clock,
-  CheckCircle,
   XCircle,
   FileBarChart,
   Filter,

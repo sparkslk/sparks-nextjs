@@ -36,7 +36,6 @@ interface PDFData {
 export function generateTherapistReportPDF(data: PDFData) {
   const doc = new jsPDF();
   const primaryColor: [number, number, number] = [129, 89, 168]; // #8159A8
-  const lightPurple: [number, number, number] = [245, 243, 255]; // Very light purple for subtle backgrounds
   const accentGreen: [number, number, number] = [16, 185, 129]; // #10b981 - emerald-500
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -111,6 +110,7 @@ export function generateTherapistReportPDF(data: PDFData) {
   });
 
   // Income summary section - minimalist and prominent
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   yPosition = (doc as any).lastAutoTable.finalY + 12;
   
   // Check if we need a new page
