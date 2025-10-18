@@ -260,6 +260,7 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                 <PatientIdCard
                     patientId={userData.id}
+                    userId={session?.user?.id || ''}
                     firstName={userData.firstName}
                     lastName={userData.lastName}
                 />
