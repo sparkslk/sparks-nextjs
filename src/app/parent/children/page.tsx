@@ -10,7 +10,7 @@ import {
   TrendingUp
 } from "lucide-react";
 import SessionDetailsModal from "@/components/parent/SessionDetailsModal";
-import { AddChildForm } from "@/components/parent/AddChildForm";
+// import { AddChildForm } from "@/components/parent/AddChildForm";
 import { ConnectChildForm } from "@/components/parent/ConnectChildForm";
 import {
   Dialog,
@@ -52,7 +52,7 @@ export default function MyChildrenPage() {
   const [animatedProgress, setAnimatedProgress] = useState<{ [key: string]: number }>({});
   const [sessionModalOpen, setSessionModalOpen] = useState(false);
   const [selectedChild, setSelectedChild] = useState<Child | null>(null);
-  const [showAddChild, setShowAddChild] = useState(false);
+  // const [showAddChild, setShowAddChild] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [removingChildId, setRemovingChildId] = useState<string | null>(null);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
@@ -284,14 +284,14 @@ export default function MyChildrenPage() {
               </DialogContent>
             </Dialog>
 
-            <Button
+            {/* <Button
               className="bg-primary text-primary-foreground font-semibold px-6 py-2 rounded-lg border border-primary shadow-sm hover:opacity-90 transition"
               onClick={() => setShowAddChild(true)}
             >
               + Add Child
-            </Button>
+            </Button> */}
           </div>
-          <Dialog open={showAddChild} onOpenChange={setShowAddChild}>
+          {/* <Dialog open={showAddChild} onOpenChange={setShowAddChild}>
             <DialogTrigger asChild></DialogTrigger>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
@@ -306,7 +306,7 @@ export default function MyChildrenPage() {
                 setTimeout(() => setShowSuccess(true), 300); // Show popup after dialog closes
               }} />
             </DialogContent>
-          </Dialog>
+          </Dialog> */}
         </div>
 
         {/* Connected Patients */}
