@@ -95,7 +95,7 @@ export function SessionDetailsModal({ session, isOpen, onClose }: SessionDetails
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm font-medium">Session Type</p>
-                  <p className="text-sm text-gray-600 capitalize">{session.type}</p>
+                  <p className="text-sm text-gray-600">{session.type === "With Parent" ? "Family Session" : session.type}</p>
                 </div>
               </div>
             </CardContent>
@@ -139,8 +139,8 @@ export function SessionDetailsModal({ session, isOpen, onClose }: SessionDetails
                       <p className="text-sm font-medium mb-2">Patient Mood</p>
                       <div className="flex items-center gap-2">
                         <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="bg-blue-600 h-2 rounded-full" 
+                          <div
+                            className="bg-blue-600 h-2 rounded-full"
                             style={{ width: `${(session.patientMood / 10) * 100}%` }}
                           ></div>
                         </div>
@@ -153,8 +153,8 @@ export function SessionDetailsModal({ session, isOpen, onClose }: SessionDetails
                       <p className="text-sm font-medium mb-2">Engagement Level</p>
                       <div className="flex items-center gap-2">
                         <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="bg-green-600 h-2 rounded-full" 
+                          <div
+                            className="bg-green-600 h-2 rounded-full"
                             style={{ width: `${(session.engagement / 10) * 100}%` }}
                           ></div>
                         </div>
