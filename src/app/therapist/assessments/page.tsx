@@ -16,6 +16,7 @@ interface Assessment {
   description: string;
   type: string;
   image?: string;
+  link?: string; // Add the link property
   createdAt: string;
   updatedAt: string;
   assignedPatients: {
@@ -523,7 +524,7 @@ export default function AssessmentsPage() {
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
-                          router.push(`/therapist/assessments/${assessment.id}`);
+                          window.open(assessment.link, "_blank"); // Use the link field
                         }}
                         className="bg-[#FAF8FB] hover:bg-[#FAF8FB] text-[#8159A8]"
                       >
