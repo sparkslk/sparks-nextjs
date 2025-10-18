@@ -11,6 +11,7 @@ import { Calendar, Clock, User, FileText, Edit, Eye, CheckCircle, Plus, Hourglas
 import { SessionUpdateModal } from "@/components/therapist/SessionUpdateModal";
 import { RescheduleModal } from "@/components/therapist/RescheduleModal";
 import MedicationManagement from "@/components/therapist/MedicationManagement";
+import AssessmentManagement from "@/components/therapist/AssessmentManagement";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Medication } from "@/types/medications";
 
@@ -37,6 +38,7 @@ interface Session {
   primaryFocusAreas?: string[];
   sessionNotes?: string;
   nextSessionGoals?: string;
+  meetingLink?: string; // Add the meetingLink property
 }
 
 export default function TherapistSessionsPage() {
@@ -61,6 +63,10 @@ export default function TherapistSessionsPage() {
   const [medicationPatientId, setMedicationPatientId] = useState<string | null>(null);
   const [isLoadingMedications, setIsLoadingMedications] = useState(false);
 
+  // Add assessment management state
+  const [assessmentPatientId, setAssessmentPatientId] = useState<string | null>(null);
+  const [isLoadingAssessments] = useState(false);
+
   // Add state for reschedule section collapse
   const [isRescheduleSectionsOpen, setIsRescheduleSectionsOpen] = useState(false);
   // Add state for scheduled section collapse
@@ -68,23 +74,6 @@ export default function TherapistSessionsPage() {
   // Add state for no availability popup
   const [showNoAvailabilityPopup, setShowNoAvailabilityPopup] = useState(false);
   const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
-
-  const hardcodedTasks = [
-    {
-      id: "1",
-      title: "Auditory Processing - Listening Task",
-      assignedDate: "2024-07-10",
-      completedDate: "2024-07-22",
-      status: "Completed",
-      score: 78,
-    },
-    {
-      id: "2",
-      title: "Visual Perception - Picture Description",
-      assignedDate: "2024-07-08",
-      status: "Pending",
-    }
-  ];
 
   // Helper function to safely parse and format dates (similar to parent tasks page)
   const formatDate = (dateString: string) => {
@@ -184,6 +173,12 @@ export default function TherapistSessionsPage() {
     setMedications([]); // Clear previous medications immediately
     setShowMedications(true);
     fetchMedications(patientId); // Then fetch new ones
+  }, []);
+
+  // Add handler for opening assessments modal with patient context
+  const handleOpenAssessmentsModal = useCallback((patientId: string) => {
+    setAssessmentPatientId(patientId);
+    setShowTasks(true);
   }, []);
 
   const getStatusColor = (status: string) => {
@@ -414,8 +409,11 @@ export default function TherapistSessionsPage() {
   
 
   const handleJoinSession = (session: Session) => {
-    // For now, just show an alert - will implement video call functionality later
-    alert(`Joining session with ${session.patientName}...`);
+    if (session.meetingLink) {
+      window.open(session.meetingLink, "_blank"); // Redirect to the meeting link
+    } else {
+      alert("Meeting link is not available for this session.");
+    }
   };
 
   
@@ -493,7 +491,7 @@ export default function TherapistSessionsPage() {
         
         <CardContent className="pt-0">
           <div className="flex flex-wrap items-center justify-between gap-6">
-            <div className="flex flex-wrap gap-6 md:gap-8 lg:gap-48">
+            <div className="flex flex-wrap gap-6 md:gap-8 lg:gap-42">
               <div className="flex items-center gap-2">
                 <Calendar className="w-6 h-6 text-primary" />
                 <div>
@@ -625,16 +623,23 @@ export default function TherapistSessionsPage() {
         handleOpenMedicationsModal(patientId);
       }
     };
-    const openTasksModal = () => setShowTasks(true);
+    const openTasksModal = (event: CustomEvent) => {
+      const patientId = event.detail?.patientId || assessmentPatientId;
+      if (patientId) {
+        handleOpenAssessmentsModal(patientId);
+      } else {
+        setShowTasks(true);
+      }
+    };
 
     window.addEventListener("openMedicationsModal", openMedicationsModal as EventListener);
-    window.addEventListener("openTasksModal", openTasksModal);
+    window.addEventListener("openTasksModal", openTasksModal as EventListener);
 
     return () => {
       window.removeEventListener("openMedicationsModal", openMedicationsModal as EventListener);
-      window.removeEventListener("openTasksModal", openTasksModal);
+      window.removeEventListener("openTasksModal", openTasksModal as EventListener);
     };
-  }, [medicationPatientId, handleOpenMedicationsModal]);
+  }, [medicationPatientId, handleOpenMedicationsModal, assessmentPatientId, handleOpenAssessmentsModal]);
 
   if (loading) {
     return (
@@ -1206,85 +1211,26 @@ export default function TherapistSessionsPage() {
         </Dialog>
 
         <Dialog open={showTasks} onOpenChange={setShowTasks}>
-          <DialogContent className="max-w-3xl">
-            <div className="flex items-center justify-between mb-4">
-              <Button
-                style={{ backgroundColor: "#8159A8", color: "#fff" }}
-                className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 shadow hover:brightness-110"
-                // onClick={() => setShowAssignTask(true)}
-              >
-                <Plus className="w-5 h-5" />
-                Assign a new Task
-              </Button>
-              <div className="flex gap-2">
-                <Badge variant="outline" className="text-sm">
-                  {hardcodedTasks.filter(t => t.status === "Pending").length} Pending
-                </Badge>
-                <Badge variant="outline" className="text-sm bg-green-50 text-green-700">
-                  {hardcodedTasks.filter(t => t.status === "Completed").length} Completed
-                </Badge>
-              </div>
-            </div>
-            <div className="space-y-6">
-              {hardcodedTasks.length === 0 ? (
-                <Card>
-                  <CardContent className="p-8 text-center">
-                    <p className="text-muted-foreground">No tasks assigned.</p>
-                  </CardContent>
-                </Card>
-              ) : 
-                hardcodedTasks.map((task, idx) => (
-                  <div
-                    key={task.id}
-                    className="flex flex-col md:flex-row items-start md:items-center justify-between bg-[#fcfafd] rounded-xl shadow-sm px-6 py-4"
-                    style={{ borderBottom: idx !== hardcodedTasks.length - 1 ? "1px solid #f0eef5" : undefined }}
-                  >
-                    <div>
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <span className="text-base md:text-xl font-semibold text-[#8159A8]">{task.title}</span>
-                        {task.status === "Completed" && (
-                          <span className="bg-green-100 text-green-700 text-xs font-semibold px-2 py-0.5 rounded-full">
-                            Completed
-                          </span>
-                        )}
-                        {task.status === "Pending" && (
-                          <span className="bg-yellow-100 text-yellow-700 text-xs font-semibold px-2 py-0.5 rounded-full">
-                            Pending
-                          </span>
-                        )}
-                        {"score" in task && (
-                          <span className="bg-blue-100 text-blue-700 text-xs font-semibold px-2 py-0.5 rounded-full">
-                            Score: {task.score}
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-xs text-[#8159A8] font-medium">
-                        Assigned: {task.assignedDate}
-                        {task.completedDate && (
-                          <span className="ml-3">
-                            Completed: {task.completedDate}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex gap-2 mt-3 md:mt-0">
-                      <Button
-                        variant="outline"
-                        className="border-red-400 text-red-700 hover:bg-red-50 px-3 py-1 text-xs font-semibold"
-                        style={{ borderColor: "#EF4444" }}
-                      >
-                        Unassign
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="border-primary text-primary hover:bg-primary/10 px-3 py-1 text-xs font-semibold"
-                      >
-                        View Assessment
-                      </Button>
-                    </div>
-                  </div>
-                ))
-              }
+          <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden">
+            <div className="overflow-y-auto max-h-[calc(90vh-8rem)] pr-2">
+              {isLoadingAssessments ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#8159A8]"></div>
+                  <span className="ml-2">Loading assessments...</span>
+                </div>
+              ) : assessmentPatientId ? (
+                <AssessmentManagement 
+                  patientId={assessmentPatientId}
+                  onAssessmentUpdate={() => {
+                    // Optional callback for any updates needed in parent component
+                    console.log('Assessment updated');
+                  }}
+                />
+              ) : (
+                <div className="p-8 text-center">
+                  <p className="text-gray-500">Please select a patient to manage assessments.</p>
+                </div>
+              )}
             </div>
           </DialogContent>
         </Dialog>

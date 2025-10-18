@@ -106,8 +106,6 @@ export async function GET(req: NextRequest) {
                 patientImage = patientUser?.image || null;
             }
 
-            console.log("Connection Status" , relation.patient.parentConnectionStatus);
-
             return {
                 id: relation.patient.id,
                 firstName: relation.patient.firstName,

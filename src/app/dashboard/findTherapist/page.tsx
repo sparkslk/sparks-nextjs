@@ -49,23 +49,24 @@ export default function FindTherapistPage() {
     const [showFilters, setShowFilters] = useState(false);
     const [bookingStatus, setBookingStatus] = useState<{ [key: string]: 'idle' | 'booking' | 'success' | 'error' }>({});
     const [currentTherapist, setCurrentTherapist] = useState<Therapist | null>(null);
+    const [pendingRequests, setPendingRequests] = useState<Set<string>>(new Set());
 
-    // Fetch current therapist from patient data
+    // Fetch current therapist and pending requests
     useEffect(() => {
         const fetchCurrentTherapist = async () => {
             try {
-                const response = await fetch("/api/dashboard");
+                const response = await fetch("/api/profile");
                 if (response.ok) {
                     const data = await response.json();
 
-                    if (data.therapist) {
+                    if (data.profile?.therapist) {
                         // Convert therapist data to Therapist interface format
                         const therapistData: Therapist = {
-                            id: `current-therapist`,
-                            name: data.therapist.name,
-                            title: "Licensed Therapist", // Default title
-                            specialties: data.therapist.specialization || ["General Psychology"], // Use specialization from API
-                            rating: 4.8, // Default rating
+                            id: data.profile.therapist.id,
+                            name: data.profile.therapist.name,
+                            title: "Licensed Therapist",
+                            specialties: data.profile.therapist.specialization || ["General Psychology"],
+                            rating: 4.8,
                             reviewCount: 0,
                             experience: "Licensed Professional",
                             sessionTypes: { inPerson: false, online: true },
@@ -88,7 +89,23 @@ export default function FindTherapistPage() {
             }
         };
 
+        const fetchPendingRequests = async () => {
+            try {
+                const response = await fetch("/api/patient/therapist-requests");
+                if (response.ok) {
+                    const data = await response.json();
+                    const pendingIds: string[] = data.requests
+                        .filter((req: { status: string }) => req.status === 'PENDING')
+                        .map((req: { therapistId: string }) => req.therapistId);
+                    setPendingRequests(new Set(pendingIds));
+                }
+            } catch (error) {
+                console.error("Error fetching pending requests:", error);
+            }
+        };
+
         fetchCurrentTherapist();
+        fetchPendingRequests();
     }, []);
 
     // Mock data as fallback
@@ -299,14 +316,36 @@ export default function FindTherapistPage() {
     const handleBookSession = async (therapistId: string) => {
         setBookingStatus(prev => ({ ...prev, [therapistId]: 'booking' }));
 
-        // Simulate API call
         try {
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            setBookingStatus(prev => ({ ...prev, [therapistId]: 'success' }));
-            setTimeout(() => {
-                setBookingStatus(prev => ({ ...prev, [therapistId]: 'idle' }));
-            }, 3000);
-        } catch {
+            const response = await fetch('/api/patient/request-therapist', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    therapistId: therapistId,
+                    message: "I would like to connect with you for therapy sessions."
+                }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                setBookingStatus(prev => ({ ...prev, [therapistId]: 'success' }));
+                setPendingRequests(prev => new Set(prev).add(therapistId));
+                setTimeout(() => {
+                    setBookingStatus(prev => ({ ...prev, [therapistId]: 'idle' }));
+                }, 3000);
+            } else {
+                alert(data.error || 'Failed to send connection request');
+                setBookingStatus(prev => ({ ...prev, [therapistId]: 'error' }));
+                setTimeout(() => {
+                    setBookingStatus(prev => ({ ...prev, [therapistId]: 'idle' }));
+                }, 3000);
+            }
+        } catch (error) {
+            console.error('Error sending connection request:', error);
+            alert('An error occurred while sending the connection request');
             setBookingStatus(prev => ({ ...prev, [therapistId]: 'error' }));
             setTimeout(() => {
                 setBookingStatus(prev => ({ ...prev, [therapistId]: 'idle' }));
@@ -481,15 +520,22 @@ export default function FindTherapistPage() {
 
                 {/* Therapists Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {filteredTherapists.map((therapist) => (
-                        <TherapistCard
-                            key={therapist.id}
-                            therapist={therapist}
-                            bookingStatus={bookingStatus[therapist.id] || 'idle'}
-                            onViewProfile={() => handleBookSession(therapist.id)}
-                            viewDetailsText="Book Session"
-                        />
-                    ))}
+                    {filteredTherapists.map((therapist) => {
+                        const isPending = pendingRequests.has(therapist.id);
+                        const isCurrent = therapist.isCurrentTherapist;
+                        const buttonText = isCurrent ? "Current Therapist" : isPending ? "Request Pending" : "Send Connection Request";
+                        const isDisabled = isCurrent || isPending;
+
+                        return (
+                            <TherapistCard
+                                key={therapist.id}
+                                therapist={therapist}
+                                bookingStatus={bookingStatus[therapist.id] || 'idle'}
+                                onViewProfile={() => !isDisabled && handleBookSession(therapist.id)}
+                                viewDetailsText={buttonText}
+                            />
+                        );
+                    })}
                 </div>
 
                 {filteredTherapists.length === 0 && (
