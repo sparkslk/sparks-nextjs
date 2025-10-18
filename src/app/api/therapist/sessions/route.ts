@@ -163,6 +163,7 @@ export async function GET(request: NextRequest) {
             duration: session.duration,
             type: session.type,
             status: session.status,
+            meetingLink: session.meetingLink, // Include the meeting link
             // Include all clinical documentation fields
             attendanceStatus: session.attendanceStatus,
             overallProgress: session.overallProgress,

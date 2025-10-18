@@ -1,4 +1,3 @@
-
 "use client";
 import React from "react";
 
@@ -15,8 +14,7 @@ interface Assessment {
   id: string;
   title: string;
   description: string;
-    type: "QUESTIONNAIRE" | "LISTENING_TASK" | "PICTURE_DESCRIPTION" | "FIND_DIFFERENCES" | "COGNITIVE_ASSESSMENT" | "BEHAVIORAL_ASSESSMENT";
-
+  type: "QUESTIONNAIRE" | "LISTENING_TASK" | "PICTURE_DESCRIPTION" | "FIND_DIFFERENCES" | "COGNITIVE_ASSESSMENT" | "BEHAVIORAL_ASSESSMENT";
   assessmentDate: string;
   createdAt: string;
   updatedAt: string;
@@ -39,21 +37,23 @@ interface Assessment {
   completionRate: number;
 }
 
-
-
 export default function AssessmentDetailsPage() {
   const { status: authStatus } = useSession();
   const router = useRouter();
   const params = useParams();
-  const assessmentId = params.id as string;
+  const assessmentId = params?.id as string;
 
   const [assessment, setAssessment] = useState<Assessment | null>(null);
-  // const [availablePatients, setAvailablePatients] = useState(possiblePatients);
-  // const [showAddPatientList, setShowAddPatientList] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchAssessment = React.useCallback(async () => {
+    if (!assessmentId) {
+      setError("Assessment ID not found");
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -94,38 +94,13 @@ export default function AssessmentDetailsPage() {
         completionRate: 50, // 1 out of 2 completed
       };
       setAssessment(mockAssessment);
-      // setAvailablePatients(possiblePatients.filter(p => !assignedIds.has(p.id)));
-  // Add patient to assignedPatients
-  // const handleAddPatient = (patient: { id: string; name: string; email: string }) => {
-  //   if (!assessment) return;
-  //   const updated = {
-  //     ...assessment,
-  //     assignedPatients: [...assessment.assignedPatients, patient],
-  //   };
-  //   setAssessment(updated);
-  //   setAvailablePatients(prev => prev.filter(p => p.id !== patient.id));
-  //   setShowAddPatientList(false);
-  // };
-
-  // Remove patient from assignedPatients
-  // const handleUnassignPatient = (patient: { id: string; name: string; email: string }) => {
-  //   if (!assessment) return;
-  //   const updated = {
-  //     ...assessment,
-  //     assignedPatients: assessment.assignedPatients.filter(p => p.id !== patient.id),
-  //   };
-  //   setAssessment(updated);
-  //   // Add back to availablePatients if in possiblePatients
-  //   const found = possiblePatients.find(p => p.id === patient.id);
-  //   if (found) setAvailablePatients(prev => [...prev, found]);
-  // };
     } catch (err) {
       console.error("Error fetching assessment:", err);
       setError("Failed to load assessment. Please try again later.");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [assessmentId]);
 
   useEffect(() => {
     if (authStatus === "unauthenticated") {
@@ -152,8 +127,6 @@ export default function AssessmentDetailsPage() {
         return "bg-gray-100 text-gray-800";
     }
   };
-
-  
 
   if (authStatus === "loading" || loading) {
     return <LoadingSpinner message="Loading assessment..." />;
@@ -209,31 +182,6 @@ export default function AssessmentDetailsPage() {
     );
   }
 
-  // Add patient to assignedPatients
-  // const handleAddPatient = (patient: { id: string; name: string; email: string }) => {
-  //   if (!assessment) return;
-  //   const updated = {
-  //     ...assessment,
-  //     assignedPatients: [...assessment.assignedPatients, patient],
-  //   };
-  //   setAssessment(updated);
-  //   setAvailablePatients(prev => prev.filter(p => p.id !== patient.id));
-  //   setShowAddPatientList(false);
-  // };
-
-  // Remove patient from assignedPatients
-  // const handleUnassignPatient = (patient: { id: string; name: string; email: string }) => {
-  //   if (!assessment) return;
-  //   const updated = {
-  //     ...assessment,
-  //     assignedPatients: assessment.assignedPatients.filter(p => p.id !== patient.id),
-  //   };
-  //   setAssessment(updated);
-  //   // Add back to availablePatients if in possiblePatients
-  //   const found = possiblePatients.find(p => p.id === patient.id);
-  //   if (found) setAvailablePatients(prev => [...prev, found]);
-  // };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#F5F3FB] via-white to-[#F5F3FB] p-6">
       <div className="max-w-6xl mx-auto space-y-8">
@@ -260,7 +208,6 @@ export default function AssessmentDetailsPage() {
               <p className="text-gray-600">{assessment.description}</p>
             </div>
           </div>
-          
         </div>
 
         {/* Stats Cards */}
@@ -399,7 +346,6 @@ export default function AssessmentDetailsPage() {
                     >
                       {patient.completedAt ? "Completed" : "Pending"}
                     </Badge>
-                    
                   </div>
                 </div>
               ))}

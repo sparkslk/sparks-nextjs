@@ -18,6 +18,7 @@ export async function GET() {
         type: true,
         title: true,
         description: true,
+        link: true, // Include the link field
         createdAt: true,
         updatedAt: true,
       },

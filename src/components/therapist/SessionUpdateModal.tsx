@@ -740,9 +740,11 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
                   type="button"
                   disabled={isClinicalFieldsDisabled}
                   onClick={() => {
-                    // Open the tasks modal from parent
-                    if (typeof window !== "undefined") {
-                      const event = new CustomEvent("openTasksModal");
+                    // Open the tasks modal from parent with patient context
+                    if (typeof window !== "undefined" && currentSession.patientId) {
+                      const event = new CustomEvent("openTasksModal", {
+                        detail: { patientId: currentSession.patientId }
+                      });
                       window.dispatchEvent(event);
                     }
                   }}
