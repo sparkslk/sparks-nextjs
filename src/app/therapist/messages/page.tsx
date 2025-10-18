@@ -303,6 +303,19 @@ export default function TherapistMessagesPage() {
     return message.senderId === session?.user?.id;
   };
 
+  const isSameDay = (date1: Date | string, date2: Date | string) => {
+    const d1 = new Date(date1);
+    const d2 = new Date(date2);
+    return d1.getFullYear() === d2.getFullYear() &&
+           d1.getMonth() === d2.getMonth() &&
+           d1.getDate() === d2.getDate();
+  };
+
+  const shouldShowDateSeparator = (currentMessage: Message, previousMessage: Message | null) => {
+    if (!previousMessage) return false;
+    return !isSameDay(currentMessage.createdAt, previousMessage.createdAt);
+  };
+
   if (loading && conversations.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#F5F3FB] via-white to-[#F5F3FB]">
@@ -591,66 +604,75 @@ export default function TherapistMessagesPage() {
                 
                 {/* Messages Area */}
                 <div className="flex-1 p-4 overflow-y-auto bg-gradient-to-b from-[#F5F3FB]/30 to-white max-h-[calc(100vh-450px)]">
-                  {/* Date Header */}
-                  <div className="text-center mb-6">
-                    <span className="text-sm text-gray-500 bg-white px-3 py-1 rounded-full shadow-sm">
-                      {messages.length > 0 ? formatDate(messages[0].createdAt) : 'Today'}
-                    </span>
-                  </div>
-                  
                   <div className="space-y-4">
-                    {messages.map((message) => (
-                      <div
-                        key={message.id}
-                        className={cn(
-                          "flex items-end space-x-2",
-                          isMyMessage(message) && "flex-row-reverse space-x-reverse"
-                        )}
-                      >
-                        {/* Avatar */}
-                        <Avatar className="h-8 w-8 mb-1">
-                          <AvatarFallback className={cn(
-                            "text-white text-sm font-medium",
-                            isMyMessage(message) ? 'bg-[#8159A8]' : 'bg-blue-500'
-                          )}>
-                            {isMyMessage(message) ? 'DR' : 
-                             selectedConversation.participantType === 'PARENT' ? 'P' : 'PT'}
-                          </AvatarFallback>
-                        </Avatar>
-                        
-                        {/* Message Bubble */}
-                        <div className={cn(
-                          "flex-1 max-w-xs",
-                          isMyMessage(message) && "flex justify-end"
-                        )}>
+                    {messages.map((message, index) => {
+                      const previousMessage = index > 0 ? messages[index - 1] : null;
+                      const showDateSeparator = index === 0 || shouldShowDateSeparator(message, previousMessage);
+                      
+                      return (
+                        <div key={message.id}>
+                          {/* Date Separator */}
+                          {showDateSeparator && (
+                            <div className="text-center my-6">
+                              <span className="text-sm text-gray-500 bg-white px-3 py-1 rounded-full shadow-sm">
+                                {formatDate(message.createdAt)}
+                              </span>
+                            </div>
+                          )}
+                          
+                          {/* Message */}
                           <div
                             className={cn(
-                              "px-4 py-3 rounded-2xl relative",
-                              isMyMessage(message)
-                                ? 'bg-[#F5F3FB] text-gray-900 rounded-br-md'
-                                : 'bg-white text-gray-900 rounded-bl-md border border-gray-100 shadow-sm'
+                              "flex items-end space-x-2",
+                              isMyMessage(message) && "flex-row-reverse space-x-reverse"
                             )}
                           >
-                            <p className="text-sm leading-relaxed">{message.content}</p>
+                            {/* Avatar */}
+                            <Avatar className="h-8 w-8 mb-1">
+                              <AvatarFallback className={cn(
+                                "text-white text-sm font-medium",
+                                isMyMessage(message) ? 'bg-[#8159A8]' : 'bg-blue-500'
+                              )}>
+                                {isMyMessage(message) ? 'DR' : 
+                                 selectedConversation.participantType === 'PARENT' ? 'P' : 'PT'}
+                              </AvatarFallback>
+                            </Avatar>
+                            
+                            {/* Message Bubble */}
                             <div className={cn(
-                              "flex items-center justify-between mt-2 gap-2",
-                              isMyMessage(message) ? 'text-gray-500' : 'text-gray-400'
+                              "flex-1 max-w-xs",
+                              isMyMessage(message) && "flex justify-end"
                             )}>
-                              <span className="text-xs">{formatTime(message.createdAt)}</span>
-                              {isMyMessage(message) && (
-                                <div className="flex items-center">
-                                  {message.isRead ? (
-                                    <CheckCheck className="h-3 w-3" />
-                                  ) : (
-                                    <Check className="h-3 w-3" />
+                              <div
+                                className={cn(
+                                  "px-4 py-3 rounded-2xl relative",
+                                  isMyMessage(message)
+                                    ? 'bg-[#F5F3FB] text-gray-900 rounded-br-md'
+                                    : 'bg-white text-gray-900 rounded-bl-md border border-gray-100 shadow-sm'
+                                )}
+                              >
+                                <p className="text-sm leading-relaxed">{message.content}</p>
+                                <div className={cn(
+                                  "flex items-center justify-between mt-2 gap-2",
+                                  isMyMessage(message) ? 'text-gray-500' : 'text-gray-400'
+                                )}>
+                                  <span className="text-xs">{formatTime(message.createdAt)}</span>
+                                  {isMyMessage(message) && (
+                                    <div className="flex items-center">
+                                      {message.isRead ? (
+                                        <CheckCheck className="h-3 w-3" />
+                                      ) : (
+                                        <Check className="h-3 w-3" />
+                                      )}
+                                    </div>
                                   )}
                                 </div>
-                              )}
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                     <div ref={messagesEndRef} />
                   </div>
                 </div>
