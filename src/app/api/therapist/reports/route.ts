@@ -227,12 +227,12 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Prepare session status data for chart
+    // Prepare session status data for chart with pastel colors matching stats cards
     const sessionStatusData = [
-      { status: "Completed", count: completedSessions, color: "#10b981" },
-      { status: "Scheduled", count: scheduledSessions, color: "#3b82f6" },
-      { status: "Cancelled", count: cancelledSessions, color: "#ef4444" },
-      { status: "No Show", count: noShowSessions, color: "#f59e0b" },
+      { status: "Completed", count: completedSessions, color: "#66fb9dff" }, // green-300 - lighter green
+      { status: "Scheduled", count: scheduledSessions, color: "#8159A8" }, // blue-300 - lighter blue
+      { status: "Cancelled", count: cancelledSessions, color: "#d84040ff" }, // red-300 - lighter red
+      { status: "No Show", count: noShowSessions, color: "#fcad58ff" }, // orange-300 - lighter orange
     ];
 
     // Prepare paid vs free data for chart
