@@ -348,85 +348,55 @@ export default function TherapistReportsPage() {
         {/* Summary Statistics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* Total Sessions */}
-          <Card className="shadow-sm hover:shadow-md transition-all duration-300 border-0 bg-gradient-to-r from-blue-50/95 to-blue-100/50 backdrop-blur">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-600">Total Sessions</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">{summary.totalSessions}</p>
-                  <div className="flex gap-2 mt-2">
-                    <Badge variant="secondary" className="text-xs">
-                      {summary.completedSessions} completed
-                    </Badge>
-                  </div>
-                </div>
-                <div className="flex-shrink-0 ml-4 p-3 bg-white/50 rounded-lg">
-                  <Calendar className="h-8 w-8" style={{ color: "#8159A8" }} />
-                </div>
+          <Card className="bg-primary-foreground p-6 rounded-lg border shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center justify-between min-w-[200px]">
+            <div className="text-left">
+              <div className="text-3xl font-bold text-[#8159A8]">
+                {summary.totalSessions}
               </div>
-            </CardContent>
+              <div className="text-gray-500 text-sm">Total Sessions</div>
+            </div>
+            <div className="flex-shrink-0 ml-4">
+              <Calendar className="w-10 h-10 text-[#8159A8]" />
+            </div>
           </Card>
 
           {/* Total Income */}
-          <Card className="shadow-sm hover:shadow-md transition-all duration-300 border-0 bg-gradient-to-r from-green-50/95 to-green-100/50 backdrop-blur">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-600">Total Income</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">
-                    LKR {parseFloat(summary.totalIncome).toLocaleString()}
-                  </p>
-                  <div className="flex gap-2 mt-2">
-                    <Badge variant="secondary" className="text-xs">
-                      {summary.paidSessions} paid sessions
-                    </Badge>
-                  </div>
-                </div>
-                <div className="flex-shrink-0 ml-4 p-3 bg-white/50 rounded-lg">
-                  <DollarSign className="h-8 w-8 text-green-600" />
-                </div>
+          <Card className="bg-primary-foreground p-6 rounded-lg border shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center justify-between min-w-[200px]">
+            <div className="text-left">
+              <div className="text-3xl font-bold text-[#8159A8]">
+                {parseFloat(summary.totalIncome).toLocaleString()}
               </div>
-            </CardContent>
+              <div className="text-gray-500 text-sm">Total Income (LKR)</div>
+            </div>
+            <div className="flex-shrink-0 ml-4">
+              <DollarSign className="w-10 h-10 text-[#8159A8]" />
+            </div>
           </Card>
 
           {/* No-Show Rate */}
-          <Card className="shadow-sm hover:shadow-md transition-all duration-300 border-0 bg-gradient-to-r from-orange-50/95 to-orange-100/50 backdrop-blur">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-600">No-Show Rate</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">{summary.noShowRate}%</p>
-                  <div className="flex gap-2 mt-2">
-                    <Badge variant="secondary" className="text-xs">
-                      {summary.noShowSessions} sessions
-                    </Badge>
-                  </div>
-                </div>
-                <div className="flex-shrink-0 ml-4 p-3 bg-white/50 rounded-lg">
-                  <XCircle className="h-8 w-8 text-orange-600" />
-                </div>
+          <Card className="bg-primary-foreground p-6 rounded-lg border shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center justify-between min-w-[200px]">
+            <div className="text-left">
+              <div className="text-3xl font-bold text-[#8159A8]">
+                {summary.noShowRate}%
               </div>
-            </CardContent>
+              <div className="text-gray-500 text-sm">No-Show Rate</div>
+            </div>
+            <div className="flex-shrink-0 ml-4">
+              <XCircle className="w-10 h-10 text-[#8159A8]" />
+            </div>
           </Card>
 
           {/* Cancellation Rate */}
-          <Card className="shadow-sm hover:shadow-md transition-all duration-300 border-0 bg-gradient-to-r from-red-50/95 to-red-100/50 backdrop-blur">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-600">Cancellation Rate</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">{summary.cancellationRate}%</p>
-                  <div className="flex gap-2 mt-2">
-                    <Badge variant="secondary" className="text-xs">
-                      {summary.cancelledSessions} cancelled
-                    </Badge>
-                  </div>
-                </div>
-                <div className="flex-shrink-0 ml-4 p-3 bg-white/50 rounded-lg">
-                  <Clock className="h-8 w-8 text-red-600" />
-                </div>
+          <Card className="bg-primary-foreground p-6 rounded-lg border shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center justify-between min-w-[200px]">
+            <div className="text-left">
+              <div className="text-3xl font-bold text-[#8159A8]">
+                {summary.cancellationRate}%
               </div>
-            </CardContent>
+              <div className="text-gray-500 text-sm">Cancellation Rate</div>
+            </div>
+            <div className="flex-shrink-0 ml-4">
+              <Clock className="w-10 h-10 text-[#8159A8]" />
+            </div>
           </Card>
         </div>
 

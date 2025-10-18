@@ -417,11 +417,40 @@ function SetAvailabilityPageNew(): React.JSX.Element {
   const getFilteredSlots = () => {
     const now = new Date();
     const today = now.toISOString().split("T")[0];
+    const currentHour = now.getHours();
+    const currentMinutes = now.getMinutes();
+    const currentTotalMinutes = currentHour * 60 + currentMinutes;
 
     if (filter === "upcoming") {
-      return slots.filter((slot) => slot.date >= today);
+      return slots.filter((slot) => {
+        // Future dates are always included
+        if (slot.date > today) {
+          return true;
+        }
+        // Today's slots: only include if they haven't started yet
+        if (slot.date === today) {
+          const [slotHour, slotMinute] = slot.startTime.split(':').map(Number);
+          const slotTotalMinutes = slotHour * 60 + slotMinute;
+          return slotTotalMinutes > currentTotalMinutes;
+        }
+        // Past dates are excluded
+        return false;
+      });
     } else if (filter === "past") {
-      return slots.filter((slot) => slot.date < today);
+      return slots.filter((slot) => {
+        // Past dates are always included
+        if (slot.date < today) {
+          return true;
+        }
+        // Today's slots: only include if they have passed
+        if (slot.date === today) {
+          const [slotHour, slotMinute] = slot.startTime.split(':').map(Number);
+          const slotTotalMinutes = slotHour * 60 + slotMinute;
+          return slotTotalMinutes <= currentTotalMinutes;
+        }
+        // Future dates are excluded
+        return false;
+      });
     }
     return slots;
   };
