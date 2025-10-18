@@ -165,16 +165,39 @@ export async function DELETE(req: NextRequest) {
             );
         }
 
-        // Delete all availability slots for this therapist that are not booked
+        // Get current date and time
+        const now = new Date();
+        const currentDate = now.toISOString().split('T')[0];
+        const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:00`;
+
+        // Delete only upcoming unbooked availability slots
+        // This includes:
+        // 1. All slots with future dates
+        // 2. Today's slots that haven't started yet
         const result = await prisma.therapistAvailability.deleteMany({
             where: {
                 therapistId: therapist.id,
-                isBooked: false
+                isBooked: false,
+                OR: [
+                    // Future dates
+                    {
+                        date: {
+                            gt: new Date(currentDate)
+                        }
+                    },
+                    // Today's future slots
+                    {
+                        date: new Date(currentDate),
+                        startTime: {
+                            gt: currentTime
+                        }
+                    }
+                ]
             }
         });
 
         return NextResponse.json({
-            message: "Availability deleted successfully",
+            message: "Upcoming availability deleted successfully",
             deletedCount: result.count
         });
 

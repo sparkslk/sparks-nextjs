@@ -303,24 +303,6 @@ export function AddAvailabilityModal({
                     className="mt-2"
                   />
                 </div>
-                
-                {/* Only show End Date if recurrence is enabled */}
-                {formData.recurrenceType !== "None" && (
-                  <div>
-                    <Label htmlFor="endDate">End Date (Recurrence End)</Label>
-                    <Input
-                      id="endDate"
-                      type="date"
-                      value={formData.endDate}
-                      onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                      min={formData.startDate}
-                      className="mt-2"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Availability will repeat until this date
-                    </p>
-                  </div>
-                )}
               </CardContent>
             </Card>
 
@@ -417,6 +399,24 @@ export function AddAvailabilityModal({
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* Show End Date if recurrence is enabled */}
+                {formData.recurrenceType !== "None" && (
+                  <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                    <Label htmlFor="endDate" className="text-purple-900">Recurrence End Date</Label>
+                    <Input
+                      id="endDate"
+                      type="date"
+                      value={formData.endDate}
+                      onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                      min={formData.startDate}
+                      className="mt-2 bg-white"
+                    />
+                    <p className="text-xs text-purple-700 mt-2">
+                      Availability will repeat until this date
+                    </p>
+                  </div>
+                )}
 
                 {formData.recurrenceType === "Custom" && (
                   <>
