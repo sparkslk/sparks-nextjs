@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
+import { createGoogleMeetEvent, generateSimpleMeetingLink } from "@/lib/google-meet";
 
 /**
  * Initiate a payment for a therapy session booking (Parent Web Interface)
@@ -32,6 +33,7 @@ export async function POST(request: NextRequest) {
       date,
       timeSlot,
       sessionType = "Individual",
+      meetingType = "IN_PERSON",
       amount,
       customerInfo,
     } = await request.json();
@@ -123,14 +125,149 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Parse time to create session datetime
+    let sessionDate: Date;
+    try {
+      const [timeSlotStart] = timeSlot.split("-");
+      const cleanTimeSlot = timeSlotStart.trim();
+
+      let hours: number, minutes: number;
+      const time24Match = cleanTimeSlot.match(/^(\d{1,2}):(\d{2})$/);
+      if (time24Match) {
+        hours = parseInt(time24Match[1]);
+        minutes = parseInt(time24Match[2]);
+      } else {
+        const time12Match = cleanTimeSlot.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+        if (time12Match) {
+          const h = parseInt(time12Match[1]);
+          minutes = parseInt(time12Match[2]);
+          const period = time12Match[3].toUpperCase();
+          hours = period === "AM" ? (h === 12 ? 0 : h) : (h === 12 ? 12 : h + 12);
+        } else {
+          throw new Error(`Invalid time format: "${cleanTimeSlot}"`);
+        }
+      }
+
+      const timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`;
+      sessionDate = new Date(`${dateStr}T${timeStr}.000Z`);
+    } catch (error) {
+      console.error("Failed to parse time:", error);
+      return NextResponse.json(
+        { error: "Invalid time format" },
+        { status: 400 }
+      );
+    }
+
+    // Get session rate
+    const sessionRate = availabilitySlot.isFree ? 0 : (child.primaryTherapist.session_rate || 0);
+
+    // Generate meeting link for ONLINE/HYBRID sessions BEFORE payment
+    let meetingLink: string | null = null;
+    let calendarEventId: string | null = null;
+
+    if (meetingType === "ONLINE" || meetingType === "HYBRID") {
+      try {
+        const therapistUserId = child.primaryTherapist.user.id;
+        const therapistName = child.primaryTherapist.user.name || "Therapist";
+
+        // Get therapist's Google OAuth tokens
+        const therapistAccount = await prisma.account.findFirst({
+          where: {
+            userId: therapistUserId,
+            provider: "google",
+          },
+          select: {
+            access_token: true,
+            refresh_token: true,
+          },
+        });
+
+        if (therapistAccount?.access_token && therapistAccount?.refresh_token) {
+          // Get parent user details
+          const parentUser = await prisma.user.findUnique({
+            where: { id: session.user.id },
+            select: { email: true, name: true },
+          });
+
+          // Get therapist email
+          const therapistEmail = await prisma.user.findUnique({
+            where: { id: therapistUserId },
+            select: { email: true },
+          });
+
+          // Calculate session end time (45 minutes after start)
+          const sessionEnd = new Date(sessionDate);
+          sessionEnd.setMinutes(sessionEnd.getMinutes() + 45);
+
+          // Create Google Meet event
+          const meetingResponse = await createGoogleMeetEvent(
+            {
+              summary: `Therapy Session - ${child.firstName} ${child.lastName}`,
+              description: `Online therapy session\nSession Type: ${sessionType}\nPatient: ${child.firstName} ${child.lastName}\nTherapist: ${therapistName}\nParent: ${parentUser?.name || 'Guardian'}`,
+              startDateTime: sessionDate.toISOString(),
+              endDateTime: sessionEnd.toISOString(),
+              attendeeEmails: [
+                ...(parentUser?.email ? [parentUser.email] : []),
+                ...(therapistEmail?.email ? [therapistEmail.email] : []),
+              ],
+              timezone: "Asia/Colombo",
+            },
+            therapistAccount.access_token,
+            therapistAccount.refresh_token,
+            therapistUserId
+          );
+
+          meetingLink = meetingResponse.meetingLink;
+          calendarEventId = meetingResponse.eventId;
+
+          console.log(`✅ Google Meet event created BEFORE payment: ${meetingResponse.meetingLink}`);
+        } else {
+          // Fallback to simple meeting link
+          meetingLink = generateSimpleMeetingLink(`${child.id}-${Date.now()}`);
+          console.log(`⚠️ Using fallback meeting link (therapist not connected to Google)`);
+        }
+      } catch (meetError) {
+        console.error("Failed to create Google Meet event:", meetError);
+        meetingLink = generateSimpleMeetingLink(`${child.id}-${Date.now()}`);
+        console.log(`⚠️ Using fallback meeting link (Google Meet creation failed)`);
+      }
+    }
+
+    // Create the therapy session NOW (before payment)
+    const therapySession = await prisma.$transaction(async (tx) => {
+      // Mark availability slot as booked
+      await tx.therapistAvailability.update({
+        where: { id: availabilitySlot.id },
+        data: { isBooked: true },
+      });
+
+      // Create session
+      return await tx.therapySession.create({
+        data: {
+          patientId: child.id,
+          therapistId: child.primaryTherapistId!,
+          scheduledAt: sessionDate,
+          duration: 45,
+          status: "SCHEDULED",
+          type: sessionType,
+          bookedRate: sessionRate,
+          sessionType: meetingType as "IN_PERSON" | "ONLINE" | "HYBRID",
+          meetingLink: meetingLink,
+          calendarEventId: calendarEventId,
+        },
+      });
+    });
+
+    console.log(`✅ Session created before payment: ${therapySession.id} with meetingLink: ${meetingLink}`);
+
     // Generate unique order ID
     const orderId = `PARENT_${Date.now()}_${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
 
-    // Create payment record with booking details in metadata
+    // Create payment record linked to the session
     const payment = await prisma.payment.create({
       data: {
         orderId,
-        sessionId: null, // No session yet - will be created after payment
+        sessionId: therapySession.id, // Link to existing session
         patientId: child.id,
         amount: parseFloat(amount),
         currency: "LKR",
@@ -149,6 +286,7 @@ export async function POST(request: NextRequest) {
             timeSlot,
             therapistId: child.primaryTherapistId,
             sessionType,
+            meetingType,
             availabilitySlotId: availabilitySlot.id,
             patientId: child.id,
           },

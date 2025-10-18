@@ -38,4 +38,6 @@ export interface Appointment {
   objectives: string[];
   childFirstName?: string;
   childLastName?: string;
+  meetingLink?: string | null;
+  primaryFocusAreas?: string[];
 }
