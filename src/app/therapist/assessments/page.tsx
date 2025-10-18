@@ -247,21 +247,6 @@ export default function AssessmentsPage() {
   const totalPatients = assessments.reduce((sum, a) => sum + a.assignedPatients.length, 0);
 
 
-  const getTypeBadgeColor = (type: string) => {
-    switch (type) {
-      case "INITIAL":
-        return "bg-blue-100 text-blue-800";
-      case "PROGRESS":
-        return "bg-green-100 text-green-800";
-      case "FINAL":
-        return "bg-purple-100 text-purple-800";
-      case "FOLLOW_UP":
-        return "bg-orange-100 text-orange-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
-
   if (authStatus === "loading" || loading) {
     return <LoadingSpinner message="Loading assessments..." />;
   }
