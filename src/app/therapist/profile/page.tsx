@@ -559,6 +559,23 @@ function TherapistProfileContent({ isCompletionMode }: { isCompletionMode: boole
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
+          {/* Header with Edit Button */}
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h1 className="text-3xl font-bold text-primary">My Profile</h1>
+              <p className="text-muted-foreground mt-1">
+                View and manage your professional profile
+              </p>
+            </div>
+            <Button
+              onClick={() => router.push('/therapist/profile/edit')}
+              className="gap-2"
+            >
+              <Edit className="w-4 h-4" />
+              Edit Profile
+            </Button>
+          </div>
+
           <ProfileHeader />
 
           {/* Profile Completion Banner */}
