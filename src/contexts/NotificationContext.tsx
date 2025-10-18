@@ -160,7 +160,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     useEffect(() => {
         fetchNotifications();
 
-        // Poll every 30 seconds for new notifications
+        // Poll every 30 seconds for new notifications (balanced approach)
         const interval = setInterval(fetchNotifications, 30000);
 
         return () => clearInterval(interval);
