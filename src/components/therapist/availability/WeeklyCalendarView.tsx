@@ -509,7 +509,7 @@ export function WeeklyCalendarView({
                               <span className={`ml-1 px-2 py-1 rounded text-xs ${
                                 sessionSlot.isFreeSession
                                   ? "bg-green-100 text-green-800"
-                                  : "bg-[#F5F3FB] text-[#8159A8]"
+                                  : "bg-purple-100 text-purple-800"
                               }`}>
                                 {sessionSlot.isFreeSession ? "Free Session" : "Paid Session"}
                               </span>

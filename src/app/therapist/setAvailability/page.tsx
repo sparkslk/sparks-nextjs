@@ -19,7 +19,6 @@ import {
   Plus,
   Calendar,
   Trash2,
-  AlertCircle,
   CalendarDays,
   ListChecks,
   Edit,
@@ -429,11 +428,37 @@ function SetAvailabilityPageNew(): React.JSX.Element {
   const groupedSlots = groupSlotsByDate(filteredSlots);
   const dates = Object.keys(groupedSlots).sort();
 
+  // Calculate stats for upcoming slots only (from the very next slot onwards)
+  const getUpcomingSlots = () => {
+    const now = new Date();
+    const today = now.toISOString().split("T")[0];
+    const currentHour = now.getHours();
+    const currentMinutes = now.getMinutes();
+    const currentTotalMinutes = currentHour * 60 + currentMinutes;
+
+    return slots.filter((slot) => {
+      // Future dates are always included
+      if (slot.date > today) {
+        return true;
+      }
+      // Today's slots: only include if they haven't started yet
+      if (slot.date === today) {
+        const [slotHour, slotMinute] = slot.startTime.split(':').map(Number);
+        const slotTotalMinutes = slotHour * 60 + slotMinute;
+        return slotTotalMinutes > currentTotalMinutes;
+      }
+      // Past dates are excluded
+      return false;
+    });
+  };
+
+  const upcomingSlots = getUpcomingSlots();
+
   const stats = {
-    total: slots.length,
-    booked: slots.filter((s) => s.isBooked).length,
-    available: slots.filter((s) => !s.isBooked).length,
-    free: slots.filter((s) => s.isFree).length,
+    total: upcomingSlots.length,
+    booked: upcomingSlots.filter((s) => s.isBooked).length,
+    available: upcomingSlots.filter((s) => !s.isBooked).length,
+    free: upcomingSlots.filter((s) => s.isFree && !s.isBooked).length,
   };
 
   if (loading) {
@@ -458,50 +483,50 @@ function SetAvailabilityPageNew(): React.JSX.Element {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <Card>
+        <Card className="bg-primary-foreground border shadow-sm hover:shadow-md transition-shadow duration-300">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Total Slots</p>
-                <p className="text-2xl font-bold text-[#8159A8]">{stats.total}</p>
+                <p className="text-sm text-gray-500">Total Upcoming Slots</p>
+                <p className="text-3xl font-bold text-[#8159A8]">{stats.total}</p>
               </div>
-              <Calendar className="h-8 w-8 text-[#8159A8] opacity-50" />
+              <Calendar className="h-10 w-10 text-[#8159A8]" />
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-primary-foreground border shadow-sm hover:shadow-md transition-shadow duration-300">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Booked</p>
-                <p className="text-2xl font-bold text-blue-600">{stats.booked}</p>
+                <p className="text-sm text-gray-500">Booked</p>
+                <p className="text-3xl font-bold text-[#8159A8]">{stats.booked}</p>
               </div>
-              <Clock className="h-8 w-8 text-blue-600 opacity-50" />
+              <Clock className="h-10 w-10 text-[#8159A8]" />
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-primary-foreground border shadow-sm hover:shadow-md transition-shadow duration-300">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Available</p>
-                <p className="text-2xl font-bold text-green-600">{stats.available}</p>
+                <p className="text-sm text-gray-500">Available</p>
+                <p className="text-3xl font-bold text-[#8159A8]">{stats.available}</p>
               </div>
-              <Clock className="h-8 w-8 text-green-600 opacity-50" />
+              <Clock className="h-10 w-10 text-[#8159A8]" />
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-primary-foreground border shadow-sm hover:shadow-md transition-shadow duration-300">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Free Sessions</p>
-                <p className="text-2xl font-bold text-amber-600">{stats.free}</p>
+                <p className="text-sm text-gray-500">Free Sessions</p>
+                <p className="text-3xl font-bold text-[#8159A8]">{stats.free}</p>
               </div>
-              <AlertCircle className="h-8 w-8 text-amber-600 opacity-50" />
+              <Gift className="h-10 w-10 text-[#8159A8]" />
             </div>
           </CardContent>
         </Card>
