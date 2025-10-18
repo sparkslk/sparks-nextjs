@@ -28,6 +28,7 @@ import {
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { AddAvailabilityModal } from "@/components/therapist/availability/AddAvailabilityModal";
 import { WeeklyCalendarView } from "@/components/therapist/availability/WeeklyCalendarView";
+import { toast } from "sonner";
 
 interface AvailabilitySlot {
   id: string;
@@ -106,22 +107,22 @@ function SetAvailabilityPageNew(): React.JSX.Element {
 
       if (response.ok) {
         const result = await response.json();
-        alert(`Successfully created ${result.slotsCreated} availability slots!`);
+        toast.success(`Successfully created ${result.slotsCreated} availability slots!`);
         setShowAddModal(false);
         fetchAvailability();
       } else {
         const errorData = await response.json();
         if (errorData.conflicts) {
-          alert(
-            `Failed to create slots: ${errorData.error}\n\nFirst ${errorData.conflicts.length} conflicts:\n${errorData.conflicts.join('\n')}`
+          toast.error(
+            `Failed to create slots: ${errorData.error}. First ${errorData.conflicts.length} conflicts found.`
           );
         } else {
-          alert(`Failed to create slots: ${errorData.error}`);
+          toast.error(`Failed to create slots: ${errorData.error}`);
         }
       }
     } catch (error) {
       console.error("Error creating availability:", error);
-      alert("Failed to create availability. Please try again.");
+      toast.error("Failed to create availability. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -161,15 +162,15 @@ function SetAvailabilityPageNew(): React.JSX.Element {
       });
 
       if (response.ok) {
-        alert("All unbooked slots cleared successfully!");
+        toast.success("All upcoming unbooked slots cleared successfully!");
         fetchAvailability();
       } else {
         const errorData = await response.json();
-        alert(`Failed to clear slots: ${errorData.error}`);
+        toast.error(`Failed to clear slots: ${errorData.error}`);
       }
     } catch (error) {
       console.error("Error clearing slots:", error);
-      alert("Failed to clear slots. Please try again.");
+      toast.error("Failed to clear slots. Please try again.");
     }
   };
 
@@ -212,17 +213,17 @@ function SetAvailabilityPageNew(): React.JSX.Element {
       });
 
       if (response.ok) {
-        alert(`Slot updated to ${!editingSlot.isFree ? "Free" : "Paid"} successfully!`);
+        toast.success(`Slot updated to ${!editingSlot.isFree ? "Free" : "Paid"} successfully!`);
         setShowEditDialog(false);
         setEditingSlot(null);
         fetchAvailability();
       } else {
         const errorData = await response.json();
-        alert(`Failed to update slot: ${errorData.error}`);
+        toast.error(`Failed to update slot: ${errorData.error}`);
       }
     } catch (error) {
       console.error("Error updating slot:", error);
-      alert("Failed to update slot. Please try again.");
+      toast.error("Failed to update slot. Please try again.");
     }
   };
 
@@ -240,17 +241,17 @@ function SetAvailabilityPageNew(): React.JSX.Element {
       });
 
       if (response.ok) {
-        alert("Slot deleted successfully!");
+        toast.success("Slot deleted successfully!");
         setShowEditDialog(false);
         setEditingSlot(null);
         fetchAvailability();
       } else {
         const errorData = await response.json();
-        alert(`Failed to delete slot: ${errorData.error}`);
+        toast.error(`Failed to delete slot: ${errorData.error}`);
       }
     } catch (error) {
       console.error("Error deleting slot:", error);
-      alert("Failed to delete slot. Please try again.");
+      toast.error("Failed to delete slot. Please try again.");
     }
   };
 
