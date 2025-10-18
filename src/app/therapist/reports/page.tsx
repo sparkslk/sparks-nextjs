@@ -577,58 +577,42 @@ export default function TherapistReportsPage() {
 
             {/* Income Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card className="shadow-sm">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 bg-green-100 rounded-lg">
-                      <TrendingUp className="h-6 w-6 text-green-600" />
-                    </div>
+              <Card className="bg-primary-foreground border shadow-sm hover:shadow-md transition-shadow duration-300">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-gray-600">Paid Sessions</p>
-                      <p className="text-xl font-bold">{summary.paidSessions}</p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Completed & Paid
-                      </p>
+                      <p className="text-sm text-gray-500">Paid Sessions</p>
+                      <p className="text-3xl font-bold text-[#8159A8]">{summary.paidSessions}</p>
                     </div>
+                    <TrendingUp className="h-10 w-10 text-[#8159A8]" />
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="shadow-sm">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 bg-purple-100 rounded-lg">
-                      <Users className="h-6 w-6 text-purple-600" />
-                    </div>
+              <Card className="bg-primary-foreground border shadow-sm hover:shadow-md transition-shadow duration-300">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-gray-600">Free Sessions</p>
-                      <p className="text-xl font-bold">{summary.freeSessions}</p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        No charge sessions
-                      </p>
+                      <p className="text-sm text-gray-500">Free Sessions</p>
+                      <p className="text-3xl font-bold text-[#8159A8]">{summary.freeSessions}</p>
                     </div>
+                    <Users className="h-10 w-10 text-[#8159A8]" />
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="shadow-sm">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 bg-blue-100 rounded-lg">
-                      <CheckCircle className="h-6 w-6 text-blue-600" />
-                    </div>
+              <Card className="bg-primary-foreground border shadow-sm hover:shadow-md transition-shadow duration-300">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-gray-600">Avg Income/Session</p>
-                      <p className="text-xl font-bold">
-                        LKR{" "}
+                      <p className="text-sm text-gray-500">Avg Income/Session</p>
+                      <p className="text-3xl font-bold text-[#8159A8]">
                         {summary.paidSessions > 0
-                          ? (parseFloat(summary.totalIncome) / summary.paidSessions).toFixed(2)
-                          : "0.00"}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Your share after fees
+                          ? (parseFloat(summary.totalIncome) / summary.paidSessions).toFixed(0)
+                          : "0"}
                       </p>
                     </div>
+                    <DollarSign className="h-10 w-10 text-[#8159A8]" />
                   </div>
                 </CardContent>
               </Card>
