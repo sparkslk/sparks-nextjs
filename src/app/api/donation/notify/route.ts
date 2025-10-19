@@ -36,8 +36,8 @@ export async function POST(request: NextRequest) {
     const payment_id = formData.get("payment_id")?.toString() || "";
     const status_message = formData.get("status_message")?.toString() || "";
     const method = formData.get("method")?.toString() || "";
-    const card_holder_name = formData.get("card_holder_name")?.toString() || null;
-    const card_no = formData.get("card_no")?.toString() || null;
+    // const card_holder_name = formData.get("card_holder_name")?.toString() || null;
+    // const card_no = formData.get("card_no")?.toString() || null;
     const custom_1 = formData.get("custom_1")?.toString() || ""; // Our donation ID
     const custom_2 = formData.get("custom_2")?.toString() || ""; // anonymous/public
 
@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Update donation record
-    const updatedDonation = await prisma.donation.update({
+    await prisma.donation.update({
       where: { id: donation.id },
       data: {
         payHerePaymentId: payment_id,

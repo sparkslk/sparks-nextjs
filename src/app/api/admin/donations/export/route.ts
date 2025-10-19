@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiAuth } from "@/lib/api-auth";
+import { Prisma } from "@prisma/client";
 
 /**
  * Admin Donations CSV Export API
@@ -27,10 +28,10 @@ export async function GET(req: NextRequest) {
     const anonymousOnly = searchParams.get("anonymousOnly") === "true";
 
     // Build where clause
-    const where: any = {};
+    const where: Prisma.DonationWhereInput = {};
 
     if (status) {
-      where.paymentStatus = status;
+      where.paymentStatus = status as Prisma.DonationWhereInput['paymentStatus'];
     }
 
     if (dateFrom || dateTo) {

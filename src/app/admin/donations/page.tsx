@@ -15,11 +15,6 @@ import {
 import {
   Download,
   Filter,
-  X,
-  Check,
-  CheckCircle,
-  Ban,
-  RefreshCcw,
   Loader2,
   ChevronLeft,
   ChevronRight,
@@ -109,6 +104,7 @@ export default function AdminDonationsPage() {
 
   useEffect(() => {
     fetchDonations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage]);
 
   const handleFilterApply = () => {
@@ -156,83 +152,6 @@ export default function AdminDonationsPage() {
       document.body.removeChild(a);
     } catch (error) {
       console.error("Error exporting CSV:", error);
-    }
-  };
-
-  const handleToggleReceipt = async (donationId: string) => {
-    setActionLoading(donationId);
-    try {
-      const response = await fetch(
-        `/api/admin/donations/${donationId}/receipt`,
-        {
-          method: "PATCH",
-        }
-      );
-      const data = await response.json();
-
-      if (data.success) {
-        fetchDonations();
-      }
-    } catch (error) {
-      console.error("Error toggling receipt:", error);
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  const handleVoid = async (donationId: string) => {
-    if (!confirm("Are you sure you want to void this donation?")) return;
-
-    setActionLoading(donationId);
-    try {
-      const response = await fetch(`/api/admin/donations/${donationId}/void`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason: "Admin voided" }),
-      });
-      const data = await response.json();
-
-      if (data.success) {
-        fetchDonations();
-      } else {
-        alert(data.error || "Failed to void donation");
-      }
-    } catch (error) {
-      console.error("Error voiding donation:", error);
-      alert("Failed to void donation");
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  const handleRefund = async (donationId: string) => {
-    if (
-      !confirm(
-        "Are you sure you want to mark this donation as refunded? You must process the actual refund through PayHere dashboard."
-      )
-    )
-      return;
-
-    setActionLoading(donationId);
-    try {
-      const response = await fetch(`/api/admin/donations/${donationId}/refund`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason: "Admin refund request" }),
-      });
-      const data = await response.json();
-
-      if (data.success) {
-        alert(data.message);
-        fetchDonations();
-      } else {
-        alert(data.error || "Failed to refund donation");
-      }
-    } catch (error) {
-      console.error("Error refunding donation:", error);
-      alert("Failed to refund donation");
-    } finally {
-      setActionLoading(null);
     }
   };
 
@@ -534,7 +453,7 @@ export default function AdminDonationsPage() {
                         )}
                         {donation.message && (
                           <div className="italic mt-2">
-                            Message: "{donation.message}"
+                            Message: &quot;{donation.message}&quot;
                           </div>
                         )}
                         <div>

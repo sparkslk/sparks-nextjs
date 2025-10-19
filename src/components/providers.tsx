@@ -8,18 +8,13 @@ import { Toaster } from "sonner";
 function AuthenticatedProviders({ children }: { children: React.ReactNode }) {
     const { data: session, status } = useSession();
 
-    // Only load notification provider for authenticated users
-    if (status === "authenticated" && session) {
-        return (
-            <NotificationProvider>
-                {children}
-                <NotificationSidebar />
-            </NotificationProvider>
-        );
-    }
-
-    // For unauthenticated or loading states, just render children
-    return <>{children}</>;
+    // Always provide NotificationProvider (it will handle unauthenticated state internally)
+    return (
+        <NotificationProvider>
+            {children}
+            {status === "authenticated" && session && <NotificationSidebar />}
+        </NotificationProvider>
+    );
 }
 
 export function Providers({ children }: { children: React.ReactNode }) {

@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
       select: { amount: true, createdAt: true },
     });
 
-    const toNumber = (d: { amount: unknown }) => parseFloat((d.amount as any).toString());
+    const toNumber = (d: { amount: unknown }) => parseFloat(String(d.amount));
 
     const totalAmount = completedDonations.reduce((sum, d) => sum + toNumber(d), 0);
     const totalCount = completedDonations.length;

@@ -72,7 +72,7 @@ export default function DonationSuccessPage() {
             </h1>
 
             <p className="text-lg text-gray-600 mb-8 max-w-md mx-auto">
-              Your generous contribution is being processed. We're grateful for your
+              Your generous contribution is being processed. We&apos;re grateful for your
               support in helping children with ADHD receive the care they need.
             </p>
 
@@ -108,7 +108,7 @@ export default function DonationSuccessPage() {
 
             {/* Note */}
             <p className="text-sm text-gray-500 mb-8">
-              Note: The actual donation status will be confirmed via PayHere's secure
+              Note: The actual donation status will be confirmed via PayHere&apos;s secure
               payment notification system. This page is for informational purposes
               only.
             </p>

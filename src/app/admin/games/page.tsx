@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { DeleteConfirmationModal } from "@/components/ui/delete-confirmation-modal";
-import { Gamepad2, Brain, Target, Zap, Settings, PlusCircle, RefreshCw, Terminal, Play, Power } from "lucide-react";
+import { Gamepad2, Brain, Target, Zap, PlusCircle, RefreshCw, Terminal, Play, Power } from "lucide-react";
 
 // --- Type Definitions ---
 export interface Assessment {
@@ -61,8 +61,8 @@ const AddAssessmentForm: React.FC<AddAssessmentFormProps> = ({ isOpen, onClose, 
             const newAssessment = await response.json();
             onAssessmentAdded(newAssessment);
             handleClose();
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : 'An error occurred');
         } finally {
             setSubmitting(false);
         }
@@ -147,8 +147,8 @@ export default function AssessmentManagementPage() {
       if (!response.ok) throw new Error('Failed to fetch assessments');
       const data: Assessment[] = await response.json();
       setAssessments(data);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
       setLastUpdated(new Date());
@@ -190,8 +190,8 @@ export default function AssessmentManagementPage() {
       ));
       setIsDeleteDialogOpen(false);
       setAssessmentToDelete(null);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
       setIsDeleteDialogOpen(false);
       setAssessmentToDelete(null);
     }
@@ -289,7 +289,7 @@ export default function AssessmentManagementPage() {
             ) : (
               <div className="col-span-full text-center py-12 bg-white rounded-lg border-dashed border-2">
                 <h3 className="text-lg font-medium">No assessments found.</h3>
-                <p className="text-sm text-gray-500 mt-1">Click the "+ New Assessment" button to add one.</p>
+                <p className="text-sm text-gray-500 mt-1">Click the &quot;+ New Assessment&quot; button to add one.</p>
               </div>
             )}
           </div>

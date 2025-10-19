@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiAuth } from "@/lib/api-auth";
+import { Prisma } from "@prisma/client";
 
 /**
  * Admin Donations List API
@@ -45,10 +46,10 @@ export async function GET(req: NextRequest) {
     const sortOrder = searchParams.get("sortOrder") || "desc";
 
     // Build where clause
-    const where: any = {};
+    const where: Prisma.DonationWhereInput = {};
 
     if (status) {
-      where.paymentStatus = status;
+      where.paymentStatus = status as Prisma.DonationWhereInput['paymentStatus'];
     }
 
     if (dateFrom || dateTo) {
@@ -93,11 +94,11 @@ export async function GET(req: NextRequest) {
     }
 
     // Build orderBy clause
-    const orderBy: any = {};
+    const orderBy: Prisma.DonationOrderByWithRelationInput = {};
     if (sortBy === "amount") {
-      orderBy.amount = sortOrder;
+      orderBy.amount = sortOrder as Prisma.SortOrder;
     } else {
-      orderBy.createdAt = sortOrder;
+      orderBy.createdAt = sortOrder as Prisma.SortOrder;
     }
 
     // Get total count for pagination

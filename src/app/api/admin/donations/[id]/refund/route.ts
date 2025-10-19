@@ -19,13 +19,13 @@ import { requireApiAuth } from "@/lib/api-auth";
  */
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Require ADMIN role
     const session = await requireApiAuth(req, ["ADMIN"]);
 
-    const { id } = params;
+    const { id } = await params;
     const body = await req.json();
     const { reason, notes } = body;
 

@@ -41,7 +41,7 @@ export default function DonationCancelPage() {
             </h1>
 
             <p className="text-lg text-gray-600 mb-8 max-w-md mx-auto">
-              Your donation was not processed. Don't worry - no charges were made to
+              Your donation was not processed. Don&apos;t worry - no charges were made to
               your account.
             </p>
 
@@ -72,7 +72,7 @@ export default function DonationCancelPage() {
             <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-6 mb-8">
               <Heart className="w-8 h-8 text-purple-600 mx-auto mb-3" />
               <p className="text-gray-700">
-                We'd still love your support! Every donation helps us provide quality
+                We&apos;d still love your support! Every donation helps us provide quality
                 ADHD therapy services to children and families who need it most.
               </p>
             </div>

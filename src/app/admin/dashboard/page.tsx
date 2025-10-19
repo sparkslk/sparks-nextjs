@@ -108,7 +108,15 @@ export default function AdminDashboard() {
                 const donationsData = await donationsRes.json();
                 if (donationsData.success) {
                     setRecentDonations(
-                        (donationsData.data.items as any[]).map((d) => ({
+                        (donationsData.data.items as Array<{
+                            id: string;
+                            donorName: string | null;
+                            donorEmail: string | null;
+                            isAnonymous: boolean;
+                            amount: number;
+                            paymentStatus: string;
+                            createdAt: string;
+                        }>).map((d) => ({
                             id: d.id,
                             donorName: d.donorName,
                             donorEmail: d.donorEmail,

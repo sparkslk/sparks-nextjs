@@ -11,13 +11,13 @@ import { requireApiAuth } from "@/lib/api-auth";
  */
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Require ADMIN role
     await requireApiAuth(req, ["ADMIN"]);
 
-    const { id } = params;
+    const { id } = await params;
 
     // Find the donation
     const donation = await prisma.donation.findUnique({
