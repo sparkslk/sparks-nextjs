@@ -137,7 +137,7 @@ export default function TherapistEditProfilePage() {
       }
     };
 
-    if (session?.user?.role === "THERAPIST") {
+    if (session?.user) {
       fetchProfile();
     }
   }, [session]);

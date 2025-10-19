@@ -702,36 +702,42 @@ export default function ManagerApplicationsPage() {
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-4 gap-4 mb-6">
-            <Card>
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold">{statusCounts.all}</div>
-                <div className="text-sm text-muted-foreground">Total</div>
-              </CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+            <Card className="bg-primary-foreground p-6 rounded-lg border shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center justify-between min-w-[200px]">
+              <div className="text-left">
+                <div className="text-3xl font-bold text-[#8159A8]">{statusCounts.all}</div>
+                <div className="text-gray-500 text-sm">Total</div>
+              </div>
+              <div className="flex-shrink-0 ml-4">
+                <User className="w-10 h-10 text-[#8159A8]" />
+              </div>
             </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-yellow-600">
-                  {statusCounts.pending}
-                </div>
-                <div className="text-sm text-muted-foreground">Pending</div>
-              </CardContent>
+            <Card className="bg-primary-foreground p-6 rounded-lg border shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center justify-between min-w-[200px]">
+              <div className="text-left">
+                <div className="text-3xl font-bold text-[#8159A8]">{statusCounts.pending}</div>
+                <div className="text-gray-500 text-sm">Pending</div>
+              </div>
+              <div className="flex-shrink-0 ml-4">
+                <Clock className="w-10 h-10 text-[#8159A8]" />
+              </div>
             </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-green-600">
-                  {statusCounts.approved}
-                </div>
-                <div className="text-sm text-muted-foreground">Approved</div>
-              </CardContent>
+            <Card className="bg-primary-foreground p-6 rounded-lg border shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center justify-between min-w-[200px]">
+              <div className="text-left">
+                <div className="text-3xl font-bold text-[#8159A8]">{statusCounts.approved}</div>
+                <div className="text-gray-500 text-sm">Approved</div>
+              </div>
+              <div className="flex-shrink-0 ml-4">
+                <CheckCircle className="w-10 h-10 text-[#8159A8]" />
+              </div>
             </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-red-600">
-                  {statusCounts.rejected}
-                </div>
-                <div className="text-sm text-muted-foreground">Rejected</div>
-              </CardContent>
+            <Card className="bg-primary-foreground p-6 rounded-lg border shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center justify-between min-w-[200px]">
+              <div className="text-left">
+                <div className="text-3xl font-bold text-[#8159A8]">{statusCounts.rejected}</div>
+                <div className="text-gray-500 text-sm">Rejected</div>
+              </div>
+              <div className="flex-shrink-0 ml-4">
+                <XCircle className="w-10 h-10 text-[#8159A8]" />
+              </div>
             </Card>
           </div>
 

@@ -251,72 +251,52 @@ export default function ManagerResourcesPage() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card className="shadow-sm hover:shadow-md transition-shadow duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <FileText className="h-6 w-6 text-blue-600" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">
-                    Total Resources
-                  </p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {tabCounts.all}
-                  </p>
-                </div>
+          <Card className="bg-primary-foreground p-6 rounded-lg border shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center justify-between min-w-[200px]">
+            <div className="text-left">
+              <div className="text-3xl font-bold text-[#8159A8]">
+                {tabCounts.all}
               </div>
-            </CardContent>
+              <div className="text-gray-500 text-sm">Total Resources</div>
+            </div>
+            <div className="flex-shrink-0 ml-4">
+              <FileText className="w-10 h-10 text-[#8159A8]" />
+            </div>
           </Card>
 
-          <Card className="shadow-sm hover:shadow-md transition-shadow duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <Target className="h-6 w-6 text-green-600" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Published</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {tabCounts.published}
-                  </p>
-                </div>
+          <Card className="bg-primary-foreground p-6 rounded-lg border shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center justify-between min-w-[200px]">
+            <div className="text-left">
+              <div className="text-3xl font-bold text-[#8159A8]">
+                {tabCounts.published}
               </div>
-            </CardContent>
+              <div className="text-gray-500 text-sm">Published</div>
+            </div>
+            <div className="flex-shrink-0 ml-4">
+              <Target className="w-10 h-10 text-[#8159A8]" />
+            </div>
           </Card>
 
-          <Card className="shadow-sm hover:shadow-md transition-shadow duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="p-2 bg-yellow-100 rounded-lg">
-                  <Edit className="h-6 w-6 text-yellow-600" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Drafts</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {tabCounts.draft}
-                  </p>
-                </div>
+          <Card className="bg-primary-foreground p-6 rounded-lg border shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center justify-between min-w-[200px]">
+            <div className="text-left">
+              <div className="text-3xl font-bold text-[#8159A8]">
+                {tabCounts.draft}
               </div>
-            </CardContent>
+              <div className="text-gray-500 text-sm">Drafts</div>
+            </div>
+            <div className="flex-shrink-0 ml-4">
+              <Edit className="w-10 h-10 text-[#8159A8]" />
+            </div>
           </Card>
 
-          <Card className="shadow-sm hover:shadow-md transition-shadow duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <TrendingUp className="h-6 w-6 text-purple-600" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">
-                    Total Views
-                  </p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {totalViews.toLocaleString()}
-                  </p>
-                </div>
+          <Card className="bg-primary-foreground p-6 rounded-lg border shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center justify-between min-w-[200px]">
+            <div className="text-left">
+              <div className="text-3xl font-bold text-[#8159A8]">
+                {totalViews.toLocaleString()}
               </div>
-            </CardContent>
+              <div className="text-gray-500 text-sm">Total Views</div>
+            </div>
+            <div className="flex-shrink-0 ml-4">
+              <TrendingUp className="w-10 h-10 text-[#8159A8]" />
+            </div>
           </Card>
         </div>
 
