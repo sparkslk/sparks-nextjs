@@ -214,15 +214,16 @@ export default function AssessmentManagement({ patientId, onAssessmentUpdate }: 
                 key={assessment.id}
                 className="bg-[#FAF8FB] rounded-xl p-5 shadow-md hover:shadow-lg transition-shadow flex flex-col h-full border border-[#e9e1f3]"
               >
-                {/* Title */}
-                <h4 className="text-lg font-semibold text-[#8159A8] mb-2 truncate">{assessment.title}</h4>
-                
                 {/* Type Badge */}
                 <div className="mb-3">
                   <span className="text-xs font-semibold px-3 py-1 rounded-full bg-blue-100 text-blue-700">
                     {assessment.type}
                   </span>
                 </div>
+                {/* Title */}
+                <h4 className="text-lg font-semibold text-[#8159A8] mb-2 truncate">{assessment.title}</h4>
+                
+                
                 
                 {/* Description */}
                 <div className="flex flex-col gap-1 text-sm text-gray-700 flex-1 mt-1">
@@ -238,7 +239,7 @@ export default function AssessmentManagement({ patientId, onAssessmentUpdate }: 
                       <Button
                         variant="outline"
                         size="sm"
-                        className="mr-2 hover:bg-blue-50 text-blue-600"
+                        className="mr-2 hover:bg-blue-50 text-grey-500"
                         onClick={() => {
                           if (assessment.link) {
                             window.open(assessment.link, '_blank');
