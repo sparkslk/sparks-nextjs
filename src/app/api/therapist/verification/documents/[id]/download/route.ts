@@ -47,7 +47,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await requireApiAuth(req, ['THERAPIST', 'ADMIN']);
+    const session = await requireApiAuth(req, ['THERAPIST', 'ADMIN', 'MANAGER']);
     const { id: documentId } = await params;
 
     // Get therapist ID (if user is therapist, only allow their own documents)
@@ -69,6 +69,7 @@ export async function GET(
 
     // Find the document and verify access
     const whereClause: Record<string, unknown> = { id: documentId };
+    // Only restrict to therapist's own documents if user is a therapist
     if (therapistId) {
       whereClause.therapistId = therapistId;
     }

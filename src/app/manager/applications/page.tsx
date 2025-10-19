@@ -223,14 +223,34 @@ export default function ManagerApplicationsPage() {
 
 
 
-  const handleDownloadDocument = (url: string, fileName: string) => {
-    // Create a temporary link to download the document
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleDownloadDocument = async (url: string, fileName: string) => {
+    try {
+      // Fetch the document as a blob
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error('Failed to download document');
+      }
+      
+      const blob = await response.blob();
+      
+      // Create a temporary URL for the blob
+      const blobUrl = window.URL.createObjectURL(blob);
+      
+      // Create a temporary link to download the document
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      
+      // Clean up
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.error('Error downloading document:', error);
+      alert('Failed to download document. Please try again.');
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -654,10 +674,17 @@ export default function ManagerApplicationsPage() {
             value={rejectionReason}
             onChange={(e) => setRejectionReason(e.target.value)}
             placeholder="Enter rejection reason..."
-            className="w-full p-3 border rounded-md min-h-[100px] mb-4"
+            className="w-full p-3 border rounded-md min-h-[100px] mb-4 focus:outline-none focus:ring-2 focus:ring-primary"
+            rows={4}
           />
           <div className="flex gap-2 justify-end">
-            <Button variant="outline" onClick={() => setShowReviewModal(false)}>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowReviewModal(false);
+                setRejectionReason("");
+              }}
+            >
               Cancel
             </Button>
             <Button
