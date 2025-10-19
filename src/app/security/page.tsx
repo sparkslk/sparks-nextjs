@@ -4,21 +4,16 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-    Shield,
     Lock,
     Key,
     Server,
     Eye,
     FileCheck,
-    AlertTriangle,
-    CheckCircle,
     Database,
-    Cloud,
     Users,
     Mail,
     Bug,
     ShieldCheck,
-    FileText,
     Globe
 } from "lucide-react";
 import Header from "@/components/landingpage/Header/page";
