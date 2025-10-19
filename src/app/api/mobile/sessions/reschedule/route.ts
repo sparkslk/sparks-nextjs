@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get the session
+    // Get the session with payment information
     const session = await prisma.therapySession.findUnique({
       where: { id: sessionId },
       include: {
@@ -68,7 +68,8 @@ export async function POST(request: NextRequest) {
               }
             }
           }
-        }
+        },
+        Payment: true
       }
     });
 
@@ -95,11 +96,34 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Calculate days until session to determine if fee is required
+    // Get payment amount
+    const sessionPayment = session.Payment && session.Payment.length > 0 ? session.Payment[0] : null;
+    const paymentAmount = sessionPayment ? Number(sessionPayment.amount) : 0;
+
+    // Calculate hours until session to determine if fee is required
     const now = new Date();
     const sessionDate = new Date(session.scheduledAt);
-    const daysUntilSession = Math.ceil((sessionDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    const fee = daysUntilSession >= 5 ? 0 : 30;
+    const hoursUntilSession = (sessionDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+    // Calculate percentage-based fee
+    let fee = 0;
+    let feePercentage = 0;
+
+    if (hoursUntilSession >= 24) {
+      feePercentage = 10;
+      fee = paymentAmount * 0.10;
+    } else if (hoursUntilSession >= 0) {
+      feePercentage = 40;
+      fee = paymentAmount * 0.40;
+    } else {
+      return NextResponse.json(
+        { error: "Cannot reschedule a session that has already passed" },
+        { status: 400 }
+      );
+    }
+
+    // Round fee to 2 decimal places
+    fee = Number(fee.toFixed(2));
 
     // If fee is required, verify payment
     if (fee > 0) {
@@ -107,8 +131,9 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           {
             error: "Payment required",
-            message: `Rescheduling within ${daysUntilSession} day(s) requires a Rs. ${fee} fee. Please complete payment first.`,
+            message: `Rescheduling within ${hoursUntilSession >= 24 ? '24+ hours' : '24 hours'} requires a ${feePercentage}% fee (Rs. ${fee}). Please complete payment first.`,
             fee,
+            feePercentage,
             requiresPayment: true
           },
           { status: 402 } // Payment Required
@@ -127,10 +152,11 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Verify payment amount matches fee
-      if (Number(payment.amount) !== fee) {
+      // Verify payment amount matches fee (allow small rounding differences)
+      const paidAmount = Number(payment.amount);
+      if (Math.abs(paidAmount - fee) > 0.01) {
         return NextResponse.json(
-          { error: "Payment amount does not match reschedule fee" },
+          { error: `Payment amount (Rs. ${paidAmount}) does not match reschedule fee (Rs. ${fee})` },
           { status: 400 }
         );
       }
@@ -244,7 +270,7 @@ export async function POST(request: NextRequest) {
 
     console.log(`Session ${sessionId} rescheduled successfully by patient ${patient.id}`);
     console.log(`Old: ${session.scheduledAt.toISOString()}, New: ${newScheduledAt.toISOString()}`);
-    console.log(`Fee paid: ${fee > 0 ? `Rs. ${fee}` : 'Free'}`);
+    console.log(`Fee paid: ${fee > 0 ? `Rs. ${fee} (${feePercentage}%)` : 'Free'}`);
 
     return NextResponse.json({
       success: true,
