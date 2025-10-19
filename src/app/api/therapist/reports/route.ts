@@ -11,6 +11,7 @@ type SessionWithPaymentAndPatient = {
   bookedRate: Prisma.Decimal | null;
   scheduledAt: Date;
   duration: number;
+  sessionNotes: string | null;
   patient: {
     id: string;
     firstName: string;
@@ -20,6 +21,13 @@ type SessionWithPaymentAndPatient = {
     status: string;
     amount: Prisma.Decimal;
   }[];
+  cancelRefund?: {
+    id: string;
+    originalAmount: Prisma.Decimal;
+    refundAmount: Prisma.Decimal;
+    refundPercentage: Prisma.Decimal;
+    refundStatus: string;
+  } | null;
 };
 
 export async function GET(req: NextRequest) {
@@ -109,6 +117,15 @@ export async function GET(req: NextRequest) {
             status: true,
           },
         },
+        cancelRefund: {
+          select: {
+            id: true,
+            originalAmount: true,
+            refundAmount: true,
+            refundPercentage: true,
+            refundStatus: true,
+          },
+        },
       },
       orderBy: { scheduledAt: "desc" },
     });
@@ -135,15 +152,52 @@ export async function GET(req: NextRequest) {
     ).length;
 
     // Calculate total income
+    // For completed sessions: therapist gets 90% of bookedRate
+    // For NO_SHOW sessions: therapist gets 90% of bookedRate
+    // For cancelled sessions with refunds:
+    //   - If refundPercentage = 60%, therapist gets 30% of originalAmount
+    //   - If refundPercentage = 90%, therapist gets 0%
     const totalIncome = sessions.reduce((sum: number, session) => {
-      // Check if session has completed payment
-      const hasCompletedPayment = session.Payment.some(
-        (payment) => payment.status === "COMPLETED"
-      );
-      
-      if (hasCompletedPayment && session.bookedRate) {
-        return sum + Number(session.bookedRate);
+      // Handle completed sessions
+      if (session.status === "COMPLETED") {
+        // Check if session has completed payment
+        const hasCompletedPayment = session.Payment.some(
+          (payment) => payment.status === "COMPLETED"
+        );
+        
+        if (hasCompletedPayment && session.bookedRate) {
+          // Therapist gets 90% of the booked rate
+          const therapistShare = Number(session.bookedRate) * 0.9;
+          return sum + therapistShare;
+        }
       }
+      
+      // Handle NO_SHOW sessions (treat like completed)
+      if (session.status === "NO_SHOW") {
+        const hasCompletedPayment = session.Payment.some(
+          (payment) => payment.status === "COMPLETED"
+        );
+        
+        if (hasCompletedPayment && session.bookedRate) {
+          // Therapist gets 90% of the booked rate
+          const therapistShare = Number(session.bookedRate) * 0.9;
+          return sum + therapistShare;
+        }
+      }
+      
+      // Handle cancelled sessions with refunds
+      if (session.status === "CANCELLED" && session.cancelRefund) {
+        const refundPercentage = Number(session.cancelRefund.refundPercentage);
+        const originalAmount = Number(session.cancelRefund.originalAmount);
+        
+        if (refundPercentage === 60) {
+          // Therapist gets 30% of original amount
+          const therapistShare = originalAmount * 0.3;
+          return sum + therapistShare;
+        }
+        // If refundPercentage === 90, therapist gets 0%, so don't add anything
+      }
+      
       return sum;
     }, 0);
 
@@ -207,16 +261,50 @@ export async function GET(req: NextRequest) {
               status: true,
             },
           },
+          cancelRefund: {
+            select: {
+              originalAmount: true,
+              refundPercentage: true,
+            },
+          },
         },
       });
 
       const monthIncome = monthSessions.reduce((sum: number, session) => {
-        const hasCompletedPayment = session.Payment.some(
-          (payment) => payment.status === "COMPLETED"
-        );
-        if (hasCompletedPayment && session.bookedRate) {
-          return sum + Number(session.bookedRate);
+        // Handle completed sessions
+        if (session.status === "COMPLETED") {
+          const hasCompletedPayment = session.Payment.some(
+            (payment) => payment.status === "COMPLETED"
+          );
+          if (hasCompletedPayment && session.bookedRate) {
+            // Therapist gets 90% of the booked rate
+            return sum + (Number(session.bookedRate) * 0.9);
+          }
         }
+        
+        // Handle NO_SHOW sessions (treat like completed)
+        if (session.status === "NO_SHOW") {
+          const hasCompletedPayment = session.Payment.some(
+            (payment) => payment.status === "COMPLETED"
+          );
+          if (hasCompletedPayment && session.bookedRate) {
+            // Therapist gets 90% of the booked rate
+            return sum + (Number(session.bookedRate) * 0.9);
+          }
+        }
+        
+        // Handle cancelled sessions with refunds
+        if (session.status === "CANCELLED" && session.cancelRefund) {
+          const refundPercentage = Number(session.cancelRefund.refundPercentage);
+          const originalAmount = Number(session.cancelRefund.originalAmount);
+          
+          if (refundPercentage === 60) {
+            // Therapist gets 30% of original amount
+            return sum + (originalAmount * 0.3);
+          }
+          // If refundPercentage === 90, therapist gets 0%
+        }
+        
         return sum;
       }, 0);
 
@@ -227,12 +315,12 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Prepare session status data for chart with pastel colors matching stats cards
+    // Prepare session status data for chart with system-aligned colors
     const sessionStatusData = [
-      { status: "Completed", count: completedSessions, color: "#66fb9dff" }, // green-300 - lighter green
-      { status: "Scheduled", count: scheduledSessions, color: "#8159A8" }, // blue-300 - lighter blue
-      { status: "Cancelled", count: cancelledSessions, color: "#d84040ff" }, // red-300 - lighter red
-      { status: "No Show", count: noShowSessions, color: "#fcad58ff" }, // orange-300 - lighter orange
+      { status: "Completed", count: completedSessions, color: "#10b981" }, // emerald-500 - professional green
+      { status: "Scheduled", count: scheduledSessions, color: "#8159A8" }, // primary purple
+      { status: "Cancelled", count: cancelledSessions, color: "#ef4444" }, // red-500 - professional red
+      { status: "No Show", count: noShowSessions, color: "#f59e0b" }, // amber-500 - professional orange
     ];
 
     // Prepare paid vs free data for chart
@@ -264,17 +352,61 @@ export async function GET(req: NextRequest) {
         monthlyIncomeData,
       },
       patients,
-      sessions: sessions.map((session) => ({
-        id: session.id,
-        patientName: `${session.patient.firstName} ${session.patient.lastName}`,
-        patientId: session.patient.id,
-        scheduledAt: session.scheduledAt,
-        duration: session.duration,
-        type: session.type,
-        status: session.status,
-        bookedRate: session.bookedRate ? Number(session.bookedRate) : 0,
-        isPaid: session.Payment.some((p) => p.status === "COMPLETED"),
-      })),
+      sessions: sessions.map((session) => {
+        const bookedRateValue = session.bookedRate ? Number(session.bookedRate) : 0;
+        let therapistAmount = 0;
+        let systemFeeOrRefund = 0;
+        let breakdown = "";
+
+        // Calculate therapist amount based on session status
+        if (session.status === "COMPLETED") {
+          const hasCompletedPayment = session.Payment.some((p) => p.status === "COMPLETED");
+          if (hasCompletedPayment && bookedRateValue > 0) {
+            therapistAmount = bookedRateValue * 0.9;
+            systemFeeOrRefund = bookedRateValue * 0.1;
+            breakdown = `Total: LKR ${bookedRateValue.toFixed(2)} | System Fee (10%): LKR ${systemFeeOrRefund.toFixed(2)} | Your Share (90%): LKR ${therapistAmount.toFixed(2)}`;
+          }
+        } else if (session.status === "NO_SHOW") {
+          // Treat NO_SHOW like completed sessions
+          const hasCompletedPayment = session.Payment.some((p) => p.status === "COMPLETED");
+          if (hasCompletedPayment && bookedRateValue > 0) {
+            therapistAmount = bookedRateValue * 0.9;
+            systemFeeOrRefund = bookedRateValue * 0.1;
+            breakdown = `Total: LKR ${bookedRateValue.toFixed(2)} | System Fee (10%): LKR ${systemFeeOrRefund.toFixed(2)} | Your Share (90%): LKR ${therapistAmount.toFixed(2)}`;
+          }
+        } else if (session.status === "CANCELLED" && session.cancelRefund) {
+          const refundPercentage = Number(session.cancelRefund.refundPercentage);
+          const originalAmount = Number(session.cancelRefund.originalAmount);
+          
+          if (refundPercentage === 60) {
+            therapistAmount = originalAmount * 0.3;
+            systemFeeOrRefund = originalAmount * 0.6; // Refund to patient
+            breakdown = `Original: LKR ${originalAmount.toFixed(2)} | Refund (60%): LKR ${systemFeeOrRefund.toFixed(2)} | Your Share (30%): LKR ${therapistAmount.toFixed(2)}`;
+          } else if (refundPercentage === 90) {
+            therapistAmount = 0;
+            systemFeeOrRefund = originalAmount * 0.9; // Refund to patient
+            breakdown = `Original: LKR ${originalAmount.toFixed(2)} | Refund (90%): LKR ${systemFeeOrRefund.toFixed(2)} | Your Share: LKR 0.00`;
+          }
+        }
+
+        return {
+          id: session.id,
+          patientName: `${session.patient.firstName} ${session.patient.lastName}`,
+          patientId: session.patient.id,
+          scheduledAt: session.scheduledAt,
+          duration: session.duration,
+          type: session.type,
+          status: session.status,
+          bookedRate: bookedRateValue,
+          therapistAmount,
+          systemFeeOrRefund,
+          breakdown,
+          sessionNotes: session.sessionNotes,
+          isPaid: session.Payment.some((p) => p.status === "COMPLETED"),
+          hasRefund: !!session.cancelRefund,
+          refundPercentage: session.cancelRefund ? Number(session.cancelRefund.refundPercentage) : 0,
+        };
+      }),
     });
   } catch (error) {
     console.error("Error fetching reports:", error);

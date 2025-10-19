@@ -54,6 +54,7 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
   });
   const [booking, setBooking] = useState(false);
   const [paymentProcessing, setPaymentProcessing] = useState(false);
+  const [meetingType, setMeetingType] = useState<'IN_PERSON' | 'ONLINE' | 'HYBRID'>('IN_PERSON');
 
   const year = selectedDate.getFullYear();
   const month = selectedDate.getMonth();
@@ -146,7 +147,8 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
           childId: child.id,
           date: `${selectedDate.getFullYear()}-${(selectedDate.getMonth() + 1).toString().padStart(2, '0')}-${selectedDate.getDate().toString().padStart(2, '0')}`,
           timeSlot: selectedSlot,
-          sessionType: selectedSessionType
+          sessionType: selectedSessionType,
+          meetingType: meetingType
         }),
       });
 
@@ -193,6 +195,7 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
           date: `${selectedDate.getFullYear()}-${(selectedDate.getMonth() + 1).toString().padStart(2, '0')}-${selectedDate.getDate().toString().padStart(2, '0')}`,
           timeSlot: selectedSlot,
           sessionType: selectedSessionType,
+          meetingType: meetingType,
           amount: amount,
           customerInfo: {
             firstName: session.user.name?.split(' ')[0] || 'Parent',
@@ -291,40 +294,45 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
               </div>
             </div>
           </div>
-
           {/* Session Type Selection */}
           <div className="px-8 pt-4 pb-2">
             <div className="font-semibold text-sm text-muted-foreground mb-2">Session Type</div>
-            <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="flex gap-2">
               <button
                 type="button"
-                className={`rounded-xl px-4 py-3 text-sm font-semibold border transition-colors duration-150 focus:outline-none ${selectedSessionType === "Individual"
-                    ? "bg-primary text-white border-primary"
-                    : "bg-background text-foreground border-border hover:bg-muted/30"
-                  }`}
-                onClick={() => setSelectedSessionType("Individual")}
+                onClick={() => setMeetingType('IN_PERSON')}
+                className={`flex-1 py-3 px-4 rounded-xl border font-semibold text-sm transition-all ${
+                  meetingType === 'IN_PERSON'
+                    ? 'bg-primary text-white border-primary shadow-md'
+                    : 'bg-background text-foreground border-border hover:bg-muted/30'
+                }`}
               >
-                <div className="flex flex-col items-center gap-1">
-                  <span className="text-base font-bold">Individual</span>
-                  <span className="text-xs opacity-80">One-on-one session</span>
-                </div>
+                In-Person
               </button>
               <button
                 type="button"
-                className={`rounded-xl px-4 py-3 text-sm font-semibold border transition-colors duration-150 focus:outline-none ${selectedSessionType === "With Parent"
-                    ? "bg-primary text-white border-primary"
-                    : "bg-background text-foreground border-border hover:bg-muted/30"
-                  }`}
-                onClick={() => setSelectedSessionType("With Parent")}
+                onClick={() => setMeetingType('ONLINE')}
+                className={`flex-1 py-3 px-4 rounded-xl border font-semibold text-sm transition-all ${
+                  meetingType === 'ONLINE'
+                    ? 'bg-primary text-white border-primary shadow-md'
+                    : 'bg-background text-foreground border-border hover:bg-muted/30'
+                }`}
               >
-                <div className="flex flex-col items-center gap-1">
-                  <span className="text-base font-bold">Family</span>
-                  <span className="text-xs opacity-80">Session with parent</span>
-                </div>
+                Online
+              </button>
+              <button
+                type="button"
+                onClick={() => setMeetingType('HYBRID')}
+                className={`flex-1 py-3 px-4 rounded-xl border font-semibold text-sm transition-all ${
+                  meetingType === 'HYBRID'
+                    ? 'bg-primary text-white border-primary shadow-md'
+                    : 'bg-background text-foreground border-border hover:bg-muted/30'
+                }`}
+              >
+                Hybrid
               </button>
             </div>
           </div>
-
           {/* Select Date & Calendar */}
           <div className="px-8 pt-4 pb-2">
             <div className="font-semibold text-sm text-muted-foreground mb-2">Select Date</div>

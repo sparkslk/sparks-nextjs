@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { createGoogleMeetEvent, generateSimpleMeetingLink } from "@/lib/google-meet";
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,7 +11,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { childId, date, timeSlot, sessionType = "Individual" } = await request.json();
+    const { childId, date, timeSlot, sessionType = "Individual", meetingType = "IN_PERSON" } = await request.json();
 
     if (!childId || !date || !timeSlot) {
       return NextResponse.json(
@@ -156,6 +157,80 @@ export async function POST(request: NextRequest) {
     // Get the rate - check if slot is free, otherwise use therapist's session rate
     const sessionRate = availabilitySlot.isFree ? 0 : (child.primaryTherapist.session_rate || 0);
 
+    // Store therapist info for use outside transaction
+    const therapistUserId = child.primaryTherapist.user.id;
+    const therapistName = child.primaryTherapist.user.name || "Therapist";
+
+    // Generate meeting link for online/hybrid sessions
+    let meetingLink: string | null = null;
+    let calendarEventId: string | null = null;
+
+    if (meetingType === "ONLINE" || meetingType === "HYBRID") {
+      try {
+        // Get therapist's Google OAuth tokens
+        const therapistAccount = await prisma.account.findFirst({
+          where: {
+            userId: therapistUserId,
+            provider: "google",
+          },
+          select: {
+            access_token: true,
+            refresh_token: true,
+          },
+        });
+
+        if (therapistAccount?.access_token && therapistAccount?.refresh_token) {
+          // Get parent user details
+          const parentUser = await prisma.user.findUnique({
+            where: { id: session.user.id },
+            select: { email: true, name: true },
+          });
+
+          // Get therapist email
+          const therapistEmail = await prisma.user.findUnique({
+            where: { id: therapistUserId },
+            select: { email: true },
+          });
+
+          // Calculate session end time (45 minutes after start)
+          const sessionEnd = new Date(sessionDate);
+          sessionEnd.setMinutes(sessionEnd.getMinutes() + 45);
+
+          // Create Google Meet event
+          const meetingResponse = await createGoogleMeetEvent(
+            {
+              summary: `Therapy Session - ${child.firstName} ${child.lastName}`,
+              description: `Online therapy session\nSession Type: ${sessionType}\nPatient: ${child.firstName} ${child.lastName}\nTherapist: ${therapistName}\nParent: ${parentUser?.name || 'Guardian'}`,
+              startDateTime: sessionDate.toISOString(),
+              endDateTime: sessionEnd.toISOString(),
+              attendeeEmails: [
+                ...(parentUser?.email ? [parentUser.email] : []),
+                ...(therapistEmail?.email ? [therapistEmail.email] : []),
+              ],
+              timezone: "Asia/Colombo",
+            },
+            therapistAccount.access_token,
+            therapistAccount.refresh_token,
+            therapistUserId
+          );
+
+          meetingLink = meetingResponse.meetingLink;
+          calendarEventId = meetingResponse.eventId;
+
+          console.log(`✅ Google Meet event created: ${meetingResponse.meetingLink}`);
+        } else {
+          // Fallback to simple meeting link if therapist hasn't connected Google account
+          meetingLink = generateSimpleMeetingLink(`${childId}-${Date.now()}`);
+          console.log(`⚠️ Using fallback meeting link (therapist not connected to Google)`);
+        }
+      } catch (meetError) {
+        // If Google Meet creation fails, fall back to simple meeting link
+        console.error("Failed to create Google Meet event:", meetError);
+        meetingLink = generateSimpleMeetingLink(`${childId}-${Date.now()}`);
+        console.log(`⚠️ Using fallback meeting link (Google Meet creation failed)`);
+      }
+    }
+
     // Create the therapy session and mark the slot as booked in a transaction
     const result = await prisma.$transaction(async (tx) => {
       // First, mark the availability slot as booked (double-check it's still available)
@@ -180,7 +255,10 @@ export async function POST(request: NextRequest) {
           duration: 45, // Fixed 45-minute sessions
           status: "SCHEDULED",
           type: sessionType,
-          bookedRate: sessionRate
+          bookedRate: sessionRate,
+          sessionType: meetingType as "IN_PERSON" | "ONLINE" | "HYBRID",
+          meetingLink: meetingLink,
+          calendarEventId: calendarEventId
         },
         include: {
           patient: {
@@ -234,7 +312,9 @@ export async function POST(request: NextRequest) {
         scheduledAt: result.scheduledAt,
         duration: result.duration,
         status: result.status,
-        bookedRate: result.bookedRate
+        bookedRate: result.bookedRate,
+        sessionType: result.sessionType,
+        meetingLink: result.meetingLink
       }
     });
 

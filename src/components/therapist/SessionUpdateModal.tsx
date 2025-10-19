@@ -700,55 +700,57 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
               </CardContent>
             </Card>
 
-            {/* --- New Section: Medications & Tasks --- */}
-            <Card className={isClinicalFieldsDisabled ? "opacity-50" : ""}>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  Patient Medications & Assessments
-                  {isClinicalFieldsDisabled && (
-                    <Badge variant="secondary" className="text-xs">
-                      Not Available for No Show
-                    </Badge>
-                  )}
-                </CardTitle>
-                {!isClinicalFieldsDisabled && (
-                  <p className="text-sm text-gray-600">Use these options to update the patient&apos;s current medications or assign new assessments directly from this session.</p>
+          {/* --- New Section: Medications & Tasks --- */}
+          <Card className={isClinicalFieldsDisabled ? "opacity-50" : ""}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center gap-2">
+                Patient Medications & Assessments
+                {isClinicalFieldsDisabled && (
+                  <Badge variant="secondary" className="text-xs">
+                    Not Available for No Show
+                  </Badge>
                 )}
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <Button
-                    style={{ backgroundColor: "#FAF8FB", color: "#8159A8" }}
-                    className="font-semibold px-4 py-2 rounded-lg transition-colors duration-150 hover:bg-[#E9E3F2] hover:text-[#6B399A] hover:shadow-md hover:scale-103"
-                    type="button"
-                    disabled={isClinicalFieldsDisabled}
-                    onClick={() => {
-                      // Open the medications modal from parent with patient context
-                      if (typeof window !== "undefined" && currentSession.patientId) {
-                        const event = new CustomEvent("openMedicationsModal", {
-                          detail: { patientId: currentSession.patientId }
-                        });
-                        window.dispatchEvent(event);
-                      }
-                    }}
-                  >
-                    Update Patient&apos;s Medication
-                  </Button>
-                  <Button
-                    style={{ backgroundColor: "#FAF8FB", color: "#8159A8" }}
-                    className="font-semibold px-4 py-2 rounded-lg transition-colors duration-150 hover:bg-[#E9E3F2] hover:text-[#6B399A] hover:shadow-md hover:scale-103"
-                    type="button"
-                    disabled={isClinicalFieldsDisabled}
-                    onClick={() => {
-                      // Open the tasks modal from parent
-                      if (typeof window !== "undefined") {
-                        const event = new CustomEvent("openTasksModal");
-                        window.dispatchEvent(event);
-                      }
-                    }}
-                  >
-                    Assign New Assessments to Patient
-                  </Button>
+              </CardTitle>
+              {!isClinicalFieldsDisabled && (
+                <p className="text-sm text-gray-600">Use these options to update the patient&apos;s current medications or assign new assessments directly from this session.</p>
+              )}
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Button
+                  style={{ backgroundColor: "#FAF8FB", color: "#8159A8" }}
+                  className="font-semibold px-4 py-2 rounded-lg transition-colors duration-150 hover:bg-[#E9E3F2] hover:text-[#6B399A] hover:shadow-md hover:scale-103"
+                  type="button"
+                  disabled={isClinicalFieldsDisabled}
+                  onClick={() => {
+                    // Open the medications modal from parent with patient context
+                    if (typeof window !== "undefined" && currentSession.patientId) {
+                      const event = new CustomEvent("openMedicationsModal", {
+                        detail: { patientId: currentSession.patientId }
+                      });
+                      window.dispatchEvent(event);
+                    }
+                  }}
+                >
+                  Update Patient&apos;s Medication
+                </Button>
+                <Button
+                  style={{ backgroundColor: "#FAF8FB", color: "#8159A8" }}
+                  className="font-semibold px-4 py-2 rounded-lg transition-colors duration-150 hover:bg-[#E9E3F2] hover:text-[#6B399A] hover:shadow-md hover:scale-103"
+                  type="button"
+                  disabled={isClinicalFieldsDisabled}
+                  onClick={() => {
+                    // Open the tasks modal from parent with patient context
+                    if (typeof window !== "undefined" && currentSession.patientId) {
+                      const event = new CustomEvent("openTasksModal", {
+                        detail: { patientId: currentSession.patientId }
+                      });
+                      window.dispatchEvent(event);
+                    }
+                  }}
+                >
+                  Assign New Assessments to Patient
+                </Button>
                 </div>
               </CardContent>
             </Card>
