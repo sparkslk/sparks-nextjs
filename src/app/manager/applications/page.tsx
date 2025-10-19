@@ -16,6 +16,15 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+// Using a native <textarea> inside the dialog to avoid any styling-induced focus quirks
+import {
   Search,
   Filter,
   Eye,
@@ -31,6 +40,7 @@ import {
   // Building,
   // GraduationCap,
 } from "lucide-react";
+import { toast } from "sonner";
 
 interface TherapistApplication {
   id: string;
@@ -80,7 +90,12 @@ export default function ManagerApplicationsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showReviewModal, setShowReviewModal] = useState(false);
-  const [rejectionReason, setRejectionReason] = useState("");
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<{
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  } | null>(null);
 
   // Fetch applications from API
   const fetchApplications = useCallback(async () => {
@@ -104,7 +119,7 @@ export default function ManagerApplicationsPage() {
       setApplications(data);
     } catch (error) {
       console.error("Error fetching applications:", error);
-      // Handle error - maybe show a toast notification
+      toast.error("Failed to load applications. Please refresh the page.");
     } finally {
       setLoading(false);
     }
@@ -168,28 +183,36 @@ export default function ManagerApplicationsPage() {
   };
 
   const handleApprove = async (applicationId: string) => {
-    try {
-      const response = await fetch(`/api/manager/verification-requests/${applicationId}/review`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          status: 'APPROVED'
-        }),
-      });
+    setConfirmAction({
+      title: "Approve Application",
+      message: "Are you sure you want to approve this therapist application? The therapist will be notified and gain access to the platform.",
+      onConfirm: async () => {
+        try {
+          const response = await fetch(`/api/manager/verification-requests/${applicationId}/review`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              status: 'APPROVED'
+            }),
+          });
 
-      if (!response.ok) {
-        throw new Error('Failed to approve application');
-      }
+          if (!response.ok) {
+            throw new Error('Failed to approve application');
+          }
 
-      // Refresh applications list
-      await fetchApplications();
-      alert("Application approved successfully!");
-    } catch (error) {
-      console.error("Failed to approve application:", error);
-      alert("Failed to approve application. Please try again.");
-    }
+          // Refresh applications list
+          await fetchApplications();
+          toast.success("Application approved successfully! The therapist has been notified.");
+          setSelectedApplication(null); // Close details modal if open
+        } catch (error) {
+          console.error("Failed to approve application:", error);
+          toast.error("Failed to approve application. Please try again.");
+        }
+      },
+    });
+    setShowConfirmDialog(true);
   };
 
   const handleReject = async (applicationId: string, reason: string) => {
@@ -210,27 +233,49 @@ export default function ManagerApplicationsPage() {
       }
 
       setShowReviewModal(false);
-      setRejectionReason("");
 
       // Refresh applications list
       await fetchApplications();
-      alert("Application rejected.");
+      toast.success("Application rejected. The therapist has been notified.");
+      setSelectedApplication(null); // Close details modal if open
     } catch (error) {
       console.error("Failed to reject application:", error);
-      alert("Failed to reject application. Please try again.");
+      toast.error("Failed to reject application. Please try again.");
     }
   };
 
 
 
-  const handleDownloadDocument = (url: string, fileName: string) => {
-    // Create a temporary link to download the document
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleDownloadDocument = async (url: string, fileName: string) => {
+    try {
+      // Fetch the document as a blob
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error('Failed to download document');
+      }
+      
+      const blob = await response.blob();
+      
+      // Create a temporary URL for the blob
+      const blobUrl = window.URL.createObjectURL(blob);
+      
+      // Create a temporary link to download the document
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      
+      // Clean up
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+      
+      toast.success("Document downloaded successfully!");
+    } catch (error) {
+      console.error('Error downloading document:', error);
+      toast.error('Failed to download document. Please try again.');
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -367,7 +412,8 @@ export default function ManagerApplicationsPage() {
   );
 
   const ApplicationDetailsModal = () => {
-    if (!selectedApplication) return null;
+    // Hide the details modal while the reject modal is open to prevent focus issues
+    if (!selectedApplication || showReviewModal) return null;
 
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -640,38 +686,75 @@ export default function ManagerApplicationsPage() {
   };
 
   const RejectModal = () => {
-    if (!showReviewModal || !selectedApplication) return null;
+    const [reason, setReason] = React.useState("");
+    const rejectTextareaRef = React.useRef<HTMLTextAreaElement | null>(null);
+
+    React.useEffect(() => {
+      if (showReviewModal && rejectTextareaRef.current) {
+        const el = rejectTextareaRef.current;
+        el.focus({ preventScroll: true } as FocusOptions);
+        const len = el.value.length;
+        try {
+          el.setSelectionRange(len, len);
+        } catch {
+          // Ignore errors from setSelectionRange
+        }
+      }
+      if (!showReviewModal) {
+        setReason("");
+      }
+    }, []);
 
     return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-lg max-w-md w-full p-6">
-          <h3 className="text-lg font-bold mb-4">Reject Application</h3>
-          <p className="text-muted-foreground mb-4">
-            Please provide a reason for rejecting {selectedApplication.name}&apos;s
-            application:
-          </p>
-          <textarea
-            value={rejectionReason}
-            onChange={(e) => setRejectionReason(e.target.value)}
-            placeholder="Enter rejection reason..."
-            className="w-full p-3 border rounded-md min-h-[100px] mb-4"
-          />
-          <div className="flex gap-2 justify-end">
-            <Button variant="outline" onClick={() => setShowReviewModal(false)}>
+      <Dialog
+        open={showReviewModal}
+        onOpenChange={(open) => {
+          setShowReviewModal(open);
+          if (!open) {
+            // reset handled by effect
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Application</DialogTitle>
+            <DialogDescription>
+              {selectedApplication
+                ? `Please provide a reason for rejecting ${selectedApplication.name}'s application:`
+                : "Please provide a reason for rejecting this application:"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <textarea
+              ref={rejectTextareaRef}
+              dir="ltr"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Enter rejection reason..."
+              rows={5}
+              className="w-full p-3 border rounded-md min-h-[120px] focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowReviewModal(false)}
+            >
               Cancel
             </Button>
             <Button
               variant="destructive"
-              onClick={() =>
-                handleReject(selectedApplication.id, rejectionReason)
-              }
-              disabled={!rejectionReason.trim()}
+              onClick={() => {
+                if (!selectedApplication) return;
+                handleReject(selectedApplication.id, reason);
+              }}
+              disabled={!reason.trim()}
             >
               Reject Application
             </Button>
-          </div>
-        </div>
-      </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     );
   };
 
@@ -702,36 +785,42 @@ export default function ManagerApplicationsPage() {
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-4 gap-4 mb-6">
-            <Card>
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold">{statusCounts.all}</div>
-                <div className="text-sm text-muted-foreground">Total</div>
-              </CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+            <Card className="bg-primary-foreground p-6 rounded-lg border shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center justify-between min-w-[200px]">
+              <div className="text-left">
+                <div className="text-3xl font-bold text-[#8159A8]">{statusCounts.all}</div>
+                <div className="text-gray-500 text-sm">Total</div>
+              </div>
+              <div className="flex-shrink-0 ml-4">
+                <User className="w-10 h-10 text-[#8159A8]" />
+              </div>
             </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-yellow-600">
-                  {statusCounts.pending}
-                </div>
-                <div className="text-sm text-muted-foreground">Pending</div>
-              </CardContent>
+            <Card className="bg-primary-foreground p-6 rounded-lg border shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center justify-between min-w-[200px]">
+              <div className="text-left">
+                <div className="text-3xl font-bold text-[#8159A8]">{statusCounts.pending}</div>
+                <div className="text-gray-500 text-sm">Pending</div>
+              </div>
+              <div className="flex-shrink-0 ml-4">
+                <Clock className="w-10 h-10 text-[#8159A8]" />
+              </div>
             </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-green-600">
-                  {statusCounts.approved}
-                </div>
-                <div className="text-sm text-muted-foreground">Approved</div>
-              </CardContent>
+            <Card className="bg-primary-foreground p-6 rounded-lg border shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center justify-between min-w-[200px]">
+              <div className="text-left">
+                <div className="text-3xl font-bold text-[#8159A8]">{statusCounts.approved}</div>
+                <div className="text-gray-500 text-sm">Approved</div>
+              </div>
+              <div className="flex-shrink-0 ml-4">
+                <CheckCircle className="w-10 h-10 text-[#8159A8]" />
+              </div>
             </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-red-600">
-                  {statusCounts.rejected}
-                </div>
-                <div className="text-sm text-muted-foreground">Rejected</div>
-              </CardContent>
+            <Card className="bg-primary-foreground p-6 rounded-lg border shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center justify-between min-w-[200px]">
+              <div className="text-left">
+                <div className="text-3xl font-bold text-[#8159A8]">{statusCounts.rejected}</div>
+                <div className="text-gray-500 text-sm">Rejected</div>
+              </div>
+              <div className="flex-shrink-0 ml-4">
+                <XCircle className="w-10 h-10 text-[#8159A8]" />
+              </div>
             </Card>
           </div>
 
@@ -802,6 +891,39 @@ export default function ManagerApplicationsPage() {
       {/* Modals */}
       <ApplicationDetailsModal />
       <RejectModal />
+      
+      {/* Confirmation Dialog */}
+      <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{confirmAction?.title || "Confirm Action"}</DialogTitle>
+            <DialogDescription>
+              {confirmAction?.message || "Are you sure you want to proceed?"}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowConfirmDialog(false);
+                setConfirmAction(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                confirmAction?.onConfirm();
+                setShowConfirmDialog(false);
+                setConfirmAction(null);
+              }}
+              className="bg-[#8159A8] hover:bg-[#6d4a8f]"
+            >
+              Confirm
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

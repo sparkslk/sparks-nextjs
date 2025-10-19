@@ -422,7 +422,7 @@ export default function MyChildrenPage() {
                         <p className="text-3xl font-extrabold text-foreground mb-1">
                           {animatedProgress[child.id] || 0}%
                         </p>
-                        <p className="text-sm text-muted-foreground font-medium">Overall Progress</p>
+                        <p className="text-sm text-muted-foreground font-medium">Tasks Completed</p>
                       </div>
                     </div>
 

@@ -2,7 +2,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  Star,
   Video,
   Users,
   Clock,
@@ -69,11 +68,11 @@ export function TherapistCard({ therapist, bookingStatus, onBookSession }: Thera
             <h3 className="font-semibold text-gray-900">{therapist.name}</h3>
             <p className="text-sm text-gray-600">{therapist.title}</p>
           </div>
-          <div className="flex items-center gap-1">
+          {/* <div className="flex items-center gap-1">
             <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
             <span className="font-medium text-sm">{therapist.rating}</span>
             <span className="text-xs text-gray-500">({therapist.reviewCount})</span>
-          </div>
+          </div> */}
         </div>
 
         {/* Session Type & Experience */}
