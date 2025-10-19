@@ -463,11 +463,11 @@ export default function ParentMessagesPage() {
                                 </p>
                               )}
                             </div>
-                            {conversation.unreadCount && conversation.unreadCount > 0 && (
-                              <Badge className="bg-primary text-primary-foreground text-xs px-2 py-1">
-                                {conversation.unreadCount}
-                              </Badge>
-                            )}
+                            {Number(conversation.unreadCount) > 0 && (
+                                <Badge className="bg-primary text-primary-foreground text-xs px-2 py-1">
+                                  {conversation.unreadCount}
+                                </Badge>
+                              )}
                           </div>
                           <p className="text-sm text-muted-foreground truncate mb-1">
                             {conversation.lastMessage || "No messages yet"}

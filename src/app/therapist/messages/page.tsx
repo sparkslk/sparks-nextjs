@@ -544,7 +544,7 @@ export default function TherapistMessagesPage() {
                                   : "Patient"}
                               </p>
                             </div>
-                            {conversation.unreadCount && conversation.unreadCount > 0 && (
+                            {Number(conversation.unreadCount) > 0 && (
                               <Badge className="bg-[#8159A8] text-white text-xs px-2 py-1">
                                 {conversation.unreadCount}
                               </Badge>
