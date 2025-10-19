@@ -113,17 +113,99 @@ export async function GET(req: NextRequest) {
             where: { patientId: { in: patientIds } },
         });
 
+        // Helper function to calculate session end time
+        const getSessionEndTime = (scheduledAt: Date, duration: number) => {
+            return new Date(scheduledAt.getTime() + duration * 60000); // duration in minutes
+        };
+
+        // Today's Appointments
+        const startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
+
+        const endOfDay = new Date();
+        endOfDay.setHours(23, 59, 59, 999);
+
+        const todayAppointments = therapist.therapySessions.filter((s) => {
+            const sessionDate = new Date(s.scheduledAt);
+            return sessionDate >= startOfDay && sessionDate <= endOfDay;
+        }).length;
+
+        // Sessions to Document
+        const sessionsToDocument = therapist.therapySessions.filter((s) => {
+            if (s.status !== 'SCHEDULED') return false;
+            const sessionEndTime = getSessionEndTime(new Date(s.scheduledAt), s.duration);
+            return sessionEndTime < new Date();
+        });
+
         // Stats
         const stats = {
             totalPatients: therapist.patients.length,
-            todayAppointments: therapist.therapySessions.filter((s) => {
-                const today = new Date();
-                const sessionDate = new Date(s.scheduledAt);
-                return sessionDate.toDateString() === today.toDateString();
-            }).length,
+            todayAppointments,
             completedSessions: therapist.therapySessions.filter((s) => s.status === 'COMPLETED').length,
             pendingTasks: tasks.filter((t) => t.status !== 'COMPLETED').length,
+            sessionsToDocument: sessionsToDocument.length,
         };
+
+        // Chart data for session overview (last 7 days)
+        const last7Days = Array.from({ length: 7 }, (_, i) => {
+            const date = new Date();
+            date.setDate(date.getDate() - i);
+            return date;
+        }).reverse();
+
+        const sessionChartData = last7Days.map(date => {
+            const sessionsOnDate = therapist.therapySessions.filter(s => {
+                const sessionDate = new Date(s.scheduledAt);
+                return sessionDate.toDateString() === date.toDateString();
+            });
+            
+            return {
+                date: date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
+                scheduled: sessionsOnDate.filter(s => s.status === 'SCHEDULED').length,
+                completed: sessionsOnDate.filter(s => s.status === 'COMPLETED').length,
+                cancelled: sessionsOnDate.filter(s => s.status === 'CANCELLED').length,
+            };
+        });
+
+        // Patient engagement data
+        const engagementData = [
+            { 
+                level: 'High', 
+                count: therapist.therapySessions.filter(s => s.patientEngagement === 'HIGH').length,
+                color: '#22c55e'
+            },
+            { 
+                level: 'Medium', 
+                count: therapist.therapySessions.filter(s => s.patientEngagement === 'MEDIUM').length,
+                color: '#f59e0b'
+            },
+            { 
+                level: 'Low', 
+                count: therapist.therapySessions.filter(s => s.patientEngagement === 'LOW').length,
+                color: '#ef4444'
+            },
+        ];
+
+        // Monthly progress data (last 6 months)
+        const last6Months = Array.from({ length: 6 }, (_, i) => {
+            const date = new Date();
+            date.setMonth(date.getMonth() - i);
+            return date;
+        }).reverse();
+
+        const progressData = last6Months.map(date => {
+            const sessionsInMonth = therapist.therapySessions.filter(s => {
+                const sessionDate = new Date(s.scheduledAt);
+                return sessionDate.getMonth() === date.getMonth() && 
+                       sessionDate.getFullYear() === date.getFullYear();
+            });
+            
+            return {
+                month: date.toLocaleDateString('en-US', { month: 'short' }),
+                sessions: sessionsInMonth.length,
+                completed: sessionsInMonth.filter(s => s.status === 'COMPLETED').length,
+            };
+        });
 
         // Recent activities (last 5 sessions)
         const recentActivities = therapist.therapySessions
@@ -152,7 +234,16 @@ export async function GET(req: NextRequest) {
                 status: s.status.toLowerCase(),
             }));
 
-        return NextResponse.json({ stats, recentActivities, upcomingAppointments });
+        return NextResponse.json({ 
+            stats, 
+            recentActivities, 
+            upcomingAppointments,
+            chartData: {
+                sessionOverview: sessionChartData,
+                patientEngagement: engagementData,
+                monthlyProgress: progressData
+            }
+        });
     } catch (error) {
         // Handle authentication/authorization errors
         if (error instanceof NextResponse) {

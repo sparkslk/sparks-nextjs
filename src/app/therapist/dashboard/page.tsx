@@ -3,11 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
-    StatCard,
     QuickActionCard,
-    RecentActivity,
     UpcomingAppointments
 } from "@/components/dashboard/DashboardComponents";
+import {SessionOverviewChart, MonthlyProgressChart } from "@/components/dashboard/TherapistCharts";
 import {
     Users,
     Calendar,
@@ -24,6 +23,7 @@ interface TherapistStats {
     todayAppointments: number;
     completedSessions: number;
     pendingTasks: number;
+    sessionsToDocument: number;
 }
 
 interface Activity {
@@ -43,10 +43,30 @@ interface Appointment {
     status: "scheduled" | "confirmed" | "pending";
 }
 
+interface ChartData {
+    sessionOverview: Array<{
+        date: string;
+        scheduled: number;
+        completed: number;
+        cancelled: number;
+    }>;
+    patientEngagement: Array<{
+        level: string;
+        count: number;
+        color: string;
+    }>;
+    monthlyProgress: Array<{
+        month: string;
+        sessions: number;
+        completed: number;
+    }>;
+}
+
 interface TherapistDashboardData {
     stats: TherapistStats;
     recentActivities: Activity[];
     upcomingAppointments: Appointment[];
+    chartData: ChartData;
 }
 
 export default function TherapistDashboard() {
@@ -55,10 +75,16 @@ export default function TherapistDashboard() {
         totalPatients: 0,
         todayAppointments: 0,
         completedSessions: 0,
-        pendingTasks: 0
+        pendingTasks: 0,
+        sessionsToDocument: 0
     });
-    const [recentActivities, setRecentActivities] = useState<Activity[]>([]);
+    const [, setRecentActivities] = useState<Activity[]>([]);
     const [upcomingAppointments, setUpcomingAppointments] = useState<Appointment[]>([]);
+    const [chartData, setChartData] = useState<ChartData>({
+        sessionOverview: [],
+        patientEngagement: [],
+        monthlyProgress: []
+    });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -133,6 +159,11 @@ export default function TherapistDashboard() {
 
                 setStats(data.stats);
                 setRecentActivities(data.recentActivities || []);
+                setChartData(data.chartData || {
+                    sessionOverview: [],
+                    patientEngagement: [],
+                    monthlyProgress: []
+                });
 
                 // Filter only upcoming appointments (future sessions) and format their times
                 const upcomingOnly = (data.upcomingAppointments || [])
@@ -238,31 +269,51 @@ export default function TherapistDashboard() {
                     </p>
                 </div>
 
-                {/* Statistics Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <StatCard
-                        title="Total Patients"
-                        value={stats.totalPatients}
-                        description="Active patients under your care"
-                        icon={Users}
-                        trend={{ value: 12, isPositive: true }}
-                        color="primary"
-                    />
-                    <StatCard
-                        title="Today's Sessions"
-                        value={stats.todayAppointments}
-                        description="Scheduled sessions for today"
-                        icon={Calendar}
-                        color="primary"
-                    />
-                    <StatCard
-                        title="Completed Sessions"
-                        value={stats.completedSessions}
-                        description="This month"
-                        icon={CheckCircle}
-                        trend={{ value: 8, isPositive: true }}
-                        color="primary"
-                    />
+                {/* Custom Statistics Section */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div className="p-4 bg-primary/10 rounded-lg shadow-md">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="text-lg font-semibold text-primary">Total Patients</h3>
+                                <p className="text-2xl font-bold text-primary mt-2">{stats.totalPatients}</p>
+                                <p className="text-sm text-muted-foreground">Active patients under your care</p>
+                            </div>
+                            <Users className="h-10 w-10 text-primary" />
+                        </div>
+                    </div>
+
+                    <div className="p-4 bg-primary/10 rounded-lg shadow-md">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="text-lg font-semibold text-primary">Today's Sessions</h3>
+                                <p className="text-2xl font-bold text-primary mt-2">{stats.todayAppointments}</p>
+                                <p className="text-sm text-muted-foreground">Scheduled sessions for today</p>
+                            </div>
+                            <Calendar className="h-10 w-10 text-primary" />
+                        </div>
+                    </div>
+
+                    <div className="p-4 bg-primary/10 rounded-lg shadow-md">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="text-lg font-semibold text-primary">Completed Sessions</h3>
+                                <p className="text-2xl font-bold text-primary mt-2">{stats.completedSessions}</p>
+                                <p className="text-sm text-muted-foreground">This month</p>
+                            </div>
+                            <CheckCircle className="h-10 w-10 text-primary" />
+                        </div>
+                    </div>
+
+                    <div className="p-4 bg-primary/10 rounded-lg shadow-md">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="text-lg font-semibold text-primary">Sessions to Document</h3>
+                                <p className="text-2xl font-bold text-primary mt-2">{stats.sessionsToDocument}</p>
+                                <p className="text-sm text-muted-foreground">Awaiting documentation</p>
+                            </div>
+                            <FileText className="h-10 w-10 text-primary" />
+                        </div>
+                    </div>
                 </div>
 
                 {/* Quick Actions */}
@@ -284,21 +335,20 @@ export default function TherapistDashboard() {
                 </div>
 
                 {/* Main Content Grid */}
-                <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 xl:grid-cols-20 gap-6">
                     {/* Left Column - Upcoming Appointments */}
-                    <div className="xl:col-span-1">
+                    <div className="xl:col-span-6">
                         <UpcomingAppointments appointments={upcomingAppointments} />
                     </div>
 
-                    {/* Right Column - Recent Activity */}
-                    <div className="xl:col-span-2">
-                        <RecentActivity
-                            activities={recentActivities.map(activity => ({
-                                ...activity,
-                                time: formatDateTime(activity.time)
-                            }))}
-                            title="Recent Activity"
-                        />
+                    {/* Middle Column - Session Overview Chart */}
+                    <div className="xl:col-span-7">
+                        <SessionOverviewChart data={chartData.sessionOverview} />
+                    </div>
+
+                    {/* Right Column - Monthly Progress Chart */}
+                    <div className="xl:col-span-7">
+                        <MonthlyProgressChart data={chartData.monthlyProgress} />
                     </div>
                 </div>
             </div>
