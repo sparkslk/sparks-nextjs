@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { Calendar } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Calendar, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 // interface ReportItemProps {
@@ -328,7 +328,43 @@ const AllDonationsCard = () => {
   );
 };
 
+interface DonationMetrics {
+  allTime: {
+    totalAmount: number;
+    totalCount: number;
+    averageAmount: number;
+  };
+  last7Days: {
+    totalAmount: number;
+    totalCount: number;
+  };
+  last30Days: {
+    totalAmount: number;
+    totalCount: number;
+  };
+}
+
 const FinancialDashboard: React.FC = () => {
+  const [metrics, setMetrics] = useState<DonationMetrics | null>(null);
+  const [metricsLoading, setMetricsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDonationMetrics();
+  }, []);
+
+  const fetchDonationMetrics = async () => {
+    try {
+      const response = await fetch("/api/admin/donations/metrics");
+      const data = await response.json();
+      if (data.success) {
+        setMetrics(data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching donation metrics:", error);
+    } finally {
+      setMetricsLoading(false);
+    }
+  };
 
   /* const ReportItem: React.FC<ReportItemProps> = ({
     title,
@@ -453,12 +489,21 @@ const FinancialDashboard: React.FC = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-[#8159A8]">
-                Rs. 985,600
-              </div>
-              <p className="text-xs text-muted-foreground">
-                From platform users
-              </p>
+              {metricsLoading ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="w-6 h-6 animate-spin text-[#8159A8]" />
+                </div>
+              ) : (
+                <>
+                  <div className="text-2xl font-bold text-[#8159A8]">
+                    Rs. {metrics?.allTime.totalAmount.toLocaleString() || 0}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {metrics?.allTime.totalCount || 0} donations • Avg. Rs.{" "}
+                    {metrics?.allTime.averageAmount.toLocaleString() || 0}
+                  </p>
+                </>
+              )}
             </CardContent>
           </Card>
         </div>

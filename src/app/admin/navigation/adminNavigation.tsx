@@ -14,8 +14,9 @@ const tabs = [
     { name: 'User Management', path: '/admin/users' },
     { name: 'Session Oversight', path: '/admin/sessions' },
     { name: 'Financial Reports', path: '/admin/reports' },
+    { name: 'Donations', path: '/admin/donations' },
     { name: 'Game Management', path: '/admin/games' }
-    
+
 ];
 
 interface AdminData {

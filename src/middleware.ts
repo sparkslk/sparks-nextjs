@@ -27,6 +27,9 @@ const PUBLIC_PATHS = [
   "/about",
   "/resources",
   "/contact",
+  "/donate",
+  "/donate/success",
+  "/donate/cancel",
   "/confirm-role",
   "/set-password",
   "/blogs",
@@ -34,6 +37,11 @@ const PUBLIC_PATHS = [
 ];
 
 function isPublicPath(path: string) {
+  // Allow public donation API routes
+  if (path.startsWith("/api/donation/")) {
+    return true;
+  }
+
   const isPublic = PUBLIC_PATHS.some(
     (publicPath) => path === publicPath || path.startsWith(publicPath + "/")
   );
