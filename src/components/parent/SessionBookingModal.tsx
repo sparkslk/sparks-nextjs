@@ -40,6 +40,7 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
   const { data: session } = useSession();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+  const [selectedSessionType, setSelectedSessionType] = useState<string>("Individual");
   const [showCalendar, setShowCalendar] = useState(false);
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
@@ -146,7 +147,7 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
           childId: child.id,
           date: `${selectedDate.getFullYear()}-${(selectedDate.getMonth() + 1).toString().padStart(2, '0')}-${selectedDate.getDate().toString().padStart(2, '0')}`,
           timeSlot: selectedSlot,
-          sessionType: "Individual",
+          sessionType: selectedSessionType,
           meetingType: meetingType
         }),
       });
@@ -160,6 +161,7 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
           // Reset form
           setSelectedSlot(null);
           setSelectedDate(new Date());
+          setSelectedSessionType("Individual");
         }, 2000);
       } else {
         const error = await response.json();
@@ -192,7 +194,7 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
           childId: child.id,
           date: `${selectedDate.getFullYear()}-${(selectedDate.getMonth() + 1).toString().padStart(2, '0')}-${selectedDate.getDate().toString().padStart(2, '0')}`,
           timeSlot: selectedSlot,
-          sessionType: "Individual",
+          sessionType: selectedSessionType,
           meetingType: meetingType,
           amount: amount,
           customerInfo: {
@@ -413,10 +415,10 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
                     key={slotData.slot}
                     variant={selectedSlot === slotData.slot ? "default" : "outline"}
                     className={`rounded-xl px-4 py-3 text-sm font-semibold shadow-sm flex flex-col items-center gap-1 h-auto ${selectedSlot === slotData.slot
-                        ? "bg-primary text-white"
-                        : slotData.isAvailable
-                          ? "hover:bg-primary/10"
-                          : "opacity-50 cursor-not-allowed bg-muted text-muted-foreground"
+                      ? "bg-primary text-white"
+                      : slotData.isAvailable
+                        ? "hover:bg-primary/10"
+                        : "opacity-50 cursor-not-allowed bg-muted text-muted-foreground"
                       }`}
                     onClick={() => slotData.isAvailable && handleSlotClick(slotData.slot)}
                     disabled={!slotData.isAvailable}
@@ -449,6 +451,9 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
               </div>
               <div className="flex justify-between text-sm mb-2 text-muted-foreground">
                 <span>Therapist:</span> <span className="font-medium text-foreground">Dr. {therapistInfo.name}</span>
+              </div>
+              <div className="flex justify-between text-sm mb-2 text-muted-foreground">
+                <span>Session Type:</span> <span className="font-medium text-foreground">{selectedSessionType === "With Parent" ? "Family Session" : "Individual Session"}</span>
               </div>
               <div className="flex justify-between text-sm mb-2 text-muted-foreground">
                 <span>Duration:</span> <span className="font-medium text-foreground">45 minutes</span>

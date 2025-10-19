@@ -865,4 +865,3 @@ export function SessionUpdateModal({ session, isOpen, onClose, onSessionUpdated 
     </Dialog>
   );
 }
-

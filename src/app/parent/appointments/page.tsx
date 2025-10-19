@@ -242,9 +242,9 @@ export default function AppointmentsPage() {
             )}
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+            {/* <Badge variant="secondary" className="bg-orange-100 text-orange-800">
               Reschedule Requested
-            </Badge>
+            </Badge> */}
             <Button
               variant="outline"
               size="sm"
@@ -372,7 +372,7 @@ export default function AppointmentsPage() {
                                 <User className="h-4 w-4" />
                                 {appointment.sessionType}
                               </div>
-                              {/* Session Mode Badge */}
+                              {/* Session Mode Badge
                               {appointment.mode && (
                                 <Badge
                                   variant="outline"
@@ -388,13 +388,13 @@ export default function AppointmentsPage() {
                                   {appointment.mode === 'HYBRID' && '🔄 Hybrid'}
                                   {appointment.mode === 'IN_PERSON' && '👤 In-Person'}
                                 </Badge>
-                              )}
+                              )} */}
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                            {/* <Badge variant="secondary" className="bg-blue-100 text-blue-800">
                               Scheduled
-                            </Badge>
+                            </Badge> */}
                             <div className="flex gap-2">
                               <Button
                                 variant="outline"

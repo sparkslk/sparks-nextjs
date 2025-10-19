@@ -80,6 +80,23 @@ export async function GET(req: NextRequest) {
                     select: {
                         name: true
                     }
+                },
+                profile: {
+                    select: {
+                        gender: true,
+                        dateOfBirth: true,
+                        phone: true,
+                        city: true
+                    }
+                },
+                verification: {
+                    select: {
+                        highestEducation: true,
+                        adhdExperience: true,
+                        primarySpecialty: true,
+                        yearsOfExperience: true,
+                        institution: true
+                    }
                 }
             },
             orderBy: {
@@ -154,6 +171,23 @@ export async function GET(req: NextRequest) {
                         select: {
                             name: true
                         }
+                    },
+                    profile: {
+                        select: {
+                            gender: true,
+                            dateOfBirth: true,
+                            phone: true,
+                            city: true
+                        }
+                    },
+                    verification: {
+                        select: {
+                            highestEducation: true,
+                            adhdExperience: true,
+                            primarySpecialty: true,
+                            yearsOfExperience: true,
+                            institution: true
+                        }
                     }
                 },
                 orderBy: {
@@ -177,12 +211,23 @@ export async function GET(req: NextRequest) {
                         "09:00", "10:00", "11:00", "14:00", "15:00", "16:00"
                     ],
                     patientsCount: therapistPatientCount[therapist.id] || 0,
-                    rating: therapist.rating ?? null
+                    rating: therapist.rating ?? null,
+                    // Additional profile fields
+                    gender: therapist.profile?.gender || null,
+                    dateOfBirth: therapist.profile?.dateOfBirth || null,
+                    phone: therapist.profile?.phone || null,
+                    city: therapist.profile?.city || null,
+                    // Additional verification fields
+                    highestEducation: therapist.verification?.highestEducation || null,
+                    adhdExperience: therapist.verification?.adhdExperience || null,
+                    primarySpecialty: therapist.verification?.primarySpecialty || null,
+                    yearsOfExperience: therapist.verification?.yearsOfExperience || null,
+                    institution: therapist.verification?.institution || null
                 }))
             });
         }
 
-    
+
 
         // Format therapists data for the frontend
         const formattedTherapists = therapists.map(therapist => ({
@@ -203,7 +248,18 @@ export async function GET(req: NextRequest) {
                 "16:00"
             ],
             patientsCount: therapistPatientCount[therapist.id] || 0,
-            rating: therapist.rating ?? null
+            rating: therapist.rating ?? null,
+            // Additional profile fields
+            gender: therapist.profile?.gender || null,
+            dateOfBirth: therapist.profile?.dateOfBirth || null,
+            phone: therapist.profile?.phone || null,
+            city: therapist.profile?.city || null,
+            // Additional verification fields
+            highestEducation: therapist.verification?.highestEducation || null,
+            adhdExperience: therapist.verification?.adhdExperience || null,
+            primarySpecialty: therapist.verification?.primarySpecialty || null,
+            yearsOfExperience: therapist.verification?.yearsOfExperience || null,
+            institution: therapist.verification?.institution || null
         }));
 
         return NextResponse.json({
