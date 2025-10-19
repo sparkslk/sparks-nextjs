@@ -16,6 +16,15 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+// Using a native <textarea> inside the dialog to avoid any styling-induced focus quirks
+import {
   Search,
   Filter,
   Eye,
@@ -80,7 +89,6 @@ export default function ManagerApplicationsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showReviewModal, setShowReviewModal] = useState(false);
-  const [rejectionReason, setRejectionReason] = useState("");
 
   // Fetch applications from API
   const fetchApplications = useCallback(async () => {
@@ -209,8 +217,7 @@ export default function ManagerApplicationsPage() {
         throw new Error('Failed to reject application');
       }
 
-      setShowReviewModal(false);
-      setRejectionReason("");
+  setShowReviewModal(false);
 
       // Refresh applications list
       await fetchApplications();
@@ -387,7 +394,8 @@ export default function ManagerApplicationsPage() {
   );
 
   const ApplicationDetailsModal = () => {
-    if (!selectedApplication) return null;
+    // Hide the details modal while the reject modal is open to prevent focus issues
+    if (!selectedApplication || showReviewModal) return null;
 
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -660,45 +668,73 @@ export default function ManagerApplicationsPage() {
   };
 
   const RejectModal = () => {
-    if (!showReviewModal || !selectedApplication) return null;
+    const [reason, setReason] = React.useState("");
+    const rejectTextareaRef = React.useRef<HTMLTextAreaElement | null>(null);
+
+    React.useEffect(() => {
+      if (showReviewModal && rejectTextareaRef.current) {
+        const el = rejectTextareaRef.current;
+        el.focus({ preventScroll: true } as any);
+        const len = el.value.length;
+        try {
+          el.setSelectionRange(len, len);
+        } catch (_) {}
+      }
+      if (!showReviewModal) {
+        setReason("");
+      }
+    }, [showReviewModal]);
 
     return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-lg max-w-md w-full p-6">
-          <h3 className="text-lg font-bold mb-4">Reject Application</h3>
-          <p className="text-muted-foreground mb-4">
-            Please provide a reason for rejecting {selectedApplication.name}&apos;s
-            application:
-          </p>
-          <textarea
-            value={rejectionReason}
-            onChange={(e) => setRejectionReason(e.target.value)}
-            placeholder="Enter rejection reason..."
-            className="w-full p-3 border rounded-md min-h-[100px] mb-4 focus:outline-none focus:ring-2 focus:ring-primary"
-            rows={4}
-          />
-          <div className="flex gap-2 justify-end">
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                setShowReviewModal(false);
-                setRejectionReason("");
-              }}
+      <Dialog
+        open={showReviewModal}
+        onOpenChange={(open) => {
+          setShowReviewModal(open);
+          if (!open) {
+            // reset handled by effect
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Application</DialogTitle>
+            <DialogDescription>
+              {selectedApplication
+                ? `Please provide a reason for rejecting ${selectedApplication.name}'s application:`
+                : "Please provide a reason for rejecting this application:"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <textarea
+              ref={rejectTextareaRef}
+              dir="ltr"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Enter rejection reason..."
+              rows={5}
+              className="w-full p-3 border rounded-md min-h-[120px] focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowReviewModal(false)}
             >
               Cancel
             </Button>
             <Button
               variant="destructive"
-              onClick={() =>
-                handleReject(selectedApplication.id, rejectionReason)
-              }
-              disabled={!rejectionReason.trim()}
+              onClick={() => {
+                if (!selectedApplication) return;
+                handleReject(selectedApplication.id, reason);
+              }}
+              disabled={!reason.trim()}
             >
               Reject Application
             </Button>
-          </div>
-        </div>
-      </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     );
   };
 
