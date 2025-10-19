@@ -48,6 +48,7 @@ export default function AdminDonationsPage() {
   const [donations, setDonations] = useState<Donation[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [edited, setEdited] = useState<Record<string, { status: string; receiptSent: boolean }>>({});
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -91,6 +92,11 @@ export default function AdminDonationsPage() {
 
       if (data.success) {
         setDonations(data.data);
+        const nextEdited: Record<string, { status: string; receiptSent: boolean }> = {};
+        (data.data as Donation[]).forEach((d) => {
+          nextEdited[d.id] = { status: d.paymentStatus, receiptSent: d.receiptSent };
+        });
+        setEdited(nextEdited);
         setTotalPages(data.pagination.totalPages);
         setTotalCount(data.pagination.total);
       }
@@ -230,32 +236,71 @@ export default function AdminDonationsPage() {
     }
   };
 
-  const handleApprove = async (donationId: string) => {
-    // Optional capture of paymentId
-    const paymentId = window.prompt("Optional: Enter Payment ID (or leave blank)", "");
-    setActionLoading(donationId);
+  const handleSaveRow = async (donation: Donation) => {
+    const row = edited[donation.id];
+    if (!row) return;
+
+    setActionLoading(donation.id);
     try {
-      const response = await fetch(`/api/admin/donations/${donationId}/complete`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          paymentId: paymentId || undefined,
-          statusMessage: "Manually accepted",
-          method: "manual",
-        }),
-      });
-      const data = await response.json();
-      if (data.success) {
-        fetchDonations();
-      } else {
-        alert(data.error || "Failed to approve donation");
+      // 1) Status change
+      if (row.status !== donation.paymentStatus) {
+        const from = donation.paymentStatus;
+        const to = row.status;
+
+        if ((from === "PENDING" || from === "PROCESSING") && to === "COMPLETED") {
+          const res = await fetch(`/api/admin/donations/${donation.id}/complete`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ statusMessage: "Manually accepted", method: "manual" }),
+          });
+          const data = await res.json();
+          if (!data.success) throw new Error(data.error || "Failed to complete");
+        } else if ((from === "PENDING" || from === "PROCESSING") && to === "CANCELLED") {
+          const res = await fetch(`/api/admin/donations/${donation.id}/void`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ reason: "Admin voided" }),
+          });
+          const data = await res.json();
+          if (!data.success) throw new Error(data.error || "Failed to void");
+        } else if (from === "COMPLETED" && to === "REFUNDED") {
+          const res = await fetch(`/api/admin/donations/${donation.id}/refund`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ reason: "Admin refund" }),
+          });
+          const data = await res.json();
+          if (!data.success) throw new Error(data.error || "Failed to refund");
+        } else if (to === from) {
+          // no-op
+        } else {
+          alert(`Unsupported status change from ${from} to ${to}`);
+        }
       }
-    } catch (error) {
-      console.error("Error approving donation:", error);
-      alert("Failed to approve donation");
+
+      // 2) Receipt change (only valid for COMPLETED)
+      if (donation.paymentStatus === "COMPLETED" || edited[donation.id].status === "COMPLETED") {
+        if (row.receiptSent !== donation.receiptSent) {
+          const res = await fetch(`/api/admin/donations/${donation.id}/receipt`, { method: "PATCH" });
+          const data = await res.json();
+          if (!data.success) throw new Error(data.error || "Failed to toggle receipt");
+        }
+      }
+
+      await fetchDonations();
+    } catch (e) {
+      console.error(e);
+      alert(e instanceof Error ? e.message : "Failed to save changes");
     } finally {
       setActionLoading(null);
     }
+  };
+
+  const getAllowedTargets = (status: string) => {
+    if (status === "PENDING" || status === "PROCESSING") return ["PENDING", "PROCESSING", "COMPLETED", "CANCELLED"];
+    if (status === "COMPLETED") return ["COMPLETED", "REFUNDED"];
+    if (status === "CANCELLED" || status === "REFUNDED") return [status];
+    return [status];
   };
 
   const getStatusBadge = (status: string) => {
@@ -507,76 +552,62 @@ export default function AdminDonationsPage() {
                       <div className="text-2xl font-bold text-[#8159A8] mb-2">
                         LKR {donation.amount.toLocaleString()}
                       </div>
-                      <div className="flex gap-2 justify-end">
-                        {(donation.paymentStatus === "PENDING" || donation.paymentStatus === "PROCESSING") && (
-                          <Button
-                            size="sm"
-                            className="bg-[#22c55e] hover:bg-[#16a34a] text-white"
-                            onClick={() => handleApprove(donation.id)}
-                            disabled={actionLoading === donation.id}
-                            title="Approve (mark as completed)"
+                      <div className="flex flex-col items-end gap-2">
+                        <div className="flex items-center gap-2">
+                          <Select
+                            value={edited[donation.id]?.status || donation.paymentStatus}
+                            onValueChange={(value) =>
+                              setEdited((prev) => ({
+                                ...prev,
+                                [donation.id]: {
+                                  status: value,
+                                  receiptSent: prev[donation.id]?.receiptSent ?? donation.receiptSent,
+                                },
+                              }))
+                            }
                           >
-                            {actionLoading === donation.id ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <CheckCircle className="w-4 h-4" />
-                            )}
-                          </Button>
-                        )}
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleToggleReceipt(donation.id)}
-                          disabled={
-                            actionLoading === donation.id ||
-                            donation.paymentStatus !== "COMPLETED"
-                          }
-                          title={
-                            donation.receiptSent
-                              ? "Mark receipt as not sent"
-                              : "Mark receipt as sent"
-                          }
-                        >
-                          {actionLoading === donation.id ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : donation.receiptSent ? (
-                            <X className="w-4 h-4" />
-                          ) : (
-                            <Check className="w-4 h-4" />
+                            <SelectTrigger className="w-44">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {getAllowedTargets(donation.paymentStatus).map((s) => (
+                                <SelectItem key={s} value={s}>{s}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+
+                          {((donation.paymentStatus === "COMPLETED") || (edited[donation.id]?.status === "COMPLETED")) && (
+                            <label className="flex items-center gap-2 text-sm">
+                              <input
+                                type="checkbox"
+                                checked={edited[donation.id]?.receiptSent ?? donation.receiptSent}
+                                onChange={(e) =>
+                                  setEdited((prev) => ({
+                                    ...prev,
+                                    [donation.id]: {
+                                      status: prev[donation.id]?.status ?? donation.paymentStatus,
+                                      receiptSent: e.target.checked,
+                                    },
+                                  }))
+                                }
+                              />
+                              Receipt sent
+                            </label>
                           )}
-                        </Button>
 
-                        {donation.paymentStatus === "PENDING" && (
                           <Button
                             size="sm"
-                            variant="outline"
-                            onClick={() => handleVoid(donation.id)}
+                            className="bg-[#8159A8] hover:bg-[#8159A8]/90 text-white"
+                            onClick={() => handleSaveRow(donation)}
                             disabled={actionLoading === donation.id}
-                            title="Void donation"
                           >
                             {actionLoading === donation.id ? (
                               <Loader2 className="w-4 h-4 animate-spin" />
                             ) : (
-                              <Ban className="w-4 h-4" />
+                              <>Save</>
                             )}
                           </Button>
-                        )}
-
-                        {donation.paymentStatus === "COMPLETED" && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleRefund(donation.id)}
-                            disabled={actionLoading === donation.id}
-                            title="Mark as refunded"
-                          >
-                            {actionLoading === donation.id ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <RefreshCcw className="w-4 h-4" />
-                            )}
-                          </Button>
-                        )}
+                        </div>
                       </div>
                     </div>
                   </div>
