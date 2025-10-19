@@ -692,16 +692,18 @@ export default function ManagerApplicationsPage() {
     React.useEffect(() => {
       if (showReviewModal && rejectTextareaRef.current) {
         const el = rejectTextareaRef.current;
-        el.focus({ preventScroll: true } as any);
+        el.focus({ preventScroll: true } as FocusOptions);
         const len = el.value.length;
         try {
           el.setSelectionRange(len, len);
-        } catch (_) {}
+        } catch {
+          // Ignore errors from setSelectionRange
+        }
       }
       if (!showReviewModal) {
         setReason("");
       }
-    }, [showReviewModal]);
+    }, []);
 
     return (
       <Dialog

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle, Clock, FileText, RefreshCw, AlertCircle } from "lucide-react";
+import { CheckCircle, Clock, RefreshCw, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface VerificationStatus {
