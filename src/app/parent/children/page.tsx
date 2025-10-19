@@ -460,7 +460,7 @@ export default function MyChildrenPage() {
                       }}
                       disabled={!child.therapist}
                     >
-                      <span className="mr-2">📅</span>
+                      {/* <span className="mr-2">📅</span> */}
                       Sessions
                     </Button>
                     <Button
@@ -471,7 +471,7 @@ export default function MyChildrenPage() {
                         window.location.href = `/parent/children/tasks?childId=${child.id}&childName=${encodeURIComponent(child.firstName + ' ' + child.lastName)}`;
                       }}
                     >
-                      <span className="mr-2">📋</span>
+                      {/* <span className="mr-2">📋</span> */}
                       Tasks
                     </Button>
                     <Button
@@ -483,7 +483,7 @@ export default function MyChildrenPage() {
                       }}
                       disabled={!child.therapist}
                     >
-                      <span className="mr-2">💊</span>
+                      {/* <span className="mr-2">💊</span> */}
                       Medications
                     </Button>
                     <Button
@@ -491,7 +491,7 @@ export default function MyChildrenPage() {
                       className="bg-primary text-primary-foreground font-semibold rounded-lg hover:opacity-90"
                       disabled={!child.therapist}
                     >
-                      <span className="mr-2">📞</span>
+                      {/* <span className="mr-2">📞</span> */}
                       Contact Therapist
                     </Button>
                   </div>

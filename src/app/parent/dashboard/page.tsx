@@ -402,7 +402,7 @@ export default function ParentDashboard() {
                         <Card className="shadow-md border-border bg-background">
                             <CardHeader className="border-b border-border pb-4">
                                 <CardTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
-                                    <span>📅</span> Schedule Session
+                                    Schedule Session
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="pt-6">
