@@ -51,9 +51,12 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get the session
+    // Get the session with payment information
     const session = await prisma.therapySession.findUnique({
-      where: { id: sessionId }
+      where: { id: sessionId },
+      include: {
+        Payment: true
+      }
     });
 
     if (!session) {
@@ -79,24 +82,44 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Calculate days until session
+    // Get payment amount
+    const sessionPayment = session.Payment && session.Payment.length > 0 ? session.Payment[0] : null;
+    const paymentAmount = sessionPayment ? Number(sessionPayment.amount) : 0;
+
+    // Calculate hours until session
     const now = new Date();
     const sessionDate = new Date(session.scheduledAt);
-    const daysUntilSession = Math.ceil((sessionDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    const hoursUntilSession = (sessionDate.getTime() - now.getTime()) / (1000 * 60 * 60);
 
-    // Determine fee
-    // If 5 or more days until session: Free reschedule
-    // If less than 5 days: Rs. 30 fee
-    const fee = daysUntilSession >= 5 ? 0 : 30;
+    // Determine fee based on percentage of payment
+    // If 24+ hours until session: 10% fee
+    // If within 24 hours: 40% fee
+    let fee = 0;
+    let feePercentage = 0;
+
+    if (hoursUntilSession >= 24) {
+      feePercentage = 10;
+      fee = paymentAmount * 0.10;
+    } else if (hoursUntilSession >= 0) {
+      feePercentage = 40;
+      fee = paymentAmount * 0.40;
+    } else {
+      return NextResponse.json(
+        { error: "Cannot reschedule a session that has already passed" },
+        { status: 400 }
+      );
+    }
+
     const requiresPayment = fee > 0;
 
     return NextResponse.json({
-      fee,
+      fee: Number(fee.toFixed(2)),
+      feePercentage,
       requiresPayment,
-      daysUntilSession,
+      hoursUntilSession: Number(hoursUntilSession.toFixed(2)),
       currentSessionDate: session.scheduledAt.toISOString(),
       message: requiresPayment
-        ? `Rescheduling within ${daysUntilSession} day(s) requires a Rs. ${fee} fee`
+        ? `Rescheduling within ${hoursUntilSession >= 24 ? '24+ hours' : '24 hours'} requires a ${feePercentage}% fee (Rs. ${fee.toFixed(2)})`
         : "Free rescheduling available"
     });
 
