@@ -20,7 +20,6 @@ type NotificationStreamMap = Map<string, {
 
 // Add property to globalThis
 declare global {
-    // eslint-disable-next-line no-var
     var notificationStreams: NotificationStreamMap | undefined;
 }
 
