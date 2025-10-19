@@ -26,6 +26,7 @@ import {
   Shield,
   AlertCircle,
   Briefcase,
+  Lock,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 
@@ -226,13 +227,23 @@ export default function TherapistProfilePage() {
                 View and manage your professional information
               </p>
             </div>
-            <Button
-              onClick={() => router.push("/therapist/profile/edit")}
-              className="gap-2"
-            >
-              <Edit className="w-4 h-4" />
-              Edit Profile
-            </Button>
+            <div className="flex gap-3">
+              <Button
+                onClick={() => router.push("/therapist/profile/change-password")}
+                variant="outline"
+                className="gap-2"
+              >
+                <Lock className="w-4 h-4" />
+                Change Password
+              </Button>
+              <Button
+                onClick={() => router.push("/therapist/profile/edit")}
+                className="gap-2"
+              >
+                <Edit className="w-4 h-4" />
+                Edit Profile
+              </Button>
+            </div>
           </div>
 
           <div className="space-y-6">
