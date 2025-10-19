@@ -15,7 +15,7 @@ const tabs = [
     { name: 'Session Oversight', path: '/admin/sessions' },
     { name: 'Financial Reports', path: '/admin/reports' },
     { name: 'Donations', path: '/admin/donations' },
-    { name: 'Game Management', path: '/admin/games' }
+    { name: 'Assessments', path: '/admin/games' }
 
 ];
 
