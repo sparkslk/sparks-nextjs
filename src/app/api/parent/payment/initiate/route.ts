@@ -3,7 +3,6 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
-import { createGoogleMeetEvent, generateSimpleMeetingLink } from "@/lib/google-meet";
 
 /**
  * Initiate a payment for a therapy session booking (Parent Web Interface)

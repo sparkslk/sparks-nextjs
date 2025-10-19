@@ -346,7 +346,7 @@ export async function POST(request: NextRequest) {
           }
 
           // Create session and mark availability slot as booked in a transaction
-          const createdSession = await prisma.$transaction(async (tx) => {
+          await prisma.$transaction(async (tx) => {
             // Check if availability slot still exists and is not already booked
             const availabilitySlot = await tx.therapistAvailability.findUnique({
               where: { id: bookingDetails.availabilitySlotId },
