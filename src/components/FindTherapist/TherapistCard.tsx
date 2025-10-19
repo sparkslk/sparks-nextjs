@@ -72,10 +72,10 @@ export function TherapistCard({ therapist, bookingStatus, onViewProfile, viewDet
             ? therapist.specialties.join(", ")
             : "General Psychology"}
         </p>
-        <div className="flex items-center justify-center gap-1 mb-2">
+        {/* <div className="flex items-center justify-center gap-1 mb-2">
           <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
           <span className="font-bold text-lg text-[#f7b500]">{therapist.rating}</span>
-        </div>
+        </div> */}
       </div>
       {/* View Details Button */}
       <Button 

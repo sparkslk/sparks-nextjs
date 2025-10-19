@@ -230,7 +230,7 @@ export default function AppointmentsPage() {
               </div>
               <div className="flex items-center gap-1">
                 <User className="h-4 w-4" />
-                {request.sessionType}
+                {request.type === "With Parent" ? "Family" : "Individual"}
               </div>
             </div>
             {request.sessionNotes && (
@@ -370,7 +370,7 @@ export default function AppointmentsPage() {
                               </div>
                               <div className="flex items-center gap-1">
                                 <User className="h-4 w-4" />
-                                {appointment.sessionType}
+                                {appointment.type === "With Parent" ? "Family" : "Individual"}
                               </div>
                               {/* Session Mode Badge
                               {appointment.mode && (
@@ -412,7 +412,7 @@ export default function AppointmentsPage() {
                               >
                                 Cancel
                               </Button>
-                              {appointment.meetingLink && (appointment.mode === 'ONLINE' || appointment.mode === 'HYBRID') && (
+                            
                                 <Button
                                   variant="outline"
                                   size="sm"
@@ -425,7 +425,7 @@ export default function AppointmentsPage() {
                                 >
                                   Join Session
                                 </Button>
-                              )}
+                            
                             </div>
                           </div>
                         </div>

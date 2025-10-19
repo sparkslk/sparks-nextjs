@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { childId, date, timeSlot, sessionType = "Individual", meetingType = "IN_PERSON" } = await request.json();
+    const { childId, date, timeSlot, sessionType = "Individual" } = await request.json();
 
     if (!childId || !date || !timeSlot) {
       return NextResponse.json(
@@ -165,70 +165,74 @@ export async function POST(request: NextRequest) {
     let meetingLink: string | null = null;
     let calendarEventId: string | null = null;
 
-    if (meetingType === "ONLINE" || meetingType === "HYBRID") {
-      try {
-        // Get therapist's Google OAuth tokens
-        const therapistAccount = await prisma.account.findFirst({
-          where: {
-            userId: therapistUserId,
-            provider: "google",
-          },
-          select: {
-            access_token: true,
-            refresh_token: true,
-          },
-        });
+    // Attempt to create a Google Meet event using the therapist's Google account.
+    // If that fails (no tokens / error), fall back to a simple internal meeting link.
+    try {
+      // Get therapist google account tokens
+      const therapistGoogleAccount = await prisma.account.findFirst({
+        where: {
+          userId: therapistUserId,
+          provider: 'google',
+        },
+        select: {
+          access_token: true,
+          refresh_token: true,
+          scope: true,
+        },
+      });
 
-        if (therapistAccount?.access_token && therapistAccount?.refresh_token) {
-          // Get parent user details
-          const parentUser = await prisma.user.findUnique({
-            where: { id: session.user.id },
-            select: { email: true, name: true },
-          });
+      // Fetch therapist email (not always loaded earlier)
+      const therapistUser = await prisma.user.findUnique({
+        where: { id: therapistUserId },
+        select: { email: true, name: true },
+      });
 
-          // Get therapist email
-          const therapistEmail = await prisma.user.findUnique({
-            where: { id: therapistUserId },
-            select: { email: true },
-          });
+      const parentEmail = session.user?.email ?? undefined;
 
-          // Calculate session end time (45 minutes after start)
-          const sessionEnd = new Date(sessionDate);
-          sessionEnd.setMinutes(sessionEnd.getMinutes() + 45);
+      if (
+        therapistGoogleAccount &&
+        therapistGoogleAccount.access_token &&
+        therapistGoogleAccount.refresh_token &&
+        therapistGoogleAccount.scope &&
+        therapistGoogleAccount.scope.includes('calendar')
+      ) {
+        try {
+          const startISO = sessionDate.toISOString();
+          const endISO = new Date(sessionDate.getTime() + 45 * 60 * 1000).toISOString();
 
-          // Create Google Meet event
+          const attendeeEmails = [therapistUser?.email, parentEmail].filter(Boolean) as string[];
+
           const meetingResponse = await createGoogleMeetEvent(
             {
-              summary: `Therapy Session - ${child.firstName} ${child.lastName}`,
-              description: `Online therapy session\nSession Type: ${sessionType}\nPatient: ${child.firstName} ${child.lastName}\nTherapist: ${therapistName}\nParent: ${parentUser?.name || 'Guardian'}`,
-              startDateTime: sessionDate.toISOString(),
-              endDateTime: sessionEnd.toISOString(),
-              attendeeEmails: [
-                ...(parentUser?.email ? [parentUser.email] : []),
-                ...(therapistEmail?.email ? [therapistEmail.email] : []),
-              ],
-              timezone: "Asia/Colombo",
+              summary: `Therapy session for ${child.firstName} ${child.lastName}`,
+              description: `Session booked on SPARKS. Therapist: ${therapistName}`,
+              startDateTime: startISO,
+              endDateTime: endISO,
+              attendeeEmails,
+              timezone: 'Asia/Colombo',
             },
-            therapistAccount.access_token,
-            therapistAccount.refresh_token,
+            therapistGoogleAccount.access_token!,
+            therapistGoogleAccount.refresh_token!,
             therapistUserId
           );
 
           meetingLink = meetingResponse.meetingLink;
           calendarEventId = meetingResponse.eventId;
-
-          console.log(`✅ Google Meet event created: ${meetingResponse.meetingLink}`);
-        } else {
-          // Fallback to simple meeting link if therapist hasn't connected Google account
-          meetingLink = generateSimpleMeetingLink(`${childId}-${Date.now()}`);
-          console.log(`⚠️ Using fallback meeting link (therapist not connected to Google)`);
+          console.log(`✅ Google Meet event created for session: ${meetingLink}`);
+        } catch (meetError) {
+          console.error('Failed to create Google Meet event in booking flow:', meetError);
+          // fallback to simple meeting link
+          meetingLink = generateSimpleMeetingLink(`${child.id}-${Date.now()}`);
+          console.log(`⚠️ Using fallback meeting link: ${meetingLink}`);
         }
-      } catch (meetError) {
-        // If Google Meet creation fails, fall back to simple meeting link
-        console.error("Failed to create Google Meet event:", meetError);
-        meetingLink = generateSimpleMeetingLink(`${childId}-${Date.now()}`);
-        console.log(`⚠️ Using fallback meeting link (Google Meet creation failed)`);
+      } else {
+        // Therapist hasn't connected Google calendar or missing tokens -> fallback link
+        meetingLink = generateSimpleMeetingLink(`${child.id}-${Date.now()}`);
+        console.log('⚠️ Therapist has no Google Calendar access - using fallback meeting link');
       }
+    } catch (err) {
+      console.error('Unexpected error while generating meeting link:', err);
+      meetingLink = generateSimpleMeetingLink(`${child.id}-${Date.now()}`);
     }
 
     // Create the therapy session and mark the slot as booked in a transaction
@@ -256,7 +260,6 @@ export async function POST(request: NextRequest) {
           status: "SCHEDULED",
           type: sessionType,
           bookedRate: sessionRate,
-          sessionType: meetingType as "IN_PERSON" | "ONLINE" | "HYBRID",
           meetingLink: meetingLink,
           calendarEventId: calendarEventId
         },
@@ -278,6 +281,9 @@ export async function POST(request: NextRequest) {
           }
         }
       });
+
+      console.log(`✅ Free session created successfully: ${therapySession.id}`);
+      console.log(`✅ Meeting link saved in database: ${meetingLink}`);
 
       return therapySession;
     });
@@ -313,7 +319,7 @@ export async function POST(request: NextRequest) {
         duration: result.duration,
         status: result.status,
         bookedRate: result.bookedRate,
-        sessionType: result.sessionType,
+        type: result.type,
         meetingLink: result.meetingLink
       }
     });
