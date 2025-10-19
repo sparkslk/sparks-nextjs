@@ -7,34 +7,32 @@ const prisma = new PrismaClient();
 
 export async function GET(request: Request) {
   try {
-    // Get the current session to identify the user
+    // Get the current session to identify the user (optional for public access)
     const session = await getServerSession(authOptions);
-
-    if (!session || !session.user) {
-      return NextResponse.json(
-        { error: "You must be logged in to access blogs" },
-        { status: 401 }
-      );
-    }
 
     // Parse URL to get filter parameter
     const url = new URL(request.url);
     const filter = url.searchParams.get('filter') || 'mine';
     
-    // Get user role from session
-    const userRole = (session.user as { role?: string }).role;
+    // Get user role from session (if logged in)
+    const userRole = session?.user ? (session.user as { role?: string }).role : null;
 
     // Build query based on filter and user role
     let whereClause = {};
     
     if (filter === 'all') {
-      // Get all published blogs from any therapist
+      // Get all published blogs from any therapist (public access)
       whereClause = {
         status: 'published'
       };
     } else if (filter === 'mine') {
       // Only therapists can access their own blogs
-      if (userRole !== 'THERAPIST') {
+      if (!session || !session.user) {
+        // Unauthenticated users get all published blogs
+        whereClause = {
+          status: 'published'
+        };
+      } else if (userRole !== 'THERAPIST') {
         // Non-therapists get all published blogs instead
         whereClause = {
           status: 'published'
@@ -47,8 +45,8 @@ export async function GET(request: Request) {
       }
     } else if (filter === 'published') {
       // Only therapists can filter their own published blogs
-      if (userRole !== 'THERAPIST') {
-        // Non-therapists get all published blogs
+      if (!session || !session.user || userRole !== 'THERAPIST') {
+        // Unauthenticated users and non-therapists get all published blogs
         whereClause = {
           status: 'published'
         };
@@ -61,7 +59,7 @@ export async function GET(request: Request) {
       }
     } else if (filter === 'draft') {
       // Only therapists can see drafts - non-therapists get published blogs
-      if (userRole !== 'THERAPIST') {
+      if (!session || !session.user || userRole !== 'THERAPIST') {
         whereClause = {
           status: 'published'
         };
@@ -74,12 +72,12 @@ export async function GET(request: Request) {
       }
     } else {
       // Default behavior based on user role
-      if (userRole === 'THERAPIST') {
+      if (session && session.user && userRole === 'THERAPIST') {
         whereClause = {
           therapist_id: session.user.id
         };
       } else {
-        // Parents and other users get all published blogs
+        // Parents, unauthenticated users, and other users get all published blogs
         whereClause = {
           status: 'published'
         };
@@ -115,7 +113,7 @@ export async function GET(request: Request) {
         imageUrl,
         image_data: undefined, // Remove binary data from response
         authorName: blog.User?.name || "Unknown Author",
-        isOwnBlog: blog.therapist_id === session.user.id, // Flag to identify if this is user's own blog
+        isOwnBlog: session?.user ? blog.therapist_id === session.user.id : false, // Flag to identify if this is user's own blog
       };
     });
 

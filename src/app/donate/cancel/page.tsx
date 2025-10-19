@@ -8,9 +8,9 @@ import Image from "next/image";
 
 export default function DonationCancelPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50">
+    <div className="min-h-screen" style={{ backgroundColor: "#F5F3FB" }}>
       {/* Header */}
-      <header className="border-b border-border bg-white/80 backdrop-blur-sm">
+      <header className="border-b border-border bg-card/80 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <Link href="/">
@@ -28,22 +28,24 @@ export default function DonationCancelPage() {
 
       {/* Main Content */}
       <main className="max-w-2xl mx-auto px-4 py-12">
-        <Card className="border-0 shadow-xl">
+        <Card className="border-gray-100 shadow-xl bg-white">
           <CardContent className="pt-12 pb-12 text-center">
             {/* Cancel Icon */}
-            <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full mb-6">
-              <XCircle className="w-12 h-12 text-white" />
+            <div className="inline-flex items-center justify-center w-24 h-24 rounded-full mb-6" style={{ backgroundColor: "rgba(251, 146, 60, 0.1)" }}>
+              <XCircle className="w-12 h-12" style={{ color: "#fb923c" }} />
             </div>
 
             {/* Cancel Message */}
-            <h1 className="text-4xl font-extrabold text-gray-800 mb-4">
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
               Donation Cancelled
             </h1>
 
-            <p className="text-lg text-gray-600 mb-8 max-w-md mx-auto">
+            <p className="text-xl text-gray-600 mb-8 max-w-md mx-auto leading-relaxed font-light">
               Your donation was not processed. Don&apos;t worry - no charges were made to
               your account.
             </p>
+
+            <div className="w-16 h-1 bg-gradient-to-r from-transparent via-gray-300 to-transparent mx-auto rounded-full mb-8"></div>
 
             {/* Information Box */}
             <div className="bg-orange-50 border border-orange-200 rounded-lg p-6 mb-8 text-left">
@@ -69,8 +71,8 @@ export default function DonationCancelPage() {
             </div>
 
             {/* Encouragement Message */}
-            <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-6 mb-8">
-              <Heart className="w-8 h-8 text-purple-600 mx-auto mb-3" />
+            <div className="border border-gray-100 rounded-lg p-6 mb-8" style={{ backgroundColor: "rgba(129, 89, 168, 0.05)" }}>
+              <Heart className="w-8 h-8 mx-auto mb-3" style={{ color: "#8159A8" }} />
               <p className="text-gray-700">
                 We&apos;d still love your support! Every donation helps us provide quality
                 ADHD therapy services to children and families who need it most.
@@ -80,13 +82,26 @@ export default function DonationCancelPage() {
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/donate">
-                <Button className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600">
+                <Button 
+                  className="shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
+                  style={{
+                    background: `linear-gradient(135deg, #8159A8 0%, #9d7bb8 100%)`,
+                    color: "white"
+                  }}
+                >
                   <Heart className="w-4 h-4 mr-2" />
                   Try Again
                 </Button>
               </Link>
               <Link href="/">
-                <Button variant="outline">
+                <Button 
+                  variant="outline"
+                  className="border-2 hover:shadow-md transform hover:-translate-y-0.5 transition-all duration-200"
+                  style={{
+                    borderColor: "#8159A8",
+                    color: "#8159A8"
+                  }}
+                >
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Return to Home
                 </Button>
@@ -99,7 +114,8 @@ export default function DonationCancelPage() {
                 Having trouble? Contact us at{" "}
                 <a
                   href="mailto:support@sparks.lk"
-                  className="text-purple-600 hover:underline"
+                  className="hover:underline"
+                  style={{ color: "#8159A8" }}
                 >
                   support@sparks.lk
                 </a>

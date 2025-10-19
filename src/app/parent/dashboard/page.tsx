@@ -335,7 +335,7 @@ export default function ParentDashboard() {
 
                                             <div className="space-y-3">
                                                 <div className="flex items-center justify-between">
-                                                    <span className="text-sm font-semibold text-muted-foreground">Overall Progress</span>
+                                                    <span className="text-sm font-semibold text-muted-foreground">Tasks Completed</span>
                                                     <span className="text-sm font-bold text-primary">{child.progressPercentage}%</span>
                                                 </div>
                                                 <div className="relative">

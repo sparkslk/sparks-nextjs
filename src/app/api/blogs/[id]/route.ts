@@ -12,13 +12,6 @@ export async function GET(
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || !session.user) {
-      return NextResponse.json(
-        { error: "You must be logged in to view blogs" },
-        { status: 401 }
-      );
-    }
-
     const { id } = await params;
     const blogId = parseInt(id);
 
@@ -43,9 +36,10 @@ export async function GET(
     }
 
     // Check access permissions: 
-    // - Own blogs (any status) can be viewed
-    // - Other therapists' blogs can only be viewed if published
-    const isOwnBlog = blog.therapist_id === session.user.id;
+    // - Own blogs (any status) can be viewed by the owner
+    // - Published blogs can be viewed by anyone (including unauthenticated users)
+    // - Unpublished blogs can only be viewed by the owner
+    const isOwnBlog = session?.user ? blog.therapist_id === session.user.id : false;
     const isPublished = blog.status === 'published';
 
     if (!isOwnBlog && !isPublished) {
@@ -74,7 +68,7 @@ export async function GET(
       image_data: undefined, // Remove binary data from response
       User: blog.User, // Map to match the expected structure
       user: undefined, // Remove the original user field
-      isOwnBlog: blog.therapist_id === session.user.id,
+      isOwnBlog: session?.user ? blog.therapist_id === session.user.id : false,
       authorName: blog.User?.name || "Unknown Author",
     });
   } catch (error) {

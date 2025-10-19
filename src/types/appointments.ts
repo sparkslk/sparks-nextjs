@@ -34,7 +34,6 @@ export interface Appointment {
   therapistPhone: string;
   specializations: string[];
   mode: string;
-  sessionType: string;
   objectives: string[];
   childFirstName?: string;
   childLastName?: string;
