@@ -85,7 +85,10 @@ export default function ParentNavigation() {
             return 'My Patients';
         }
         if ((pathname ?? "").startsWith('/parent/sessions')) {
-            return 'Appointments';
+            return 'Sessions';
+        }
+        if ((pathname ?? "").startsWith('/parent/blogs')) {
+            return 'Resources';
         }
         const currentTab = tabs.find(tab => tab.path === pathname);
         return currentTab?.name || 'Overview';
