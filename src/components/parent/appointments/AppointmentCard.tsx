@@ -138,69 +138,59 @@ export default function AppointmentCard({
           {filteredUpcoming.map((appointment: Appointment & { childFirstName?: string; childLastName?: string }) => (
             <div
               key={appointment.id}
-              className="session-card upcoming relative flex flex-col p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl border border-green-200 shadow transition-all duration-300 transform text-lg min-h-[160px]"
+              className="session-card upcoming relative flex items-center justify-between p-4 bg-white rounded-2xl border border-gray-200 shadow transition-all duration-300 hover:shadow-lg min-w-0"
             >
-              {/* Action buttons at bottom right */}
-              <div className="absolute bottom-4 right-4 flex gap-2 z-20">
+              {/* Left side - Avatar and Session Info */}
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                  <User className="w-6 h-6 text-blue-600" />
+                </div>
+                <div className="flex flex-col">
+                  <h3 className="font-semibold text-gray-900">
+                    {appointment.childFirstName} {appointment.childLastName}
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    Therapist: {child.therapist?.name || 'Therapist'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Middle - Session Details */}
+              <div className="flex items-center space-x-4 lg:space-x-6 flex-1 justify-center">
+                <div className="flex items-center space-x-2">
+                  <Calendar className="w-4 h-4 text-gray-400" />
+                  <span className="text-sm text-gray-600">{formatSriLankaDateTime(appointment.date, { dateStyle: 'medium' })}</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Clock className="w-4 h-4 text-gray-400" />
+                  <span className="text-sm text-gray-600">{appointment.time} ({appointment.duration} min)</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <User className="w-4 h-4 text-gray-400" />
+                  <span className="text-sm text-gray-600">{appointment.type}</span>
+                </div>
+              </div>
+
+              {/* Right side - Action Buttons */}
+              <div className="flex items-center space-x-2">
                 <button
-                  className="flex items-center justify-center gap-2 w-36 h-11 px-4 py-2 rounded-lg border bg-green-100 border-green-300 shadow-sm text-base font-semibold text-green-700 hover:bg-green-200 transition-all duration-150 text-center disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ fontWeight: 600 }}
+                  className="px-3 py-1 bg-blue-50 border border-blue-200 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors duration-200 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                   onClick={() => handleRescheduleSession(appointment)}
                   disabled={checkingReschedule}
                 >
                   {checkingReschedule ? 'Checking...' : 'Reschedule'}
                 </button>
                 <button
-                  className="flex items-center justify-center gap-2 w-36 h-11 px-4 py-2 rounded-lg border bg-red-100 border-red-300 shadow-sm text-base font-semibold text-red-700 hover:bg-red-200 transition-all duration-150 text-center"
-                  style={{ fontWeight: 600 }}
+                  className="px-3 py-1 bg-red-50 border border-red-200 text-red-600 rounded-lg hover:bg-red-100 transition-colors duration-200 text-sm font-medium"
                   onClick={() => handleCancelSession(appointment)}
                 >
                   Cancel
                 </button>
-              </div>
-              {/* Patient name with improved styling */}
-              {appointment.childFirstName && appointment.childLastName && (
-                <div className="absolute left-4 top-4 right-4 flex items-center justify-between z-10">
-                  <div className=" px-4 py-2">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xs font-medium text-green-600 uppercase tracking-wide">Patient</span>
-                      <span className="text-sm font-bold text-green-800">
-                        {appointment.childFirstName} {appointment.childLastName}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
-              <div className="flex items-center space-x-6 w-full mt-8">
-                <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center">
-                  {appointment.mode === 'Virtual' ? (
-                    <Video className="w-7 h-7" style={{ color: '#059669' }} />
-                  ) : (
-                    <Calendar className="w-7 h-7" style={{ color: '#059669' }} />
-                  )}
-                </div>
-                <div className="flex flex-row gap-6 sm:gap-12 items-center flex-wrap">
-                  <div className="flex flex-row items-center gap-2">
-                    <Calendar className="w-5 h-5" style={{ color: '#059669' }} />
-                    <span className="text-sm text-gray-500">Date:</span>
-                    <span className="font-semibold text-gray-900 text-sm ml-1">{formatSriLankaDateTime(appointment.date, { dateStyle: 'medium' })}</span>
-                  </div>
-                  <div className="flex flex-row items-center gap-2">
-                    <Clock className="w-5 h-5" style={{ color: '#059669' }} />
-                    <span className="text-sm text-gray-500">Time:</span>
-                    <span className="font-semibold text-gray-900 text-sm ml-1">{appointment.time}</span>
-                  </div>
-                  <div className="flex flex-row items-center gap-2">
-                    <User className="w-5 h-5" style={{ color: '#059669' }} />
-                    <span className="text-sm text-gray-500">Type:</span>
-                    <span className="font-semibold text-gray-900 text-sm ml-1">{appointment.type}</span>
-                  </div>
-                  <div className="flex flex-row items-center gap-2">
-                    <CheckCircle className="w-5 h-5" style={{ color: '#059669' }} />
-                    <span className="text-sm text-gray-500">Duration:</span>
-                    <span className="font-semibold text-gray-900 text-sm ml-1">{appointment.duration} min</span>
-                  </div>
-                </div>
+                <button
+                  className="px-3 py-1 bg-green-50 border border-green-200 text-green-600 rounded-lg hover:bg-green-100 transition-colors duration-200 text-sm font-medium"
+                >
+                  Join Session
+                </button>
               </div>
             </div>
           ))}
@@ -228,60 +218,45 @@ export default function AppointmentCard({
           {filteredPast.map((appointment: Appointment & { childFirstName?: string; childLastName?: string }) => (
             <div
               key={appointment.id}
-              className="session-card past relative flex flex-col p-4 bg-gradient-to-r from-[var(--color-card)] to-[var(--color-secondary)] rounded-2xl border border-[var(--color-border)] shadow transition-all duration-300 transform text-lg"
-              style={{ minHeight: '90px' }}
+              className="session-card past relative flex items-center justify-between p-4 bg-white rounded-2xl border border-gray-200 shadow transition-all duration-300 hover:shadow-lg min-w-0"
             >
-              {/* Patient name with improved styling */}
-              {appointment.childFirstName && appointment.childLastName && (
-                <div className="absolute left-4 top-4 right-4 flex items-center justify-between z-10">
-                  <div className="px-4 py-2">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">Patient</span>
-                      <span className="text-sm font-bold text-gray-800">
-                        {appointment.childFirstName} {appointment.childLastName}
-                      </span>
-                    </div>
-                  </div>
+              {/* Left side - Avatar and Session Info */}
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                  <User className="w-6 h-6 text-blue-600" />
                 </div>
-              )}
-              <div className="flex items-center space-x-6 w-full mt-8">
-                <div className="w-14 h-14 bg-[var(--color-card)] rounded-full flex items-center justify-center">
-                  <CheckCircle className="w-7 h-7" style={{ color: 'var(--color-primary)' }} />
-                </div>
-                <div className="flex flex-row gap-6 sm:gap-12 items-center flex-wrap">
-                  <div className="flex flex-row items-center gap-2">
-                    <Calendar className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
-                    <span className="text-sm text-gray-500">Date:</span>
-                    <span className="font-semibold text-gray-900 text-sm ml-1">{formatDate(appointment.date)}</span>
-                  </div>
-                  <div className="flex flex-row items-center gap-2">
-                    <Clock className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
-                    <span className="text-sm text-gray-500">Time:</span>
-                    <span className="font-semibold text-gray-900 text-sm ml-1">{appointment.time}</span>
-                  </div>
-                  <div className="flex flex-row items-center gap-2">
-                    <User className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
-                    <span className="text-sm text-gray-500">Type:</span>
-                    <span className="font-semibold text-gray-900 text-sm ml-1">{appointment.type}</span>
-                  </div>
-                  <div className="flex flex-row items-center gap-2">
-                    <CheckCircle className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
-                    <span className="text-sm text-gray-500">Duration:</span>
-                    <span className="font-semibold text-gray-900 text-sm ml-1">{appointment.duration} min</span>
-                  </div>
+                <div className="flex flex-col">
+                  <h3 className="font-semibold text-gray-900">
+                    {appointment.childFirstName} {appointment.childLastName}
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    Therapist: {child.therapist?.name || 'Therapist'}
+                  </p>
                 </div>
               </div>
-              {/* View Details button at bottom right */}
-              <div className="absolute bottom-4 right-4 flex justify-end">
+
+              {/* Middle - Session Details */}
+              <div className="flex items-center space-x-4 lg:space-x-6 flex-1 justify-center">
+                <div className="flex items-center space-x-2">
+                  <Calendar className="w-4 h-4 text-gray-400" />
+                  <span className="text-sm text-gray-600">{formatSriLankaDateTime(appointment.date, { dateStyle: 'medium' })}</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Clock className="w-4 h-4 text-gray-400" />
+                  <span className="text-sm text-gray-600">{appointment.time} ({appointment.duration} min)</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <User className="w-4 h-4 text-gray-400" />
+                  <span className="text-sm text-gray-600">{appointment.type}</span>
+                </div>
+              </div>
+
+              {/* Right side - Action Button */}
+              <div className="flex items-center space-x-2">
                 <button
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 bg-white shadow-sm text-base font-semibold text-gray-900 hover:bg-gray-50 transition-all duration-150"
-                  style={{ fontWeight: 600 }}
+                  className="px-4 py-2 bg-blue-50 border border-blue-200 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors duration-200 text-sm font-medium"
                   onClick={() => window.location.href = `/parent/sessions/${appointment.id}`}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-gray-700">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12c0 4.556 4.694 7.5 9.75 7.5s9.75-2.944 9.75-7.5c0-4.556-4.694-7.5-9.75-7.5S2.25 7.444 2.25 12z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
                   View Details
                 </button>
               </div>
@@ -311,51 +286,44 @@ export default function AppointmentCard({
           {filteredCancelled.map((appointment: Appointment & { childFirstName?: string; childLastName?: string }) => (
             <div
               key={appointment.id}
-              className="session-card cancelled relative flex flex-col p-4 bg-gradient-to-r from-[var(--color-destructive)]/10 to-[var(--color-destructive)]/5 rounded-2xl border border-[var(--color-destructive)] shadow transition-all duration-300 transform text-lg"
-              style={{ minHeight: '90px' }}
+              className="session-card cancelled relative flex items-center justify-between p-4 bg-white rounded-2xl border border-gray-200 shadow transition-all duration-300 hover:shadow-lg min-w-0"
             >
-              {/* Patient name with improved styling */}
-              {appointment.childFirstName && appointment.childLastName && (
-                <div className="absolute left-4 top-4 right-4 flex items-center justify-between z-10">
-                  <div className="px-4 py-2">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xs font-medium text-red-600 uppercase tracking-wide">Patient</span>
-                      <span className="text-sm font-bold text-red-800">
-                        {appointment.childFirstName} {appointment.childLastName}
-                      </span>
-                    </div>
-                  </div>
-                  <span className="inline-block bg-red-100 border border-red-300 text-red-600 text-xs font-semibold px-3 py-1 rounded-full shadow-sm">
-                    Cancelled
-                  </span>
+              {/* Left side - Avatar and Session Info */}
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                  <User className="w-6 h-6 text-red-600" />
                 </div>
-              )}
-              <div className="flex items-center space-x-6 w-full mt-8">
-                <div className="w-14 h-14 bg-[var(--color-destructive)]/10 rounded-full flex items-center justify-center">
-                  <Calendar className="w-7 h-7" style={{ color: 'var(--color-primary)' }} />
+                <div className="flex flex-col">
+                  <h3 className="font-semibold text-gray-900">
+                    {appointment.childFirstName} {appointment.childLastName}
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    Therapist: {child.therapist?.name || 'Therapist'}
+                  </p>
                 </div>
-                <div className="flex flex-row gap-6 sm:gap-12 items-center flex-wrap">
-                  <div className="flex flex-row items-center gap-2">
-                    <Calendar className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
-                    <span className="text-sm text-gray-500">Date:</span>
-                    <span className="font-semibold text-gray-900 text-sm ml-1">{formatDate(appointment.date)}</span>
-                  </div>
-                  <div className="flex flex-row items-center gap-2">
-                    <Clock className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
-                    <span className="text-sm text-gray-500">Time:</span>
-                    <span className="font-semibold text-gray-900 text-sm ml-1">{appointment.time}</span>
-                  </div>
-                  <div className="flex flex-row items-center gap-2">
-                    <User className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
-                    <span className="text-sm text-gray-500">Type:</span>
-                    <span className="font-semibold text-gray-900 text-sm ml-1">{appointment.type}</span>
-                  </div>
-                  <div className="flex flex-row items-center gap-2">
-                    <CheckCircle className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
-                    <span className="text-sm text-gray-500">Duration:</span>
-                    <span className="font-semibold text-gray-900 text-sm ml-1">{appointment.duration} min</span>
-                  </div>
+              </div>
+
+              {/* Middle - Session Details */}
+              <div className="flex items-center space-x-4 lg:space-x-6 flex-1 justify-center">
+                <div className="flex items-center space-x-2">
+                  <Calendar className="w-4 h-4 text-gray-400" />
+                  <span className="text-sm text-gray-600">{formatSriLankaDateTime(appointment.date, { dateStyle: 'medium' })}</span>
                 </div>
+                <div className="flex items-center space-x-2">
+                  <Clock className="w-4 h-4 text-gray-400" />
+                  <span className="text-sm text-gray-600">{appointment.time} ({appointment.duration} min)</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <User className="w-4 h-4 text-gray-400" />
+                  <span className="text-sm text-gray-600">{appointment.type}</span>
+                </div>
+              </div>
+
+              {/* Right side - Status Badge */}
+              <div className="flex items-center space-x-2">
+                <span className="inline-block bg-red-100 border border-red-300 text-red-600 text-xs font-semibold px-3 py-1 rounded-full shadow-sm">
+                  Cancelled
+                </span>
               </div>
             </div>
           ))}
@@ -383,51 +351,44 @@ export default function AppointmentCard({
           {filteredNoShow.map((appointment: Appointment & { childFirstName?: string; childLastName?: string }) => (
             <div
               key={appointment.id}
-              className="session-card no-show relative flex flex-col p-4 bg-gradient-to-r from-orange-50 to-red-50 rounded-2xl border border-orange-200 shadow transition-all duration-300 transform text-lg"
-              style={{ minHeight: '90px' }}
+              className="session-card no-show relative flex items-center justify-between p-4 bg-white rounded-2xl border border-gray-200 shadow transition-all duration-300 hover:shadow-lg min-w-0"
             >
-              {/* Patient name with improved styling */}
-              {appointment.childFirstName && appointment.childLastName && (
-                <div className="absolute left-4 top-4 right-4 flex items-center justify-between z-10">
-                  <div className="px-4 py-2">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xs font-medium text-orange-600 uppercase tracking-wide">Patient</span>
-                      <span className="text-sm font-bold text-orange-800">
-                        {appointment.childFirstName} {appointment.childLastName}
-                      </span>
-                    </div>
-                  </div>
-                  <span className="inline-block bg-orange-100 border border-orange-300 text-orange-600 text-xs font-semibold px-3 py-1 rounded-full shadow-sm">
-                    No Show
-                  </span>
+              {/* Left side - Avatar and Session Info */}
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
+                  <User className="w-6 h-6 text-orange-600" />
                 </div>
-              )}
-              <div className="flex items-center space-x-6 w-full mt-8">
-                <div className="w-14 h-14 bg-orange-100 rounded-full flex items-center justify-center">
-                  <Calendar className="w-7 h-7" style={{ color: '#EA580C' }} />
+                <div className="flex flex-col">
+                  <h3 className="font-semibold text-gray-900">
+                    {appointment.childFirstName} {appointment.childLastName}
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    Therapist: {child.therapist?.name || 'Therapist'}
+                  </p>
                 </div>
-                <div className="flex flex-row gap-6 sm:gap-12 items-center flex-wrap">
-                  <div className="flex flex-row items-center gap-2">
-                    <Calendar className="w-5 h-5" style={{ color: '#EA580C' }} />
-                    <span className="text-sm text-gray-500">Date:</span>
-                    <span className="font-semibold text-gray-900 text-sm ml-1">{formatDate(appointment.date)}</span>
-                  </div>
-                  <div className="flex flex-row items-center gap-2">
-                    <Clock className="w-5 h-5" style={{ color: '#EA580C' }} />
-                    <span className="text-sm text-gray-500">Time:</span>
-                    <span className="font-semibold text-gray-900 text-sm ml-1">{appointment.time}</span>
-                  </div>
-                  <div className="flex flex-row items-center gap-2">
-                    <User className="w-5 h-5" style={{ color: '#EA580C' }} />
-                    <span className="text-sm text-gray-500">Type:</span>
-                    <span className="font-semibold text-gray-900 text-sm ml-1">{appointment.type}</span>
-                  </div>
-                  <div className="flex flex-row items-center gap-2">
-                    <CheckCircle className="w-5 h-5" style={{ color: '#EA580C' }} />
-                    <span className="text-sm text-gray-500">Duration:</span>
-                    <span className="font-semibold text-gray-900 text-sm ml-1">{appointment.duration} min</span>
-                  </div>
+              </div>
+
+              {/* Middle - Session Details */}
+              <div className="flex items-center space-x-4 lg:space-x-6 flex-1 justify-center">
+                <div className="flex items-center space-x-2">
+                  <Calendar className="w-4 h-4 text-gray-400" />
+                  <span className="text-sm text-gray-600">{formatSriLankaDateTime(appointment.date, { dateStyle: 'medium' })}</span>
                 </div>
+                <div className="flex items-center space-x-2">
+                  <Clock className="w-4 h-4 text-gray-400" />
+                  <span className="text-sm text-gray-600">{appointment.time} ({appointment.duration} min)</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <User className="w-4 h-4 text-gray-400" />
+                  <span className="text-sm text-gray-600">{appointment.type}</span>
+                </div>
+              </div>
+
+              {/* Right side - Status Badge */}
+              <div className="flex items-center space-x-2">
+                <span className="inline-block bg-orange-100 border border-orange-300 text-orange-600 text-xs font-semibold px-3 py-1 rounded-full shadow-sm">
+                  No Show
+                </span>
               </div>
             </div>
           ))}
