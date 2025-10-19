@@ -4,7 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+// Tabs removed - assessments not needed on this page
 import { Badge } from "@/components/ui/badge";
 import {
   User,
@@ -36,24 +36,6 @@ interface Session {
   nextSessionGoals?: string;
 }
 
-interface Task {
-  id: string;
-  sessionId: string;
-  patientId: string;
-  title: string;
-  description: string;
-  instructions: string;
-  status: 'PENDING' | 'COMPLETED' | 'OVERDUE';
-  priority: number;
-  dueDate: string;
-  createdAt: string;
-  updatedAt: string;
-  completedAt: string | null;
-  completionNotes: string | null;
-  isRecurring: boolean;
-  recurringPattern: string | null;
-}
-
 export default function SessionDetailsPage() {
   const params = useParams();
   const router = useRouter();
@@ -61,11 +43,7 @@ export default function SessionDetailsPage() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [tasksLoading, setTasksLoading] = useState(true);
-  const [tasksError, setTasksError] = useState<string | null>(null);
-  const [selectedTab, setSelectedTab] = useState<string>("clinical");
-  const [taskActionLoading, setTaskActionLoading] = useState<string | null>(null);
+
 
   useEffect(() => {
     if (!id) return;
@@ -85,94 +63,7 @@ export default function SessionDetailsPage() {
       });
   }, [id]);
 
-  useEffect(() => {
-    if (!id) return;
-    setTasksLoading(true);
-    fetch(`/api/parent/sessions/${id}/tasks`)
-      .then(async (res) => {
-        if (!res.ok) throw new Error("Failed to fetch session tasks");
-        return res.json();
-      })
-      .then((data) => {
-        setTasks(data.tasks || []);
-        setTasksLoading(false);
-      })
-      .catch((err) => {
-        setTasksError(err.message || "Unknown error");
-        setTasksLoading(false);
-      });
-  }, [id]);
 
-  const refreshTasks = async () => {
-    try {
-      const response = await fetch(`/api/parent/sessions/${id}/tasks`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch session tasks");
-      }
-      const data = await response.json();
-      setTasks(data.tasks || []);
-    } catch {
-      setTasksError("Failed to load session tasks");
-    }
-  };
-
-  const markTaskComplete = async (taskId: string, completionNotes?: string) => {
-    setTaskActionLoading(taskId);
-    try {
-      // Find the task to get the correct patientId
-      const task = tasks.find(t => t.id === taskId);
-      const childId = task?.patientId;
-      if (!childId) throw new Error('No patientId found for this task');
-      const response = await fetch(`/api/parent/children/${childId}/tasks/${taskId}/complete`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ completionNotes }),
-      });
-      if (response.ok) {
-        await refreshTasks();
-      } else {
-        const errorText = await response.text();
-        console.error('Failed to mark task as complete:', errorText);
-        setTasksError('Failed to mark task as complete');
-      }
-    } catch (error) {
-      console.error('Error marking task as complete:', error);
-      setTasksError('Error marking task as complete');
-    } finally {
-      setTaskActionLoading(null);
-    }
-  };
-
-  const unmarkTaskComplete = async (taskId: string) => {
-    setTaskActionLoading(taskId);
-    try {
-      // Find the task to get the correct patientId
-      const task = tasks.find(t => t.id === taskId);
-      const childId = task?.patientId;
-      if (!childId) throw new Error('No patientId found for this task');
-      const response = await fetch(`/api/parent/children/${childId}/tasks/${taskId}/complete`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ unmark: true }),
-      });
-      if (response.ok) {
-        await refreshTasks();
-      } else {
-        const errorText = await response.text();
-        console.error('Failed to unmark task as complete:', errorText);
-        setTasksError('Failed to unmark task as complete');
-      }
-    } catch (error) {
-      console.error('Error unmarking task as complete:', error);
-      setTasksError('Error unmarking task as complete');
-    } finally {
-      setTaskActionLoading(null);
-    }
-  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -185,15 +76,6 @@ export default function SessionDetailsPage() {
       default:
         return 'bg-yellow-100 text-yellow-800';
     }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
   };
 
   if (loading) {
@@ -287,196 +169,60 @@ export default function SessionDetailsPage() {
           </div>
         </div>
 
-        <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full mb-10">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="clinical">
-              Clinical Documentation
-            </TabsTrigger>
-            {/* <TabsTrigger value="medications">
-              Medications
-            </TabsTrigger> */}
-            <TabsTrigger value="tasks">
-              Assessments
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="clinical">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-              <Card className="bg-white rounded-xl shadow p-6">
-                <CardHeader className="flex items-center gap-2 mb-2 border-b border-border">
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="text-green-400" />
-                    <span className="font-semibold text-lg">Clinical Assessment</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm mb-2">
-                    <div>
-                      <span className="font-semibold text-gray-600">Attendance Status</span><br />
-                      <Badge className="bg-green-100 text-green-700">{session.attendance || "PRESENT"}</Badge>
-                    </div>
-                    <div>
-                      <span className="font-semibold text-gray-600">Overall Progress</span><br />
-                      <Badge className="bg-orange-100 text-orange-700">{session.progress || "POOR"}</Badge>
-                    </div>
-                    <div>
-                      <span className="font-semibold text-gray-600">Patient Engagement</span><br />
-                      <Badge className="bg-blue-100 text-blue-700">{session.engagement || "MEDIUM"}</Badge>
-                    </div>
-                    <div>
-                      <span className="font-semibold text-gray-600">Risk Assessment</span><br />
-                      <Badge className="bg-green-100 text-green-700">{session.risk || "NONE"}</Badge>
-                    </div>
-                  </div>
-                  <div className="mt-2">
-                    <span className="font-semibold text-gray-600">Primary Focus Areas</span><br />
-                    <span className="italic text-gray-400">{session.focusAreas && session.focusAreas.length > 0 ? session.focusAreas.join(", ") : "No focus areas documented"}</span>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="bg-white rounded-xl shadow p-6">
-                <CardHeader className="flex items-center gap-2 mb-2 border-b border-border">
-                  <CardTitle className="flex items-center gap-2">
-                    <ClipboardList className="text-blue-400" />
-                    <span className="font-semibold text-lg">Session Notes</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="mb-2">
-                    <span className="font-semibold text-gray-600">Clinical Observations</span>
-                    <div className="bg-gray-100 rounded p-2 mt-1 text-sm">{session.observations || session.sessionNotes || "No clinical observations recorded"}</div>
-                  </div>
-                  <div className="mb-2">
-                    <span className="font-semibold text-gray-600">Next Session Goals</span>
-                    <div className="text-sm italic text-gray-400">{session.nextSessionGoals || "No goals set for next session"}</div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-          {/* <TabsContent value="medications">
-            <MedicationSessionHistory session={session} />
-          </TabsContent> */}
-          <TabsContent value="tasks">
-            {/* Tasks for this session */}
-            <Card className="bg-white rounded-xl shadow">
-              <CardHeader className="flex  gap-2 mb-0.5 border-b border-border">
-                <CardTitle className="flex items-center justify-between w-full">
-                  <span className="text-xl font-bold text-[#8159A8] flex items-center gap-2">
-                    <FileText className="w-6 h-6 text-[#8159A8]" /> Assessments assigned for this session
-                  </span>
-                  <Badge className="bg-[#f7f5fb] text-[#8159A8] border border-[#e5e3ee] px-4 py-1 rounded-xl font-semibold text-base shadow-none">
-                    {tasks.length} assessments
-                  </Badge>
+        <div className="w-full mb-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+            <Card className="bg-white rounded-xl shadow p-6">
+              <CardHeader className="flex items-center gap-2 mb-2 border-b border-border">
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="text-green-400" />
+                  <span className="font-semibold text-lg">Clinical Assessment</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {tasksLoading ? (
-                  <div className="bg-white rounded-xl shadow p-6 text-gray-400 italic text-center">Loading tasks...</div>
-                ) : tasksError ? (
-                  <div className="bg-white rounded-xl shadow p-6 text-red-400 italic text-center">{tasksError}</div>
-                ) : tasks.length === 0 ? (
-                  <div className="bg-white rounded-xl shadow p-6 text-gray-400 italic text-center">No assessments for this session</div>
-                ) : (
-                  <div className="space-y-5 mt-2">
-                    {tasks.map((task) => (
-                      <div
-                        key={task.id}
-                        className={`bg-[#f7f5fb] border border-[#e5e3ee] rounded-xl shadow-sm p-5 transition-all duration-200 flex flex-col gap-2 ${
-                          task.isRecurring && task.recurringPattern === 'daily' ? 'ring-1 ring-blue-100' :
-                          task.isRecurring && task.recurringPattern === 'weekly' ? 'ring-1 ring-purple-100' :
-                          ''
-                        }`}
-                      >
-                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-2">
-                          <div className="flex items-start gap-3 flex-1">
-                            <div className="flex items-center mt-1 relative">
-                              <input
-                                type="radio"
-                                checked={task.status === 'COMPLETED'}
-                                onChange={() => task.status !== 'COMPLETED' && markTaskComplete(task.id)}
-                                disabled={task.status === 'COMPLETED' || taskActionLoading === task.id}
-                                className={`w-5 h-5 rounded-full transition-all duration-300 ${
-                                  task.status === 'COMPLETED' 
-                                    ? 'bg-green-500 border-green-500 cursor-not-allowed' 
-                                    : 'border-2 border-gray-300 hover:border-[#8159A8] cursor-pointer'
-                                } ${task.status === 'COMPLETED' ? 'accent-green-500' : 'accent-[#8159A8]'}`}
-                              />
-                              {task.status === 'COMPLETED' && (
-                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none">
-                                    <path
-                                      d="M20 6L9 17L4 12"
-                                      stroke="#22c55e"
-                                      strokeWidth="3"
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      className="animate-[draw_0.6s_ease-in-out_forwards]"
-                                      style={{
-                                        strokeDasharray: '20',
-                                        strokeDashoffset: '20',
-                                        animation: 'draw 0.6s ease-in-out forwards'
-                                      }}
-                                    />
-                                  </svg>
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <h4 className={`font-semibold text-lg ${task.status === 'COMPLETED' ? 'line-through text-gray-500' : 'text-gray-900'}`}>{task.title}</h4>
-                              {task.description && (
-                                <p className="text-sm text-gray-600 mt-1">{task.description}</p>
-                              )}
-                              {task.instructions && (
-                                <p className="text-sm text-blue-600 mt-2">
-                                  <strong>Instructions:</strong> {task.instructions}
-                                </p>
-                              )}
-                              <div className="flex items-center space-x-2 mt-2">
-                                {task.isRecurring && (
-                                  <Badge variant="outline" className="text-xs capitalize border-blue-200 text-blue-700 bg-blue-50">
-                                    {task.recurringPattern}
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex flex-col items-end space-y-2 min-w-[110px]">
-                            <Badge className={getStatusColor(task.status) + ' capitalize px-3 py-1 rounded-lg text-xs font-semibold min-w-[90px] h-8 flex items-center justify-center'}>
-                              {task.status.toLowerCase()}
-                            </Badge>
-                            {task.status === 'COMPLETED' && (
-                              <Button
-                                variant="badgeRed"
-                                onClick={() => unmarkTaskComplete(task.id)}
-                              >
-                                Unmark
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex flex-col md:flex-row md:items-center md:justify-between mt-2 gap-2">
-                          <p className="text-xs text-gray-500">
-                            Due: {formatDate(task.dueDate)}
-                          </p>
-                          {task.completedAt && task.completionNotes && (
-                            <div className="mt-2 md:mt-0 p-2 bg-green-50 rounded border-l-4 border-green-400 w-full md:w-auto">
-                              <p className="text-sm text-green-800">
-                                <strong>Completed:</strong> {formatDate(task.completedAt)}
-                              </p>
-                              <p className="text-sm text-green-700 mt-1">
-                                <strong>Notes:</strong> {task.completionNotes}
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm mb-2">
+                  <div>
+                    <span className="font-semibold text-gray-600">Attendance Status</span><br />
+                    <Badge className="bg-green-100 text-green-700">{session.attendance || "PRESENT"}</Badge>
                   </div>
-                )}
+                  <div>
+                    <span className="font-semibold text-gray-600">Overall Progress</span><br />
+                    <Badge className="bg-orange-100 text-orange-700">{session.progress || "POOR"}</Badge>
+                  </div>
+                  <div>
+                    <span className="font-semibold text-gray-600">Patient Engagement</span><br />
+                    <Badge className="bg-blue-100 text-blue-700">{session.engagement || "MEDIUM"}</Badge>
+                  </div>
+                  <div>
+                    <span className="font-semibold text-gray-600">Risk Assessment</span><br />
+                    <Badge className="bg-green-100 text-green-700">{session.risk || "NONE"}</Badge>
+                  </div>
+                </div>
+                <div className="mt-2">
+                  <span className="font-semibold text-gray-600">Primary Focus Areas</span><br />
+                  <span className="italic text-gray-400">{session.focusAreas && session.focusAreas.length > 0 ? session.focusAreas.join(", ") : "No focus areas documented"}</span>
+                </div>
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
+            <Card className="bg-white rounded-xl shadow p-6">
+              <CardHeader className="flex items-center gap-2 mb-2 border-b border-border">
+                <CardTitle className="flex items-center gap-2">
+                  <ClipboardList className="text-blue-400" />
+                  <span className="font-semibold text-lg">Session Notes</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="mb-2">
+                  <span className="font-semibold text-gray-600">Clinical Observations</span>
+                  <div className="bg-gray-100 rounded p-2 mt-1 text-sm">{session.observations || session.sessionNotes || "No clinical observations recorded"}</div>
+                </div>
+                <div className="mb-2">
+                  <span className="font-semibold text-gray-600">Next Session Goals</span>
+                  <div className="text-sm italic text-gray-400">{session.nextSessionGoals || "No goals set for next session"}</div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </div>
   );
