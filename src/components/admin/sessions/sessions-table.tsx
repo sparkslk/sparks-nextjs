@@ -201,11 +201,10 @@ const SessionsTable: React.FC<SessionsTableProps> = ({
                 currentPageData.map((session, idx) => (
                   <tr
                     key={session.id}
-                    className={`border-b border-gray-200/60 transition-all duration-300 transform hover:scale-[1.005] active:scale-[0.995] group ${
-                      idx % 2 === 0
+                    className={`border-b border-gray-200/60 transition-all duration-300 transform hover:scale-[1.005] active:scale-[0.995] group ${idx % 2 === 0
                         ? "bg-white/60 backdrop-blur-sm"
                         : "bg-gradient-to-r from-slate-50/40 to-white/80 backdrop-blur-sm"
-                    } hover:bg-gradient-to-r hover:from-[#8159A8]/8 hover:to-blue-500/5 hover:shadow-lg hover:border-[#8159A8]/30`}
+                      } hover:bg-gradient-to-r hover:from-[#8159A8]/8 hover:to-blue-500/5 hover:shadow-lg hover:border-[#8159A8]/30`}
                   >
                     <td className="py-6 px-8">
                       <div className="font-semibold text-gray-900 text-base transition-colors duration-300 group-hover:text-[#8159A8]">
@@ -219,7 +218,7 @@ const SessionsTable: React.FC<SessionsTableProps> = ({
                     </td>
                     <td className="py-6 px-8">
                       <span className="inline-flex px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold shadow-sm transition-all duration-300 group-hover:shadow-md">
-                        {session.type}
+                        {session.type === "With Parent" ? "Family Session" : session.type}
                       </span>
                     </td>
                     <td className="py-6 px-8">
@@ -317,11 +316,10 @@ const SessionsTable: React.FC<SessionsTableProps> = ({
                   size="sm"
                   variant={pageNum === currentPage ? "default" : "outline"}
                   onClick={() => setCurrentPage(pageNum)}
-                  className={`h-10 w-10 p-0 rounded-xl transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-sm hover:shadow-md ${
-                    pageNum === currentPage
+                  className={`h-10 w-10 p-0 rounded-xl transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-sm hover:shadow-md ${pageNum === currentPage
                       ? "bg-gradient-to-r from-[#8159A8] to-blue-600 text-white hover:from-[#6b4890] hover:to-blue-700 border-2 border-[#8159A8] shadow-md"
                       : "text-gray-700 hover:bg-[#8159A8] hover:text-white border-2 border-gray-300/60 hover:border-[#8159A8] backdrop-blur-sm"
-                  }`}
+                    }`}
                 >
                   {pageNum}
                 </Button>
