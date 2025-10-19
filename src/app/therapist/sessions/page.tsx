@@ -124,17 +124,7 @@ export default function TherapistSessionsPage() {
     });
   };
 
-  const formatTimeManual = (dateString: string) => {
-    // This function is now redundant as formatTime handles it properly
-    return formatTime(dateString);
-  };
-
-  const formatDateTime = (dateString: string) => {
-    // Use our timezone-safe functions
-    const date = formatDate(dateString);
-    const time = formatTime(dateString);
-    return `${date} ${time}`;
-  };
+  // Removed unused formatTimeManual and formatDateTime functions
 
   useEffect(() => {
     fetchSessions();

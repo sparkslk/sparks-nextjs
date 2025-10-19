@@ -137,14 +137,15 @@ export default function TherapistDashboard() {
         }
     };
 
-    // Check if appointment is in the future
-    const isAppointmentUpcoming = (appointmentTime: string): boolean => {
-        const appointmentDate = parseAppointmentDateTime(appointmentTime);
-        const now = new Date();
-        return appointmentDate > now;
-    };
+
 
     useEffect(() => {
+        // Check if appointment is in the future
+        const isAppointmentUpcoming = (appointmentTime: string): boolean => {
+            const appointmentDate = parseAppointmentDateTime(appointmentTime);
+            const now = new Date();
+            return appointmentDate > now;
+        };
         const fetchDashboard = async () => {
             try {
                 setError(null);
@@ -285,7 +286,7 @@ export default function TherapistDashboard() {
                     <div className="p-4 bg-primary/10 rounded-lg shadow-md">
                         <div className="flex items-center justify-between">
                             <div>
-                                <h3 className="text-lg font-semibold text-primary">Today's Sessions</h3>
+                                <h3 className="text-lg font-semibold text-primary">Today&apos;s Sessions</h3>
                                 <p className="text-2xl font-bold text-primary mt-2">{stats.todayAppointments}</p>
                                 <p className="text-sm text-muted-foreground">Scheduled sessions for today</p>
                             </div>

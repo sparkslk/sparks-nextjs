@@ -14,7 +14,8 @@ import {
     Cell,
     LineChart,
     Line,
-    Legend
+    Legend,
+    PieLabelRenderProps
 } from 'recharts';
 
 interface SessionOverviewData {
@@ -28,7 +29,8 @@ interface EngagementData {
     level: string;
     count: number;
     color: string;
-    [key: string]: any;
+    // Allow additional properties, but type them as unknown
+    [key: string]: string | number | undefined;
 }
 
 interface ProgressData {
@@ -90,8 +92,19 @@ export function SessionOverviewChart({ data }: { data: SessionOverviewData[] }) 
 }
 
 export function PatientEngagementChart({ data }: { data: EngagementData[] }) {
-    const totalCount = data.reduce((sum, item) => sum + item.count, 0);
-    
+    const totalCount = data.reduce((sum: number, item: EngagementData) => sum + item.count, 0);
+
+    // Use PieLabelRenderProps from recharts for correct typing
+    const renderPieLabel = (props: PieLabelRenderProps) => {
+        // PieLabelRenderProps has value, percent, name, index, etc.
+        // We want to show: level: count (percent%)
+        // The payload is available as props.payload
+        const payload = props.payload as EngagementData;
+        const percent = Number(props.percent ?? 0);
+        const count = Number(payload.count ?? 0);
+        return `${payload.level}: ${count} (${(percent * 100).toFixed(0)}%)`;
+    };
+
     return (
         <Card className="bg-card/95 backdrop-blur border-0 shadow-lg">
             <CardHeader>
@@ -110,11 +123,7 @@ export function PatientEngagementChart({ data }: { data: EngagementData[] }) {
                             cx="50%"
                             cy="50%"
                             labelLine={false}
-                            label={(props: any) => {
-                                const payload = props.payload as EngagementData;
-                                const percent = props.percent as number | undefined;
-                                return `${payload.level}: ${payload.count} (${((percent ?? 0) * 100).toFixed(0)}%)`;
-                            }}
+                            label={renderPieLabel}
                             outerRadius={80}
                             fill="#8884d8"
                             dataKey="count"
