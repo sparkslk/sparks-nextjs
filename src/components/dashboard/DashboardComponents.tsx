@@ -196,7 +196,7 @@ export function UpcomingAppointments({ appointments }: UpcomingAppointmentsProps
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Upcoming Appointments</CardTitle>
+                <CardTitle className="text-lg font-medium">Upcoming Appointments</CardTitle>
                 <CardDescription>Your next scheduled sessions</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">

@@ -117,9 +117,26 @@ export default function SessionDetailsPage() {
   console.log("Current error state:", error);
   console.log("Current session state:", session);
 
-  // Helper function to safely parse and format dates (from sessions page)
+  // Helper function to safely parse and format dates avoiding timezone issues
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    // Parse the date string manually to avoid timezone conversion issues
+    let parsedDate;
+    
+    if (dateString.includes('T')) {
+      // Handle ISO format (2025-10-31T18:30:00 or 2025-10-31T18:30:00Z)
+      const datePart = dateString.split('T')[0];
+      const [year, month, day] = datePart.split('-').map(Number);
+      parsedDate = new Date(year, month - 1, day); // month is 0-indexed
+    } else if (dateString.includes('-')) {
+      // Handle date format (2025-10-31)
+      const [year, month, day] = dateString.split('-').map(Number);
+      parsedDate = new Date(year, month - 1, day); // month is 0-indexed
+    } else {
+      // Fallback to native Date parsing
+      parsedDate = new Date(dateString);
+    }
+    
+    return parsedDate.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric'
@@ -127,6 +144,17 @@ export default function SessionDetailsPage() {
   };
 
   const formatTime = (dateString: string) => {
+    // Extract time manually to avoid timezone conversion
+    if (dateString.includes('T')) {
+      const timePart = dateString.split('T')[1];
+      const timeOnly = timePart.split('.')[0]; // Remove milliseconds if present
+      const finalTime = timeOnly.split('Z')[0]; // Remove Z if present
+      
+      const [hours, minutes] = finalTime.split(':');
+      return `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`;
+    }
+    
+    // Fallback for other formats
     return new Date(dateString).toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit',
@@ -135,18 +163,7 @@ export default function SessionDetailsPage() {
   };
 
   const formatTimeManual = (dateString: string) => {
-    // Extract just the time part manually to avoid timezone issues
-    if (dateString.includes('T')) {
-      const timePart = dateString.split('T')[1];
-      const timeOnly = timePart.split('.')[0]; // Remove milliseconds if present
-      const finalTime = timeOnly.split('Z')[0]; // Remove Z if present
-      
-      // Convert to 24-hour format
-      const [hours, minutes] = finalTime.split(':');
-      return `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`;
-    }
-    
-    // Fallback to original method
+    // This function is now redundant as formatTime handles it properly
     return formatTime(dateString);
   };
 
