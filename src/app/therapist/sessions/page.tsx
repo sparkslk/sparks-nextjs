@@ -75,9 +75,26 @@ export default function TherapistSessionsPage() {
   const [showNoAvailabilityPopup, setShowNoAvailabilityPopup] = useState(false);
   const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
 
-  // Helper function to safely parse and format dates (similar to parent tasks page)
+  // Helper function to safely parse and format dates avoiding timezone issues
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    // Parse the date string manually to avoid timezone conversion issues
+    let parsedDate;
+    
+    if (dateString.includes('T')) {
+      // Handle ISO format (2025-10-31T18:30:00 or 2025-10-31T18:30:00Z)
+      const datePart = dateString.split('T')[0];
+      const [year, month, day] = datePart.split('-').map(Number);
+      parsedDate = new Date(year, month - 1, day); // month is 0-indexed
+    } else if (dateString.includes('-')) {
+      // Handle date format (2025-10-31)
+      const [year, month, day] = dateString.split('-').map(Number);
+      parsedDate = new Date(year, month - 1, day); // month is 0-indexed
+    } else {
+      // Fallback to native Date parsing
+      parsedDate = new Date(dateString);
+    }
+    
+    return parsedDate.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric'
@@ -85,38 +102,29 @@ export default function TherapistSessionsPage() {
   };
 
   const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    });
-  };
-
-  const formatTimeManual = (dateString: string) => {
-    // Extract just the time part manually to avoid timezone issues
+    // Extract time manually to avoid timezone conversion
     if (dateString.includes('T')) {
       const timePart = dateString.split('T')[1];
       const timeOnly = timePart.split('.')[0]; // Remove milliseconds if present
       const finalTime = timeOnly.split('Z')[0]; // Remove Z if present
       
-      // Convert to 24-hour format
       const [hours, minutes] = finalTime.split(':');
-      return `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`;
+      const hour24 = parseInt(hours, 10);
+      const hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24;
+      const ampm = hour24 >= 12 ? 'PM' : 'AM';
+      
+      return `${hour12}:${minutes.padStart(2, '0')} ${ampm}`;
     }
     
-    // Fallback to original method
-    return formatTime(dateString);
-  };
-
-  const formatDateTime = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
+    // Fallback for other formats with AM/PM
+    return new Date(dateString).toLocaleTimeString('en-US', {
+      hour: 'numeric',
       minute: '2-digit',
-      hour12: false
+      hour12: true
     });
   };
+
+  // Removed unused formatTimeManual and formatDateTime functions
 
   useEffect(() => {
     fetchSessions();
@@ -242,14 +250,20 @@ export default function TherapistSessionsPage() {
     // Apply date range filter
     if (dateFrom) {
       filteredSessions = filteredSessions.filter(session => {
-        const sessionDate = new Date(session.scheduledAt).toISOString().split('T')[0];
-        return sessionDate >= dateFrom;
+        // Extract date part manually to avoid timezone issues
+        const sessionDateString = session.scheduledAt.includes('T') 
+          ? session.scheduledAt.split('T')[0] 
+          : session.scheduledAt.split(' ')[0];
+        return sessionDateString >= dateFrom;
       });
     }
     if (dateTo) {
       filteredSessions = filteredSessions.filter(session => {
-        const sessionDate = new Date(session.scheduledAt).toISOString().split('T')[0];
-        return sessionDate <= dateTo;
+        // Extract date part manually to avoid timezone issues
+        const sessionDateString = session.scheduledAt.includes('T') 
+          ? session.scheduledAt.split('T')[0] 
+          : session.scheduledAt.split(' ')[0];
+        return sessionDateString <= dateTo;
       });
     }
 
@@ -277,37 +291,33 @@ export default function TherapistSessionsPage() {
   // Get unique session types for filter dropdown
   const sessionTypes = [...new Set(sessions.map(session => session.type).filter(type => type != null))];
 
-  const isSessionPast = (session: Session) => {
-    // Parse the session time but treat it as local time instead of UTC
-    const sessionTimeString = session.scheduledAt;
-    
-    // If the time has 'Z' or timezone info, we need to handle it carefully
-    let sessionTime;
-    if (sessionTimeString.includes('T') && sessionTimeString.includes('Z')) {
-      // Remove the 'Z' and treat as local time
-      const localTimeString = sessionTimeString.replace('Z', '');
-      sessionTime = new Date(localTimeString);
+  // Helper function to parse datetime string safely without timezone conversion
+  const parseSessionDateTime = (dateString: string): Date => {
+    if (dateString.includes('T')) {
+      // Handle ISO format (2025-10-31T18:30:00 or 2025-10-31T18:30:00Z)
+      const [datePart, timePart] = dateString.split('T');
+      const [year, month, day] = datePart.split('-').map(Number);
+      
+      const timeOnly = timePart.split('.')[0].split('Z')[0]; // Remove milliseconds and Z
+      const [hours, minutes, seconds = 0] = timeOnly.split(':').map(Number);
+      
+      // Create date in local timezone without conversion
+      return new Date(year, month - 1, day, hours, minutes, seconds);
     } else {
-      sessionTime = new Date(sessionTimeString);
+      // Fallback for other formats
+      return new Date(dateString);
     }
-    
+  };
+
+  const isSessionPast = (session: Session) => {
+    const sessionTime = parseSessionDateTime(session.scheduledAt);
     const now = new Date();
     
     return sessionTime <= now;
   };
 
   const isSessionOngoing = (session: Session) => {
-    // Parse the session time but treat it as local time instead of UTC
-    const sessionTimeString = session.scheduledAt;
-    
-    let sessionTime;
-    if (sessionTimeString.includes('T') && sessionTimeString.includes('Z')) {
-      const localTimeString = sessionTimeString.replace('Z', '');
-      sessionTime = new Date(localTimeString);
-    } else {
-      sessionTime = new Date(sessionTimeString);
-    }
-    
+    const sessionTime = parseSessionDateTime(session.scheduledAt);
     const now = new Date();
     const sessionEndTime = new Date(sessionTime.getTime() + (session.duration * 60 * 1000)); // Add duration in milliseconds
     
@@ -316,17 +326,7 @@ export default function TherapistSessionsPage() {
   };
 
   const isSessionCompleted = (session: Session) => {
-    // Parse the session time but treat it as local time instead of UTC
-    const sessionTimeString = session.scheduledAt;
-    
-    let sessionTime;
-    if (sessionTimeString.includes('T') && sessionTimeString.includes('Z')) {
-      const localTimeString = sessionTimeString.replace('Z', '');
-      sessionTime = new Date(localTimeString);
-    } else {
-      sessionTime = new Date(sessionTimeString);
-    }
-    
+    const sessionTime = parseSessionDateTime(session.scheduledAt);
     const now = new Date();
     const sessionEndTime = new Date(sessionTime.getTime() + (session.duration * 60 * 1000)); // Add duration in milliseconds
     
@@ -504,7 +504,7 @@ export default function TherapistSessionsPage() {
                 <Clock className="w-6 h-6 text-primary" />
                 <div>
                   <p className="text-xs text-gray-500">Time</p>
-                  <p className="text-sm font-medium">{formatTimeManual(session.scheduledAt)}</p>
+                  <p className="text-sm font-medium">{formatTime(session.scheduledAt)}</p>
                 </div>
               </div>
               
@@ -682,12 +682,13 @@ export default function TherapistSessionsPage() {
                   {(() => {
                     const upcomingNonReschedule = filterSessionsByTab("scheduled")
                       .filter(s => s.status !== 'RESCHEDULED')
-                      .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
+                      .filter(s => !isSessionPast(s)) // Only include future sessions
+                      .sort((a, b) => parseSessionDateTime(a.scheduledAt).getTime() - parseSessionDateTime(b.scheduledAt).getTime());
                     
                     return upcomingNonReschedule.length > 0 ? (
                       <>
                         <p className="text-lg font-bold text-gray-900 mt-1">
-                          {formatDateTime(upcomingNonReschedule[0].scheduledAt)}
+                          {formatDate(upcomingNonReschedule[0].scheduledAt)} at {formatTime(upcomingNonReschedule[0].scheduledAt)}
                         </p>
                         <p className="text-xs text-gray-500 mt-1">
                           {upcomingNonReschedule[0].patientName}
@@ -695,8 +696,8 @@ export default function TherapistSessionsPage() {
                       </>
                     ) : (
                       <>
-                        <p className="text-lg font-bold text-gray-900 mt-1">No sessions</p>
-                        <p className="text-xs text-gray-500 mt-1">scheduled</p>
+                        <p className="text-lg font-bold text-gray-900 mt-1">No upcoming</p>
+                        <p className="text-xs text-gray-500 mt-1">sessions</p>
                       </>
                     );
                   })()}
@@ -723,7 +724,7 @@ export default function TherapistSessionsPage() {
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
                     This month: {filterSessionsByTab("completed").filter(s => {
-                      const sessionDate = new Date(s.scheduledAt);
+                      const sessionDate = parseSessionDateTime(s.scheduledAt);
                       const thisMonth = new Date();
                       return sessionDate.getMonth() === thisMonth.getMonth() && 
                              sessionDate.getFullYear() === thisMonth.getFullYear();

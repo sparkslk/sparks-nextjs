@@ -73,6 +73,24 @@ export default function PatientDetailsPage() {
   const [therapistFilter, setTherapistFilter] = useState("");
   const [sortFilter, setSortFilter] = useState("date-desc");
 
+  // Helper function to parse datetime string safely without timezone conversion
+  const parseSessionDateTime = (dateString: string): Date => {
+    if (dateString.includes('T')) {
+      // Handle ISO format (2025-10-31T18:30:00 or 2025-10-31T18:30:00Z)
+      const [datePart, timePart] = dateString.split('T');
+      const [year, month, day] = datePart.split('-').map(Number);
+      
+      const timeOnly = timePart.split('.')[0].split('Z')[0]; // Remove milliseconds and Z
+      const [hours, minutes, seconds = 0] = timeOnly.split(':').map(Number);
+      
+      // Create date in local timezone without conversion
+      return new Date(year, month - 1, day, hours, minutes, seconds);
+    } else {
+      // Fallback for other formats
+      return new Date(dateString);
+    }
+  };
+
   
 
   // Filter function
@@ -110,9 +128,9 @@ export default function PatientDetailsPage() {
       }
       
       if (dateFilter !== 'this-year') {
-        filtered = filtered.filter(session => new Date(session.scheduledAt) >= filterDate);
+        filtered = filtered.filter(session => parseSessionDateTime(session.scheduledAt) >= filterDate);
       } else {
-        filtered = filtered.filter(session => new Date(session.scheduledAt).getFullYear() === now.getFullYear());
+        filtered = filtered.filter(session => parseSessionDateTime(session.scheduledAt).getFullYear() === now.getFullYear());
       }
     }
     
@@ -133,15 +151,15 @@ export default function PatientDetailsPage() {
     filtered.sort((a, b) => {
       switch (sortFilter) {
         case 'date-asc':
-          return new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime();
+          return parseSessionDateTime(a.scheduledAt).getTime() - parseSessionDateTime(b.scheduledAt).getTime();
         case 'date-desc':
-          return new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime();
+          return parseSessionDateTime(b.scheduledAt).getTime() - parseSessionDateTime(a.scheduledAt).getTime();
         case 'status':
           return a.status.localeCompare(b.status);
         case 'type':
           return (a.type || '').localeCompare(b.type || '');
         default:
-          return new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime();
+          return parseSessionDateTime(b.scheduledAt).getTime() - parseSessionDateTime(a.scheduledAt).getTime();
       }
     });
     
@@ -729,9 +747,26 @@ export default function PatientDetailsPage() {
                       }
                     };
 
-                    // Helper function to safely parse and format dates (from sessions page)
+                    // Helper function to safely parse and format dates avoiding timezone issues
                     const formatDate = (dateString: string) => {
-                      return new Date(dateString).toLocaleDateString('en-US', {
+                      // Parse the date string manually to avoid timezone conversion issues
+                      let parsedDate;
+                      
+                      if (dateString.includes('T')) {
+                        // Handle ISO format (2025-10-31T18:30:00 or 2025-10-31T18:30:00Z)
+                        const datePart = dateString.split('T')[0];
+                        const [year, month, day] = datePart.split('-').map(Number);
+                        parsedDate = new Date(year, month - 1, day); // month is 0-indexed
+                      } else if (dateString.includes('-')) {
+                        // Handle date format (2025-10-31)
+                        const [year, month, day] = dateString.split('-').map(Number);
+                        parsedDate = new Date(year, month - 1, day); // month is 0-indexed
+                      } else {
+                        // Fallback to native Date parsing
+                        parsedDate = new Date(dateString);
+                      }
+                      
+                      return parsedDate.toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric',
                         year: 'numeric'
@@ -739,6 +774,17 @@ export default function PatientDetailsPage() {
                     };
 
                     const formatTime = (dateString: string) => {
+                      // Extract time manually to avoid timezone conversion
+                      if (dateString.includes('T')) {
+                        const timePart = dateString.split('T')[1];
+                        const timeOnly = timePart.split('.')[0]; // Remove milliseconds if present
+                        const finalTime = timeOnly.split('Z')[0]; // Remove Z if present
+                        
+                        const [hours, minutes] = finalTime.split(':');
+                        return `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`;
+                      }
+                      
+                      // Fallback for other formats
                       return new Date(dateString).toLocaleTimeString('en-US', {
                         hour: '2-digit',
                         minute: '2-digit',
@@ -747,18 +793,7 @@ export default function PatientDetailsPage() {
                     };
 
                     const formatTimeManual = (dateString: string) => {
-                      // Extract just the time part manually to avoid timezone issues
-                      if (dateString.includes('T')) {
-                        const timePart = dateString.split('T')[1];
-                        const timeOnly = timePart.split('.')[0]; // Remove milliseconds if present
-                        const finalTime = timeOnly.split('Z')[0]; // Remove Z if present
-                        
-                        // Convert to 24-hour format
-                        const [hours, minutes] = finalTime.split(':');
-                        return `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`;
-                      }
-                      
-                      // Fallback to original method
+                      // This function is now redundant as formatTime handles it properly
                       return formatTime(dateString);
                     };
 
