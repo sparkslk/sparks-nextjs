@@ -1286,7 +1286,7 @@ export default function UsersPage() {
                               </p>
                             );
                           }
-                        } catch (error) {
+                        } catch {
                           return (
                             <p className="text-gray-700 leading-relaxed">
                               {String(

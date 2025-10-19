@@ -189,6 +189,8 @@ export async function POST(request: NextRequest) {
         meetingType?: string;
         availabilitySlotId: string;
         patientId: string;
+        sessionDate?: string;
+        sessionRate?: number;
       } | undefined;
 
       // If we have booking details and no session created yet, create the session
@@ -197,47 +199,42 @@ export async function POST(request: NextRequest) {
         console.log("Booking details:", bookingDetails);
 
         try {
-          // Parse the date and time
-          const inputDate = new Date(bookingDetails.date);
-          const [timeSlotStart] = bookingDetails.timeSlot.split("-");
-          const cleanTimeSlot = timeSlotStart.trim();
-
-          // Parse time
-          let hours: number, minutes: number;
-          const time24Match = cleanTimeSlot.match(/^(\d{1,2}):(\d{2})$/);
-          if (time24Match) {
-            hours = parseInt(time24Match[1]);
-            minutes = parseInt(time24Match[2]);
+          // Use pre-computed session date if available, otherwise parse from booking details
+          let sessionDate: Date;
+          if (bookingDetails.sessionDate) {
+            sessionDate = new Date(bookingDetails.sessionDate);
           } else {
-            const time12Match = cleanTimeSlot.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
-            if (time12Match) {
-              const h = parseInt(time12Match[1]);
-              minutes = parseInt(time12Match[2]);
-              const period = time12Match[3].toUpperCase();
-              hours = period === "AM" ? (h === 12 ? 0 : h) : (h === 12 ? 12 : h + 12);
+            // Fallback to old parsing logic
+            const inputDate = new Date(bookingDetails.date);
+            const [timeSlotStart] = bookingDetails.timeSlot.split("-");
+            const cleanTimeSlot = timeSlotStart.trim();
+
+            // Parse time
+            let hours: number, minutes: number;
+            const time24Match = cleanTimeSlot.match(/^(\d{1,2}):(\d{2})$/);
+            if (time24Match) {
+              hours = parseInt(time24Match[1]);
+              minutes = parseInt(time24Match[2]);
             } else {
-              throw new Error(`Invalid time format: "${cleanTimeSlot}"`);
+              const time12Match = cleanTimeSlot.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+              if (time12Match) {
+                const h = parseInt(time12Match[1]);
+                minutes = parseInt(time12Match[2]);
+                const period = time12Match[3].toUpperCase();
+                hours = period === "AM" ? (h === 12 ? 0 : h) : (h === 12 ? 12 : h + 12);
+              } else {
+                throw new Error(`Invalid time format: "${cleanTimeSlot}"`);
+              }
             }
+
+            // Create session datetime
+            const dateStr = `${inputDate.getFullYear()}-${(inputDate.getMonth() + 1).toString().padStart(2, '0')}-${inputDate.getDate().toString().padStart(2, '0')}`;
+            const timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`;
+            sessionDate = new Date(`${dateStr}T${timeStr}.000Z`);
           }
 
-          // Create session datetime
-          const dateStr = `${inputDate.getFullYear()}-${(inputDate.getMonth() + 1).toString().padStart(2, '0')}-${inputDate.getDate().toString().padStart(2, '0')}`;
-          const timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`;
-          const sessionDate = new Date(`${dateStr}T${timeStr}.000Z`);
-
-          // Get therapist info to determine session rate
-          const therapist = await prisma.therapist.findUnique({
-            where: { id: bookingDetails.therapistId },
-            select: { session_rate: true },
-          });
-
-          // Get availability slot to check if it's free
-          const availabilitySlot = await prisma.therapistAvailability.findUnique({
-            where: { id: bookingDetails.availabilitySlotId },
-            select: { isFree: true, isBooked: true },
-          });
-
-          const sessionRate = availabilitySlot?.isFree ? 0 : (therapist?.session_rate || 0);
+          // Use session rate from booking details if available
+          const sessionRate = bookingDetails.sessionRate ?? 0;
 
           // Generate meeting link for online/hybrid sessions
           const meetingType = bookingDetails.meetingType || "IN_PERSON";
@@ -279,7 +276,7 @@ export async function POST(request: NextRequest) {
 
               // Get therapist's Google OAuth tokens
               if (therapistWithUser?.user?.id) {
-                const therapistAccount = await prisma.account.findFirst({
+                let therapistAccount = await prisma.account.findFirst({
                   where: {
                     userId: therapistWithUser.user.id,
                     provider: "google",
@@ -289,6 +286,23 @@ export async function POST(request: NextRequest) {
                     refresh_token: true,
                   },
                 });
+
+                // DEMO FALLBACK: If therapist doesn't have Google OAuth, use parent's account
+                let oauthUserId = therapistWithUser.user.id;
+                if ((!therapistAccount?.access_token || !therapistAccount?.refresh_token) && initiatedBy.userId) {
+                  console.log(`⚠️ Therapist doesn't have Google OAuth, using parent's account for demo`);
+                  therapistAccount = await prisma.account.findFirst({
+                    where: {
+                      userId: initiatedBy.userId, // Use parent's account
+                      provider: "google",
+                    },
+                    select: {
+                      access_token: true,
+                      refresh_token: true,
+                    },
+                  });
+                  oauthUserId = initiatedBy.userId;
+                }
 
                 if (therapistAccount?.access_token && therapistAccount?.refresh_token) {
                   // Calculate session end time (45 minutes after start)
@@ -310,17 +324,17 @@ export async function POST(request: NextRequest) {
                     },
                     therapistAccount.access_token,
                     therapistAccount.refresh_token,
-                    therapistWithUser.user.id
+                    oauthUserId
                   );
 
                   meetingLink = meetingResponse.meetingLink;
                   calendarEventId = meetingResponse.eventId;
 
-                  console.log(`✅ Google Meet event created for payment webhook: ${meetingResponse.meetingLink}`);
+                  console.log(`✅ Google Meet event created after successful payment: ${meetingResponse.meetingLink}`);
                 } else {
                   // Fallback to simple meeting link if therapist hasn't connected Google account
                   meetingLink = generateSimpleMeetingLink(`${bookingDetails.patientId}-${Date.now()}`);
-                  console.log(`⚠️ Using fallback meeting link (therapist not connected to Google)`);
+                  console.log(`⚠️ Using fallback meeting link (no Google OAuth available)`);
                 }
               }
             } catch (meetError) {
@@ -332,7 +346,13 @@ export async function POST(request: NextRequest) {
           }
 
           // Create session and mark availability slot as booked in a transaction
-          await prisma.$transaction(async (tx) => {
+          const createdSession = await prisma.$transaction(async (tx) => {
+            // Check if availability slot still exists and is not already booked
+            const availabilitySlot = await tx.therapistAvailability.findUnique({
+              where: { id: bookingDetails.availabilitySlotId },
+              select: { isBooked: true },
+            });
+
             // Mark the availability slot as booked (only if not already booked)
             if (availabilitySlot && !availabilitySlot.isBooked) {
               await tx.therapistAvailability.update({
@@ -351,7 +371,6 @@ export async function POST(request: NextRequest) {
                 status: "SCHEDULED",
                 type: bookingDetails.sessionType || "Individual",
                 bookedRate: sessionRate,
-                sessionType: meetingType as "IN_PERSON" | "ONLINE" | "HYBRID",
                 meetingLink: meetingLink,
                 calendarEventId: calendarEventId,
               },
@@ -363,7 +382,10 @@ export async function POST(request: NextRequest) {
               data: { sessionId: therapySession.id },
             });
 
-            console.log("Therapy session created successfully:", therapySession.id);
+            console.log("Therapy session created successfully after payment:", therapySession.id);
+            console.log("Meeting link saved:", meetingLink);
+
+            return therapySession;
           });
 
           // Get the created session for notifications
