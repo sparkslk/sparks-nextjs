@@ -205,9 +205,6 @@ export default function SessionCancellationDialog({
                     <div className="space-y-6">
                         <div className="text-center">
                             <h3 className="text-lg font-semibold mb-2">Session Cancellation</h3>
-                            <p className="text-muted-foreground">
-                                {session?.scheduledAt && `Session scheduled for ${new Date(session.scheduledAt).toLocaleString()}`}
-                            </p>
                         </div>
 
                         {loading ? (
