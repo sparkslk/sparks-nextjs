@@ -827,10 +827,10 @@ export default function MedicationManagement({
         {/* Adherence Details Button */}
         <Dialog open={showAdherenceModal} onOpenChange={setShowAdherenceModal}>
           <DialogTrigger asChild>
-            <Button variant="outline" size="sm" className="bg-white border-[#8159A8] text-[#8159A8] hover:bg-[#f3eafd]">
+            {/* <Button variant="outline" size="sm" className="bg-white border-[#8159A8] text-[#8159A8] hover:bg-[#f3eafd]">
               <History className="w-4 h-4 mr-2" />
               Adherence Details
-            </Button>
+            </Button> */}
           </DialogTrigger>
           <DialogContent className="max-w-2xl rounded-2xl bg-[#FAF8FB] border-[#e2d6f3]">
             <DialogHeader>
