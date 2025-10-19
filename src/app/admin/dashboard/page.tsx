@@ -1,10 +1,9 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DonationModal } from '@/components/admin/donation-modal';
-import { SessionModal } from '@/components/admin/session-modal';
 import {
     Users,
     Database,
@@ -97,15 +96,15 @@ export default function AdminDashboard() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-    const [showSessionModal, setShowSessionModal] = useState(false);
-    const [showDonationModal, setShowDonationModal] = useState(false);
 
-    const mappedDonationData = mockDonationData.map((donation) => ({
+    const router = useRouter();
+
+    {/*const mappedDonationData = mockDonationData.map((donation) => ({
         id: donation.id.toString(),
         name: donation.donorName,
         timeAgo: donation.timeAgo,
         amount: donation.amount
-    }));
+    }));*/}
 
     useEffect(() => {
         fetchAdminData();
@@ -308,26 +307,10 @@ export default function AdminDashboard() {
                                 <Button
                                     className="hover:opacity-90 hover:shadow-md transition-all duration-200 font-medium"
                                     style={{ backgroundColor: "#8159A8", color: "white" }}
-                                    onClick={() => setShowSessionModal(true)}
+                                    onClick={() => router.push('/admin/sessions')}
                                 >
                                     View All Sessions
                                 </Button>
-                                <SessionModal
-                                    isOpen={showSessionModal}
-                                    onClose={() => setShowSessionModal(false)}
-                                    sessions={
-                                        adminData?.sessionOversightData ? 
-                                            adminData.sessionOversightData.map((session) => ({
-                                                id: session.id,
-                                                name: session.therapist.name,
-                                                amount: session.sessionDetails?.duration?.toString() || "0",
-                                                commission: "N/A",
-                                                sessionDetails: `Session with ${session.patient.name} • ${session.sessionDetails.duration} mins • ${session.sessionDetails.status}`,
-                                                scheduledAt: session.sessionDetails.scheduledAt,
-                                            }))
-                                            : []
-                                    }
-                                />
                             </div>
                         </CardContent>
                     </Card>
@@ -377,15 +360,10 @@ export default function AdminDashboard() {
                                 <Button
                                     className="hover:opacity-90 hover:shadow-md transition-all duration-200 font-medium"
                                     style={{ backgroundColor: "#8159A8", color: "white" }}
-                                    onClick={() => setShowDonationModal(true)}
+                                    onClick={() => router.push('/admin/reports')}
                                 >
                                     View All Donations
                                 </Button>
-                                <DonationModal
-                                    isOpen={showDonationModal}
-                                    onClose={() => setShowDonationModal(false)}
-                                    donations={mappedDonationData}
-                                />
                             </div>
                         </CardContent>
                     </Card>
