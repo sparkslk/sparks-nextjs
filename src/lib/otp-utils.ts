@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 
 /**
  * OTP Configuration
@@ -55,38 +56,60 @@ export function isOTPExpired(expiryDate: Date): boolean {
 }
 
 /**
- * Generates a short-lived verification token using JWT-like structure
+ * Generates a short-lived verification token using proper JWT signing
  */
 export function generateVerificationToken(email: string): string {
+    const secret = process.env.NEXTAUTH_SECRET;
+    if (!secret) {
+        throw new Error('NEXTAUTH_SECRET is not configured');
+    }
+
     const payload = {
         email,
-        exp: Date.now() + (OTP_CONFIG.VERIFICATION_TOKEN_EXPIRY_MINUTES * 60 * 1000),
+        purpose: 'password-reset',
         nonce: crypto.randomBytes(16).toString('hex')
     };
 
-    const token = Buffer.from(JSON.stringify(payload)).toString('base64url');
+    // Sign with expiry
+    const token = jwt.sign(payload, secret, {
+        expiresIn: `${OTP_CONFIG.VERIFICATION_TOKEN_EXPIRY_MINUTES}m`
+    });
+
     return token;
 }
 
 /**
- * Verifies and decodes a verification token
+ * Verifies and decodes a verification token with proper JWT verification
  */
 export function verifyVerificationToken(token: string): { email: string; valid: boolean } {
     try {
-        const decoded = JSON.parse(Buffer.from(token, 'base64url').toString('utf-8'));
-
-        if (!decoded.email || !decoded.exp || !decoded.nonce) {
+        const secret = process.env.NEXTAUTH_SECRET;
+        if (!secret) {
+            console.error('NEXTAUTH_SECRET is not configured');
             return { email: '', valid: false };
         }
 
-        // Check if token has expired
-        if (Date.now() > decoded.exp) {
-            return { email: decoded.email, valid: false };
+        // Verify signature and decode
+        const decoded = jwt.verify(token, secret) as {
+            email: string;
+            purpose: string;
+            nonce: string;
+        };
+
+        // Verify it's a password reset token
+        if (decoded.purpose !== 'password-reset') {
+            return { email: '', valid: false };
         }
 
         return { email: decoded.email, valid: true };
     } catch (error) {
-        console.error('Error verifying token:', error);
+        if (error instanceof jwt.TokenExpiredError) {
+            console.error('Token expired');
+        } else if (error instanceof jwt.JsonWebTokenError) {
+            console.error('Invalid token');
+        } else {
+            console.error('Error verifying token:', error);
+        }
         return { email: '', valid: false };
     }
 }
