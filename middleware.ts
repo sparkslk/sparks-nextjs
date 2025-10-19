@@ -30,6 +30,14 @@ export default withAuth(
             pathname === "/set-password" ||
             pathname === "/forgot-password" ||
             pathname === "/api-docs" ||
+            pathname === "/features" ||
+            pathname === "/about" ||
+            pathname === "/resources" ||
+            pathname === "/contact" ||
+            pathname === "/donate" ||
+            pathname === "/donate/success" ||
+            pathname === "/donate/cancel" ||
+            pathname === "/blogs" ||
             pathname.startsWith("/therapist/signup") ||
             pathname.startsWith("/therapist/verification") ||
             pathname.startsWith("/manager/signup") ||
@@ -96,6 +104,14 @@ export default withAuth(
                     pathname === "/set-password" ||
                     pathname === "/forgot-password" ||
                     pathname === "/api-docs" ||
+                    pathname === "/features" ||
+                    pathname === "/about" ||
+                    pathname === "/resources" ||
+                    pathname === "/contact" ||
+                    pathname === "/donate" ||
+                    pathname === "/donate/success" ||
+                    pathname === "/donate/cancel" ||
+                    pathname === "/blogs" ||
                     pathname.startsWith("/quiz") ||
                     pathname.startsWith("/therapist/signup") ||
                     pathname.startsWith("/therapist/verification") ||

@@ -91,6 +91,11 @@ export default function Header() {
                                 Contact
                             </Button>
                         </Link>
+                        <Link href="/donate">
+                            <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
+                                Donate
+                            </Button>
+                        </Link>
                         <div className="h-6 w-px bg-border mx-2"></div>
                         <Link href="/login">
                             <Button variant="ghost">Sign In</Button>
@@ -150,6 +155,11 @@ export default function Header() {
                             <Link href="/contact" onClick={closeMobileMenu}>
                                 <Button variant="ghost" className="w-full justify-start text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
                                     Contact
+                                </Button>
+                            </Link>
+                            <Link href="/donate" onClick={closeMobileMenu}>
+                                <Button variant="ghost" className="w-full justify-start text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
+                                    Donate
                                 </Button>
                             </Link>
                             <div className="border-t border-border my-2"></div>
