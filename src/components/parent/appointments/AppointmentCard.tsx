@@ -1,6 +1,6 @@
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, User, CalendarDays, Video, CheckCircle, ChevronDown, ChevronRight } from "lucide-react";
+import { Calendar, Clock, User, CalendarDays, CheckCircle, ChevronDown, ChevronRight } from "lucide-react";
 import { Child, Appointment } from "@/types/appointments";
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -36,7 +36,6 @@ export default function AppointmentCard({
   cancelledAppointments,
   noShowAppointments,
   onTherapistClick,
-  formatDate,
   isHighlighted = false,
   onSessionCancelled,
   customUpcomingComponent
