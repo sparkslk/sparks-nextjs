@@ -18,6 +18,7 @@ import {
   LogOut,
   ChevronUp,
   Bookmark,
+  Lock,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 
@@ -361,10 +362,10 @@ export function TherapistSidebar({ children }: TherapistSidebarProps) {
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              {/* <Link href="/therapist/settings" className="flex items-center gap-2">
-                <Settings className="size-4" />
-                Settings
-              </Link> */}
+              <Link href="/therapist/profile/change-password" className="flex items-center gap-2">
+                <Lock className="size-4" />
+                Change Password
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={handleSignOut} className="flex items-center gap-2 text-red-600">
               <LogOut className="size-4" />
