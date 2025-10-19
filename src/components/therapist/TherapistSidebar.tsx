@@ -182,8 +182,8 @@ export function TherapistSidebar({ children }: TherapistSidebarProps) {
 
     fetchTherapistData();
     
-    // Poll for unread count every 30 seconds
-    const interval = setInterval(fetchUnreadCount, 30000);
+    // Poll for unread count every 10 seconds for more responsive updates
+    const interval = setInterval(fetchUnreadCount, 1000);
     
     // Listen for chat events to update immediately
     const handleUnreadCountChanged = () => {

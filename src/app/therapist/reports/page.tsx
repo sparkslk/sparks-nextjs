@@ -14,11 +14,13 @@ import {
   DollarSign,
   Users,
   Clock,
-  CheckCircle,
   XCircle,
   FileBarChart,
   Filter,
   RefreshCw,
+  ChevronDown,
+  ChevronUp,
+  Info,
 } from "lucide-react";
 import {
   BarChart,
@@ -35,6 +37,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import { generateTherapistReportPDF } from "@/lib/pdf-generator";
 
 interface ReportSummary {
   totalSessions: number;
@@ -71,7 +74,13 @@ interface Session {
   type: string;
   status: string;
   bookedRate: number;
+  therapistAmount: number;
+  systemFeeOrRefund: number;
+  breakdown: string;
+  sessionNotes?: string | null;
   isPaid: boolean;
+  hasRefund: boolean;
+  refundPercentage: number;
 }
 
 interface ReportsData {
@@ -85,6 +94,8 @@ export default function TherapistReportsPage() {
   const [reportsData, setReportsData] = useState<ReportsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
+  const [therapistName, setTherapistName] = useState<string>("");
 
   // Filter states
   const [filterType, setFilterType] = useState("monthly");
@@ -121,6 +132,23 @@ export default function TherapistReportsPage() {
       setLoading(false);
     }
   };
+
+  // Fetch therapist name
+  useEffect(() => {
+    const fetchTherapistName = async () => {
+      try {
+        const response = await fetch("/api/therapist/profile");
+        if (response.ok) {
+          const data = await response.json();
+          setTherapistName(`${data.firstName || ""} ${data.lastName || ""}`.trim() || "Therapist");
+        }
+      } catch (error) {
+        console.error("Error fetching therapist name:", error);
+        setTherapistName("Therapist");
+      }
+    };
+    fetchTherapistName();
+  }, []);
 
   useEffect(() => {
     fetchReports();
@@ -190,10 +218,30 @@ export default function TherapistReportsPage() {
   };
 
   const exportToPDF = () => {
+    if (!reportsData) return;
+    
     setExporting(true);
     try {
-      // Simple PDF export using window.print()
-      window.print();
+      // Determine date range string
+      let dateRange = "All Time";
+      if (filterType === "weekly") {
+        dateRange = "Last 7 Days";
+      } else if (filterType === "monthly") {
+        dateRange = "Last 30 Days";
+      } else if (filterType === "custom" && startDate && endDate) {
+        dateRange = `${new Date(startDate).toLocaleDateString()} - ${new Date(endDate).toLocaleDateString()}`;
+      } else if (filterType === "custom" && startDate) {
+        dateRange = `From ${new Date(startDate).toLocaleDateString()}`;
+      } else if (filterType === "custom" && endDate) {
+        dateRange = `Until ${new Date(endDate).toLocaleDateString()}`;
+      }
+
+      generateTherapistReportPDF({
+        therapistName: therapistName || "Therapist",
+        dateRange,
+        summary: reportsData.summary,
+        sessions: reportsData.sessions.filter(s => s.status !== "SCHEDULED" && s.status !== "APPROVED"),
+      });
     } catch (error) {
       console.error("Error exporting PDF:", error);
       alert("Failed to export PDF. Please try again.");
@@ -348,85 +396,59 @@ export default function TherapistReportsPage() {
         {/* Summary Statistics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* Total Sessions */}
-          <Card className="shadow-sm hover:shadow-md transition-all duration-300 border-0 bg-gradient-to-r from-blue-50/95 to-blue-100/50 backdrop-blur">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-600">Total Sessions</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">{summary.totalSessions}</p>
-                  <div className="flex gap-2 mt-2">
-                    <Badge variant="secondary" className="text-xs">
-                      {summary.completedSessions} completed
-                    </Badge>
-                  </div>
-                </div>
-                <div className="flex-shrink-0 ml-4 p-3 bg-white/50 rounded-lg">
-                  <Calendar className="h-8 w-8" style={{ color: "#8159A8" }} />
-                </div>
+          <Card className="bg-primary-foreground p-6 rounded-lg border shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center justify-between min-w-[200px]">
+            <div className="text-left">
+              <div className="text-3xl font-bold text-[#8159A8]">
+                {summary.totalSessions}
               </div>
-            </CardContent>
+              <div className="text-gray-500 text-sm">Total Sessions</div>
+            </div>
+            <div className="flex-shrink-0 ml-4">
+              <Calendar className="w-10 h-10 text-[#8159A8]" />
+            </div>
           </Card>
 
           {/* Total Income */}
-          <Card className="shadow-sm hover:shadow-md transition-all duration-300 border-0 bg-gradient-to-r from-green-50/95 to-green-100/50 backdrop-blur">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-600">Total Income</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">
-                    LKR {parseFloat(summary.totalIncome).toLocaleString()}
-                  </p>
-                  <div className="flex gap-2 mt-2">
-                    <Badge variant="secondary" className="text-xs">
-                      {summary.paidSessions} paid sessions
-                    </Badge>
-                  </div>
-                </div>
-                <div className="flex-shrink-0 ml-4 p-3 bg-white/50 rounded-lg">
-                  <DollarSign className="h-8 w-8 text-green-600" />
-                </div>
+          <Card className="bg-primary-foreground p-6 rounded-lg border shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center justify-between min-w-[200px]">
+            <div className="text-left">
+              <div className="text-3xl font-bold text-[#8159A8]">
+                LKR {parseFloat(summary.totalIncome).toLocaleString("en-US", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
               </div>
-            </CardContent>
+              <div className="text-gray-500 text-sm">Total Income Earned</div>
+              <div className="text-white/70 text-xs mt-1">After all deductions</div>
+            </div>
+            <div className="flex-shrink-0 ml-4">
+              <DollarSign className="w-10 h-10 text-[#8159A8]" />
+            </div>
           </Card>
 
           {/* No-Show Rate */}
-          <Card className="shadow-sm hover:shadow-md transition-all duration-300 border-0 bg-gradient-to-r from-orange-50/95 to-orange-100/50 backdrop-blur">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-600">No-Show Rate</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">{summary.noShowRate}%</p>
-                  <div className="flex gap-2 mt-2">
-                    <Badge variant="secondary" className="text-xs">
-                      {summary.noShowSessions} sessions
-                    </Badge>
-                  </div>
-                </div>
-                <div className="flex-shrink-0 ml-4 p-3 bg-white/50 rounded-lg">
-                  <XCircle className="h-8 w-8 text-orange-600" />
-                </div>
+          <Card className="bg-primary-foreground p-6 rounded-lg border shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center justify-between min-w-[200px]">
+            <div className="text-left">
+              <div className="text-3xl font-bold text-[#8159A8]">
+                {summary.noShowRate}%
               </div>
-            </CardContent>
+              <div className="text-gray-500 text-sm">No-Show Rate</div>
+            </div>
+            <div className="flex-shrink-0 ml-4">
+              <XCircle className="w-10 h-10 text-[#8159A8]" />
+            </div>
           </Card>
 
           {/* Cancellation Rate */}
-          <Card className="shadow-sm hover:shadow-md transition-all duration-300 border-0 bg-gradient-to-r from-red-50/95 to-red-100/50 backdrop-blur">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-600">Cancellation Rate</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">{summary.cancellationRate}%</p>
-                  <div className="flex gap-2 mt-2">
-                    <Badge variant="secondary" className="text-xs">
-                      {summary.cancelledSessions} cancelled
-                    </Badge>
-                  </div>
-                </div>
-                <div className="flex-shrink-0 ml-4 p-3 bg-white/50 rounded-lg">
-                  <Clock className="h-8 w-8 text-red-600" />
-                </div>
+          <Card className="bg-primary-foreground p-6 rounded-lg border shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center justify-between min-w-[200px]">
+            <div className="text-left">
+              <div className="text-3xl font-bold text-[#8159A8]">
+                {summary.cancellationRate}%
               </div>
-            </CardContent>
+              <div className="text-gray-500 text-sm">Cancellation Rate</div>
+            </div>
+            <div className="flex-shrink-0 ml-4">
+              <Clock className="w-10 h-10 text-[#8159A8]" />
+            </div>
           </Card>
         </div>
 
@@ -554,62 +576,72 @@ export default function TherapistReportsPage() {
 
             {/* Income Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card className="shadow-sm">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 bg-green-100 rounded-lg">
-                      <TrendingUp className="h-6 w-6 text-green-600" />
-                    </div>
+              <Card className="bg-primary-foreground border shadow-sm hover:shadow-md transition-shadow duration-300">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-gray-600">Paid Sessions</p>
-                      <p className="text-xl font-bold">{summary.paidSessions}</p>
+                      <p className="text-sm text-gray-500">Paid Sessions</p>
+                      <p className="text-3xl font-bold text-[#8159A8]">{summary.paidSessions}</p>
                     </div>
+                    <TrendingUp className="h-10 w-10 text-[#8159A8]" />
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="shadow-sm">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 bg-purple-100 rounded-lg">
-                      <Users className="h-6 w-6 text-purple-600" />
-                    </div>
+              <Card className="bg-primary-foreground border shadow-sm hover:shadow-md transition-shadow duration-300">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-gray-600">Free Sessions</p>
-                      <p className="text-xl font-bold">{summary.freeSessions}</p>
+                      <p className="text-sm text-gray-500">Free Sessions</p>
+                      <p className="text-3xl font-bold text-[#8159A8]">{summary.freeSessions}</p>
                     </div>
+                    <Users className="h-10 w-10 text-[#8159A8]" />
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="shadow-sm">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 bg-blue-100 rounded-lg">
-                      <CheckCircle className="h-6 w-6 text-blue-600" />
-                    </div>
+              <Card className="bg-primary-foreground border shadow-sm hover:shadow-md transition-shadow duration-300">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-gray-600">Avg Income/Session</p>
-                      <p className="text-xl font-bold">
-                        LKR{" "}
+                      <p className="text-sm text-gray-500">Avg Income/Session</p>
+                      <p className="text-3xl font-bold text-[#8159A8]">
                         {summary.paidSessions > 0
-                          ? (parseFloat(summary.totalIncome) / summary.paidSessions).toFixed(2)
-                          : "0.00"}
+                          ? (parseFloat(summary.totalIncome) / summary.paidSessions).toFixed(0)
+                          : "0"}
                       </p>
                     </div>
+                    <DollarSign className="h-10 w-10 text-[#8159A8]" />
                   </div>
                 </CardContent>
               </Card>
             </div>
+
+            {/* Income Calculation Info */}
+            <Card className="shadow-sm bg-purple-50/50 border-purple-200">
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  <Info className="w-5 h-5 text-[#8159A8] mt-0.5 flex-shrink-0" />
+                  <div className="text-sm text-gray-700">
+                    <p className="font-semibold mb-1">Income Calculation:</p>
+                    <ul className="space-y-1 list-disc list-inside">
+                      <li>Completed sessions: You receive 90% of the booked rate (10% system commission)</li>
+                      <li>Cancelled (Less than 24 hours): You receive 30% of the original amount</li>
+                      <li>Cancelled (Prior to 24 hours): No income earned</li>
+                    </ul>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Session Details Tab */}
           <TabsContent value="sessions" className="space-y-6">
             <Card className="shadow-sm">
               <CardHeader>
-                <CardTitle>Recent Sessions</CardTitle>
+                <CardTitle>Transaction History</CardTitle>
                 <CardDescription>
-                  Showing {reportsData.sessions.length} sessions
+                  Detailed income breakdown for {reportsData.sessions.filter(s => s.status !== "SCHEDULED" && s.status !== "APPROVED").length} processed sessions
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -617,63 +649,167 @@ export default function TherapistReportsPage() {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b">
+                        <th className="text-left p-3 text-sm font-semibold text-gray-700 w-8"></th>
                         <th className="text-left p-3 text-sm font-semibold text-gray-700">Patient</th>
                         <th className="text-left p-3 text-sm font-semibold text-gray-700">Date & Time</th>
                         <th className="text-left p-3 text-sm font-semibold text-gray-700">Type</th>
                         <th className="text-left p-3 text-sm font-semibold text-gray-700">Duration</th>
                         <th className="text-left p-3 text-sm font-semibold text-gray-700">Status</th>
-                        <th className="text-right p-3 text-sm font-semibold text-gray-700">Rate (LKR)</th>
+                        <th className="text-right p-3 text-sm font-semibold text-gray-700">Amount Earned</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {reportsData.sessions.length === 0 ? (
+                      {reportsData.sessions.filter(s => s.status !== "SCHEDULED" && s.status !== "APPROVED").length === 0 ? (
                         <tr>
-                          <td colSpan={6} className="text-center p-8 text-gray-500">
-                            No sessions found for the selected filters
+                          <td colSpan={7} className="text-center p-8 text-gray-500">
+                            No completed or processed sessions found for the selected filters
                           </td>
                         </tr>
                       ) : (
-                        reportsData.sessions.map((session) => (
-                          <tr key={session.id} className="border-b hover:bg-gray-50">
-                            <td className="p-3 text-sm">{session.patientName}</td>
-                            <td className="p-3 text-sm">
-                              {new Date(session.scheduledAt).toLocaleDateString("en-US", {
-                                month: "short",
-                                day: "numeric",
-                                year: "numeric",
-                              })}{" "}
-                              at{" "}
-                              {new Date(session.scheduledAt).toLocaleTimeString("en-US", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
-                            </td>
-                            <td className="p-3 text-sm capitalize">{session.type}</td>
-                            <td className="p-3 text-sm">{session.duration} min</td>
-                            <td className="p-3">
-                              <Badge
-                                variant={
-                                  session.status === "COMPLETED"
-                                    ? "default"
-                                    : session.status === "CANCELLED"
-                                    ? "destructive"
-                                    : "secondary"
-                                }
-                                className="text-xs"
-                              >
-                                {session.status}
-                              </Badge>
-                            </td>
-                            <td className="p-3 text-sm text-right font-medium">
-                              {session.bookedRate > 0 ? (
-                                <span className="text-green-600">
-                                  {session.bookedRate.toLocaleString()}
-                                </span>
-                              ) : (
-                                <span className="text-gray-400">Free</span>
-                              )}
-                            </td>
-                          </tr>
+                        reportsData.sessions
+                          .filter(session => session.status !== "SCHEDULED" && session.status !== "APPROVED")
+                          .map((session) => (
+                          <>
+                            <tr 
+                              key={session.id} 
+                              className="border-b hover:bg-gray-50 cursor-pointer transition-colors"
+                              onClick={() => setExpandedSessionId(expandedSessionId === session.id ? null : session.id)}
+                            >
+                              <td className="p-3">
+                                {expandedSessionId === session.id ? (
+                                  <ChevronUp className="w-4 h-4 text-gray-500" />
+                                ) : (
+                                  <ChevronDown className="w-4 h-4 text-gray-500" />
+                                )}
+                              </td>
+                              <td className="p-3 text-sm">{session.patientName}</td>
+                              <td className="p-3 text-sm">
+                                {new Date(session.scheduledAt).toLocaleDateString("en-US", {
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "numeric",
+                                })}{" "}
+                                at{" "}
+                                {new Date(session.scheduledAt).toLocaleTimeString("en-US", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </td>
+                              <td className="p-3 text-sm capitalize">{session.type}</td>
+                              <td className="p-3 text-sm">{session.duration} min</td>
+                              <td className="p-3">
+                                <Badge
+                                  variant={
+                                    session.status === "COMPLETED"
+                                      ? "default"
+                                      : session.status === "CANCELLED"
+                                      ? "destructive"
+                                      : "secondary"
+                                  }
+                                  className="text-xs"
+                                >
+                                  {session.status}
+                                </Badge>
+                              </td>
+                              <td className="p-3 text-sm text-right font-medium">
+                                {session.therapistAmount > 0 ? (
+                                  <span className="text-emerald-600">
+                                    LKR {session.therapistAmount.toLocaleString("en-US", {
+                                      minimumFractionDigits: 2,
+                                      maximumFractionDigits: 2,
+                                    })}
+                                  </span>
+                                ) : (
+                                  <span className="text-gray-500">
+                                    LKR 0.00
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                            {expandedSessionId === session.id && (
+                              <tr className="bg-purple-50/50 border-b">
+                                <td colSpan={7} className="p-4">
+                                  <div className="space-y-3">
+                                    <div className="flex items-start gap-2">
+                                      <Info className="w-5 h-5 text-[#8159A8] mt-0.5" />
+                                      <div className="flex-1">
+                                        <h4 className="font-semibold text-sm text-gray-800 mb-2">
+                                          Income Breakdown
+                                        </h4>
+                                        {session.breakdown ? (
+                                          <div className="bg-white p-3 rounded-md border border-purple-200 space-y-2">
+                                            {(session.status === "COMPLETED" || session.status === "NO_SHOW") && (
+                                              <>
+                                                <div className="flex justify-between text-sm">
+                                                  <span className="text-gray-600">Total Session Amount:</span>
+                                                  <span className="font-medium">
+                                                    LKR {session.bookedRate.toFixed(2)}
+                                                  </span>
+                                                </div>
+                                                <div className="flex justify-between text-sm">
+                                                  <span className="text-gray-600">System Commission (10%):</span>
+                                                  <span className="font-medium text-red-600">
+                                                    - LKR {session.systemFeeOrRefund.toFixed(2)}
+                                                  </span>
+                                                </div>
+                                                <div className="border-t pt-2 flex justify-between text-sm">
+                                                  <span className="font-semibold text-gray-800">Your Share (90%):</span>
+                                                  <span className="font-bold text-emerald-600">
+                                                    LKR {session.therapistAmount.toFixed(2)}
+                                                  </span>
+                                                </div>
+                                              </>
+                                            )}
+                                            {session.status === "CANCELLED" && session.hasRefund && (
+                                              <>
+                                                <div className="flex justify-between text-sm">
+                                                  <span className="text-gray-600">Original Amount:</span>
+                                                  <span className="font-medium">
+                                                    LKR {(session.systemFeeOrRefund + session.therapistAmount).toFixed(2)}
+                                                  </span>
+                                                </div>
+                                                <div className="flex justify-between text-sm">
+                                                  <span className="text-gray-600">
+                                                    Refund to Patient ({session.refundPercentage}%):
+                                                  </span>
+                                                  <span className="font-medium text-red-600">
+                                                    - LKR {session.systemFeeOrRefund.toFixed(2)}
+                                                  </span>
+                                                </div>
+                                                <div className="border-t pt-2 flex justify-between text-sm">
+                                                  <span className="font-semibold text-gray-800">
+                                                    Your Share ({session.refundPercentage === 60 ? "30%" : "0%"}):
+                                                  </span>
+                                                  <span className={`font-bold ${session.therapistAmount > 0 ? "text-emerald-600" : "text-gray-500"}`}>
+                                                    LKR {session.therapistAmount.toFixed(2)}
+                                                  </span>
+                                                </div>
+                                              </>
+                                            )}
+                                          </div>
+                                        ) : (
+                                          <p className="text-sm text-gray-500 italic">
+                                            No income generated from this session
+                                          </p>
+                                        )}
+                                        
+                                        {session.sessionNotes && (
+                                          <div className="mt-3">
+                                            <h5 className="font-semibold text-sm text-gray-800 mb-1">
+                                              Session Notes:
+                                            </h5>
+                                            <p className="text-sm text-gray-600 bg-white p-2 rounded border">
+                                              {session.sessionNotes}
+                                            </p>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </>
                         ))
                       )}
                     </tbody>

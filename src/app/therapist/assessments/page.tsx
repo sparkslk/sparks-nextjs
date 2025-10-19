@@ -16,6 +16,7 @@ interface Assessment {
   description: string;
   type: string;
   image?: string;
+  link?: string; // Add the link property
   createdAt: string;
   updatedAt: string;
   assignedPatients: {
@@ -245,21 +246,6 @@ export default function AssessmentsPage() {
   const totalAssessments = assessments.length;
   const totalPatients = assessments.reduce((sum, a) => sum + a.assignedPatients.length, 0);
 
-
-  const getTypeBadgeColor = (type: string) => {
-    switch (type) {
-      case "INITIAL":
-        return "bg-blue-100 text-blue-800";
-      case "PROGRESS":
-        return "bg-green-100 text-green-800";
-      case "FINAL":
-        return "bg-purple-100 text-purple-800";
-      case "FOLLOW_UP":
-        return "bg-orange-100 text-orange-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
 
   if (authStatus === "loading" || loading) {
     return <LoadingSpinner message="Loading assessments..." />;
@@ -491,7 +477,7 @@ export default function AssessmentsPage() {
                   <div className="p-5 space-y-4">
                     {/* Header with Type */}
                     <div className="flex justify-start items-start">
-                      <Badge className={getTypeBadgeColor(assessment.type)}>
+                      <Badge className="bg-blue-100 text-blue-800">
                         {assessment.type.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
                       </Badge>
                     </div>
@@ -523,7 +509,7 @@ export default function AssessmentsPage() {
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
-                          router.push(`/therapist/assessments/${assessment.id}`);
+                          window.open(assessment.link, "_blank"); // Use the link field
                         }}
                         className="bg-[#FAF8FB] hover:bg-[#FAF8FB] text-[#8159A8]"
                       >

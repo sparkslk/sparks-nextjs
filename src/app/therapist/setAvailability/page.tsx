@@ -19,7 +19,6 @@ import {
   Plus,
   Calendar,
   Trash2,
-  AlertCircle,
   CalendarDays,
   ListChecks,
   Edit,
@@ -29,6 +28,7 @@ import {
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { AddAvailabilityModal } from "@/components/therapist/availability/AddAvailabilityModal";
 import { WeeklyCalendarView } from "@/components/therapist/availability/WeeklyCalendarView";
+import { toast } from "sonner";
 
 interface AvailabilitySlot {
   id: string;
@@ -65,6 +65,12 @@ function SetAvailabilityPageNew(): React.JSX.Element {
   } | null>(null);
   const [editingSlot, setEditingSlot] = useState<AvailabilitySlot | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<{
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  } | null>(null);
 
   useEffect(() => {
     if (authStatus === "unauthenticated") {
@@ -107,22 +113,22 @@ function SetAvailabilityPageNew(): React.JSX.Element {
 
       if (response.ok) {
         const result = await response.json();
-        alert(`Successfully created ${result.slotsCreated} availability slots!`);
+        toast.success(`Successfully created ${result.slotsCreated} availability slots!`);
         setShowAddModal(false);
         fetchAvailability();
       } else {
         const errorData = await response.json();
         if (errorData.conflicts) {
-          alert(
-            `Failed to create slots: ${errorData.error}\n\nFirst ${errorData.conflicts.length} conflicts:\n${errorData.conflicts.join('\n')}`
+          toast.error(
+            `Failed to create slots: ${errorData.error}. First ${errorData.conflicts.length} conflicts found.`
           );
         } else {
-          alert(`Failed to create slots: ${errorData.error}`);
+          toast.error(`Failed to create slots: ${errorData.error}`);
         }
       }
     } catch (error) {
       console.error("Error creating availability:", error);
-      alert("Failed to create availability. Please try again.");
+      toast.error("Failed to create availability. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -152,26 +158,29 @@ function SetAvailabilityPageNew(): React.JSX.Element {
   };*/
 
   const handleClearAll = async () => {
-    if (!confirm("Are you sure you want to clear all unbooked availability slots?")) {
-      return;
-    }
+    setConfirmAction({
+      title: "Clear All Unbooked Slots",
+      message: "Are you sure you want to clear all upcoming unbooked availability slots? This action cannot be undone.",
+      onConfirm: async () => {
+        try {
+          const response = await fetch("/api/therapist/availability", {
+            method: "DELETE",
+          });
 
-    try {
-      const response = await fetch("/api/therapist/availability", {
-        method: "DELETE",
-      });
-
-      if (response.ok) {
-        alert("All unbooked slots cleared successfully!");
-        fetchAvailability();
-      } else {
-        const errorData = await response.json();
-        alert(`Failed to clear slots: ${errorData.error}`);
-      }
-    } catch (error) {
-      console.error("Error clearing slots:", error);
-      alert("Failed to clear slots. Please try again.");
-    }
+          if (response.ok) {
+            toast.success("All upcoming unbooked slots cleared successfully!");
+            fetchAvailability();
+          } else {
+            const errorData = await response.json();
+            toast.error(`Failed to clear slots: ${errorData.error}`);
+          }
+        } catch (error) {
+          console.error("Error clearing slots:", error);
+          toast.error("Failed to clear slots. Please try again.");
+        }
+      },
+    });
+    setShowConfirmDialog(true);
   };
 
   const formatDate = (dateStr: string) => {
@@ -213,17 +222,17 @@ function SetAvailabilityPageNew(): React.JSX.Element {
       });
 
       if (response.ok) {
-        alert(`Slot updated to ${!editingSlot.isFree ? "Free" : "Paid"} successfully!`);
+        toast.success(`Slot updated to ${!editingSlot.isFree ? "Free" : "Paid"} successfully!`);
         setShowEditDialog(false);
         setEditingSlot(null);
         fetchAvailability();
       } else {
         const errorData = await response.json();
-        alert(`Failed to update slot: ${errorData.error}`);
+        toast.error(`Failed to update slot: ${errorData.error}`);
       }
     } catch (error) {
       console.error("Error updating slot:", error);
-      alert("Failed to update slot. Please try again.");
+      toast.error("Failed to update slot. Please try again.");
     }
   };
 
@@ -231,28 +240,31 @@ function SetAvailabilityPageNew(): React.JSX.Element {
   const handleDeleteFromDialog = async () => {
     if (!editingSlot) return;
 
-    if (!confirm("Are you sure you want to delete this slot?")) {
-      return;
-    }
+    setConfirmAction({
+      title: "Delete Availability Slot",
+      message: `Are you sure you want to delete the slot on ${formatDate(editingSlot.date)} at ${formatTime(editingSlot.startTime)}? This action cannot be undone.`,
+      onConfirm: async () => {
+        try {
+          const response = await fetch(`/api/therapist/availability/${editingSlot.id}`, {
+            method: "DELETE",
+          });
 
-    try {
-      const response = await fetch(`/api/therapist/availability/${editingSlot.id}`, {
-        method: "DELETE",
-      });
-
-      if (response.ok) {
-        alert("Slot deleted successfully!");
-        setShowEditDialog(false);
-        setEditingSlot(null);
-        fetchAvailability();
-      } else {
-        const errorData = await response.json();
-        alert(`Failed to delete slot: ${errorData.error}`);
-      }
-    } catch (error) {
-      console.error("Error deleting slot:", error);
-      alert("Failed to delete slot. Please try again.");
-    }
+          if (response.ok) {
+            toast.success("Slot deleted successfully!");
+            setShowEditDialog(false);
+            setEditingSlot(null);
+            fetchAvailability();
+          } else {
+            const errorData = await response.json();
+            toast.error(`Failed to delete slot: ${errorData.error}`);
+          }
+        } catch (error) {
+          console.error("Error deleting slot:", error);
+          toast.error("Failed to delete slot. Please try again.");
+        }
+      },
+    });
+    setShowConfirmDialog(true);
   };
 
   // Handle calendar slot selection (when user clicks/drags on calendar)
@@ -405,11 +417,40 @@ function SetAvailabilityPageNew(): React.JSX.Element {
   const getFilteredSlots = () => {
     const now = new Date();
     const today = now.toISOString().split("T")[0];
+    const currentHour = now.getHours();
+    const currentMinutes = now.getMinutes();
+    const currentTotalMinutes = currentHour * 60 + currentMinutes;
 
     if (filter === "upcoming") {
-      return slots.filter((slot) => slot.date >= today);
+      return slots.filter((slot) => {
+        // Future dates are always included
+        if (slot.date > today) {
+          return true;
+        }
+        // Today's slots: only include if they haven't started yet
+        if (slot.date === today) {
+          const [slotHour, slotMinute] = slot.startTime.split(':').map(Number);
+          const slotTotalMinutes = slotHour * 60 + slotMinute;
+          return slotTotalMinutes > currentTotalMinutes;
+        }
+        // Past dates are excluded
+        return false;
+      });
     } else if (filter === "past") {
-      return slots.filter((slot) => slot.date < today);
+      return slots.filter((slot) => {
+        // Past dates are always included
+        if (slot.date < today) {
+          return true;
+        }
+        // Today's slots: only include if they have passed
+        if (slot.date === today) {
+          const [slotHour, slotMinute] = slot.startTime.split(':').map(Number);
+          const slotTotalMinutes = slotHour * 60 + slotMinute;
+          return slotTotalMinutes <= currentTotalMinutes;
+        }
+        // Future dates are excluded
+        return false;
+      });
     }
     return slots;
   };
@@ -429,11 +470,37 @@ function SetAvailabilityPageNew(): React.JSX.Element {
   const groupedSlots = groupSlotsByDate(filteredSlots);
   const dates = Object.keys(groupedSlots).sort();
 
+  // Calculate stats for upcoming slots only (from the very next slot onwards)
+  const getUpcomingSlots = () => {
+    const now = new Date();
+    const today = now.toISOString().split("T")[0];
+    const currentHour = now.getHours();
+    const currentMinutes = now.getMinutes();
+    const currentTotalMinutes = currentHour * 60 + currentMinutes;
+
+    return slots.filter((slot) => {
+      // Future dates are always included
+      if (slot.date > today) {
+        return true;
+      }
+      // Today's slots: only include if they haven't started yet
+      if (slot.date === today) {
+        const [slotHour, slotMinute] = slot.startTime.split(':').map(Number);
+        const slotTotalMinutes = slotHour * 60 + slotMinute;
+        return slotTotalMinutes > currentTotalMinutes;
+      }
+      // Past dates are excluded
+      return false;
+    });
+  };
+
+  const upcomingSlots = getUpcomingSlots();
+
   const stats = {
-    total: slots.length,
-    booked: slots.filter((s) => s.isBooked).length,
-    available: slots.filter((s) => !s.isBooked).length,
-    free: slots.filter((s) => s.isFree).length,
+    total: upcomingSlots.length,
+    booked: upcomingSlots.filter((s) => s.isBooked).length,
+    available: upcomingSlots.filter((s) => !s.isBooked).length,
+    free: upcomingSlots.filter((s) => s.isFree && !s.isBooked).length,
   };
 
   if (loading) {
@@ -458,50 +525,50 @@ function SetAvailabilityPageNew(): React.JSX.Element {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <Card>
+        <Card className="bg-primary-foreground border shadow-sm hover:shadow-md transition-shadow duration-300">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Total Slots</p>
-                <p className="text-2xl font-bold text-[#8159A8]">{stats.total}</p>
+                <p className="text-sm text-gray-500">Total Upcoming Slots</p>
+                <p className="text-3xl font-bold text-[#8159A8]">{stats.total}</p>
               </div>
-              <Calendar className="h-8 w-8 text-[#8159A8] opacity-50" />
+              <Calendar className="h-10 w-10 text-[#8159A8]" />
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-primary-foreground border shadow-sm hover:shadow-md transition-shadow duration-300">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Booked</p>
-                <p className="text-2xl font-bold text-blue-600">{stats.booked}</p>
+                <p className="text-sm text-gray-500">Booked</p>
+                <p className="text-3xl font-bold text-[#8159A8]">{stats.booked}</p>
               </div>
-              <Clock className="h-8 w-8 text-blue-600 opacity-50" />
+              <Clock className="h-10 w-10 text-[#8159A8]" />
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-primary-foreground border shadow-sm hover:shadow-md transition-shadow duration-300">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Available</p>
-                <p className="text-2xl font-bold text-green-600">{stats.available}</p>
+                <p className="text-sm text-gray-500">Available</p>
+                <p className="text-3xl font-bold text-[#8159A8]">{stats.available}</p>
               </div>
-              <Clock className="h-8 w-8 text-green-600 opacity-50" />
+              <Clock className="h-10 w-10 text-[#8159A8]" />
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-primary-foreground border shadow-sm hover:shadow-md transition-shadow duration-300">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Free Sessions</p>
-                <p className="text-2xl font-bold text-amber-600">{stats.free}</p>
+                <p className="text-sm text-gray-500">Free Sessions</p>
+                <p className="text-3xl font-bold text-[#8159A8]">{stats.free}</p>
               </div>
-              <AlertCircle className="h-8 w-8 text-amber-600 opacity-50" />
+              <Gift className="h-10 w-10 text-[#8159A8]" />
             </div>
           </CardContent>
         </Card>
@@ -772,6 +839,42 @@ function SetAvailabilityPageNew(): React.JSX.Element {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmation Dialog */}
+      <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold text-gray-900">
+              {confirmAction?.title}
+            </DialogTitle>
+            <DialogDescription className="text-gray-600 pt-2">
+              {confirmAction?.message}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex justify-end gap-3 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowConfirmDialog(false);
+                setConfirmAction(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                confirmAction?.onConfirm();
+                setShowConfirmDialog(false);
+                setConfirmAction(null);
+              }}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Confirm
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
