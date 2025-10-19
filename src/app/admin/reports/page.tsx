@@ -19,110 +19,16 @@ interface RecentReportProps {
   size: string;
 }
 
-const mockDonationData = [
-  {
-    id: 1,
-    donorName: "Malini Wickramasinghe",
-    timeAgo: "2 hours ago",
-    amount: "Rs. 15,000",
-  },
-  {
-    id: 2,
-    donorName: "Chandana Rajapaksa",
-    timeAgo: "5 hours ago",
-    amount: "Rs. 7,500",
-  },
-  {
-    id: 3,
-    donorName: "Sanduni Perera",
-    timeAgo: "1 day ago",
-    amount: "Rs. 30,000",
-  },
-  {
-    id: 4,
-    donorName: "Anonymous",
-    timeAgo: "2 days ago",
-    amount: "Rs. 22,500",
-  },
-  {
-    id: 5,
-    donorName: "Pradeep Silva",
-    timeAgo: "3 days ago",
-    amount: "Rs. 12,000",
-  },
-  {
-    id: 6,
-    donorName: "Kumari Fernando",
-    timeAgo: "4 days ago",
-    amount: "Rs. 8,750",
-  },
-  {
-    id: 7,
-    donorName: "Rohan Gunawardena",
-    timeAgo: "5 days ago",
-    amount: "Rs. 25,000",
-  },
-  {
-    id: 8,
-    donorName: "Nimal Jayasuriya",
-    timeAgo: "6 days ago",
-    amount: "Rs. 18,500",
-  },
-  {
-    id: 9,
-    donorName: "Dilani Mendis",
-    timeAgo: "1 week ago",
-    amount: "Rs. 5,000",
-  },
-  {
-    id: 10,
-    donorName: "Anonymous",
-    timeAgo: "1 week ago",
-    amount: "Rs. 35,000",
-  },
-  {
-    id: 11,
-    donorName: "Tharaka Wijesinghe",
-    timeAgo: "1 week ago",
-    amount: "Rs. 14,200",
-  },
-  {
-    id: 12,
-    donorName: "Chamari Rathnayake",
-    timeAgo: "1 week ago",
-    amount: "Rs. 9,800",
-  },
-  {
-    id: 13,
-    donorName: "Asanka Perera",
-    timeAgo: "2 weeks ago",
-    amount: "Rs. 27,500",
-  },
-  {
-    id: 14,
-    donorName: "Sunitha Dias",
-    timeAgo: "2 weeks ago",
-    amount: "Rs. 11,000",
-  },
-  {
-    id: 15,
-    donorName: "Kamal Dissanayake",
-    timeAgo: "2 weeks ago",
-    amount: "Rs. 19,750",
-  },
-  {
-    id: 16,
-    donorName: "Anonymous",
-    timeAgo: "2 weeks ago",
-    amount: "Rs. 45,000",
-  },
-  {
-    id: 17,
-    donorName: "Ruvini Senanayake",
-    timeAgo: "3 weeks ago",
-    amount: "Rs. 6,500",
-  },
-];
+interface DonationListItem {
+  id: string;
+  donorName: string | null;
+  donorEmail: string | null;
+  isAnonymous: boolean;
+  amount: string | number; // Prisma Decimal serialized
+  currency: string;
+  paymentStatus: string;
+  createdAt: string;
+}
 
 // Simple Button component since it's not imported
 const Button: React.FC<{
@@ -146,13 +52,33 @@ const Button: React.FC<{
 
 const AllDonationsCard = () => {
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const [pageSize] = useState(5);
+  const [total, setTotal] = useState(0);
+  const [items, setItems] = useState<DonationListItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Calculate pagination
-  const totalPages = Math.ceil(mockDonationData.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentDonations = mockDonationData.slice(startIndex, endIndex);
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
+  useEffect(() => {
+    const fetchPage = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/admin/donations/list?page=${currentPage}&pageSize=${pageSize}`, {
+          credentials: "include",
+        });
+        const data = await res.json();
+        if (data.success) {
+          setItems(data.data.items);
+          setTotal(data.data.total);
+        }
+      } catch (e) {
+        console.error("Failed to load donations list", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPage();
+  }, [currentPage, pageSize]);
 
   const handlePrevious = () => {
     if (currentPage > 1) {
@@ -194,21 +120,24 @@ const AllDonationsCard = () => {
           All Donations
         </CardTitle>
         <div className="text-sm text-gray-500 mt-1">
-          Showing {startIndex + 1}-{Math.min(endIndex, mockDonationData.length)}{" "}
-          of {mockDonationData.length} donations
+          Page {total === 0 ? 0 : (currentPage - 1) * pageSize + 1}-{Math.min(currentPage * pageSize, total)} of {total} donations
         </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          {currentDonations && currentDonations.length > 0 ? (
-            currentDonations.map((donation) => (
+          {loading ? (
+            <div className="text-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-[#8159A8] inline-block" />
+            </div>
+          ) : items && items.length > 0 ? (
+            items.map((donation) => (
               <div
                 key={donation.id}
                 className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-white rounded-xl border border-gray-100 hover:shadow-sm transition-all duration-200"
               >
                 <div className="flex-1">
                   <h4 className="font-semibold text-base text-gray-800 mb-1">
-                    {donation.donorName}
+                    {donation.isAnonymous ? "Anonymous" : (donation.donorName || donation.donorEmail || "Donor")}
                   </h4>
                   <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
                     <span className="flex items-center gap-1.5">
@@ -217,30 +146,14 @@ const AllDonationsCard = () => {
                     </span>
                   </div>
                   <div className="flex items-center gap-3 text-sm">
-                    <span className="flex items-center gap-1 text-gray-500">
-                      <svg
-                        className="w-3.5 h-3.5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                      {donation.timeAgo}
-                    </span>
-                    <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
-                      COMPLETED
+                    <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">
+                      {donation.paymentStatus}
                     </span>
                   </div>
                 </div>
                 <div className="text-right flex flex-col items-end">
                   <div className="text-lg font-bold text-green-500 mb-0.5">
-                    {donation.amount}
+                    Rs. {Number(donation.amount).toLocaleString()}
                   </div>
                   <div className="text-sm text-gray-500">Donation</div>
                 </div>
@@ -269,15 +182,14 @@ const AllDonationsCard = () => {
         </div>
 
         {/* Pagination */}
-        {mockDonationData.length > itemsPerPage && (
+        {total > pageSize && (
           <div className="mt-6 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Button
-                className={`px-3 py-2 text-sm font-medium rounded-lg border transition-all duration-200 ${
-                  currentPage === 1
+                className={`px-3 py-2 text-sm font-medium rounded-lg border transition-all duration-200 ${currentPage === 1
                     ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
                     : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400"
-                }`}
+                  }`}
                 onClick={handlePrevious}
                 disabled={currentPage === 1}
               >
@@ -288,11 +200,10 @@ const AllDonationsCard = () => {
                 {getPageNumbers().map((pageNumber) => (
                   <Button
                     key={pageNumber}
-                    className={`w-10 h-10 text-sm font-medium rounded-lg transition-all duration-200 ${
-                      currentPage === pageNumber
+                    className={`w-10 h-10 text-sm font-medium rounded-lg transition-all duration-200 ${currentPage === pageNumber
                         ? "text-white"
                         : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
-                    }`}
+                      }`}
                     style={
                       currentPage === pageNumber
                         ? { backgroundColor: "#8159A8" }
@@ -306,11 +217,10 @@ const AllDonationsCard = () => {
               </div>
 
               <Button
-                className={`px-3 py-2 text-sm font-medium rounded-lg border transition-all duration-200 ${
-                  currentPage === totalPages
+                className={`px-3 py-2 text-sm font-medium rounded-lg border transition-all duration-200 ${currentPage === totalPages
                     ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
                     : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400"
-                }`}
+                  }`}
                 onClick={handleNext}
                 disabled={currentPage === totalPages}
               >

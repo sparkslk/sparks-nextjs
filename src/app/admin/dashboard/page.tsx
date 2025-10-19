@@ -13,23 +13,23 @@ import {
 } from "lucide-react";
 
 interface SessionOversight {
-  id: string;
-  therapist: {
     id: string;
-    name: string;
-    email: string;
-  };
-  patient: {
-    id: string;
-    name: string;
-    email: string;
-  };
-  sessionDetails: {
-    duration: number;
-    status: string;
-    scheduledAt: string;
-    createdAt: string;
-  };
+    therapist: {
+        id: string;
+        name: string;
+        email: string;
+    };
+    patient: {
+        id: string;
+        name: string;
+        email: string;
+    };
+    sessionDetails: {
+        duration: number;
+        status: string;
+        scheduledAt: string;
+        createdAt: string;
+    };
 }
 
 interface AdminData {
@@ -65,32 +65,15 @@ interface AdminData {
 }
 
 export default function AdminDashboard() {
-    const mockDonationData = [
-        {
-            id: 1,
-            donorName: "Malini Wickramasinghe",
-            timeAgo: "2 hours ago",
-            amount: 15000
-        },
-        {
-            id: 2,
-            donorName: "Chandana Rajapaksa",
-            timeAgo: "5 hours ago",
-            amount: 7500
-        },
-        {
-            id: 3,
-            donorName: "Sanduni Perera",
-            timeAgo: "1 day ago",
-            amount: 30000
-        },
-        {
-            id: 4,
-            donorName: "Anonymous",
-            timeAgo: "2 days ago",
-            amount: 22500
-        }
-    ];
+    const [recentDonations, setRecentDonations] = useState<{
+        id: string;
+        donorName: string | null;
+        donorEmail: string | null;
+        isAnonymous: boolean;
+        amount: number;
+        paymentStatus: string;
+        createdAt: string;
+    }[]>([]);
 
     const [adminData, setAdminData] = useState<AdminData | null>(null);
     const [loading, setLoading] = useState(true);
@@ -118,6 +101,27 @@ export default function AdminDashboard() {
             }
             const data = await response.json();
             setAdminData(data);
+
+            // Load recent donations (first page size 5)
+            try {
+                const donationsRes = await fetch('/api/admin/donations/list?page=1&pageSize=5', { credentials: 'include' });
+                const donationsData = await donationsRes.json();
+                if (donationsData.success) {
+                    setRecentDonations(
+                        (donationsData.data.items as any[]).map((d) => ({
+                            id: d.id,
+                            donorName: d.donorName,
+                            donorEmail: d.donorEmail,
+                            isAnonymous: d.isAnonymous,
+                            amount: Number(d.amount),
+                            paymentStatus: d.paymentStatus,
+                            createdAt: d.createdAt,
+                        }))
+                    );
+                }
+            } catch (e) {
+                console.error('Failed to load recent donations', e);
+            }
             setLastUpdated(new Date());
         } catch (err) {
             console.error("Error fetching admin data:", err);
@@ -177,11 +181,10 @@ export default function AdminDashboard() {
                             <Zap className="h-12 w-12" style={{ color: "#8159A8" }} />
                         </CardHeader>
                         <CardContent>
-                            <div className={`text-2xl font-bold ${
-                                adminData?.systemStatus === "online" ? "text-green-600" : "text-red-600"
-                            }`}>
-                                {adminData?.systemStatus ? 
-                                    adminData.systemStatus.charAt(0).toUpperCase() + adminData.systemStatus.slice(1) 
+                            <div className={`text-2xl font-bold ${adminData?.systemStatus === "online" ? "text-green-600" : "text-red-600"
+                                }`}>
+                                {adminData?.systemStatus ?
+                                    adminData.systemStatus.charAt(0).toUpperCase() + adminData.systemStatus.slice(1)
                                     : "Unknown"}
                             </div>
                             <p className="text-xs text-muted-foreground">99.9% uptime</p>
@@ -263,13 +266,12 @@ export default function AdminDashboard() {
                                                         </svg>
                                                         {session.sessionDetails.duration} minutes
                                                     </span>
-                                                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                                                        session.sessionDetails.status.toLowerCase() === "completed" ? "bg-green-100 text-green-700" :
-                                                        session.sessionDetails.status.toLowerCase() === "scheduled" ? "bg-blue-100 text-blue-700" :
-                                                        session.sessionDetails.status.toLowerCase() === "in-progress" ? "bg-yellow-100 text-yellow-700" :
-                                                        session.sessionDetails.status.toLowerCase() === "cancelled" ? "bg-red-100 text-red-700" :
-                                                        "bg-gray-100 text-gray-600"
-                                                    }`}>
+                                                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${session.sessionDetails.status.toLowerCase() === "completed" ? "bg-green-100 text-green-700" :
+                                                            session.sessionDetails.status.toLowerCase() === "scheduled" ? "bg-blue-100 text-blue-700" :
+                                                                session.sessionDetails.status.toLowerCase() === "in-progress" ? "bg-yellow-100 text-yellow-700" :
+                                                                    session.sessionDetails.status.toLowerCase() === "cancelled" ? "bg-red-100 text-red-700" :
+                                                                        "bg-gray-100 text-gray-600"
+                                                        }`}>
                                                         {session.sessionDetails.status.toUpperCase()}
                                                     </span>
                                                 </div>
@@ -323,11 +325,11 @@ export default function AdminDashboard() {
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-3">
-                                {mockDonationData.map((donation) => (
+                                {recentDonations.map((donation) => (
                                     <div key={donation.id} className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-white rounded-xl border border-gray-100 hover:shadow-sm transition-all duration-200">
                                         <div className="flex-1">
                                             <h4 className="font-semibold text-base text-gray-800 mb-1">
-                                                {donation.donorName}
+                                                {donation.isAnonymous ? 'Anonymous' : (donation.donorName || donation.donorEmail || 'Donor')}
                                             </h4>
                                             <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
                                                 <span className="flex items-center gap-1.5">
@@ -336,20 +338,14 @@ export default function AdminDashboard() {
                                                 </span>
                                             </div>
                                             <div className="flex items-center gap-3 text-sm">
-                                                <span className="flex items-center gap-1 text-gray-500">
-                                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                    </svg>
-                                                    {donation.timeAgo}
-                                                </span>
-                                                <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
-                                                    COMPLETED
+                                                <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">
+                                                    {donation.paymentStatus}
                                                 </span>
                                             </div>
                                         </div>
                                         <div className="text-right flex flex-col items-end">
                                             <div className="text-lg font-bold text-gray-500 mb-0.5">
-                                                Rs. {donation.amount.toLocaleString()}
+                                                Rs. {Number(donation.amount).toLocaleString()}
                                             </div>
                                             <div className="text-sm text-gray-500">Donation</div>
                                         </div>

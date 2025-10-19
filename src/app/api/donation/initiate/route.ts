@@ -89,7 +89,9 @@ export async function POST(request: NextRequest) {
     // Generate PayHere payment hash
     const merchantId = process.env.PAYHERE_MERCHANT_ID || "";
     const merchantSecret = process.env.PAYHERE_MERCHANT_SECRET || "";
-    const baseUrl = process.env.BASE_URL || "http://localhost:3000";
+    // Prefer request origin to avoid cross-domain redirects (e.g., ngrok or localhost)
+    const url = new URL(request.url);
+    const baseUrl = `${url.protocol}//${url.host}`;
 
     if (!merchantId || !merchantSecret) {
       console.error("PayHere credentials not configured");
