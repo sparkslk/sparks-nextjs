@@ -113,9 +113,9 @@ export default function DonatePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50">
+    <div className="min-h-screen" style={{ backgroundColor: "#F5F3FB" }}>
       {/* Header */}
-      <header className="border-b border-border bg-white/80 backdrop-blur-sm sticky top-0 z-50">
+      <header className="border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <Link href="/">
@@ -128,7 +128,7 @@ export default function DonatePage() {
               />
             </Link>
             <Link href="/">
-              <Button variant="ghost">Back to Home</Button>
+              <Button variant="ghost" className="text-muted-foreground hover:text-foreground">Back to Home</Button>
             </Link>
           </div>
         </div>
@@ -138,22 +138,33 @@ export default function DonatePage() {
       <main className="max-w-4xl mx-auto px-4 py-12">
         {/* Hero Section */}
         <div className="text-center mb-12">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full mb-4">
-            <Heart className="w-8 h-8 text-white" />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4" style={{ backgroundColor: "rgba(129, 89, 168, 0.1)" }}>
+            <Heart className="w-8 h-8" style={{ color: "#8159A8" }} />
           </div>
-          <h1 className="text-4xl font-extrabold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4">
-            Support SPARKS
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+            Support{" "}
+            <span
+              style={{
+                background: `linear-gradient(135deg, #8159A8 0%, #9d7bb8 100%)`,
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                backgroundClip: "text",
+              }}
+            >
+              SPARKS
+            </span>
           </h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed font-light">
             Your generous donation helps us provide quality ADHD therapy and support
             services to children and families in need. Every contribution makes a
             difference.
           </p>
+          <div className="w-16 h-1 bg-gradient-to-r from-transparent via-gray-300 to-transparent mx-auto rounded-full mt-6"></div>
         </div>
 
         {/* Donation Form */}
-        <Card className="border-0 shadow-lg">
-          <CardHeader className="bg-gradient-to-r from-purple-500 to-pink-500 text-white">
+        <Card className="border-gray-100 shadow-lg hover:shadow-xl transition-shadow duration-300 bg-white">
+          <CardHeader className="text-white" style={{ background: `linear-gradient(135deg, #8159A8 0%, #9d7bb8 100%)` }}>
             <CardTitle className="text-2xl">Make a Donation</CardTitle>
           </CardHeader>
           <CardContent className="pt-6">
@@ -169,11 +180,18 @@ export default function DonatePage() {
                       key={amount}
                       type="button"
                       variant={selectedAmount === amount ? "default" : "outline"}
-                      className={`h-16 text-lg font-semibold ${
+                      className={`h-16 text-lg font-semibold transition-all duration-300 ${
                         selectedAmount === amount
-                          ? "bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
-                          : ""
+                          ? ""
+                          : "border-2 hover:shadow-md"
                       }`}
+                      style={selectedAmount === amount ? {
+                        background: `linear-gradient(135deg, #8159A8 0%, #9d7bb8 100%)`,
+                        color: "white"
+                      } : {
+                        borderColor: "#8159A8",
+                        color: "#8159A8"
+                      }}
                       onClick={() => handleAmountClick(amount)}
                     >
                       LKR {amount.toLocaleString()}
@@ -272,7 +290,11 @@ export default function DonatePage() {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                className="w-full h-14 text-lg font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
+                style={{
+                  background: `linear-gradient(135deg, #8159A8 0%, #9d7bb8 100%)`,
+                  color: "white"
+                }}
               >
                 {loading ? (
                   <>
@@ -298,21 +320,21 @@ export default function DonatePage() {
 
         {/* Impact Section */}
         <div className="mt-12 grid md:grid-cols-3 gap-6">
-          <Card className="text-center">
+          <Card className="text-center bg-white border-gray-100 hover:shadow-lg transition-all duration-300">
             <CardContent className="pt-6">
-              <div className="text-3xl font-bold text-purple-600 mb-2">1,000+</div>
+              <div className="text-3xl font-bold mb-2" style={{ color: "#8159A8" }}>1,000+</div>
               <p className="text-gray-600">Children Helped</p>
             </CardContent>
           </Card>
-          <Card className="text-center">
+          <Card className="text-center bg-white border-gray-100 hover:shadow-lg transition-all duration-300">
             <CardContent className="pt-6">
-              <div className="text-3xl font-bold text-purple-600 mb-2">500+</div>
+              <div className="text-3xl font-bold mb-2" style={{ color: "#8159A8" }}>500+</div>
               <p className="text-gray-600">Therapy Sessions</p>
             </CardContent>
           </Card>
-          <Card className="text-center">
+          <Card className="text-center bg-white border-gray-100 hover:shadow-lg transition-all duration-300">
             <CardContent className="pt-6">
-              <div className="text-3xl font-bold text-purple-600 mb-2">100%</div>
+              <div className="text-3xl font-bold mb-2" style={{ color: "#8159A8" }}>100%</div>
               <p className="text-gray-600">Goes to Support</p>
             </CardContent>
           </Card>
