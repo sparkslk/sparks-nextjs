@@ -2,9 +2,11 @@
 
 import { Suspense, useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import { Pill, Info } from "lucide-react";
+import { Pill, Info, Calendar, Clock, User, Stethoscope } from "lucide-react";
 
-// import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface Medication {
@@ -19,6 +21,14 @@ interface Medication {
   isActive: boolean;
   isDiscontinued: boolean;
   instructions?: string;
+  Therapist: {
+    id: string;
+    user: {
+      id: string;
+      name: string;
+      email: string;
+    };
+  };
 }
 
 interface MedicationHistory {
@@ -31,6 +41,15 @@ interface MedicationHistory {
   newValues: string | null;
   reason?: string;
   notes?: string;
+  medication: {
+    Therapist: {
+      user: {
+        id: string;
+        name: string;
+        email: string;
+      };
+    };
+  };
 }
 
 
@@ -102,229 +121,380 @@ function MedicationsPageInner() {
   const activeMeds = medications.filter(m => m.isActive && !m.isDiscontinued);
   const discontinuedMeds = medications.filter(m => m.isDiscontinued);
 
-  const prescribedByMap: Record<string, string> = {
-    "med_1752302332890_mpkfcojbp": "Ravindi Fernando",
-    "med_1752749318080_j04200vqs": "Dr. Nimal Perera",
-    "med_1752750619121_9g1zjwo8x": "Dr. Nimal Perera"
+  // Helper function to get therapist name
+  const getTherapistName = (medication: Medication) => {
+    return medication.Therapist?.user?.name || "Unknown Therapist";
   };
 
   return (
-    <div className="max-w-4xl mx-auto py-10 px-4">
-      <h1 className="text-4xl font-extrabold bg-gradient-to-r from-primary to-foreground bg-clip-text text-transparent tracking-tight mb-1">Medications for {childName}</h1>
-      {loading ? (
-        <div>Loading...</div>
-      ) : error ? (
-        <div className="text-red-600">{error}</div>
-      ) : (
-        <>
-          <h2 className="text-xl font-semibold mb-2 mt-4">Active Medications</h2>
-          {activeMeds.length === 0 ? <div className="mb-6">No active medications.</div> : (
-            <div className="grid gap-6 mb-8">
-              {activeMeds.map(med => (
-                <div key={med.id} className="bg-white rounded-[16px] shadow p-6 border flex flex-col gap-4" style={{ borderColor: 'var(--border)' }}>
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center gap-2">
-                      <Pill style={{ color: 'var(--primary)' }} className="mr-1" size={22} />
-                      <span className="font-bold text-lg" style={{ color: 'var(--primary)' }}>{med.name}</span>
-                      <span className="ml-2 px-2 py-0.5 rounded bg-green-100 text-green-800 text-xs font-semibold" style={{ background: '#E6F4EA', color: '#388E3C' }}>Active</span>
-                    </div>
-                    <button
-                      className="flex items-center gap-1 px-3 py-1 rounded border border-[var(--primary)] text-[var(--primary)] bg-white hover:bg-violet-50 text-sm font-medium transition"
-                      style={{ borderColor: 'var(--primary)', color: 'var(--primary)' }}
-                      onClick={() => {
-                        setSelectedMed(med);
-                        setHistoryOpen(true);
-                        fetchHistory(med.id);
-                      }}
-                    >
-                      <Info size={16} /> History
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-y-2 gap-x-6">
-                    <div>
-                      <div className="text-xs" style={{ color: 'var(--muted-foreground)' }}>DOSAGE</div>
-                      <div className="font-semibold text-base" style={{ color: 'var(--foreground)' }}>{med.dosage}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs" style={{ color: 'var(--muted-foreground)' }}>FREQUENCY</div>
-                      <div className="font-semibold text-base" style={{ color: 'var(--foreground)' }}>{med.frequency.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs" style={{ color: 'var(--muted-foreground)' }}>MEAL TIMING</div>
-                      <div className="font-semibold text-base" style={{ color: 'var(--foreground)' }}>{med.mealTiming.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs" style={{ color: 'var(--muted-foreground)' }}>START DATE</div>
-                      <div className="font-semibold text-base" style={{ color: 'var(--foreground)' }}>{new Date(med.startDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: '2-digit' })}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs" style={{ color: 'var(--muted-foreground)' }}>END DATE</div>
-                      <div className="font-semibold text-base" style={{ color: 'var(--foreground)' }}>{med.endDate ? new Date(med.endDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: '2-digit' }) : '-'}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs" style={{ color: 'var(--muted-foreground)' }}>PRESCRIBED BY</div>
-                      <div className="font-semibold text-base" style={{ color: 'var(--foreground)' }}>{prescribedByMap[med.id] || "-"}</div>
-                    </div>
-                  </div>
-                  {med.instructions && (
-                    <div className="rounded-lg p-3 flex items-start gap-2 mt-2" style={{ background: 'var(--muted)', borderRadius: '12px' }}>
-                      <Info style={{ color: 'var(--primary)' }} className="mt-0.5" size={18} />
-                      <div>
-                        <span className="font-semibold text-sm" style={{ color: 'var(--primary)' }}>Instructions</span>
-                        <div className="text-sm mt-1" style={{ color: 'var(--foreground)' }}>{med.instructions}</div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-          <h2 className="text-xl font-semibold mb-2">Discontinued Medications</h2>
-          {discontinuedMeds.length === 0 ? <div>No discontinued medications.</div> : (
-            <div className="grid gap-6">
-              {discontinuedMeds.map(med => (
-                <div key={med.id} className="bg-white rounded-[16px] shadow p-6 border flex flex-col gap-4" style={{ borderColor: 'var(--border)' }}>
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center gap-2">
-                      <Pill style={{ color: 'var(--primary)' }} className="mr-1" size={22} />
-                      <span className="font-bold text-lg" style={{ color: 'var(--primary)' }}>{med.name}</span>
-                      <span className="ml-2 px-2 py-0.5 rounded text-xs font-semibold" style={{ background: '#F3F4F6', color: '#374151' }}>Discontinued</span>
-                    </div>
-                    <button
-                      className="flex items-center gap-1 px-3 py-1 rounded border border-[var(--primary)] text-[var(--primary)] bg-white hover:bg-violet-50 text-sm font-medium transition"
-                      style={{ borderColor: 'var(--primary)', color: 'var(--primary)' }}
-                      onClick={() => {
-                        setSelectedMed(med);
-                        setHistoryOpen(true);
-                        fetchHistory(med.id);
-                      }}
-                    >
-                      <Info size={16} /> History
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-y-2 gap-x-6">
-                    <div>
-                      <div className="text-xs" style={{ color: 'var(--muted-foreground)' }}>DOSAGE</div>
-                      <div className="font-semibold text-base" style={{ color: 'var(--foreground)' }}>{med.dosage}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs" style={{ color: 'var(--muted-foreground)' }}>FREQUENCY</div>
-                      <div className="font-semibold text-base" style={{ color: 'var(--foreground)' }}>{med.frequency.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs" style={{ color: 'var(--muted-foreground)' }}>MEAL TIMING</div>
-                      <div className="font-semibold text-base" style={{ color: 'var(--foreground)' }}>{med.mealTiming.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs" style={{ color: 'var(--muted-foreground)' }}>START DATE</div>
-                      <div className="font-semibold text-base" style={{ color: 'var(--foreground)' }}>{new Date(med.startDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: '2-digit' })}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs" style={{ color: 'var(--muted-foreground)' }}>END DATE</div>
-                      <div className="font-semibold text-base" style={{ color: 'var(--foreground)' }}>{med.endDate ? new Date(med.endDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: '2-digit' }) : '-'}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs" style={{ color: 'var(--muted-foreground)' }}>PRESCRIBED BY</div>
-                      <div className="font-semibold text-base" style={{ color: 'var(--foreground)' }}>{prescribedByMap[med.id] || "-"}</div>
-                    </div>
-                  </div>
-                  {med.instructions && (
-                    <div className="rounded-lg p-3 flex items-start gap-2 mt-2" style={{ background: 'var(--muted)', borderRadius: '12px' }}>
-                      <Info style={{ color: 'var(--primary)' }} className="mt-0.5" size={18} />
-                      <div>
-                        <span className="font-semibold text-sm" style={{ color: 'var(--primary)' }}>Instructions</span>
-                        <div className="text-sm mt-1" style={{ color: 'var(--foreground)' }}>{med.instructions}</div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </>
-      )}
-      <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
-        <DialogContent className="medication-history-modal max-w-lg" style={{ maxHeight: '70vh', width: '100%', overflowY: 'auto' }}>
-          <DialogHeader>
-            <DialogTitle>
-              <span className="font-semibold text-lg flex items-center gap-2">
-                <span className="mr-2">Medication History</span>
-                <span className="text-primary">- {selectedMed?.name}</span>
-              </span>
-            </DialogTitle>
-          </DialogHeader>
-          {historyLoading ? (
-            <div>Loading...</div>
-          ) : (
-            <div style={{ maxHeight: '55vh', overflowY: 'auto' }}>
-              {!selectedMed || !medHistory[selectedMed.id] || medHistory[selectedMed.id].length === 0 ? (
-                <div className="medication-history-table-empty">No history found.</div>
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto p-6">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-primary mb-2">Medications for {childName}</h1>
+          <p className="text-muted-foreground">
+            Track and manage your child&apos;s medication history and prescriptions
+          </p>
+        </div>
+
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <span className="ml-2 text-muted-foreground">Loading medications...</span>
+          </div>
+        ) : error ? (
+          <div className="text-destructive bg-destructive/10 p-4 rounded-lg border border-destructive/20">
+            {error}
+          </div>
+        ) : (
+          <>
+            {/* Active Medications Section */}
+            <div className="mb-8">
+              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                Active Medications
+              </h2>
+              {activeMeds.length === 0 ? (
+                <Card className="shadow-sm bg-muted/30">
+                  <CardContent className="p-6 text-center">
+                    <Pill className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-muted-foreground">No active medications</p>
+                  </CardContent>
+                </Card>
               ) : (
-                <div className="flex flex-col gap-5">
-                  {medHistory[selectedMed.id].map(h => {
-                    // Parse previous/updated JSON
-                    let prev: Record<string, unknown> = {};
-                    let upd: Record<string, unknown> = {};
-                    try { prev = h.previousValues ? JSON.parse(h.previousValues) : {}; } catch {}
-                    try { upd = h.newValues ? JSON.parse(h.newValues) : {}; } catch {}
-                    // Find changed fields
-                    const changedFields = Object.keys({...prev, ...upd});
-                    const actionColor = h.action === 'CREATED' ? 'text-green-600' : 
-                                      h.action === 'UPDATED' ? 'text-blue-600' : 
-                                      h.action === 'DISCONTINUED' ? 'text-red-600' : 'text-primary';
-                    
-                    return (
-                      <div key={h.id} className="rounded-xl bg-[var(--muted)] p-5 shadow-sm border border-[var(--border)]">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className={`text-xs font-semibold ${actionColor}`}>{h.action}</span>
-                          <span className="text-xs text-[var(--muted-foreground)]">{new Date(h.changedAt).toLocaleString()}</span>
-                          <span className="text-xs text-[var(--muted-foreground)] flex items-center gap-1">
-                            <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" className="inline-block mr-1">
-                              <path d="M12 8v4l2 2"/>
-                            </svg>
-                            {selectedMed ? prescribedByMap[selectedMed.id] : "-"}
-                          </span>
-                        </div>
-                        {(h.notes || h.reason) && (
-                          <div className="mb-2">
-                            <span className="block text-xs font-semibold text-[var(--muted-foreground)]">Notes:</span>
-                            <span className="block text-sm bg-[var(--card)] rounded px-2 py-1 mt-1">{h.notes || h.reason}</span>
+                <div className="grid gap-4">
+                  {activeMeds.map(med => (
+                    <Card key={med.id} className="shadow-sm hover:shadow-md transition-all duration-300 border border-green-200 bg-green-50/30">
+                      <CardHeader className="pb-4">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                              <Pill className="w-5 h-5 text-primary" />
+                            </div>
+                            <div>
+                              <CardTitle className="text-lg font-bold text-foreground">{med.name}</CardTitle>
+                              <p className="text-sm text-muted-foreground">
+                                Prescribed by {getTherapistName(med)}
+                              </p>
+                            </div>
                           </div>
-                        )}
-                        {changedFields.length > 0 && h.action !== 'CREATED' && (
-                          <div className="mt-2">
-                            <span className="block text-xs font-semibold text-[var(--muted-foreground)] mb-1">What Changed:</span>
-                            <div className="flex flex-col gap-2">
-                              {changedFields.map(field => (
-                                <div key={field} className="flex items-center gap-3">
-                                  <span className="font-semibold text-[var(--primary)] text-sm min-w-[120px]">
-                                    {field.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())}
-                                  </span>
-                                  <span className="inline-flex items-center gap-1">
-                                    <span className="px-2 py-0.5 rounded bg-red-100 text-red-700 text-xs font-semibold">
-                                      {prev[field] !== undefined && prev[field] !== null && prev[field] !== ''
-                                        ? String(prev[field])
-                                        : 'Not set'}
-                                    </span>
-                                    <span className="mx-1 text-[var(--muted-foreground)]">→</span>
-                                    <span className="px-2 py-0.5 rounded bg-green-100 text-green-700 text-xs font-semibold">
-                                      {upd[field] !== undefined && upd[field] !== null && upd[field] !== ''
-                                        ? String(upd[field])
-                                        : 'Not set'}
-                                    </span>
-                                  </span>
-                                </div>
-                              ))}
+                          <div className="flex flex-col items-end gap-2">
+                            <Badge className="bg-green-100 text-green-800 font-medium">
+                              Active
+                            </Badge>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="border-primary text-primary hover:bg-primary/10"
+                              onClick={() => {
+                                setSelectedMed(med);
+                                setHistoryOpen(true);
+                                fetchHistory(med.id);
+                              }}
+                            >
+                              <Info className="w-4 h-4 mr-2" />
+                              History
+                            </Button>
+                          </div>
+                        </div>
+                      </CardHeader>
+
+                      <CardContent className="pt-0">
+                        <div className="flex flex-wrap items-center justify-between gap-6">
+                          <div className="flex flex-wrap gap-6">
+                            <div className="flex items-center gap-2">
+                              <Pill className="w-5 h-5 text-primary" />
+                              <div>
+                                <p className="text-xs text-muted-foreground">Dosage</p>
+                                <p className="text-sm font-medium">{med.dosage}</p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <Clock className="w-5 h-5 text-primary" />
+                              <div>
+                                <p className="text-xs text-muted-foreground">Frequency</p>
+                                <p className="text-sm font-medium">{med.frequency.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}</p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <Calendar className="w-5 h-5 text-primary" />
+                              <div>
+                                <p className="text-xs text-muted-foreground">Start Date</p>
+                                <p className="text-sm font-medium">{new Date(med.startDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: '2-digit' })}</p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <User className="w-5 h-5 text-primary" />
+                              <div>
+                                <p className="text-xs text-muted-foreground">Meal Timing</p>
+                                <p className="text-sm font-medium">{med.mealTiming.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}</p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <Stethoscope className="w-5 h-5 text-primary" />
+                              <div>
+                                <p className="text-xs text-muted-foreground">Prescribed By</p>
+                                <p className="text-sm font-medium">{getTherapistName(med)}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {med.instructions && (
+                          <div className="mt-4 p-3 bg-muted rounded-lg border">
+                            <div className="flex items-start gap-2">
+                              <Info className="w-4 h-4 text-primary mt-0.5" />
+                              <div>
+                                <p className="font-medium text-sm text-primary">Instructions</p>
+                                <p className="text-sm text-foreground mt-1">{med.instructions}</p>
+                              </div>
                             </div>
                           </div>
                         )}
-                      </div>
-                    );
-                  })}
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
               )}
             </div>
-          )}
+
+            {/* Discontinued Medications Section */}
+            <div>
+              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
+                Discontinued Medications
+              </h2>
+              {discontinuedMeds.length === 0 ? (
+                <Card className="shadow-sm bg-muted/30">
+                  <CardContent className="p-6 text-center">
+                    <Pill className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-muted-foreground">No discontinued medications</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid gap-4">
+                  {discontinuedMeds.map(med => (
+                    <Card key={med.id} className="shadow-sm hover:shadow-md transition-all duration-300 border border-gray-200 bg-gray-50/30">
+                      <CardHeader className="pb-4">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                              <Pill className="w-5 h-5 text-gray-600" />
+                            </div>
+                            <div>
+                              <CardTitle className="text-lg font-bold text-foreground">{med.name}</CardTitle>
+                              <p className="text-sm text-muted-foreground">
+                                Prescribed by {getTherapistName(med)}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex flex-col items-end gap-2">
+                            <Badge className="bg-gray-100 text-gray-800 font-medium">
+                              Discontinued
+                            </Badge>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="border-primary text-primary hover:bg-primary/10"
+                              onClick={() => {
+                                setSelectedMed(med);
+                                setHistoryOpen(true);
+                                fetchHistory(med.id);
+                              }}
+                            >
+                              <Info className="w-4 h-4 mr-2" />
+                              History
+                            </Button>
+                          </div>
+                        </div>
+                      </CardHeader>
+
+                      <CardContent className="pt-0">
+                        <div className="flex flex-wrap items-center justify-between gap-6">
+                          <div className="flex flex-wrap gap-6">
+                            <div className="flex items-center gap-2">
+                              <Pill className="w-5 h-5 text-primary" />
+                              <div>
+                                <p className="text-xs text-muted-foreground">Dosage</p>
+                                <p className="text-sm font-medium">{med.dosage}</p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <Clock className="w-5 h-5 text-primary" />
+                              <div>
+                                <p className="text-xs text-muted-foreground">Frequency</p>
+                                <p className="text-sm font-medium">{med.frequency.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}</p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <Calendar className="w-5 h-5 text-primary" />
+                              <div>
+                                <p className="text-xs text-muted-foreground">End Date</p>
+                                <p className="text-sm font-medium">{med.endDate ? new Date(med.endDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: '2-digit' }) : 'Not specified'}</p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <User className="w-5 h-5 text-primary" />
+                              <div>
+                                <p className="text-xs text-muted-foreground">Meal Timing</p>
+                                <p className="text-sm font-medium">{med.mealTiming.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}</p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <Stethoscope className="w-5 h-5 text-primary" />
+                              <div>
+                                <p className="text-xs text-muted-foreground">Prescribed By</p>
+                                <p className="text-sm font-medium">{getTherapistName(med)}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {med.instructions && (
+                          <div className="mt-4 p-3 bg-muted rounded-lg border">
+                            <div className="flex items-start gap-2">
+                              <Info className="w-4 h-4 text-primary mt-0.5" />
+                              <div>
+                                <p className="font-medium text-sm text-primary">Instructions</p>
+                                <p className="text-sm text-foreground mt-1">{med.instructions}</p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+      <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <Pill className="w-5 h-5 text-primary" />
+              Medication History - {selectedMed?.name}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {historyLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                <span className="ml-2 text-muted-foreground">Loading history...</span>
+              </div>
+            ) : (
+              <>
+                {!selectedMed || !medHistory[selectedMed.id] || medHistory[selectedMed.id].length === 0 ? (
+                  <Card className="shadow-sm bg-muted/30">
+                    <CardContent className="p-6 text-center">
+                      <Info className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
+                      <p className="text-muted-foreground">No history found for this medication</p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="space-y-4">
+                    {medHistory[selectedMed.id].map(h => {
+                      // Parse previous/updated JSON
+                      let prev: Record<string, unknown> = {};
+                      let upd: Record<string, unknown> = {};
+                      try { prev = h.previousValues ? JSON.parse(h.previousValues) : {}; } catch { }
+                      try { upd = h.newValues ? JSON.parse(h.newValues) : {}; } catch { }
+                      // Find changed fields
+                      const changedFields = Object.keys({ ...prev, ...upd });
+
+                      const getActionColor = (action: string) => {
+                        switch (action) {
+                          case 'PRESCRIBED':
+                            return 'bg-green-100 text-green-800';
+                          case 'UPDATED':
+                            return 'bg-blue-100 text-blue-800';
+                          case 'DISCONTINUED':
+                            return 'bg-red-100 text-red-800';
+                          default:
+                            return 'bg-gray-100 text-gray-800';
+                        }
+                      };
+
+                      return (
+                        <Card key={h.id} className="shadow-sm border-l-4 border-l-primary">
+                          <CardContent className="p-4">
+                            <div className="flex items-center justify-between mb-3">
+                              <Badge className={getActionColor(h.action)}>
+                                {h.action}
+                              </Badge>
+                              <div className="text-right">
+                                <p className="text-xs text-muted-foreground">
+                                  {new Date(h.changedAt).toLocaleDateString()}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {new Date(h.changedAt).toLocaleTimeString()}
+                                </p>
+                              </div>
+                            </div>
+
+                            {h.changedBy && (
+                              <div className="flex items-center gap-2 mb-2">
+                                <User className="w-4 h-4 text-muted-foreground" />
+                                <span className="text-sm text-muted-foreground">
+                                  Changed by: {h.medication?.Therapist?.user?.name || h.changedBy}
+                                </span>
+                              </div>
+                            )}
+
+                            {(h.notes || h.reason) && (
+                              <div className="mb-3 p-3 bg-muted rounded-lg">
+                                <p className="text-sm font-medium text-primary mb-1">Notes:</p>
+                                <p className="text-sm text-foreground">{h.notes || h.reason}</p>
+                              </div>
+                            )}
+
+                            {changedFields.length > 0 && h.action !== 'PRESCRIBED' && (
+                              <div className="space-y-2">
+                                <p className="text-sm font-medium text-primary">Changes:</p>
+                                <div className="space-y-2">
+                                  {changedFields.map(field => (
+                                    <div key={field} className="flex items-center gap-3 text-sm">
+                                      <span className="font-medium text-foreground min-w-[100px]">
+                                        {field.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())}:
+                                      </span>
+                                      <div className="flex items-center gap-2">
+                                        <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                                          {prev[field] !== undefined && prev[field] !== null && prev[field] !== ''
+                                            ? String(prev[field])
+                                            : 'Not set'}
+                                        </Badge>
+                                        <span className="text-muted-foreground">→</span>
+                                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                          {upd[field] !== undefined && upd[field] !== null && upd[field] !== ''
+                                            ? String(upd[field])
+                                            : 'Not set'}
+                                        </Badge>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>
