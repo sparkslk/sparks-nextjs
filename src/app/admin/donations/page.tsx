@@ -17,6 +17,7 @@ import {
   Filter,
   X,
   Check,
+  CheckCircle,
   Ban,
   RefreshCcw,
   Loader2,
@@ -229,6 +230,34 @@ export default function AdminDonationsPage() {
     }
   };
 
+  const handleApprove = async (donationId: string) => {
+    // Optional capture of paymentId
+    const paymentId = window.prompt("Optional: Enter Payment ID (or leave blank)", "");
+    setActionLoading(donationId);
+    try {
+      const response = await fetch(`/api/admin/donations/${donationId}/complete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          paymentId: paymentId || undefined,
+          statusMessage: "Manually accepted",
+          method: "manual",
+        }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        fetchDonations();
+      } else {
+        alert(data.error || "Failed to approve donation");
+      }
+    } catch (error) {
+      console.error("Error approving donation:", error);
+      alert("Failed to approve donation");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<
       string,
@@ -236,6 +265,7 @@ export default function AdminDonationsPage() {
     > = {
       COMPLETED: { bg: "bg-green-100", text: "text-green-700", label: "Completed" },
       PENDING: { bg: "bg-yellow-100", text: "text-yellow-700", label: "Pending" },
+      PROCESSING: { bg: "bg-amber-100", text: "text-amber-700", label: "Processing" },
       FAILED: { bg: "bg-red-100", text: "text-red-700", label: "Failed" },
       CANCELLED: { bg: "bg-gray-100", text: "text-gray-700", label: "Cancelled" },
       REFUNDED: { bg: "bg-purple-100", text: "text-purple-700", label: "Refunded" },
@@ -478,6 +508,21 @@ export default function AdminDonationsPage() {
                         LKR {donation.amount.toLocaleString()}
                       </div>
                       <div className="flex gap-2 justify-end">
+                        {(donation.paymentStatus === "PENDING" || donation.paymentStatus === "PROCESSING") && (
+                          <Button
+                            size="sm"
+                            className="bg-[#22c55e] hover:bg-[#16a34a] text-white"
+                            onClick={() => handleApprove(donation.id)}
+                            disabled={actionLoading === donation.id}
+                            title="Approve (mark as completed)"
+                          >
+                            {actionLoading === donation.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <CheckCircle className="w-4 h-4" />
+                            )}
+                          </Button>
+                        )}
                         <Button
                           size="sm"
                           variant="outline"
