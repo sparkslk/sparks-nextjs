@@ -372,7 +372,7 @@ export default function AppointmentsPage() {
                                 <User className="h-4 w-4" />
                                 {appointment.sessionType}
                               </div>
-                              {/* Session Mode Badge */}
+                              {/* Session Mode Badge
                               {appointment.mode && (
                                 <Badge
                                   variant="outline"
@@ -388,7 +388,7 @@ export default function AppointmentsPage() {
                                   {appointment.mode === 'HYBRID' && '🔄 Hybrid'}
                                   {appointment.mode === 'IN_PERSON' && '👤 In-Person'}
                                 </Badge>
-                              )}
+                              )} */}
                             </div>
                           </div>
                           <div className="flex items-center gap-2">

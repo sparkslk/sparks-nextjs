@@ -82,7 +82,7 @@ export default function ParentNavigation() {
 
     const getActiveTab = () => {
         if (pathname === '/parent/children' || (pathname ?? "").startsWith('/parent/children/tasks')) {
-            return 'My Children';
+            return 'My Patients';
         }
         if ((pathname ?? "").startsWith('/parent/sessions')) {
             return 'Appointments';
