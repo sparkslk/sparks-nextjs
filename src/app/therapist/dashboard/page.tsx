@@ -62,6 +62,62 @@ export default function TherapistDashboard() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    // Timezone-safe date and time formatting functions
+    const formatDateTime = (dateString: string) => {
+        // Parse the date string manually to avoid timezone conversion issues
+        if (dateString.includes('T')) {
+            // Handle ISO format (2025-10-31T18:30:00 or 2025-10-31T18:30:00Z)
+            const [datePart, timePart] = dateString.split('T');
+            const [year, month, day] = datePart.split('-').map(Number);
+            
+            const timeOnly = timePart.split('.')[0].split('Z')[0]; // Remove milliseconds and Z
+            const [hours, minutes] = timeOnly.split(':').map(Number);
+            
+            // Create date in local timezone without conversion
+            const parsedDate = new Date(year, month - 1, day, hours, minutes);
+            
+            return parsedDate.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        } else {
+            // Fallback for other formats
+            return new Date(dateString).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+    };
+
+    // Helper function to parse appointment datetime safely without timezone conversion
+    const parseAppointmentDateTime = (dateString: string): Date => {
+        if (dateString.includes('T')) {
+            // Handle ISO format (2025-10-31T18:30:00 or 2025-10-31T18:30:00Z)
+            const [datePart, timePart] = dateString.split('T');
+            const [year, month, day] = datePart.split('-').map(Number);
+            
+            const timeOnly = timePart.split('.')[0].split('Z')[0]; // Remove milliseconds and Z
+            const [hours, minutes, seconds = 0] = timeOnly.split(':').map(Number);
+            
+            // Create date in local timezone without conversion
+            return new Date(year, month - 1, day, hours, minutes, seconds);
+        } else {
+            // Fallback for other formats
+            return new Date(dateString);
+        }
+    };
+
+    // Check if appointment is in the future
+    const isAppointmentUpcoming = (appointmentTime: string): boolean => {
+        const appointmentDate = parseAppointmentDateTime(appointmentTime);
+        const now = new Date();
+        return appointmentDate > now;
+    };
+
     useEffect(() => {
         const fetchDashboard = async () => {
             try {
@@ -78,17 +134,14 @@ export default function TherapistDashboard() {
                 setStats(data.stats);
                 setRecentActivities(data.recentActivities || []);
 
-                // Format appointment times properly
-                const formattedAppointments = (data.upcomingAppointments || []).map(apt => ({
-                    ...apt,
-                    time: new Date(apt.time).toLocaleString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    })
-                }));
-                setUpcomingAppointments(formattedAppointments);
+                // Filter only upcoming appointments (future sessions) and format their times
+                const upcomingOnly = (data.upcomingAppointments || [])
+                    .filter(apt => isAppointmentUpcoming(apt.time))
+                    .map(apt => ({
+                        ...apt,
+                        time: formatDateTime(apt.time)
+                    }));
+                setUpcomingAppointments(upcomingOnly);
 
             } catch (error) {
                 console.error('Failed to fetch dashboard data:', error);
@@ -242,12 +295,7 @@ export default function TherapistDashboard() {
                         <RecentActivity
                             activities={recentActivities.map(activity => ({
                                 ...activity,
-                                time: new Date(activity.time).toLocaleDateString('en-US', {
-                                    month: 'short',
-                                    day: 'numeric',
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                })
+                                time: formatDateTime(activity.time)
                             }))}
                             title="Recent Activity"
                         />

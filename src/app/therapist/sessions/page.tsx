@@ -109,14 +109,18 @@ export default function TherapistSessionsPage() {
       const finalTime = timeOnly.split('Z')[0]; // Remove Z if present
       
       const [hours, minutes] = finalTime.split(':');
-      return `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`;
+      const hour24 = parseInt(hours, 10);
+      const hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24;
+      const ampm = hour24 >= 12 ? 'PM' : 'AM';
+      
+      return `${hour12}:${minutes.padStart(2, '0')} ${ampm}`;
     }
     
-    // Fallback for other formats
+    // Fallback for other formats with AM/PM
     return new Date(dateString).toLocaleTimeString('en-US', {
-      hour: '2-digit',
+      hour: 'numeric',
       minute: '2-digit',
-      hour12: false
+      hour12: true
     });
   };
 
