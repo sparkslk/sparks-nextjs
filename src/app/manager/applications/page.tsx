@@ -40,6 +40,7 @@ import {
   // Building,
   // GraduationCap,
 } from "lucide-react";
+import { toast } from "sonner";
 
 interface TherapistApplication {
   id: string;
@@ -89,6 +90,12 @@ export default function ManagerApplicationsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showReviewModal, setShowReviewModal] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<{
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  } | null>(null);
 
   // Fetch applications from API
   const fetchApplications = useCallback(async () => {
@@ -112,7 +119,7 @@ export default function ManagerApplicationsPage() {
       setApplications(data);
     } catch (error) {
       console.error("Error fetching applications:", error);
-      // Handle error - maybe show a toast notification
+      toast.error("Failed to load applications. Please refresh the page.");
     } finally {
       setLoading(false);
     }
@@ -176,28 +183,36 @@ export default function ManagerApplicationsPage() {
   };
 
   const handleApprove = async (applicationId: string) => {
-    try {
-      const response = await fetch(`/api/manager/verification-requests/${applicationId}/review`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          status: 'APPROVED'
-        }),
-      });
+    setConfirmAction({
+      title: "Approve Application",
+      message: "Are you sure you want to approve this therapist application? The therapist will be notified and gain access to the platform.",
+      onConfirm: async () => {
+        try {
+          const response = await fetch(`/api/manager/verification-requests/${applicationId}/review`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              status: 'APPROVED'
+            }),
+          });
 
-      if (!response.ok) {
-        throw new Error('Failed to approve application');
-      }
+          if (!response.ok) {
+            throw new Error('Failed to approve application');
+          }
 
-      // Refresh applications list
-      await fetchApplications();
-      alert("Application approved successfully!");
-    } catch (error) {
-      console.error("Failed to approve application:", error);
-      alert("Failed to approve application. Please try again.");
-    }
+          // Refresh applications list
+          await fetchApplications();
+          toast.success("Application approved successfully! The therapist has been notified.");
+          setSelectedApplication(null); // Close details modal if open
+        } catch (error) {
+          console.error("Failed to approve application:", error);
+          toast.error("Failed to approve application. Please try again.");
+        }
+      },
+    });
+    setShowConfirmDialog(true);
   };
 
   const handleReject = async (applicationId: string, reason: string) => {
@@ -217,14 +232,15 @@ export default function ManagerApplicationsPage() {
         throw new Error('Failed to reject application');
       }
 
-  setShowReviewModal(false);
+      setShowReviewModal(false);
 
       // Refresh applications list
       await fetchApplications();
-      alert("Application rejected.");
+      toast.success("Application rejected. The therapist has been notified.");
+      setSelectedApplication(null); // Close details modal if open
     } catch (error) {
       console.error("Failed to reject application:", error);
-      alert("Failed to reject application. Please try again.");
+      toast.error("Failed to reject application. Please try again.");
     }
   };
 
@@ -254,9 +270,11 @@ export default function ManagerApplicationsPage() {
       // Clean up
       document.body.removeChild(link);
       window.URL.revokeObjectURL(blobUrl);
+      
+      toast.success("Document downloaded successfully!");
     } catch (error) {
       console.error('Error downloading document:', error);
-      alert('Failed to download document. Please try again.');
+      toast.error('Failed to download document. Please try again.');
     }
   };
 
@@ -871,6 +889,39 @@ export default function ManagerApplicationsPage() {
       {/* Modals */}
       <ApplicationDetailsModal />
       <RejectModal />
+      
+      {/* Confirmation Dialog */}
+      <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{confirmAction?.title || "Confirm Action"}</DialogTitle>
+            <DialogDescription>
+              {confirmAction?.message || "Are you sure you want to proceed?"}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowConfirmDialog(false);
+                setConfirmAction(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                confirmAction?.onConfirm();
+                setShowConfirmDialog(false);
+                setConfirmAction(null);
+              }}
+              className="bg-[#8159A8] hover:bg-[#6d4a8f]"
+            >
+              Confirm
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
