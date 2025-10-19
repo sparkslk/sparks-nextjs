@@ -118,24 +118,71 @@ export async function GET(req: NextRequest) {
             return new Date(scheduledAt.getTime() + duration * 60000); // duration in minutes
         };
 
-        // Today's Appointments
-        const startOfDay = new Date();
-        startOfDay.setHours(0, 0, 0, 0);
-
-        const endOfDay = new Date();
-        endOfDay.setHours(23, 59, 59, 999);
-
+        // Today's Appointments (timezone-safe)
+        const today = new Date();
+        const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
+        const endOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+        
         const todayAppointments = therapist.therapySessions.filter((s) => {
-            const sessionDate = new Date(s.scheduledAt);
-            return sessionDate >= startOfDay && sessionDate <= endOfDay;
+            // Parse the session date without timezone conversion
+            const sessionDateStr = s.scheduledAt.toISOString();
+            let sessionDate;
+            
+            if (sessionDateStr.includes('T')) {
+                const [datePart, timePart] = sessionDateStr.split('T');
+                const [year, month, day] = datePart.split('-').map(Number);
+                const timeOnly = timePart.split('.')[0].split('Z')[0];
+                const [hours, minutes, seconds = 0] = timeOnly.split(':').map(Number);
+                sessionDate = new Date(year, month - 1, day, hours, minutes, seconds);
+            } else {
+                sessionDate = new Date(s.scheduledAt);
+            }
+            
+            return sessionDate >= startOfToday && sessionDate <= endOfToday;
         }).length;
 
-        // Sessions to Document
+        // Sessions to Document (timezone-safe)
         const sessionsToDocument = therapist.therapySessions.filter((s) => {
             if (s.status !== 'SCHEDULED') return false;
-            const sessionEndTime = getSessionEndTime(new Date(s.scheduledAt), s.duration);
+            
+            // Parse the session date without timezone conversion
+            const sessionDateStr = s.scheduledAt.toISOString();
+            let sessionDate;
+            
+            if (sessionDateStr.includes('T')) {
+                const [datePart, timePart] = sessionDateStr.split('T');
+                const [year, month, day] = datePart.split('-').map(Number);
+                const timeOnly = timePart.split('.')[0].split('Z')[0];
+                const [hours, minutes, seconds = 0] = timeOnly.split(':').map(Number);
+                sessionDate = new Date(year, month - 1, day, hours, minutes, seconds);
+            } else {
+                sessionDate = new Date(s.scheduledAt);
+            }
+            
+            const sessionEndTime = getSessionEndTime(sessionDate, s.duration);
             return sessionEndTime < new Date();
         });
+
+        // Total Sessions for the Month (timezone-safe)
+        const currentMonth = today.getMonth();
+        const currentYear = today.getFullYear();
+        const totalSessionsForMonth = therapist.therapySessions.filter((s) => {
+            // Parse the session date without timezone conversion
+            const sessionDateStr = s.scheduledAt.toISOString();
+            let sessionDate;
+            
+            if (sessionDateStr.includes('T')) {
+                const [datePart, timePart] = sessionDateStr.split('T');
+                const [year, month, day] = datePart.split('-').map(Number);
+                const timeOnly = timePart.split('.')[0].split('Z')[0];
+                const [hours, minutes, seconds = 0] = timeOnly.split(':').map(Number);
+                sessionDate = new Date(year, month - 1, day, hours, minutes, seconds);
+            } else {
+                sessionDate = new Date(s.scheduledAt);
+            }
+            
+            return sessionDate.getMonth() === currentMonth && sessionDate.getFullYear() === currentYear;
+        }).length;
 
         // Stats
         const stats = {
@@ -144,6 +191,7 @@ export async function GET(req: NextRequest) {
             completedSessions: therapist.therapySessions.filter((s) => s.status === 'COMPLETED').length,
             pendingTasks: tasks.filter((t) => t.status !== 'COMPLETED').length,
             sessionsToDocument: sessionsToDocument.length,
+            totalSessionsForMonth
         };
 
         // Chart data for session overview (last 7 days)
