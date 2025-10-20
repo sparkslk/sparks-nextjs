@@ -28,6 +28,8 @@ export default function UsersPage() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRole, setSelectedRole] = useState("Patient"); // Default to Patient
+  const [joinedFrom, setJoinedFrom] = useState("");
+  const [joinedTo, setJoinedTo] = useState("");
   const [emergencyContactOpen, setEmergencyContactOpen] = React.useState(false);
   const [emergencyContactDetails] = React.useState<
     string | null
@@ -915,6 +917,27 @@ export default function UsersPage() {
       );
     }
 
+    // Apply joined date range filter
+    if (joinedFrom || joinedTo) {
+      filteredUsers = filteredUsers.filter((user) => {
+        const dateStr = user.joinedDate as string | undefined;
+        if (!dateStr) return false;
+        const d = new Date(dateStr);
+        if (Number.isNaN(d.getTime())) return false;
+        if (joinedFrom) {
+          const from = new Date(joinedFrom);
+          from.setHours(0,0,0,0);
+          if (d < from) return false;
+        }
+        if (joinedTo) {
+          const to = new Date(joinedTo);
+          to.setHours(23,59,59,999);
+          if (d > to) return false;
+        }
+        return true;
+      });
+    }
+
     return filteredUsers;
   };
 
@@ -1113,6 +1136,30 @@ export default function UsersPage() {
                     <SelectItem value="Manager">Manager</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* Joined From */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">
+                  Joined From
+                </label>
+                <Input
+                  type="date"
+                  value={joinedFrom}
+                  onChange={(e) => setJoinedFrom(e.target.value)}
+                />
+              </div>
+
+              {/* Joined To */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">
+                  Joined To
+                </label>
+                <Input
+                  type="date"
+                  value={joinedTo}
+                  onChange={(e) => setJoinedTo(e.target.value)}
+                />
               </div>
             </div>
           </Card>
