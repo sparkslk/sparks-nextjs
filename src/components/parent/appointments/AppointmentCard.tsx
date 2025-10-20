@@ -174,12 +174,12 @@ export default function AppointmentCard({
                 {appointment.meetingLink && (
                   <div className="flex items-center space-x-2">
                     <div className={`px-2 py-1 rounded-full text-xs font-medium ${getSessionStatus(appointment) === 'ongoing'
-                        ? 'bg-red-100 text-red-700'
-                        : getSessionStatus(appointment) === 'can-join'
-                          ? 'bg-yellow-100 text-yellow-700'
-                          : getSessionStatus(appointment) === 'ended'
-                            ? 'bg-gray-100 text-gray-700'
-                            : 'bg-blue-100 text-blue-700'
+                      ? 'bg-red-100 text-red-700'
+                      : getSessionStatus(appointment) === 'can-join'
+                        ? 'bg-yellow-100 text-yellow-700'
+                        : getSessionStatus(appointment) === 'ended'
+                          ? 'bg-gray-100 text-gray-700'
+                          : 'bg-blue-100 text-blue-700'
                       }`}>
                       {getSessionStatus(appointment) === 'ongoing' && '🔴 Live'}
                       {getSessionStatus(appointment) === 'can-join' && '🟡 Ready to Join'}
@@ -213,10 +213,10 @@ export default function AppointmentCard({
                 {appointment.meetingLink && (
                   <button
                     className={`px-3 py-1 rounded-lg transition-colors duration-200 text-sm font-medium flex items-center space-x-1 ${canJoinSession(appointment)
-                        ? "bg-green-50 border border-green-200 text-green-600 hover:bg-green-100"
-                        : isAppointmentOngoing(appointment)
-                          ? "bg-green-600 text-white hover:bg-green-700"
-                          : "bg-gray-50 border border-gray-200 text-gray-400 cursor-not-allowed"
+                      ? "bg-green-50 border border-green-200 text-green-600 hover:bg-green-100"
+                      : isAppointmentOngoing(appointment)
+                        ? "bg-green-600 text-white hover:bg-green-700"
+                        : "bg-gray-50 border border-gray-200 text-gray-400 cursor-not-allowed"
                       }`}
                     onClick={() => utilHandleJoinSession(appointment)}
                     disabled={!canJoinSession(appointment) && !isAppointmentOngoing(appointment)}

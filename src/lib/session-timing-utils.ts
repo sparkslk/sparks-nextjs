@@ -3,22 +3,22 @@ import { Appointment } from "@/types/appointments";
 // Parse appointment datetime safely without timezone conversion
 export const parseAppointmentDateTime = (appointment: Appointment): Date => {
     console.log('Parsing appointment datetime:', { date: appointment.date, time: appointment.time });
-    
+
     if (appointment.date && appointment.time) {
         const [year, month, day] = appointment.date.split('-').map(Number);
-        
+
         // Handle time format - could be "14:30" or "02:30 PM"
         let hours, minutes;
-        
+
         if (appointment.time.includes('AM') || appointment.time.includes('PM')) {
             // Handle 12-hour format with AM/PM
             const timePart = appointment.time.replace(/\s*(AM|PM)/i, '');
             const [hourStr, minuteStr] = timePart.split(':');
             const isPM = appointment.time.toUpperCase().includes('PM');
-            
+
             hours = parseInt(hourStr);
             minutes = parseInt(minuteStr);
-            
+
             // Convert to 24-hour format
             if (isPM && hours !== 12) {
                 hours += 12;
@@ -69,16 +69,16 @@ export const canJoinSession = (appointment: Appointment): boolean => {
         parsedDateTime: appointmentTime,
         currentTime: now,
         timeDifference: timeDifference,
-        minutesDifference: minutesDifference,
-        canJoin: minutesDifference <= 15 && !isAppointmentPast(appointment),
-        hasLink: !!appointment.meetingLink
+        minutesDifference: Math.round(minutesDifference * 100) / 100, // Round to 2 decimal places
+        canJoin: (minutesDifference <= 15 && !isAppointmentPast(appointment)) || isAppointmentOngoing(appointment),
+        hasLink: !!appointment.meetingLink,
+        isPast: isAppointmentPast(appointment),
+        isOngoing: isAppointmentOngoing(appointment)
     });
 
-    // Allow joining 15 minutes before appointment time or if ongoing
-    return minutesDifference <= 15 && !isAppointmentPast(appointment);
-};
-
-export const handleJoinSession = (appointment: Appointment): void => {
+    // Allow joining 15 minutes before appointment time, during the appointment, or if ongoing
+    return (minutesDifference <= 15 && !isAppointmentPast(appointment)) || isAppointmentOngoing(appointment);
+};export const handleJoinSession = (appointment: Appointment): void => {
     console.log('Attempting to join session:', {
         appointmentId: appointment.id,
         meetingLink: appointment.meetingLink,
