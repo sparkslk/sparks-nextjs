@@ -53,11 +53,9 @@ export default function AdminSupportPage() {
   // Filters
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
-    status: "",
-    priority: "",
+    status: "ALL",
     dateFrom: "",
     dateTo: "",
-    email: "",
     search: "",
   });
 
@@ -69,11 +67,9 @@ export default function AdminSupportPage() {
         limit: limit.toString(),
       });
 
-      if (filters.status) params.append("status", filters.status);
-      if (filters.priority) params.append("priority", filters.priority);
+      if (filters.status && filters.status !== "ALL") params.append("status", filters.status);
       if (filters.dateFrom) params.append("dateFrom", filters.dateFrom);
       if (filters.dateTo) params.append("dateTo", filters.dateTo);
-      if (filters.email) params.append("email", filters.email);
       if (filters.search) params.append("search", filters.search);
 
       const response = await fetch(`/api/admin/support?${params.toString()}`);
@@ -103,11 +99,9 @@ export default function AdminSupportPage() {
 
   const handleFilterClear = () => {
     setFilters({
-      status: "",
-      priority: "",
+      status: "ALL",
       dateFrom: "",
       dateTo: "",
-      email: "",
       search: "",
     });
     setCurrentPage(1);
@@ -247,7 +241,7 @@ export default function AdminSupportPage() {
                     <SelectValue placeholder="All statuses" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All statuses</SelectItem>
+                    <SelectItem value="ALL">All statuses</SelectItem>
                     <SelectItem value="OPEN">Open</SelectItem>
                     <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
                     <SelectItem value="RESOLVED">Resolved</SelectItem>
@@ -257,34 +251,7 @@ export default function AdminSupportPage() {
                 </Select>
               </div>
 
-              <div>
-                <Label>Priority</Label>
-                <Select
-                  value={filters.priority}
-                  onValueChange={(value) => setFilters({ ...filters, priority: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="All priorities" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">All priorities</SelectItem>
-                    <SelectItem value="LOW">Low</SelectItem>
-                    <SelectItem value="MEDIUM">Medium</SelectItem>
-                    <SelectItem value="HIGH">High</SelectItem>
-                    <SelectItem value="URGENT">Urgent</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label>Email</Label>
-                <Input
-                  type="text"
-                  placeholder="Search by email"
-                  value={filters.email}
-                  onChange={(e) => setFilters({ ...filters, email: e.target.value })}
-                />
-              </div>
+              
 
               <div>
                 <Label>Search</Label>
@@ -315,13 +282,18 @@ export default function AdminSupportPage() {
               </div>
             </div>
 
-            <div className="flex gap-2 mt-4">
-              <Button onClick={handleFilterApply} className="bg-[#8159A8]">
-                Apply Filters
-              </Button>
-              <Button onClick={handleFilterClear} variant="outline">
-                Clear Filters
-              </Button>
+            <div className="flex items-center justify-between mt-4">
+              <div className="text-sm text-gray-500">
+                Showing {tickets.length} of {totalCount}
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={handleFilterApply} className="bg-[#8159A8]">
+                  Apply Filters
+                </Button>
+                <Button onClick={handleFilterClear} variant="outline">
+                  Clear Filters
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
