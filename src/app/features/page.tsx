@@ -18,7 +18,6 @@ import {
     Globe,
     Pill,
     UserCheck,
-    DollarSign,
     Activity,
     Video
 } from "lucide-react";

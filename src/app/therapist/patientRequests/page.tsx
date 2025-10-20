@@ -388,10 +388,17 @@ export default function PatientRequestsPage() {
                                                     <h3 className="font-semibold text-sm lg:text-base">
                                                         {request.firstName} {request.lastName}
                                                     </h3>
-                                                    <p className="text-xs lg:text-sm text-muted-foreground">
-                                                        Age: {request.age} • {request.gender} • {request.phone} • {request.email}
-                                                    </p>
-                                                    <div className="flex items-center space-x-2 mt-1">
+                                                    <div className="flex flex-wrap gap-x-6 gap-y-1 mt-1 text-xs lg:text-sm text-muted-foreground">
+                                                        <span><span className="font-medium text-gray-700">Age:</span> {request.age}</span>
+                                                        <span><span className="font-medium text-gray-700">Gender:</span> {request.gender}</span>
+                                                        {request.phone && (
+                                                            <span><span className="font-medium text-gray-700">Phone:</span> {request.phone}</span>
+                                                        )}
+                                                        {request.email && (
+                                                            <span><span className="font-medium text-gray-700">Email:</span> {request.email}</span>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex items-center space-x-2 mt-2">
                                                         <Calendar className="h-3 w-3 text-muted-foreground" />
                                                         <span className="text-xs text-muted-foreground">
                                                             Requested: {new Date(request.requestedAt).toLocaleDateString()}

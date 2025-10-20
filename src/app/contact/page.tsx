@@ -19,7 +19,6 @@ import {
     Stethoscope,
     GraduationCap,
     Building,
-    ArrowRight,
     CheckCircle,
     AlertCircle,
     Globe,

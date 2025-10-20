@@ -15,7 +15,6 @@ import {
     Stethoscope,
     GraduationCap,
     Home,
-    ArrowRight,
     CheckCircle,
     Eye,
     Zap,

@@ -418,7 +418,6 @@ export default function TherapistReportsPage() {
                 })}
               </div>
               <div className="text-gray-500 text-sm">Total Income Earned</div>
-              <div className="text-white/70 text-xs mt-1">After all deductions</div>
             </div>
             <div className="flex-shrink-0 ml-4">
               <DollarSign className="w-10 h-10 text-[#8159A8]" />
