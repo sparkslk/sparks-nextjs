@@ -59,37 +59,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    // Verify merchant ID
-    if (merchant_id !== process.env.PAYHERE_MERCHANT_ID) {
+    // Verify merchant ID (both mobile and web use same merchant ID)
+    if (merchant_id !== process.env.PAYHERE_MERCHANT_ID &&
+        merchant_id !== process.env.PAYHERE_MERCHANT_ID_MOBILE) {
       console.error("Invalid merchant ID:", merchant_id);
       return NextResponse.json({ error: "Invalid merchant ID" }, { status: 400 });
     }
 
-    // Verify MD5 signature
-    const merchant_secret = process.env.PAYHERE_MERCHANT_SECRET || "";
-    const local_md5sig = crypto
-      .createHash("md5")
-      .update(
-        merchant_id +
-        order_id +
-        payhere_amount +
-        payhere_currency +
-        status_code +
-        crypto.createHash("md5").update(merchant_secret).digest("hex").toUpperCase()
-      )
-      .digest("hex")
-      .toUpperCase();
-
-    if (local_md5sig !== md5sig.toUpperCase()) {
-      console.error("MD5 signature verification failed");
-      console.error("Expected:", local_md5sig);
-      console.error("Received:", md5sig);
-      return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
-    }
-
-    console.log("MD5 signature verified successfully");
-
-    // Find the payment record
+    // Find the payment record FIRST to determine which merchant secret to use
     const payment = await prisma.payment.findUnique({
       where: { orderId: order_id },
       include: {
@@ -121,6 +98,40 @@ export async function POST(request: NextRequest) {
       console.error("Payment not found for order ID:", order_id);
       return NextResponse.json({ error: "Payment not found" }, { status: 404 });
     }
+
+    // Determine payment source and select correct merchant secret
+    const paymentMetadata = payment.metadata as Record<string, unknown>;
+    const paymentSource = paymentMetadata?.source as string || "web";
+    const merchant_secret = paymentSource === "mobile"
+      ? process.env.PAYHERE_MERCHANT_SECRET_MOBILE || ""
+      : process.env.PAYHERE_MERCHANT_SECRET || "";
+
+    console.log(`Payment source: ${paymentSource}, using ${paymentSource} merchant secret`);
+
+    // Verify MD5 signature with correct merchant secret
+    const local_md5sig = crypto
+      .createHash("md5")
+      .update(
+        merchant_id +
+        order_id +
+        payhere_amount +
+        payhere_currency +
+        status_code +
+        crypto.createHash("md5").update(merchant_secret).digest("hex").toUpperCase()
+      )
+      .digest("hex")
+      .toUpperCase();
+
+    if (local_md5sig !== md5sig.toUpperCase()) {
+      console.error("MD5 signature verification failed");
+      console.error("Expected:", local_md5sig);
+      console.error("Received:", md5sig);
+      console.error("Payment source:", paymentSource);
+      console.error("Using merchant secret for:", paymentSource);
+      return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+    }
+
+    console.log("MD5 signature verified successfully");
 
     // Map PayHere status code to our PaymentStatus enum
     let paymentStatus: string;
