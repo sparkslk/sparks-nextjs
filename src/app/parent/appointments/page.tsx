@@ -11,11 +11,12 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, User, AlertCircle, ChevronDown, ChevronRight } from "lucide-react";
+import { Calendar, Clock, User, AlertCircle, ChevronDown, ChevronRight, Video } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { SessionBookingModal } from "@/components/parent/SessionBookingModal";
 import RescheduleModal from "@/components/parent/appointments/RescheduleModal";
 import SessionCancellationDialog from "@/components/parent/SessionCancellationDialog";
+import { canJoinSession, isAppointmentOngoing, handleJoinSession as utilHandleJoinSession } from "@/lib/session-timing-utils";
 
 export default function AppointmentsPage() {
   const [children, setChildren] = useState<Child[]>([]);
@@ -412,20 +413,25 @@ export default function AppointmentsPage() {
                               >
                                 Cancel
                               </Button>
-                            
+
+                              {appointment.meetingLink && (
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  className="text-green-600 border-green-600 hover:bg-green-50"
-                                  onClick={() => {
-                                    if (appointment.meetingLink) {
-                                      window.open(appointment.meetingLink, '_blank', 'noopener,noreferrer');
-                                    }
-                                  }}
+                                  className={
+                                    canJoinSession(appointment)
+                                      ? "text-green-600 border-green-600 hover:bg-green-50"
+                                      : isAppointmentOngoing(appointment)
+                                        ? "bg-green-600 text-white hover:bg-green-700"
+                                        : "text-gray-400 border-gray-400 cursor-not-allowed"
+                                  }
+                                  onClick={() => utilHandleJoinSession(appointment)}
+                                  disabled={!canJoinSession(appointment) && !isAppointmentOngoing(appointment)}
                                 >
-                                  Join Session
+                                  <Video className="w-4 h-4 mr-1" />
+                                  {isAppointmentOngoing(appointment) ? "Join Now" : "Join Session"}
                                 </Button>
-                            
+                              )}
                             </div>
                           </div>
                         </div>
