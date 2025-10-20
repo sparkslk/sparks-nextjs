@@ -15,7 +15,6 @@ import {
     Stethoscope,
     GraduationCap,
     Home,
-    ArrowRight,
     CheckCircle,
     Eye,
     Zap,
@@ -199,47 +198,64 @@ export default function AboutADHDPage() {
     ];
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-purple-50/30">
+        <div className="min-h-screen" style={{ backgroundColor: "#F5F3FB" }}>
             <Header />
 
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {/* Hero Section */}
                 <div className="text-center mb-12">
-                    <Badge variant="secondary" className="mb-4 px-4 py-2 text-sm font-medium">
+                    <Badge
+                        variant="secondary"
+                        className="mb-4 px-4 py-2 text-sm font-medium"
+                        style={{ backgroundColor: "rgba(129, 89, 168, 0.1)", color: "#8159A8" }}
+                    >
                         UNDERSTANDING ADHD
                     </Badge>
-                    <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-6">
+                    <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
                         About{" "}
-                        <span className="bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+                        <span
+                            style={{
+                                background: `linear-gradient(135deg, #8159A8 0%, #9d7bb8 100%)`,
+                                WebkitBackgroundClip: "text",
+                                WebkitTextFillColor: "transparent",
+                                backgroundClip: "text",
+                            }}
+                        >
                             ADHD
                         </span>
                     </h1>
-                    <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+                    <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed font-light">
                         Attention Deficit Hyperactivity Disorder (ADHD) is a neurodevelopmental condition
                         that affects millions of people worldwide. Learn about symptoms, causes, and treatment options.
                     </p>
+                    <div className="w-20 h-1 bg-gradient-to-r from-transparent via-gray-300 to-transparent mx-auto rounded-full mt-6"></div>
                 </div>
 
                 {/* What is ADHD Section */}
                 <section className="mb-16">
-                    <div className="bg-gradient-to-r from-primary/10 to-purple-50/50 rounded-2xl p-8 md:p-12">
+                    <div className="bg-white rounded-2xl p-8 md:p-12 shadow-md border border-gray-100">
                         <div className="max-w-4xl mx-auto">
-                            <h2 className="text-3xl font-bold text-foreground mb-6 text-center">What is ADHD?</h2>
+                            <h2 className="text-3xl font-bold text-gray-900 mb-6 text-center">What is ADHD?</h2>
                             <div className="grid md:grid-cols-2 gap-8 items-center">
                                 <div>
-                                    <p className="text-lg text-muted-foreground leading-relaxed mb-4">
+                                    <p className="text-lg text-gray-600 leading-relaxed mb-4 font-light">
                                         ADHD is a neurodevelopmental disorder that affects both children and adults.
                                         It&apos;s characterized by persistent patterns of inattention, hyperactivity,
                                         and impulsivity that interfere with functioning or development.
                                     </p>
-                                    <p className="text-lg text-muted-foreground leading-relaxed">
+                                    <p className="text-lg text-gray-600 leading-relaxed font-light">
                                         The condition affects the brain&apos;s executive functions, including attention,
                                         working memory, and impulse control. It&apos;s not a result of laziness,
                                         lack of intelligence, or poor parenting.
                                     </p>
                                 </div>
                                 <div className="flex justify-center">
-                                    <div className="w-48 h-48 bg-gradient-to-br from-primary to-purple-600 rounded-full flex items-center justify-center">
+                                    <div
+                                        className="w-48 h-48 rounded-full flex items-center justify-center shadow-lg"
+                                        style={{
+                                            background: `linear-gradient(135deg, #8159A8 0%, #9d7bb8 100%)`,
+                                        }}
+                                    >
                                         <Brain className="h-24 w-24 text-white" />
                                     </div>
                                 </div>
@@ -251,8 +267,20 @@ export default function AboutADHDPage() {
                 {/* Symptoms Section */}
                 <section className="mb-16">
                     <div className="text-center mb-12">
-                        <h2 className="text-3xl font-bold text-foreground mb-4">Core Symptoms of ADHD</h2>
-                        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                        <h2 className="text-3xl font-bold text-gray-900 mb-4">
+                            Core Symptoms of{" "}
+                            <span
+                                style={{
+                                    background: `linear-gradient(135deg, #8159A8 0%, #9d7bb8 100%)`,
+                                    WebkitBackgroundClip: "text",
+                                    WebkitTextFillColor: "transparent",
+                                    backgroundClip: "text",
+                                }}
+                            >
+                                ADHD
+                            </span>
+                        </h2>
+                        <p className="text-lg text-gray-600 max-w-2xl mx-auto font-light">
                             ADHD symptoms are grouped into three main categories. Most people show symptoms from multiple categories.
                         </p>
                     </div>
@@ -273,8 +301,20 @@ export default function AboutADHDPage() {
                 {/* Statistics Section */}
                 <section className="mb-16">
                     <div className="text-center mb-12">
-                        <h2 className="text-3xl font-bold text-foreground mb-4">ADHD by the Numbers</h2>
-                        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                        <h2 className="text-3xl font-bold text-gray-900 mb-4">
+                            <span
+                                style={{
+                                    background: `linear-gradient(135deg, #8159A8 0%, #9d7bb8 100%)`,
+                                    WebkitBackgroundClip: "text",
+                                    WebkitTextFillColor: "transparent",
+                                    backgroundClip: "text",
+                                }}
+                            >
+                                ADHD
+                            </span>{" "}
+                            by the Numbers
+                        </h2>
+                        <p className="text-lg text-gray-600 max-w-2xl mx-auto font-light">
                             Understanding the prevalence and impact of ADHD globally and in Sri Lanka
                         </p>
                     </div>
@@ -526,8 +566,20 @@ export default function AboutADHDPage() {
                 {/* Myths vs Facts */}
                 <section className="mb-16">
                     <div className="text-center mb-12">
-                        <h2 className="text-3xl font-bold text-foreground mb-4">Common Myths About ADHD</h2>
-                        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                        <h2 className="text-3xl font-bold text-gray-900 mb-4">
+                            Common Myths About{" "}
+                            <span
+                                style={{
+                                    background: `linear-gradient(135deg, #8159A8 0%, #9d7bb8 100%)`,
+                                    WebkitBackgroundClip: "text",
+                                    WebkitTextFillColor: "transparent",
+                                    backgroundClip: "text",
+                                }}
+                            >
+                                ADHD
+                            </span>
+                        </h2>
+                        <p className="text-lg text-gray-600 max-w-2xl mx-auto font-light">
                             Let&apos;s separate fact from fiction about ADHD
                         </p>
                     </div>
@@ -539,21 +591,46 @@ export default function AboutADHDPage() {
                 </section>
 
                 {/* CTA Section */}
-                <section className="text-center bg-gradient-to-r from-primary to-purple-600 text-white rounded-2xl p-8 md:p-12">
+                <section
+                    className="text-center rounded-2xl p-8 md:p-12 text-white shadow-lg"
+                    style={{
+                        background: `linear-gradient(135deg, #8159A8 0%, #9d7bb8 100%)`,
+                    }}
+                >
                     <h2 className="text-3xl font-bold mb-4">Ready to Learn More?</h2>
-                    <p className="text-xl mb-6 opacity-90 max-w-2xl mx-auto">
+                    <p className="text-xl mb-6 opacity-90 max-w-2xl mx-auto font-light">
                         SPARKS provides comprehensive ADHD support tailored for Sri Lankan communities.
                         Start your journey towards better understanding and management today.
                     </p>
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
                         <Link href="/signup">
-                            <Button size="lg" variant="secondary" className="text-lg px-8 py-6">
+                            <Button
+                                size="lg"
+                                className="text-lg px-8 py-6 bg-white hover:bg-gray-100 shadow-md"
+                                style={{ color: "#8159A8" }}
+                            >
                                 Get Started with SPARKS
-                                <ArrowRight className="h-5 w-5 ml-2" />
+                                <svg
+                                    className="h-5 w-5 ml-2"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M13 7l5 5m0 0l-5 5m5-5H6"
+                                    />
+                                </svg>
                             </Button>
                         </Link>
                         <Link href="/resources">
-                            <Button size="lg" variant="outline" className="text-lg px-8 py-6 border-white text-white hover:bg-white hover:text-primary">
+                            <Button
+                                size="lg"
+                                variant="outline"
+                                className="text-lg px-8 py-6 border-2 border-white text-white hover:bg-white hover:text-[#8159A8] transition-all"
+                            >
                                 View Resources
                             </Button>
                         </Link>

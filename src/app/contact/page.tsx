@@ -19,7 +19,6 @@ import {
     Stethoscope,
     GraduationCap,
     Building,
-    ArrowRight,
     CheckCircle,
     AlertCircle,
     Globe,
@@ -254,32 +253,55 @@ export default function ContactPage() {
     ];
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-purple-50/30">
+        <div className="min-h-screen" style={{ backgroundColor: "#F5F3FB" }}>
             <Header />
 
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {/* Hero Section */}
                 <div className="text-center mb-12">
-                    <Badge variant="secondary" className="mb-4 px-4 py-2 text-sm font-medium">
+                    <Badge
+                        variant="secondary"
+                        className="mb-4 px-4 py-2 text-sm font-medium"
+                        style={{ backgroundColor: "rgba(129, 89, 168, 0.1)", color: "#8159A8" }}
+                    >
                         GET IN TOUCH
                     </Badge>
-                    <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-6">
+                    <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
                         Contact{" "}
-                        <span className="bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+                        <span
+                            style={{
+                                background: `linear-gradient(135deg, #8159A8 0%, #9d7bb8 100%)`,
+                                WebkitBackgroundClip: "text",
+                                WebkitTextFillColor: "transparent",
+                                backgroundClip: "text",
+                            }}
+                        >
                             SPARKS
                         </span>
                     </h1>
-                    <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+                    <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed font-light">
                         We&apos;re here to help you on your ADHD journey. Reach out to our team for support,
                         information, or to book an appointment with our qualified professionals.
                     </p>
+                    <div className="w-20 h-1 bg-gradient-to-r from-transparent via-gray-300 to-transparent mx-auto rounded-full mt-6"></div>
                 </div>
 
                 {/* Contact Methods */}
                 <section className="mb-16">
                     <div className="text-center mb-8">
-                        <h2 className="text-3xl font-bold text-foreground mb-4">How to Reach Us</h2>
-                        <p className="text-lg text-muted-foreground">
+                        <h2 className="text-3xl font-bold text-gray-900 mb-4">
+                            <span
+                                style={{
+                                    background: `linear-gradient(135deg, #8159A8 0%, #9d7bb8 100%)`,
+                                    WebkitBackgroundClip: "text",
+                                    WebkitTextFillColor: "transparent",
+                                    backgroundClip: "text",
+                                }}
+                            >
+                                How to Reach Us
+                            </span>
+                        </h2>
+                        <p className="text-lg text-gray-600 font-light">
                             Multiple ways to connect with our support team
                         </p>
                     </div>
@@ -295,7 +317,7 @@ export default function ContactPage() {
                     <div className="grid lg:grid-cols-3 gap-8">
                         {/* Contact Form */}
                         <div className="lg:col-span-2">
-                            <Card>
+                            <Card className="bg-white border-gray-100 shadow-sm">
                                 <CardHeader>
                                     <CardTitle>Send us a Message</CardTitle>
                                     <CardDescription>
@@ -398,11 +420,24 @@ export default function ContactPage() {
 
                                         <Button
                                             type="submit"
-                                            className="w-full"
+                                            className="w-full shadow-md hover:shadow-lg transition-all"
+                                            style={{ backgroundColor: "#8159A8", color: "white" }}
                                             disabled={isSubmitting || !formData.name || !formData.email || !formData.subject || !formData.category || !formData.message}
                                         >
                                             {isSubmitting ? "Sending..." : "Send Message"}
-                                            <ArrowRight className="h-4 w-4 ml-2" />
+                                            <svg
+                                                className="h-4 w-4 ml-2"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth={2}
+                                                    d="M13 7l5 5m0 0l-5 5m5-5H6"
+                                                />
+                                            </svg>
                                         </Button>
                                     </form>
                                 </CardContent>
@@ -411,53 +446,71 @@ export default function ContactPage() {
 
                         {/* Quick Actions */}
                         <div className="space-y-6">
-                            <Card>
+                            <Card className="bg-white border-gray-100 shadow-sm">
                                 <CardHeader>
                                     <CardTitle className="flex items-center gap-2">
-                                        <Calendar className="h-5 w-5" />
+                                        <Calendar className="h-5 w-5" style={{ color: "#8159A8" }} />
                                         Quick Actions
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-3">
                                     <Link href="/signup" className="block">
-                                        <Button variant="outline" className="w-full justify-start">
-                                            <Users className="h-4 w-4 mr-2" />
+                                        <Button
+                                            variant="outline"
+                                            className="w-full justify-start hover:bg-gray-50"
+                                        >
+                                            <Users className="h-4 w-4 mr-2" style={{ color: "#8159A8" }} />
                                             Create Account
                                         </Button>
                                     </Link>
-                                    <Link href="/assessment/adhd-screening" className="block">
-                                        <Button variant="outline" className="w-full justify-start">
-                                            <Stethoscope className="h-4 w-4 mr-2" />
-                                            Book Assessment
+                                    <Link href="/quiz" className="block">
+                                        <Button
+                                            variant="outline"
+                                            className="w-full justify-start hover:bg-gray-50"
+                                        >
+                                            <Stethoscope className="h-4 w-4 mr-2" style={{ color: "#8159A8" }} />
+                                            Take ADHD Quiz
                                         </Button>
                                     </Link>
                                     <Link href="/dashboard/findTherapist" className="block">
-                                        <Button variant="outline" className="w-full justify-start">
-                                            <GraduationCap className="h-4 w-4 mr-2" />
+                                        <Button
+                                            variant="outline"
+                                            className="w-full justify-start hover:bg-gray-50"
+                                        >
+                                            <GraduationCap className="h-4 w-4 mr-2" style={{ color: "#8159A8" }} />
                                             Find Therapist
                                         </Button>
                                     </Link>
                                     <Link href="/resources" className="block">
-                                        <Button variant="outline" className="w-full justify-start">
-                                            <Globe className="h-4 w-4 mr-2" />
+                                        <Button
+                                            variant="outline"
+                                            className="w-full justify-start hover:bg-gray-50"
+                                        >
+                                            <Globe className="h-4 w-4 mr-2" style={{ color: "#8159A8" }} />
                                             View Resources
                                         </Button>
                                     </Link>
                                 </CardContent>
                             </Card>
 
-                            <Card className="bg-gradient-to-br from-primary/10 to-purple-50">
+                            <Card
+                                className="border-2 shadow-md"
+                                style={{
+                                    borderColor: "rgba(129, 89, 168, 0.2)",
+                                    background: "rgba(129, 89, 168, 0.05)",
+                                }}
+                            >
                                 <CardHeader>
-                                    <CardTitle className="text-primary">Emergency Support</CardTitle>
+                                    <CardTitle style={{ color: "#8159A8" }}>Emergency Support</CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-3">
-                                    <p className="text-sm text-muted-foreground">
+                                    <p className="text-sm text-gray-700">
                                         If you&apos;re experiencing a mental health crisis:
                                     </p>
                                     <div className="space-y-2">
-                                        <p className="text-sm font-semibold">Crisis Hotline: 1926</p>
-                                        <p className="text-sm font-semibold">Samaritans: +94 11 269 6666</p>
-                                        <p className="text-sm text-muted-foreground">Available 24/7</p>
+                                        <p className="text-sm font-semibold text-gray-900">Crisis Hotline: 1926</p>
+                                        <p className="text-sm font-semibold text-gray-900">Samaritans: +94 11 269 6666</p>
+                                        <p className="text-sm text-gray-600">Available 24/7</p>
                                     </div>
                                 </CardContent>
                             </Card>
@@ -468,8 +521,19 @@ export default function ContactPage() {
                 {/* Office Locations */}
                 <section className="mb-16">
                     <div className="text-center mb-8">
-                        <h2 className="text-3xl font-bold text-foreground mb-4">Our Locations</h2>
-                        <p className="text-lg text-muted-foreground">
+                        <h2 className="text-3xl font-bold text-gray-900 mb-4">
+                            <span
+                                style={{
+                                    background: `linear-gradient(135deg, #8159A8 0%, #9d7bb8 100%)`,
+                                    WebkitBackgroundClip: "text",
+                                    WebkitTextFillColor: "transparent",
+                                    backgroundClip: "text",
+                                }}
+                            >
+                                Our Locations
+                            </span>
+                        </h2>
+                        <p className="text-lg text-gray-600 font-light">
                             Visit us at any of our offices across Sri Lanka
                         </p>
                     </div>
@@ -482,7 +546,7 @@ export default function ContactPage() {
 
                 {/* FAQ Section */}
                 <section className="mb-16">
-                    <Card>
+                    <Card className="bg-white border-gray-100 shadow-sm">
                         <CardHeader>
                             <CardTitle>Frequently Asked Questions</CardTitle>
                             <CardDescription>
@@ -493,40 +557,40 @@ export default function ContactPage() {
                             <div className="grid md:grid-cols-2 gap-6">
                                 <div className="space-y-4">
                                     <div>
-                                        <h3 className="font-semibold text-foreground mb-1">How do I book an ADHD assessment?</h3>
-                                        <p className="text-sm text-muted-foreground">
+                                        <h3 className="font-semibold text-gray-900 mb-1">How do I book an ADHD assessment?</h3>
+                                        <p className="text-sm text-gray-600 font-light">
                                             You can book online through our platform, call our main line, or visit any of our offices. Initial consultations are available within 1-2 weeks.
                                         </p>
                                     </div>
                                     <div>
-                                        <h3 className="font-semibold text-foreground mb-1">Do you accept insurance?</h3>
-                                        <p className="text-sm text-muted-foreground">
+                                        <h3 className="font-semibold text-gray-900 mb-1">Do you accept insurance?</h3>
+                                        <p className="text-sm text-gray-600 font-light">
                                             We work with most major insurance providers in Sri Lanka. Contact us to verify coverage for your specific plan.
                                         </p>
                                     </div>
                                     <div>
-                                        <h3 className="font-semibold text-foreground mb-1">Is online therapy available?</h3>
-                                        <p className="text-sm text-muted-foreground">
+                                        <h3 className="font-semibold text-gray-900 mb-1">Is online therapy available?</h3>
+                                        <p className="text-sm text-gray-600 font-light">
                                             Yes, we offer secure online therapy sessions for those who prefer virtual consultations or live in remote areas.
                                         </p>
                                     </div>
                                 </div>
                                 <div className="space-y-4">
                                     <div>
-                                        <h3 className="font-semibold text-foreground mb-1">What languages do you support?</h3>
-                                        <p className="text-sm text-muted-foreground">
+                                        <h3 className="font-semibold text-gray-900 mb-1">What languages do you support?</h3>
+                                        <p className="text-sm text-gray-600 font-light">
                                             Our services are available in Sinhala, Tamil, and English. We have qualified therapists for each language.
                                         </p>
                                     </div>
                                     <div>
-                                        <h3 className="font-semibold text-foreground mb-1">How much does an assessment cost?</h3>
-                                        <p className="text-sm text-muted-foreground">
+                                        <h3 className="font-semibold text-gray-900 mb-1">How much does an assessment cost?</h3>
+                                        <p className="text-sm text-gray-600 font-light">
                                             Initial ADHD assessments start from Rs. 5,000. We offer payment plans and sliding scale fees based on financial need.
                                         </p>
                                     </div>
                                     <div>
-                                        <h3 className="font-semibold text-foreground mb-1">Do you provide family support?</h3>
-                                        <p className="text-sm text-muted-foreground">
+                                        <h3 className="font-semibold text-gray-900 mb-1">Do you provide family support?</h3>
+                                        <p className="text-sm text-gray-600 font-light">
                                             Yes, we offer family counseling, parent training programs, and support groups for families affected by ADHD.
                                         </p>
                                     </div>
@@ -537,20 +601,45 @@ export default function ContactPage() {
                 </section>
 
                 {/* CTA Section */}
-                <section className="text-center bg-gradient-to-r from-primary to-purple-600 text-white rounded-2xl p-8 md:p-12">
+                <section
+                    className="text-center rounded-2xl p-8 md:p-12 text-white shadow-lg"
+                    style={{
+                        background: `linear-gradient(135deg, #8159A8 0%, #9d7bb8 100%)`,
+                    }}
+                >
                     <h2 className="text-3xl font-bold mb-4">Ready to Start Your Journey?</h2>
-                    <p className="text-xl mb-6 opacity-90 max-w-2xl mx-auto">
+                    <p className="text-xl mb-6 opacity-90 max-w-2xl mx-auto font-light">
                         Don&apos;t wait to get the support you need. Contact SPARKS today and take the first step
                         towards better ADHD management and improved quality of life.
                     </p>
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
                         <Link href="/signup">
-                            <Button size="lg" variant="secondary" className="text-lg px-8 py-6">
+                            <Button
+                                size="lg"
+                                className="text-lg px-8 py-6 bg-white hover:bg-gray-100 shadow-md"
+                                style={{ color: "#8159A8" }}
+                            >
                                 Get Started Today
-                                <ArrowRight className="h-5 w-5 ml-2" />
+                                <svg
+                                    className="h-5 w-5 ml-2"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M13 7l5 5m0 0l-5 5m5-5H6"
+                                    />
+                                </svg>
                             </Button>
                         </Link>
-                        <Button size="lg" variant="outline" className="text-lg px-8 py-6 border-white text-white hover:bg-white hover:text-primary">
+                        <Button
+                            size="lg"
+                            variant="outline"
+                            className="text-lg px-8 py-6 border-2 border-white text-white hover:bg-white hover:text-[#8159A8] transition-all"
+                        >
                             <Phone className="h-5 w-5 mr-2" />
                             Call Now: +94 11 776 257
                         </Button>

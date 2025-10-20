@@ -39,9 +39,9 @@ export default function DonationSuccessPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50">
+    <div className="min-h-screen" style={{ backgroundColor: "#F5F3FB" }}>
       {/* Header */}
-      <header className="border-b border-border bg-white/80 backdrop-blur-sm">
+      <header className="border-b border-border bg-card/80 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <Link href="/">
@@ -59,45 +59,47 @@ export default function DonationSuccessPage() {
 
       {/* Main Content */}
       <main className="max-w-2xl mx-auto px-4 py-12">
-        <Card className="border-0 shadow-xl">
+        <Card className="border-gray-100 shadow-xl bg-white">
           <CardContent className="pt-12 pb-12 text-center">
             {/* Success Icon */}
-            <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-green-400 to-green-600 rounded-full mb-6 animate-bounce">
-              <CheckCircle className="w-12 h-12 text-white" />
+            <div className="inline-flex items-center justify-center w-24 h-24 rounded-full mb-6 animate-bounce" style={{ backgroundColor: "rgba(34, 197, 94, 0.1)" }}>
+              <CheckCircle className="w-12 h-12" style={{ color: "#22c55e" }} />
             </div>
 
             {/* Thank You Message */}
-            <h1 className="text-4xl font-extrabold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4">
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
               Thank You for Your Donation!
             </h1>
 
-            <p className="text-lg text-gray-600 mb-8 max-w-md mx-auto">
+            <p className="text-xl text-gray-600 mb-8 max-w-md mx-auto leading-relaxed font-light">
               Your generous contribution is being processed. We&apos;re grateful for your
               support in helping children with ADHD receive the care they need.
             </p>
 
+            <div className="w-16 h-1 bg-gradient-to-r from-transparent via-gray-300 to-transparent mx-auto rounded-full mb-8"></div>
+
             {/* Information Box */}
-            <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-6 mb-8 text-left">
+            <div className="border border-gray-100 rounded-lg p-6 mb-8 text-left" style={{ backgroundColor: "rgba(129, 89, 168, 0.05)" }}>
               <h2 className="font-semibold text-lg mb-3 flex items-center">
-                <Heart className="w-5 h-5 mr-2 text-purple-600" />
+                <Heart className="w-5 h-5 mr-2" style={{ color: "#8159A8" }} />
                 What happens next?
               </h2>
               <ul className="space-y-2 text-gray-700">
                 <li className="flex items-start">
-                  <span className="text-purple-600 mr-2">✓</span>
+                  <span className="mr-2" style={{ color: "#8159A8" }}>✓</span>
                   <span>
                     You will receive a confirmation email once your payment is
                     verified (usually within a few minutes)
                   </span>
                 </li>
                 <li className="flex items-start">
-                  <span className="text-purple-600 mr-2">✓</span>
+                  <span className="mr-2" style={{ color: "#8159A8" }}>✓</span>
                   <span>
                     A receipt will be sent to your email for tax purposes
                   </span>
                 </li>
                 <li className="flex items-start">
-                  <span className="text-purple-600 mr-2">✓</span>
+                  <span className="mr-2" style={{ color: "#8159A8" }}>✓</span>
                   <span>
                     Your donation will directly support our therapy programs and
                     services
@@ -116,13 +118,26 @@ export default function DonationSuccessPage() {
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/">
-                <Button className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600">
+                <Button 
+                  className="shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
+                  style={{
+                    background: `linear-gradient(135deg, #8159A8 0%, #9d7bb8 100%)`,
+                    color: "white"
+                  }}
+                >
                   <Home className="w-4 h-4 mr-2" />
                   Return to Home
                 </Button>
               </Link>
               <Link href="/donate">
-                <Button variant="outline">
+                <Button 
+                  variant="outline"
+                  className="border-2 hover:shadow-md transform hover:-translate-y-0.5 transition-all duration-200"
+                  style={{
+                    borderColor: "#8159A8",
+                    color: "#8159A8"
+                  }}
+                >
                   <Heart className="w-4 h-4 mr-2" />
                   Make Another Donation
                 </Button>

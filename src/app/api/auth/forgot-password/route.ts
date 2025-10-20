@@ -1,14 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import bcrypt from "bcryptjs";
-import { validatePassword } from "@/lib/password-validation";
+import {
+    generateOTP,
+    hashOTP,
+    generateOTPExpiry,
+    isValidEmail,
+    sanitizeEmail,
+    OTP_CONFIG
+} from "@/lib/otp-utils";
+import { emailService } from "@/lib/email-service";
 
 /**
  * @swagger
  * /api/auth/forgot-password:
  *   post:
- *     summary: Reset password using User ID
- *     description: Allows users to reset their password by providing their User ID and a new password
+ *     summary: Request OTP for password reset
+ *     description: Sends a 6-digit OTP to the user's email for password reset verification
  *     tags:
  *       - Authentication
  *     requestBody:
@@ -18,21 +25,16 @@ import { validatePassword } from "@/lib/password-validation";
  *           schema:
  *             type: object
  *             required:
- *               - userId
- *               - newPassword
+ *               - email
  *             properties:
- *               userId:
+ *               email:
  *                 type: string
- *                 description: The user's unique ID (available in their dashboard)
- *                 example: "clx1234567890abcdefgh"
- *               newPassword:
- *                 type: string
- *                 minLength: 8
- *                 description: New password (minimum 8 characters)
- *                 example: "NewSecurePassword123!"
+ *                 format: email
+ *                 description: User's email address
+ *                 example: "user@example.com"
  *     responses:
  *       200:
- *         description: Password reset successfully
+ *         description: OTP sent successfully (or generic success for security)
  *         content:
  *           application/json:
  *             schema:
@@ -40,90 +42,113 @@ import { validatePassword } from "@/lib/password-validation";
  *               properties:
  *                 message:
  *                   type: string
- *                   example: "Password reset successfully"
+ *                   example: "If an account exists with this email, you will receive a verification code"
+ *                 expiresIn:
+ *                   type: number
+ *                   example: 600
+ *                   description: OTP expiry time in seconds
  *       400:
- *         description: Bad request - missing or invalid parameters
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- *       404:
- *         description: User not found
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
+ *         description: Bad request - invalid email format
+ *       429:
+ *         description: Too many requests - rate limit exceeded
  *       500:
  *         description: Internal server error
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
  */
 export async function POST(request: NextRequest) {
     try {
-        const { userId, newPassword } = await request.json();
+        const { email } = await request.json();
 
-        // Validate required fields
-        if (!userId || !newPassword) {
+        // Validate email format
+        if (!email || !isValidEmail(email)) {
             return NextResponse.json(
-                { error: "User ID and new password are required" },
+                { error: "Please provide a valid email address" },
                 { status: 400 }
             );
         }
 
-        // Validate password strength
-        const passwordValidation = validatePassword(newPassword);
-        if (!passwordValidation.isValid) {
-            return NextResponse.json(
-                { error: passwordValidation.errors.join(". ") },
-                { status: 400 }
-            );
-        }
+        const sanitizedEmail = sanitizeEmail(email);
 
-        // Try to find user by ID - could be either User ID or Patient ID
-        let user = await prisma.user.findUnique({
-            where: { id: userId },
+        // Check for rate limiting - prevent spam requests
+        const recentOTP = await prisma.passwordResetOTP.findFirst({
+            where: {
+                email: sanitizedEmail,
+                createdAt: {
+                    gte: new Date(Date.now() - OTP_CONFIG.RESEND_COOLDOWN_SECONDS * 1000)
+                }
+            },
+            orderBy: {
+                createdAt: 'desc'
+            }
         });
 
-        // If not found, try to find by Patient ID
-        if (!user) {
-            const patient = await prisma.patient.findUnique({
-                where: { id: userId },
-                include: {
-                    user: true
+        if (recentOTP) {
+            const secondsSinceCreation = Math.floor((Date.now() - recentOTP.createdAt.getTime()) / 1000);
+            const remainingSeconds = OTP_CONFIG.RESEND_COOLDOWN_SECONDS - secondsSinceCreation;
+
+            return NextResponse.json(
+                {
+                    error: `Please wait ${remainingSeconds} seconds before requesting a new code`,
+                    remainingSeconds
+                },
+                { status: 429 }
+            );
+        }
+
+        // Check if user exists (but don't reveal this information in the response for security)
+        const user = await prisma.user.findUnique({
+            where: { email: sanitizedEmail },
+            select: { id: true, name: true, email: true }
+        });
+
+        // Always proceed as if the email exists (security measure to prevent user enumeration)
+        if (user) {
+            // Delete any existing OTPs for this email
+            await prisma.passwordResetOTP.deleteMany({
+                where: { email: sanitizedEmail }
+            });
+
+            // Generate new OTP
+            const otp = generateOTP();
+            const hashedOTP = await hashOTP(otp);
+            const expiresAt = generateOTPExpiry();
+
+            // Store OTP in database
+            await prisma.passwordResetOTP.create({
+                data: {
+                    email: sanitizedEmail,
+                    otp: hashedOTP,
+                    expiresAt,
+                    verified: false,
+                    attempts: 0
                 }
             });
 
-            if (patient) {
-                user = patient.user;
+            // Send OTP email
+            const firstName = user.name?.split(' ')[0];
+            const emailSent = await emailService.sendPasswordResetOTP(
+                sanitizedEmail,
+                otp,
+                firstName
+            );
+
+            if (!emailSent) {
+                // Log error but don't reveal to user
+                console.error(`Failed to send OTP email to ${sanitizedEmail}`);
             }
         }
 
-        if (!user) {
-            return NextResponse.json(
-                { error: "Invalid User ID or Patient ID. Please check your ID and try again." },
-                { status: 404 }
-            );
-        }
-
-        // Hash the new password
-        const hashedPassword = await bcrypt.hash(newPassword, 12);
-
-        // Update the user's password (use user.id, not userId which could be Patient ID)
-        await prisma.user.update({
-            where: { id: user.id },
-            data: { password: hashedPassword },
-        });
-
+        // Always return the same response for security (prevents email enumeration)
         return NextResponse.json(
-            { message: "Password reset successfully. You can now login with your new password." },
+            {
+                message: "If an account exists with this email, you will receive a verification code",
+                expiresIn: OTP_CONFIG.EXPIRY_MINUTES * 60
+            },
             { status: 200 }
         );
     } catch (error) {
-        console.error("Forgot password error:", error);
+        console.error("Request OTP error:", error);
         return NextResponse.json(
-            { error: "Internal server error" },
+            { error: "An error occurred while processing your request" },
             { status: 500 }
         );
     }
