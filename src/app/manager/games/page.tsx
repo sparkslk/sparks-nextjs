@@ -1,366 +1,305 @@
 "use client";
 
-import React from "react";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Gamepad2,
-  //Users,
-  Trophy,
-  Clock,
-  RefreshCw,
-  Play,
-  Pause,
-  Settings,
-  //Star,
-  Brain,
-  Target,
-  Zap,
-} from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { DeleteConfirmationModal } from "@/components/ui/delete-confirmation-modal";
+import { Gamepad2, Brain, Target, Zap, PlusCircle, RefreshCw, Terminal, Play, Power } from "lucide-react";
 
-interface GameData {
+// --- Type Definitions ---
+export interface Assessment {
   id: string;
-  title: string;
-  category: "attention" | "memory" | "focus" | "impulse-control";
-  description: string;
-  difficulty: "easy" | "medium" | "hard";
-  duration: number; // in minutes
-  totalPlays: number;
-  averageScore: number;
-  isActive: boolean;
-  createdAt: string;
-  lastPlayed: string;
+  title: string | null;
+  link: string | null;
+  type: string;
+  description: string | null;
+  isActive?: boolean;
+  isDeactivated?: boolean;
 }
 
-interface GameStats {
-  totalGames: number;
-  activeGames: number;
-  totalPlaySessions: number;
-  averageSessionTime: number;
-  mostPopularGame: string;
-  weeklyPlays: number;
+type Category = "attention" | "memory" | "focus";
+
+// --- Form Component (previously in a separate file) ---
+interface AddAssessmentFormProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onAssessmentAdded: (newAssessment: Assessment) => void;
 }
 
-const mockGameData: GameData[] = [
-  {
-    id: "1",
-    title: "Focus Flow",
-    category: "attention",
-    description:
-      "A visual attention training game where patients track moving objects",
-    difficulty: "medium",
-    duration: 10,
-    totalPlays: 2847,
-    averageScore: 78.5,
-    isActive: true,
-    createdAt: "2024-01-15",
-    lastPlayed: "2 hours ago",
-  },
-  {
-    id: "2",
-    title: "Memory Palace",
-    category: "memory",
-    description: "Sequential memory exercises using visual and audio cues",
-    difficulty: "hard",
-    duration: 15,
-    totalPlays: 1923,
-    averageScore: 65.2,
-    isActive: true,
-    createdAt: "2024-02-03",
-    lastPlayed: "4 hours ago",
-  },
-  {
-    id: "3",
-    title: "Impulse Guardian",
-    category: "impulse-control",
-    description: "Response inhibition training through go/no-go tasks",
-    difficulty: "easy",
-    duration: 8,
-    totalPlays: 3412,
-    averageScore: 82.1,
-    isActive: true,
-    createdAt: "2024-01-28",
-    lastPlayed: "1 hour ago",
-  },
-  {
-    id: "4",
-    title: "Zen Focus",
-    category: "focus",
-    description: "Mindfulness-based attention regulation exercises",
-    difficulty: "medium",
-    duration: 12,
-    totalPlays: 1654,
-    averageScore: 71.8,
-    isActive: false,
-    createdAt: "2024-03-10",
-    lastPlayed: "2 days ago",
-  },
-];
+const AddAssessmentForm: React.FC<AddAssessmentFormProps> = ({ isOpen, onClose, onAssessmentAdded }) => {
+    const [title, setTitle] = useState('');
+    const [assessmentUrl, setAssessmentUrl] = useState('');
+    const [description, setDescription] = useState('');
+    const [category, setCategory] = useState<Category | ''>('');
+    const [submitting, setSubmitting] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-const mockGameStats: GameStats = {
-  totalGames: 12,
-  activeGames: 9,
-  totalPlaySessions: 15840,
-  averageSessionTime: 11.3,
-  mostPopularGame: "Focus Flow",
-  weeklyPlays: 1247,
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!title || !assessmentUrl || !description || !category) {
+            setError('Please fill out all fields.');
+            return;
+        }
+
+        setSubmitting(true);
+        setError(null);
+
+        try {
+            const response = await fetch('/api/admin/assessments', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title, assessmentUrl, description, category }),
+            });
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to add assessment');
+            }
+            const newAssessment = await response.json();
+            onAssessmentAdded(newAssessment);
+            handleClose();
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : 'An error occurred');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleClose = () => {
+        setTitle(''); setAssessmentUrl(''); setDescription(''); setCategory(''); setError(null);
+        onClose();
+    };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-transparent backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={handleClose}>
+      <div className="bg-white/90 backdrop-saturate-150 rounded-lg shadow-xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-bold">Add New Assessment</h2>
+                    <Button variant="ghost" size="sm" onClick={handleClose}>X</Button>
+                </div>
+                
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                        <label htmlFor="title" className="block text-sm font-medium text-gray-700">Title</label>
+                        <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g., Memory Matrix" />
+                    </div>
+                    <div>
+                        <label htmlFor="url" className="block text-sm font-medium text-gray-700">Assessment URL</label>
+                        <Input id="url" type="url" value={assessmentUrl} onChange={(e) => setAssessmentUrl(e.target.value)} placeholder="https://..." />
+                    </div>
+                    <div>
+                        <label htmlFor="category" className="block text-sm font-medium text-gray-700">Category</label>
+                         <Select onValueChange={(value: Category) => setCategory(value)} value={category}>
+                            <SelectTrigger><SelectValue placeholder="Select a category" /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="attention">Attention</SelectItem>
+                                <SelectItem value="memory">Memory</SelectItem>
+                                <SelectItem value="focus">Focus</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div>
+                        <label htmlFor="description" className="block text-sm font-medium text-gray-700">Description</label>
+                        <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="A brief summary of the assessment..." />
+                    </div>
+
+                    {error && (
+                        <Alert variant="destructive">
+                            <Terminal className="h-4 w-4" />
+                            <AlertTitle>Error</AlertTitle>
+                            <AlertDescription>{error}</AlertDescription>
+                        </Alert>
+                    )}
+
+                    <div className="flex justify-end gap-2 pt-4">
+                        <Button type="button" variant="outline" onClick={handleClose} disabled={submitting}>Cancel</Button>
+                        <Button type="submit" className="bg-[#8159A8] hover:bg-[#6B429B]" disabled={submitting}>
+                            {submitting ? 'Adding...' : 'Add Assessment'}
+                        </Button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
 };
 
-export default function GameManagementDashboard() {
-  const [gameData, setGameData] = useState<GameData[]>(mockGameData);
-  const [gameStats] = useState<GameStats>(mockGameStats);
+// --- Main Page Component ---
+export default function AssessmentManagementPage() {
+  const [assessments, setAssessments] = useState<Assessment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  // Removed category filters
+  const [assessmentToDelete, setAssessmentToDelete] = useState<string | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+  const fetchAssessments = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await fetch('/api/admin/assessments');
+      if (!response.ok) throw new Error('Failed to fetch assessments');
+      const data: Assessment[] = await response.json();
+      setAssessments(data);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+      setLastUpdated(new Date());
+    }
+  };
 
   useEffect(() => {
-    // Set the initial timestamp after component mounts to avoid hydration mismatch
-    setLastUpdated(new Date());
+    fetchAssessments();
   }, []);
+
+  const handleAssessmentAdded = (newAssessment: Assessment) => {
+    setAssessments(prev => [newAssessment, ...prev]);
+    setIsFormOpen(false);
+  };
+
+  const handleDeleteClick = (assessmentId: string) => {
+    setAssessmentToDelete(assessmentId);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!assessmentToDelete) return;
+
+    try {
+      const response = await fetch(`/api/admin/assessments?id=${assessmentToDelete}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to deactivate assessment');
+      }
+
+      // Mark the assessment as deactivated in the local state
+      setAssessments(prev => prev.map(assessment => 
+        assessment.id === assessmentToDelete 
+          ? { ...assessment, isDeactivated: true }
+          : assessment
+      ));
+      setIsDeleteDialogOpen(false);
+      setAssessmentToDelete(null);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+      setIsDeleteDialogOpen(false);
+      setAssessmentToDelete(null);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setIsDeleteDialogOpen(false);
+    setAssessmentToDelete(null);
+  };
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
-      case "attention":
-        return <Target className="h-4 w-4" />;
-      case "memory":
-        return <Brain className="h-4 w-4" />;
-      case "focus":
-        return <Zap className="h-4 w-4" />;
-      case "impulse-control":
-        return <Settings className="h-4 w-4" />;
-      default:
-        return <Gamepad2 className="h-4 w-4" />;
+      case "attention": return <Target className="h-4 w-4 text-blue-500" />;
+      case "memory": return <Brain className="h-4 w-4 text-purple-500" />;
+      case "focus": return <Zap className="h-4 w-4 text-yellow-500" />;
+      default: return <Gamepad2 className="h-4 w-4 text-gray-500" />;
     }
   };
-
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case "easy":
-        return "text-green-600 bg-green-100";
-      case "medium":
-        return "text-yellow-600 bg-yellow-100";
-      case "hard":
-        return "text-red-600 bg-red-100";
-      default:
-        return "text-gray-600 bg-gray-100";
-    }
-  };
-
-  const toggleGameStatus = (gameId: string) => {
-    setGameData((prevData) =>
-      prevData.map((game) =>
-        game.id === gameId ? { ...game, isActive: !game.isActive } : game
-      )
-    );
-  };
-
-  const filteredGames =
-    selectedCategory === "all"
-      ? gameData
-      : gameData.filter((game) => game.category === selectedCategory);
+  
+  const filteredAssessments = assessments;
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: "#F5F3FB" }}>
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-4 py-4">
-        {/* Header Section */}
-        <div className="mb-8 mt-0">
-          <h1 className="text-4xl font-extrabold bg-gradient-to-r from-primary to-foreground bg-clip-text text-transparent tracking-tight mb-2">
-            ADHD Game Management
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Manage therapeutic games and monitor patient engagement across all
-            ADHD training modules.
-          </p>
-          <p className="text-xs text-gray-400 mt-2 flex items-center gap-1">
-            <RefreshCw className="h-3 w-3" />
-            Last updated: {lastUpdated.toLocaleTimeString()}
-          </p>
-        </div>
-
-        {/* Game Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Games</CardTitle>
-              <Gamepad2 className="h-12 w-12" style={{ color: "#8159A8" }} />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{gameStats.totalGames}</div>
-              <p className="text-xs text-muted-foreground">
-                {gameStats.activeGames} currently active
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Avg. Session Time
-              </CardTitle>
-              <Clock className="h-12 w-12" style={{ color: "#8159A8" }} />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {gameStats.averageSessionTime} min
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Optimal engagement range
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Most Popular
-              </CardTitle>
-              <Trophy className="h-12 w-12" style={{ color: "#8159A8" }} />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {gameStats.mostPopularGame}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Top performing game
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Category Filter */}
-        <div className="mb-6 flex flex-wrap md:flex-nowrap items-center justify-between gap-2">
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant={selectedCategory === "all" ? "default" : "outline"}
-              onClick={() => setSelectedCategory("all")}
-              className="text-sm"
-            >
-              All Games
-            </Button>
-            <Button
-              variant={selectedCategory === "attention" ? "default" : "outline"}
-              onClick={() => setSelectedCategory("attention")}
-              className="text-sm flex items-center gap-1"
-            >
-              <Target className="h-3 w-3" />
-              Attention
-            </Button>
-            <Button
-              variant={selectedCategory === "memory" ? "default" : "outline"}
-              onClick={() => setSelectedCategory("memory")}
-              className="text-sm flex items-center gap-1"
-            >
-              <Brain className="h-3 w-3" />
-              Memory
-            </Button>
-            <Button
-              variant={selectedCategory === "focus" ? "default" : "outline"}
-              onClick={() => setSelectedCategory("focus")}
-              className="text-sm flex items-center gap-1"
-            >
-              <Zap className="h-3 w-3" />
-              Focus
+    <>
+      <AddAssessmentForm isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} onAssessmentAdded={handleAssessmentAdded} />
+      <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
+        <main className="max-w-7xl mx-auto">
+          <div className="flex justify-between items-start mb-8">
+            <div>
+              <h1 className="text-4xl font-extrabold bg-gradient-to-r from-primary to-foreground bg-clip-text text-transparent tracking-tight mb-1">Assessment Management</h1>
+              <p className="text-muted-foreground mt-1">Manage therapeutic assessments for patients.</p>
+            </div>
+            <Button onClick={() => setIsFormOpen(true)} className="bg-[#8159A8] hover:bg-[#6B429B] flex items-center gap-2">
+              <PlusCircle className="h-4 w-4" /> New Assessment
             </Button>
           </div>
-          <Button
-            variant="default"
-            className="bg-[#8159A8] hover:bg-[#6B429B] text-white font-semibold"
-          >
-            + New Game
-          </Button>
-        </div>
 
-        {/* Games List */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {filteredGames.map((game) => (
-            <Card key={game.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    {getCategoryIcon(game.category)}
-                    <CardTitle className="text-lg">{game.title}</CardTitle>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(
-                        game.difficulty
-                      )}`}
-                    >
-                      {game.difficulty}
-                    </span>
-                    <div
-                      className={`w-3 h-3 rounded-full ${
-                        game.isActive ? "bg-green-500" : "bg-gray-400"
-                      }`}
-                    ></div>
-                  </div>
-                </div>
-                <CardDescription>{game.description}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center p-3 bg-gray-50 rounded-lg">
-                      <div className="text-2xl font-bold text-blue-600">
-                        {game.totalPlays.toLocaleString()}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        Total Plays
+          <div className="mb-6 flex flex-wrap items-center justify-end gap-4">
+            <p className="text-xs text-gray-500 flex items-center gap-1.5"><RefreshCw className="h-3 w-3" /> Last updated: {lastUpdated.toLocaleTimeString()}</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {loading ? <p className="col-span-full text-center">Loading assessments...</p> :
+             error ? <p className="col-span-full text-center text-red-500">Error: {error}</p> :
+             filteredAssessments.length > 0 ? (
+              filteredAssessments.map((assessment) => (
+                <Card key={assessment.id} className={`flex flex-col justify-between hover:shadow-md transition-shadow duration-200 ${assessment.isDeactivated ? 'opacity-50 bg-gray-100' : ''}`}>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        {getCategoryIcon(assessment.type)}
+                        <CardTitle className="text-base font-semibold">{assessment.title}</CardTitle>
+                        {assessment.isDeactivated && (
+                          <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">Deactivated</span>
+                        )}
                       </div>
                     </div>
-                    <div className="text-center p-3 bg-gray-50 rounded-lg">
-                      <div className="text-2xl font-bold text-green-600">
-                        {game.averageScore}%
+                    <CardDescription className="pt-2">{assessment.description}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex justify-between items-center pt-4">
+                    {assessment.isDeactivated ? (
+                      <div className="flex items-center gap-2 text-gray-500">
+                        <Power className="h-4 w-4" />
+                        <span className="text-sm">Assessment Deactivated</span>
                       </div>
-                      <div className="text-xs text-muted-foreground">
-                        Avg Score
+                    ) : (
+                      <>
+                      <div className="flex gap-2 ml-auto">
+                        <Button asChild size="sm" className="bg-blue-600 hover:bg-blue-700">
+                          <a href={assessment.link || '#'} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                              <Play className="h-4 w-4" />
+                              Play Assessment
+                          </a>
+                        </Button>
+                        <Button 
+                          onClick={() => handleDeleteClick(assessment.id)}
+                          size="sm" 
+                          variant="destructive"
+                          className="flex items-center gap-2"
+                        >
+                          <Power className="h-4 w-4" />
+                          Deactivate
+                        </Button>
                       </div>
-                    </div>
-                  </div>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <div className="col-span-full text-center py-12 bg-white rounded-lg border-dashed border-2">
+                <h3 className="text-lg font-medium">No assessments found.</h3>
+                <p className="text-sm text-gray-500 mt-1">Click the &quot;+ New Assessment&quot; button to add one.</p>
+              </div>
+            )}
+          </div>
+        </main>
+      </div>
 
-                  <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <span>Duration: {game.duration} min</span>
-                    <span>Last played: {game.lastPlayed}</span>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      onClick={() => toggleGameStatus(game.id)}
-                      className={`flex items-center gap-1 ${
-                        game.isActive
-                          ? "bg-red-500 hover:bg-red-600"
-                          : "bg-green-500 hover:bg-green-600"
-                      } text-white`}
-                    >
-                      {game.isActive ? (
-                        <Pause className="h-3 w-3" />
-                      ) : (
-                        <Play className="h-3 w-3" />
-                      )}
-                      {game.isActive ? "Deactivate" : "Activate"}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="flex items-center gap-1"
-                    >
-                      <Settings className="h-3 w-3" />
-                      Configure
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </main>
-    </div>
+      {/* Confirmation Dialog */}
+      <DeleteConfirmationModal
+        isOpen={isDeleteDialogOpen}
+        onClose={handleCancelDelete}
+        onDelete={handleConfirmDelete}
+        title="Deactivate Assessment"
+        description="Are you sure you want to deactivate this assessment? This action will permanently remove the assessment from the system"
+        buttonLabel="Deactivate"
+        buttonVariant="destructive"
+      />
+    </>
   );
 }

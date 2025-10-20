@@ -1091,11 +1091,11 @@ export default function SessionsPage() {
               <CardTitle className="text-sm font-medium">Scheduled</CardTitle>
               <CalendarClock
                 className="h-8 w-8"
-                style={{ color: "#3321d2ff" }}
+                style={{ color: "#8159A8" }}
               />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-600">
+              <div className="text-2xl font-bold text-[#8159A8]">
                 {stats.scheduled}
               </div>
             </CardContent>
@@ -1103,10 +1103,10 @@ export default function SessionsPage() {
           <Card className="shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Completed</CardTitle>
-              <CheckCircle2 className="h-8 w-8" style={{ color: "#28a745" }} />
+              <CheckCircle2 className="h-8 w-8" style={{ color: "#8159A8" }} />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">
+              <div className="text-2xl font-bold text-[#8159A8]">
                 {stats.completed}
               </div>
             </CardContent>
@@ -1114,10 +1114,10 @@ export default function SessionsPage() {
           <Card className="shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Cancelled</CardTitle>
-              <XCircle className="h-8 w-8" style={{ color: "#dc3545" }} />
+              <XCircle className="h-8 w-8" style={{ color: "#8159A8" }} />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-red-600">
+              <div className="text-2xl font-bold text-[#8159A8]">
                 {stats.cancelled}
               </div>
             </CardContent>

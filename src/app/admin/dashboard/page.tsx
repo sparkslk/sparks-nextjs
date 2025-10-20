@@ -96,6 +96,9 @@ export default function AdminDashboard() {
 
     const fetchAdminData = async () => {
         try {
+            // Add a small delay to prevent overwhelming the database
+            await new Promise(resolve => setTimeout(resolve, 200));
+            
             const response = await fetch("/api/admin/dashboard");
             if (!response.ok) {
                 throw new Error("Failed to fetch admin data");
@@ -103,8 +106,9 @@ export default function AdminDashboard() {
             const data = await response.json();
             setAdminData(data);
 
-            // Load recent donations (first page size 5)
+            // Load recent donations with delay to prevent connection overload
             try {
+                await new Promise(resolve => setTimeout(resolve, 100));
                 const donationsRes = await fetch('/api/admin/donations/list?page=1&pageSize=5', { credentials: 'include' });
                 const donationsData = await donationsRes.json();
                 if (donationsData.success) {

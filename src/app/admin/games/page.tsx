@@ -135,7 +135,7 @@ export default function AssessmentManagementPage() {
   const [error, setError] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  // Removed category filters
   const [assessmentToDelete, setAssessmentToDelete] = useState<string | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
@@ -211,7 +211,7 @@ export default function AssessmentManagementPage() {
     }
   };
   
-  const filteredAssessments = selectedCategory === "all" ? assessments : assessments.filter(a => a.type === selectedCategory);
+  const filteredAssessments = assessments;
 
   return (
     <>
@@ -228,13 +228,7 @@ export default function AssessmentManagementPage() {
             </Button>
           </div>
 
-          <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-            <div className="flex flex-wrap gap-2">
-              <Button size="sm" variant={selectedCategory === 'all' ? 'default' : 'outline'} onClick={() => setSelectedCategory('all')}>All</Button>
-              <Button size="sm" variant={selectedCategory === 'attention' ? 'default' : 'outline'} onClick={() => setSelectedCategory('attention')}><Target className="h-4 w-4 mr-2" />Attention</Button>
-              <Button size="sm" variant={selectedCategory === 'memory' ? 'default' : 'outline'} onClick={() => setSelectedCategory('memory')}><Brain className="h-4 w-4 mr-2" />Memory</Button>
-              <Button size="sm" variant={selectedCategory === 'focus' ? 'default' : 'outline'} onClick={() => setSelectedCategory('focus')}><Zap className="h-4 w-4 mr-2" />Focus</Button>
-            </div>
+          <div className="mb-6 flex flex-wrap items-center justify-end gap-4">
             <p className="text-xs text-gray-500 flex items-center gap-1.5"><RefreshCw className="h-3 w-3" /> Last updated: {lastUpdated.toLocaleTimeString()}</p>
           </div>
 

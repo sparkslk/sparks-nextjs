@@ -2,16 +2,15 @@
 
 import React from "react";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Plus, User, Phone, Mail, Calendar, MapPin, Heart, Star, Award, Clock, FileText, Shield, Users, Edit, Eye, X } from "lucide-react";
-//import UserFilter from "@/components/admin/users/admin-user-filters";
+import { RefreshCw, Plus, User, Phone, Mail, Calendar, MapPin, Heart, Star, Award, Clock, FileText, Shield, Users, Edit, Eye, X, DollarSign } from "lucide-react";
 import UserDetailEdit from "@/components/admin/users/user-detail-edit";
 import AddUser from "@/components/admin/users/add-user";
-//import UserStatsCards from "@/components/admin/users/users-stats-cards";
 import EmergencyContactDialog from "@/components/admin/users/EmergencyContactDialog";
 import UserDelete from "@/components/admin/users/user-delete";
+import PatientPaymentHistory from "@/components/admin/users/patient-payment-history";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-//import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -29,6 +28,8 @@ export default function UsersPage() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRole, setSelectedRole] = useState("Patient"); // Default to Patient
+  const [joinedFrom, setJoinedFrom] = useState("");
+  const [joinedTo, setJoinedTo] = useState("");
   const [emergencyContactOpen, setEmergencyContactOpen] = React.useState(false);
   const [emergencyContactDetails] = React.useState<
     string | null
@@ -37,6 +38,8 @@ export default function UsersPage() {
   const [editUser, setEditUser] = React.useState<User | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = React.useState(false);
   const [deleteUser, setDeleteUser] = React.useState<User | null>(null);
+  const [paymentHistoryOpen, setPaymentHistoryOpen] = React.useState(false);
+  const [selectedPatientForPayment, setSelectedPatientForPayment] = React.useState<User | null>(null);
 
   // Define User type compatible with UserTable component
   interface User {
@@ -53,6 +56,9 @@ export default function UsersPage() {
     therapistProfile?: unknown;
     patientProfile?: unknown;
     managerProfile?: unknown;
+    sessionRate?: string | number;
+    bio?: string;
+    contactNo?: string;
     [key: string]: unknown;
   }
 
@@ -79,6 +85,9 @@ export default function UsersPage() {
           throw new Error("Failed to fetch users");
         }
         const data = await response.json();
+        console.log("API Response:", data);
+        console.log("Therapist data sample:", data.data?.find((user: any) => user.role === 'Therapist'));
+        console.log("Guardian data sample:", data.data?.find((user: any) => user.role === 'Guardian'));
         if (data && data.data) {
           setUsers(data.data);
         } else {
@@ -179,6 +188,8 @@ export default function UsersPage() {
         status: safeString(userWithExtendedProps.status || ""),
       };
     } else if (user.role === "Therapist") {
+      console.log("Mapping therapist:", user);
+      console.log("sessionRate:", user.sessionRate, "bio:", user.bio);
       return {
         id: user.id,
         role: user.role,
@@ -189,6 +200,8 @@ export default function UsersPage() {
         experience: safeString(userWithExtendedProps.experience),
         availability: safeString(userWithExtendedProps.availability),
         rating: safeString(userWithExtendedProps.rating),
+        sessionRate: userWithExtendedProps.sessionRate || 0,
+        bio: userWithExtendedProps.bio || "",
         joinedDate: user.createdAt
           ? new Date(user.createdAt).toISOString().split("T")[0]
           : "",
@@ -203,11 +216,15 @@ export default function UsersPage() {
         status: safeString(userWithExtendedProps.status || ""),
       };
     } else if (user.role === "Guardian") {
+      console.log("Mapping guardian:", user);
+      console.log("contactNo from API:", user.contactNo);
+      console.log("userWithExtendedProps.contactNo:", userWithExtendedProps.contactNo);
       return {
         id: user.id,
         role: user.role,
         name: userWithExtendedProps.fullName || user.name,
         email: user.email,
+        contactNo: safeString(userWithExtendedProps.contactNo),
         patient: safeString(userWithExtendedProps.patient),
         relationship: safeString(userWithExtendedProps.relationship),
         joinedDate: user.createdAt
@@ -272,6 +289,12 @@ export default function UsersPage() {
     therapists: mappedUsers.filter((u) => u.role === "Therapist").length,
     guardians: mappedUsers.filter((u) => u.role === "Guardian").length,
     managers: mappedUsers.filter((u) => u.role === "Manager").length,
+  };
+
+  const router = useRouter();
+
+  const handleViewAvailability = (therapistId: string) => {
+    router.push(`/admin/users/${therapistId}/availability`);
   };
 
   // Card rendering functions
@@ -388,20 +411,20 @@ export default function UsersPage() {
               </div>
             </div>
 
-            {/* Address and Joined Date */}
-            <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-              <div className="text-sm text-gray-600">
-                <span className="font-semibold text-gray-900">Address:</span>{" "}
-                <span className="text-gray-700">{user.address}</span>
-              </div>
-              <div className="text-sm text-gray-600">
-                <span className="font-semibold text-gray-900">Joined:</span>{" "}
-                <span className="text-gray-700">{user.joinedDate}</span>
-              </div>
-            </div>
-
             {/* Action Buttons */}
             <div className="flex items-center justify-end gap-2 pt-4 border-t border-gray-100">
+            <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSelectedPatientForPayment(user);
+                  setPaymentHistoryOpen(true);
+                }}
+                className="flex items-center gap-2 text-green-600 hover:text-green-700"
+              >
+                <DollarSign className="w-4 h-4" />
+                Payment History
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -436,7 +459,7 @@ export default function UsersPage() {
                 className="flex items-center gap-2 text-red-600 hover:text-red-700"
               >
                 <Shield className="w-4 h-4" />
-                Deactivate
+                Delete
               </Button>
             </div>
           </div>
@@ -527,9 +550,14 @@ export default function UsersPage() {
                 </div>
                 <div>
                   <p className="text-xs text-gray-500 mb-1">Experience</p>
-                  <p className="text-sm font-semibold text-gray-900">
-                    {user.experience}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-gray-900">
+                      {user.experience || 0}
+                    </span>
+                    <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                      {Number(user.experience || 0) === 1 ? 'year' : 'years'}
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -540,27 +568,38 @@ export default function UsersPage() {
                 </div>
                 <div>
                   <p className="text-xs text-gray-500 mb-1">Rating</p>
-                  <p className="text-sm font-semibold text-gray-900">
-                    {user.rating}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
+                      {[...Array(5)].map((_, i) => (
+                        <Star
+                          key={i}
+                          className={`w-3 h-3 ${
+                            i < Math.floor(Number(user.rating) || 0)
+                              ? 'text-yellow-400 fill-current'
+                              : 'text-gray-300'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-sm font-semibold text-gray-900">
+                      {user.rating || '0.0'}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            </div>
-
-            {/* Email and Joined Date */}
-            <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-              <div className="text-sm text-gray-600">
-                <span className="font-semibold text-gray-900">Email:</span>{" "}
-                <span className="text-gray-700">{user.email}</span>
-              </div>
-              <div className="text-sm text-gray-600">
-                <span className="font-semibold text-gray-900">Joined:</span>{" "}
-                <span className="text-gray-700">{user.joinedDate}</span>
               </div>
             </div>
 
             {/* Action Buttons */}
             <div className="flex items-center justify-end gap-2 pt-4 border-t border-gray-100">
+            <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleViewAvailability(user.id!)}
+                className="flex items-center gap-2"
+              >
+                <Eye className="w-4 h-4" />
+                View Availability
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -595,7 +634,7 @@ export default function UsersPage() {
                 className="flex items-center gap-2 text-red-600 hover:text-red-700"
               >
                 <Shield className="w-4 h-4" />
-                Deactivate
+                Delete
               </Button>
             </div>
           </div>
@@ -652,7 +691,7 @@ export default function UsersPage() {
             </div>
 
             {/* User Details Grid */}
-            <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="grid grid-cols-3 gap-4 mb-4">
               {/* Patient */}
               <div className="flex items-start gap-3">
                 <div className="mt-1">
@@ -675,6 +714,19 @@ export default function UsersPage() {
                   <p className="text-xs text-gray-500 mb-1">Relationship</p>
                   <p className="text-sm font-semibold text-gray-900">
                     {user.relationship}
+                  </p>
+                </div>
+              </div>
+
+              {/* phone */}
+              <div className="flex items-start gap-3">
+                <div className="mt-1">
+                  <Phone className="w-6 h-6 text-[#6B46A0]" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Phone</p>
+                  <p className="text-sm font-semibold text-gray-900">
+                    {user.contactNo || "Not provided"}
                   </p>
                 </div>
               </div>
@@ -716,7 +768,7 @@ export default function UsersPage() {
                 className="flex items-center gap-2 text-red-600 hover:text-red-700"
               >
                 <Shield className="w-4 h-4" />
-                Deactivate
+                Delete
               </Button>
             </div>
           </div>
@@ -768,15 +820,31 @@ export default function UsersPage() {
               </span>
             </div>
 
-            {/* Email and Joined Date */}
-            <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-              <div className="text-sm text-gray-600">
-                <span className="font-semibold text-gray-900">Email:</span>{" "}
-                <span className="text-gray-700">{user.email}</span>
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              {/* Email */}
+              <div className="flex items-start gap-3">
+                <div className="mt-1">
+                  <Mail className="w-6 h-6 text-[#6B46A0]" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Email</p>
+                  <p className="text-sm font-semibold text-gray-900">
+                    {user.email}
+                  </p>
+                </div>
               </div>
-              <div className="text-sm text-gray-600">
-                <span className="font-semibold text-gray-900">Joined:</span>{" "}
-                <span className="text-gray-700">{user.joinedDate}</span>
+
+              {/* Joined Date */}
+              <div className="flex items-start gap-3">
+                <div className="mt-1">
+                  <Calendar className="w-6 h-6 text-[#6B46A0]" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Joined Date</p>
+                  <p className="text-sm font-semibold text-gray-900">
+                    {user.joinedDate || "Not provided"}
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -804,7 +872,7 @@ export default function UsersPage() {
                 className="flex items-center gap-2 text-red-600 hover:text-red-700"
               >
                 <Shield className="w-4 h-4" />
-                Deactivate
+                Delete
               </Button>
             </div>
           </div>
@@ -847,6 +915,27 @@ export default function UsersPage() {
             .toLowerCase()
             .includes(lowerSearch)
       );
+    }
+
+    // Apply joined date range filter
+    if (joinedFrom || joinedTo) {
+      filteredUsers = filteredUsers.filter((user) => {
+        const dateStr = user.joinedDate as string | undefined;
+        if (!dateStr) return false;
+        const d = new Date(dateStr);
+        if (Number.isNaN(d.getTime())) return false;
+        if (joinedFrom) {
+          const from = new Date(joinedFrom);
+          from.setHours(0,0,0,0);
+          if (d < from) return false;
+        }
+        if (joinedTo) {
+          const to = new Date(joinedTo);
+          to.setHours(23,59,59,999);
+          if (d > to) return false;
+        }
+        return true;
+      });
     }
 
     return filteredUsers;
@@ -941,10 +1030,10 @@ export default function UsersPage() {
           <Card className="shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Patients</CardTitle>
-              <User className="h-8 w-8" style={{ color: "#ec4899" }} />
+              <User className="h-8 w-8" style={{ color: "#8159A8" }} />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-pink-600">
+              <div className="text-2xl font-bold text-[#8159A8]">
                 {stats.patients}
               </div>
             </CardContent>
@@ -952,10 +1041,10 @@ export default function UsersPage() {
           <Card className="shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Therapists</CardTitle>
-              <Heart className="h-8 w-8" style={{ color: "#3b82f6" }} />
+              <Heart className="h-8 w-8" style={{ color: "#8159A8" }} />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-600">
+              <div className="text-2xl font-bold text-[#8159A8]">
                 {stats.therapists}
               </div>
             </CardContent>
@@ -963,10 +1052,10 @@ export default function UsersPage() {
           <Card className="shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Guardians</CardTitle>
-              <Shield className="h-8 w-8" style={{ color: "#10b981" }} />
+              <Shield className="h-8 w-8" style={{ color: "#8159A8" }} />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">
+              <div className="text-2xl font-bold text-[#8159A8]">
                 {stats.guardians}
               </div>
             </CardContent>
@@ -1047,6 +1136,30 @@ export default function UsersPage() {
                     <SelectItem value="Manager">Manager</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* Joined From */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">
+                  Joined From
+                </label>
+                <Input
+                  type="date"
+                  value={joinedFrom}
+                  onChange={(e) => setJoinedFrom(e.target.value)}
+                />
+              </div>
+
+              {/* Joined To */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">
+                  Joined To
+                </label>
+                <Input
+                  type="date"
+                  value={joinedTo}
+                  onChange={(e) => setJoinedTo(e.target.value)}
+                />
               </div>
             </div>
           </Card>
@@ -1162,7 +1275,7 @@ export default function UsersPage() {
               {selectedUser.role === "Patient" && (
                 <div className="space-y-6">
                   {/* Basic Information */}
-                  <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl p-6 border border-purple-200">
+                  <div className="bg-white rounded-xl p-6 border border-purple-100 shadow-sm">
                     <div className="flex items-center space-x-2 mb-4">
                       <User className="h-5 w-5 text-purple-600" />
                       <h3 className="text-lg font-semibold text-gray-900">
@@ -1223,14 +1336,14 @@ export default function UsersPage() {
                   </div>
 
                   {/* Emergency Contact */}
-                  <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl p-6 border border-purple-200">
+                  <div className="bg-white rounded-xl p-6 border border-purple-100 shadow-sm">
                     <div className="flex items-center space-x-2 mb-3">
                       <Shield className="h-5 w-5 text-purple-600" />
                       <h3 className="text-lg font-semibold text-gray-900">
                         Emergency Contact
                       </h3>
                     </div>
-                    <div className="bg-white rounded-lg p-4 border border-purple-100">
+                    <div className="bg-white rounded-lg p-4">
                       {(() => {
                         try {
                           const emergencyContact = selectedUser.emergencyContact
@@ -1308,7 +1421,7 @@ export default function UsersPage() {
                         Medical History
                       </h3>
                     </div>
-                    <div className="bg-purple-50 rounded-lg p-4 border border-purple-100">
+                    <div className="rounded-lg p-4">
                       <p className="text-gray-700 leading-relaxed">
                         {String(
                           selectedUser.medicalHistory ||
@@ -1380,6 +1493,30 @@ export default function UsersPage() {
                           </p>
                         </div>
                       </div>
+                      <div className="flex items-start space-x-3">
+                        <DollarSign className="h-4 w-4 text-purple-500 mt-1" />
+                        <div>
+                          <p className="text-sm text-gray-600">Session Rate</p>
+                          <p className="font-medium text-gray-900">
+                            Rs. {String(selectedUser.sessionRate || "0")} per session
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bio Section */}
+                  <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl p-6 border border-purple-200">
+                    <div className="flex items-center space-x-2 mb-4">
+                      <FileText className="h-5 w-5 text-purple-600" />
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        Bio
+                      </h3>
+                    </div>
+                    <div className="bg-white rounded-lg p-4 border border-purple-100">
+                      <p className="text-gray-700 leading-relaxed">
+                        {selectedUser.bio || "No bio information available."}
+                      </p>
                     </div>
                   </div>
 
@@ -1418,6 +1555,21 @@ export default function UsersPage() {
           </div>
         </div>
       )}
+
+      {/* Payment History Modal */}
+      {selectedPatientForPayment && (
+        <PatientPaymentHistory
+          isOpen={paymentHistoryOpen}
+          onClose={() => {
+            setPaymentHistoryOpen(false);
+            setSelectedPatientForPayment(null);
+          }}
+          patientId={selectedPatientForPayment.id || ""}
+          patientName={selectedPatientForPayment.name || "Unknown Patient"}
+        />
+      )}
+
+
     </div>
   );
 }

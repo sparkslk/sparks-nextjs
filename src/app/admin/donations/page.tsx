@@ -54,10 +54,9 @@ export default function AdminDonationsPage() {
   // Filters
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
-    status: "",
+    status: "ALL",
     dateFrom: "",
     dateTo: "",
-    donorEmail: "",
     donorName: "",
     minAmount: "",
     maxAmount: "",
@@ -73,10 +72,9 @@ export default function AdminDonationsPage() {
       });
 
       // Add filters
-      if (filters.status) params.append("status", filters.status);
+      if (filters.status && filters.status !== "ALL") params.append("status", filters.status);
       if (filters.dateFrom) params.append("dateFrom", filters.dateFrom);
       if (filters.dateTo) params.append("dateTo", filters.dateTo);
-      if (filters.donorEmail) params.append("donorEmail", filters.donorEmail);
       if (filters.donorName) params.append("donorName", filters.donorName);
       if (filters.minAmount) params.append("minAmount", filters.minAmount);
       if (filters.maxAmount) params.append("maxAmount", filters.maxAmount);
@@ -113,26 +111,25 @@ export default function AdminDonationsPage() {
   };
 
   const handleFilterClear = () => {
-    setFilters({
-      status: "",
+    const clearedFilters = {
+      status: "ALL",
       dateFrom: "",
       dateTo: "",
-      donorEmail: "",
       donorName: "",
       minAmount: "",
       maxAmount: "",
       anonymousOnly: false,
-    });
+    };
+    setFilters(clearedFilters);
     setCurrentPage(1);
   };
 
   const handleExportCSV = async () => {
     try {
       const params = new URLSearchParams();
-      if (filters.status) params.append("status", filters.status);
+      if (filters.status && filters.status !== "ALL") params.append("status", filters.status);
       if (filters.dateFrom) params.append("dateFrom", filters.dateFrom);
       if (filters.dateTo) params.append("dateTo", filters.dateTo);
-      if (filters.donorEmail) params.append("donorEmail", filters.donorEmail);
       if (filters.donorName) params.append("donorName", filters.donorName);
       if (filters.minAmount) params.append("minAmount", filters.minAmount);
       if (filters.maxAmount) params.append("maxAmount", filters.maxAmount);
@@ -301,7 +298,7 @@ export default function AdminDonationsPage() {
                     <SelectValue placeholder="All statuses" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All statuses</SelectItem>
+                    <SelectItem value="ALL">All statuses</SelectItem>
                     <SelectItem value="COMPLETED">Completed</SelectItem>
                     <SelectItem value="PENDING">Pending</SelectItem>
                     <SelectItem value="FAILED">Failed</SelectItem>
@@ -329,18 +326,6 @@ export default function AdminDonationsPage() {
                   value={filters.dateTo}
                   onChange={(e) =>
                     setFilters({ ...filters, dateTo: e.target.value })
-                  }
-                />
-              </div>
-
-              <div>
-                <Label>Donor Email</Label>
-                <Input
-                  type="text"
-                  placeholder="Search by email"
-                  value={filters.donorEmail}
-                  onChange={(e) =>
-                    setFilters({ ...filters, donorEmail: e.target.value })
                   }
                 />
               </div>
@@ -408,6 +393,13 @@ export default function AdminDonationsPage() {
         </Card>
       )}
 
+      {/* Result Summary */}
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-sm text-gray-500">
+          Showing {donations.length} of {totalCount}
+        </div>
+      </div>
+
       {/* Donations Table */}
       <Card>
         <CardHeader>
@@ -468,7 +460,7 @@ export default function AdminDonationsPage() {
                     </div>
 
                     <div className="text-right">
-                      <div className="text-2xl font-bold text-[#8159A8] mb-2">
+                      <div className="text-xl font-bold text-[#8159A8] mb-2">
                         LKR {donation.amount.toLocaleString()}
                       </div>
                       <div className="flex flex-col items-end gap-2">
