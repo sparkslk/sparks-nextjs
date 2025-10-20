@@ -33,6 +33,13 @@ export async function GET(
             image: true
           }
         },
+        profile: {
+          select: {
+            profileImage: true,
+            profileImageMimeType: true,
+            profileImageName: true
+          }
+        },
         _count: {
           select: {
             patients: true,
@@ -101,16 +108,20 @@ export async function GET(
         name: therapist.user.name || "Therapist",
         email: therapist.user.email,
         image: therapist.user.image,
+        profileImageUrl: therapist.profile?.profileImage
+          ? `/api/mobile/therapists/${therapist.id}/profile-image`
+          : null,
         bio: therapist.bio,
         specialization: therapist.specialization,
         experience: therapist.experience,
         rating: therapist.rating?.toNumber() || 0,
+        session_rate: therapist.session_rate?.toNumber() || 0,
         availability: therapist.availability,
         patientCount: therapist._count.patients,
         sessionCount: therapist._count.therapySessions,
         isMyTherapist: patient?.primaryTherapistId === therapist.id,
-        averageSessionDuration: sessions.length > 0 
-          ? sessions.reduce((acc, s) => acc + s.duration, 0) / sessions.length 
+        averageSessionDuration: sessions.length > 0
+          ? sessions.reduce((acc, s) => acc + s.duration, 0) / sessions.length
           : 60,
         bookedSlots: bookedSlots.map(slot => ({
           date: slot.scheduledAt,

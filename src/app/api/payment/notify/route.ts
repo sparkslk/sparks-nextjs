@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
+import { createGoogleMeetEvent, generateSimpleMeetingLink } from "@/lib/google-meet";
 
 /**
  * PayHere Payment Notification Handler
@@ -58,37 +59,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    // Verify merchant ID
-    if (merchant_id !== process.env.PAYHERE_MERCHANT_ID) {
+    // Verify merchant ID (both mobile and web use same merchant ID)
+    if (merchant_id !== process.env.PAYHERE_MERCHANT_ID &&
+        merchant_id !== process.env.PAYHERE_MERCHANT_ID_MOBILE) {
       console.error("Invalid merchant ID:", merchant_id);
       return NextResponse.json({ error: "Invalid merchant ID" }, { status: 400 });
     }
 
-    // Verify MD5 signature
-    const merchant_secret = process.env.PAYHERE_MERCHANT_SECRET || "";
-    const local_md5sig = crypto
-      .createHash("md5")
-      .update(
-        merchant_id +
-        order_id +
-        payhere_amount +
-        payhere_currency +
-        status_code +
-        crypto.createHash("md5").update(merchant_secret).digest("hex").toUpperCase()
-      )
-      .digest("hex")
-      .toUpperCase();
-
-    if (local_md5sig !== md5sig.toUpperCase()) {
-      console.error("MD5 signature verification failed");
-      console.error("Expected:", local_md5sig);
-      console.error("Received:", md5sig);
-      return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
-    }
-
-    console.log("MD5 signature verified successfully");
-
-    // Find the payment record
+    // Find the payment record FIRST to determine which merchant secret to use
     const payment = await prisma.payment.findUnique({
       where: { orderId: order_id },
       include: {
@@ -120,6 +98,40 @@ export async function POST(request: NextRequest) {
       console.error("Payment not found for order ID:", order_id);
       return NextResponse.json({ error: "Payment not found" }, { status: 404 });
     }
+
+    // Determine payment source and select correct merchant secret
+    const paymentMetadata = payment.metadata as Record<string, unknown>;
+    const paymentSource = paymentMetadata?.source as string || "web";
+    const merchant_secret = paymentSource === "mobile"
+      ? process.env.PAYHERE_MERCHANT_SECRET_MOBILE || ""
+      : process.env.PAYHERE_MERCHANT_SECRET || "";
+
+    console.log(`Payment source: ${paymentSource}, using ${paymentSource} merchant secret`);
+
+    // Verify MD5 signature with correct merchant secret
+    const local_md5sig = crypto
+      .createHash("md5")
+      .update(
+        merchant_id +
+        order_id +
+        payhere_amount +
+        payhere_currency +
+        status_code +
+        crypto.createHash("md5").update(merchant_secret).digest("hex").toUpperCase()
+      )
+      .digest("hex")
+      .toUpperCase();
+
+    if (local_md5sig !== md5sig.toUpperCase()) {
+      console.error("MD5 signature verification failed");
+      console.error("Expected:", local_md5sig);
+      console.error("Received:", md5sig);
+      console.error("Payment source:", paymentSource);
+      console.error("Using merchant secret for:", paymentSource);
+      return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+    }
+
+    console.log("MD5 signature verified successfully");
 
     // Map PayHere status code to our PaymentStatus enum
     let paymentStatus: string;
@@ -185,8 +197,11 @@ export async function POST(request: NextRequest) {
         timeSlot: string;
         therapistId: string;
         sessionType: string;
+        meetingType?: string;
         availabilitySlotId: string;
         patientId: string;
+        sessionDate?: string;
+        sessionRate?: number;
       } | undefined;
 
       // If we have booking details and no session created yet, create the session
@@ -195,50 +210,160 @@ export async function POST(request: NextRequest) {
         console.log("Booking details:", bookingDetails);
 
         try {
-          // Parse the date and time
-          const inputDate = new Date(bookingDetails.date);
-          const [timeSlotStart] = bookingDetails.timeSlot.split("-");
-          const cleanTimeSlot = timeSlotStart.trim();
-
-          // Parse time
-          let hours: number, minutes: number;
-          const time24Match = cleanTimeSlot.match(/^(\d{1,2}):(\d{2})$/);
-          if (time24Match) {
-            hours = parseInt(time24Match[1]);
-            minutes = parseInt(time24Match[2]);
+          // Use pre-computed session date if available, otherwise parse from booking details
+          let sessionDate: Date;
+          if (bookingDetails.sessionDate) {
+            sessionDate = new Date(bookingDetails.sessionDate);
           } else {
-            const time12Match = cleanTimeSlot.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
-            if (time12Match) {
-              const h = parseInt(time12Match[1]);
-              minutes = parseInt(time12Match[2]);
-              const period = time12Match[3].toUpperCase();
-              hours = period === "AM" ? (h === 12 ? 0 : h) : (h === 12 ? 12 : h + 12);
+            // Fallback to old parsing logic
+            const inputDate = new Date(bookingDetails.date);
+            const [timeSlotStart] = bookingDetails.timeSlot.split("-");
+            const cleanTimeSlot = timeSlotStart.trim();
+
+            // Parse time
+            let hours: number, minutes: number;
+            const time24Match = cleanTimeSlot.match(/^(\d{1,2}):(\d{2})$/);
+            if (time24Match) {
+              hours = parseInt(time24Match[1]);
+              minutes = parseInt(time24Match[2]);
             } else {
-              throw new Error(`Invalid time format: "${cleanTimeSlot}"`);
+              const time12Match = cleanTimeSlot.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+              if (time12Match) {
+                const h = parseInt(time12Match[1]);
+                minutes = parseInt(time12Match[2]);
+                const period = time12Match[3].toUpperCase();
+                hours = period === "AM" ? (h === 12 ? 0 : h) : (h === 12 ? 12 : h + 12);
+              } else {
+                throw new Error(`Invalid time format: "${cleanTimeSlot}"`);
+              }
+            }
+
+            // Create session datetime
+            const dateStr = `${inputDate.getFullYear()}-${(inputDate.getMonth() + 1).toString().padStart(2, '0')}-${inputDate.getDate().toString().padStart(2, '0')}`;
+            const timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`;
+            sessionDate = new Date(`${dateStr}T${timeStr}.000Z`);
+          }
+
+          // Use session rate from booking details if available
+          const sessionRate = bookingDetails.sessionRate ?? 0;
+
+          // Generate meeting link for online/hybrid sessions
+          const meetingType = bookingDetails.meetingType || "IN_PERSON";
+          let meetingLink: string | null = null;
+          let calendarEventId: string | null = null;
+
+          if (meetingType === "ONLINE" || meetingType === "HYBRID") {
+            try {
+              // Get therapist info for Google Meet creation
+              const therapistWithUser = await prisma.therapist.findUnique({
+                where: { id: bookingDetails.therapistId },
+                include: {
+                  user: {
+                    select: {
+                      id: true,
+                      name: true,
+                      email: true,
+                    },
+                  },
+                },
+              });
+
+              // Get patient info
+              const patient = await prisma.patient.findUnique({
+                where: { id: bookingDetails.patientId },
+                select: {
+                  userId: true,
+                  firstName: true,
+                  lastName: true,
+                },
+              });
+
+              // Get parent/user info
+              const initiatedBy = (metadata?.initiatedBy as { userId?: string, userName?: string, userEmail?: string }) || {};
+              const parentUser = initiatedBy.userId ? await prisma.user.findUnique({
+                where: { id: initiatedBy.userId },
+                select: { email: true, name: true },
+              }) : null;
+
+              // Get therapist's Google OAuth tokens
+              if (therapistWithUser?.user?.id) {
+                let therapistAccount = await prisma.account.findFirst({
+                  where: {
+                    userId: therapistWithUser.user.id,
+                    provider: "google",
+                  },
+                  select: {
+                    access_token: true,
+                    refresh_token: true,
+                  },
+                });
+
+                // DEMO FALLBACK: If therapist doesn't have Google OAuth, use parent's account
+                let oauthUserId = therapistWithUser.user.id;
+                if ((!therapistAccount?.access_token || !therapistAccount?.refresh_token) && initiatedBy.userId) {
+                  console.log(`⚠️ Therapist doesn't have Google OAuth, using parent's account for demo`);
+                  therapistAccount = await prisma.account.findFirst({
+                    where: {
+                      userId: initiatedBy.userId, // Use parent's account
+                      provider: "google",
+                    },
+                    select: {
+                      access_token: true,
+                      refresh_token: true,
+                    },
+                  });
+                  oauthUserId = initiatedBy.userId;
+                }
+
+                if (therapistAccount?.access_token && therapistAccount?.refresh_token) {
+                  // Calculate session end time (45 minutes after start)
+                  const sessionEnd = new Date(sessionDate);
+                  sessionEnd.setMinutes(sessionEnd.getMinutes() + 45);
+
+                  // Create Google Meet event
+                  const meetingResponse = await createGoogleMeetEvent(
+                    {
+                      summary: `Therapy Session - ${patient?.firstName || ''} ${patient?.lastName || ''}`,
+                      description: `Online therapy session\nSession Type: ${bookingDetails.sessionType}\nPatient: ${patient?.firstName} ${patient?.lastName}\nTherapist: ${therapistWithUser.user.name || 'Therapist'}\nParent: ${parentUser?.name || 'Guardian'}`,
+                      startDateTime: sessionDate.toISOString(),
+                      endDateTime: sessionEnd.toISOString(),
+                      attendeeEmails: [
+                        ...(parentUser?.email ? [parentUser.email] : []),
+                        ...(therapistWithUser.user.email ? [therapistWithUser.user.email] : []),
+                      ].filter(Boolean),
+                      timezone: "Asia/Colombo",
+                    },
+                    therapistAccount.access_token,
+                    therapistAccount.refresh_token,
+                    oauthUserId
+                  );
+
+                  meetingLink = meetingResponse.meetingLink;
+                  calendarEventId = meetingResponse.eventId;
+
+                  console.log(`✅ Google Meet event created after successful payment: ${meetingResponse.meetingLink}`);
+                } else {
+                  // Fallback to simple meeting link if therapist hasn't connected Google account
+                  meetingLink = generateSimpleMeetingLink(`${bookingDetails.patientId}-${Date.now()}`);
+                  console.log(`⚠️ Using fallback meeting link (no Google OAuth available)`);
+                }
+              }
+            } catch (meetError) {
+              // If Google Meet creation fails, fall back to simple meeting link
+              console.error("Failed to create Google Meet event in payment webhook:", meetError);
+              meetingLink = generateSimpleMeetingLink(`${bookingDetails.patientId}-${Date.now()}`);
+              console.log(`⚠️ Using fallback meeting link (Google Meet creation failed)`);
             }
           }
 
-          // Create session datetime
-          const dateStr = `${inputDate.getFullYear()}-${(inputDate.getMonth() + 1).toString().padStart(2, '0')}-${inputDate.getDate().toString().padStart(2, '0')}`;
-          const timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`;
-          const sessionDate = new Date(`${dateStr}T${timeStr}.000Z`);
-
-          // Get therapist info to determine session rate
-          const therapist = await prisma.therapist.findUnique({
-            where: { id: bookingDetails.therapistId },
-            select: { session_rate: true },
-          });
-
-          // Get availability slot to check if it's free
-          const availabilitySlot = await prisma.therapistAvailability.findUnique({
-            where: { id: bookingDetails.availabilitySlotId },
-            select: { isFree: true, isBooked: true },
-          });
-
-          const sessionRate = availabilitySlot?.isFree ? 0 : (therapist?.session_rate || 0);
-
           // Create session and mark availability slot as booked in a transaction
           await prisma.$transaction(async (tx) => {
+            // Check if availability slot still exists and is not already booked
+            const availabilitySlot = await tx.therapistAvailability.findUnique({
+              where: { id: bookingDetails.availabilitySlotId },
+              select: { isBooked: true },
+            });
+
             // Mark the availability slot as booked (only if not already booked)
             if (availabilitySlot && !availabilitySlot.isBooked) {
               await tx.therapistAvailability.update({
@@ -257,6 +382,8 @@ export async function POST(request: NextRequest) {
                 status: "SCHEDULED",
                 type: bookingDetails.sessionType || "Individual",
                 bookedRate: sessionRate,
+                meetingLink: meetingLink,
+                calendarEventId: calendarEventId,
               },
             });
 
@@ -266,7 +393,10 @@ export async function POST(request: NextRequest) {
               data: { sessionId: therapySession.id },
             });
 
-            console.log("Therapy session created successfully:", therapySession.id);
+            console.log("Therapy session created successfully after payment:", therapySession.id);
+            console.log("Meeting link saved:", meetingLink);
+
+            return therapySession;
           });
 
           // Get the created session for notifications

@@ -28,14 +28,11 @@ export default function NotificationBell({
             className={cn("relative", className)}
             disabled={isLoading}
         >
-            <Bell className={cn(
-                "h-5 w-5",
-                unreadCount > 0 && "animate-pulse"
-            )} />
+            <Bell className="h-5 w-5" />
             {unreadCount > 0 && (
                 <Badge
                     variant="destructive"
-                    className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center text-xs p-0 min-w-[20px] animate-bounce"
+                    className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center text-xs p-0 min-w-[20px]"
                 >
                     {unreadCount > 99 ? "99+" : unreadCount}
                 </Badge>

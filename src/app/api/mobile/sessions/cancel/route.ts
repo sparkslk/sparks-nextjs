@@ -87,10 +87,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Calculate days until session to determine refund
+    // Calculate hours until session to determine refund
     const now = new Date();
     const sessionDate = new Date(session.scheduledAt);
-    const daysUntilSession = Math.ceil((sessionDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    const hoursUntilSession = (sessionDate.getTime() - now.getTime()) / (1000 * 60 * 60);
 
     let refundAmount = 0;
     let cancellationFee = 0;
@@ -99,21 +99,23 @@ export async function POST(request: NextRequest) {
     // Determine refund based on cancellation policy
     // Get the first payment for this session
     const sessionPayment = session.Payment && session.Payment.length > 0 ? session.Payment[0] : null;
+    const paymentAmount = sessionPayment ? Number(sessionPayment.amount) : 0;
 
-    if (daysUntilSession >= 5) {
-      // Full refund for 5+ days notice
-      refundAmount = sessionPayment ? Number(sessionPayment.amount) : 0;
-      refundStatus = "FULL_REFUND";
-    } else if (daysUntilSession >= 1) {
-      // Cancellation fee of Rs. 30 for 1-4 days notice
-      cancellationFee = 30;
-      const paymentAmount = sessionPayment ? Number(sessionPayment.amount) : 0;
-      refundAmount = Math.max(0, paymentAmount - cancellationFee);
-      refundStatus = "PARTIAL_REFUND";
+    if (hoursUntilSession >= 24) {
+      // 90% refund for 24+ hours notice (10% cancellation fee)
+      refundAmount = paymentAmount * 0.90;
+      cancellationFee = paymentAmount * 0.10;
+      refundStatus = "PARTIAL_REFUND_90";
+    } else if (hoursUntilSession >= 0) {
+      // 60% refund for within 24 hours (40% cancellation fee)
+      refundAmount = paymentAmount * 0.60;
+      cancellationFee = paymentAmount * 0.40;
+      refundStatus = "PARTIAL_REFUND_60";
     } else {
-      // No refund for cancellations within 24 hours
+      // Session already passed
       refundStatus = "NO_REFUND";
       refundAmount = 0;
+      cancellationFee = paymentAmount;
     }
 
     // Free up the availability slot and update session in a transaction
@@ -184,8 +186,8 @@ export async function POST(request: NextRequest) {
 
     console.log(`Session ${sessionId} cancelled successfully by patient ${patient.id}`);
     console.log(`Scheduled date: ${session.scheduledAt.toISOString()}`);
-    console.log(`Days until session: ${daysUntilSession}`);
-    console.log(`Refund status: ${refundStatus}, Amount: Rs. ${refundAmount}, Fee: Rs. ${cancellationFee}`);
+    console.log(`Hours until session: ${hoursUntilSession.toFixed(2)}`);
+    console.log(`Refund status: ${refundStatus}, Amount: Rs. ${refundAmount.toFixed(2)}, Fee: Rs. ${cancellationFee.toFixed(2)}`);
 
     return NextResponse.json({
       success: true,
@@ -194,9 +196,9 @@ export async function POST(request: NextRequest) {
         sessionId,
         cancelledAt: new Date().toISOString(),
         refundStatus,
-        refundAmount,
-        cancellationFee,
-        daysUntilSession,
+        refundAmount: Number(refundAmount.toFixed(2)),
+        cancellationFee: Number(cancellationFee.toFixed(2)),
+        hoursUntilSession: Number(hoursUntilSession.toFixed(2)),
         therapistName: session.therapist.user.name
       }
     });

@@ -40,6 +40,7 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
   const { data: session } = useSession();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+  const [selectedSessionType, setSelectedSessionType] = useState<string>("Individual");
   const [showCalendar, setShowCalendar] = useState(false);
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
@@ -53,6 +54,13 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
   });
   const [booking, setBooking] = useState(false);
   const [paymentProcessing, setPaymentProcessing] = useState(false);
+  const [parentContactInfo, setParentContactInfo] = useState<{
+    phone: string;
+    address: string;
+  }>({
+    phone: '',
+    address: ''
+  });
 
   const year = selectedDate.getFullYear();
   const month = selectedDate.getMonth();
@@ -103,6 +111,30 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
     }
   }, [selectedDate, open, child.id, child.therapist?.name]);
 
+  // Fetch parent contact information
+  useEffect(() => {
+    const fetchParentContactInfo = async () => {
+      if (!session?.user?.id || !child.id) return;
+
+      try {
+        const response = await fetch(`/api/parent/contact-info?childId=${child.id}`);
+        if (response.ok) {
+          const data = await response.json();
+          setParentContactInfo({
+            phone: data.contact_no || '',
+            address: data.address || 'N/A'
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching parent contact info:", error);
+      }
+    };
+
+    if (open && session?.user?.id && child.id) {
+      fetchParentContactInfo();
+    }
+  }, [open, session?.user?.id, child.id]);
+
   const handleDateClick = (day: number) => {
     setSelectedDate(new Date(year, month, day));
     setSelectedSlot(null);
@@ -145,11 +177,13 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
           childId: child.id,
           date: `${selectedDate.getFullYear()}-${(selectedDate.getMonth() + 1).toString().padStart(2, '0')}-${selectedDate.getDate().toString().padStart(2, '0')}`,
           timeSlot: selectedSlot,
-          sessionType: "Individual"
+          sessionType: selectedSessionType
         }),
       });
 
       if (response.ok) {
+        const result = await response.json();
+        console.log('Free session booked successfully:', result.session);
         setBookingConfirmed(true);
         onConfirmBooking(selectedDate, selectedSlot);
         setTimeout(() => {
@@ -158,6 +192,7 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
           // Reset form
           setSelectedSlot(null);
           setSelectedDate(new Date());
+          setSelectedSessionType("Individual");
         }, 2000);
       } else {
         const error = await response.json();
@@ -190,14 +225,14 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
           childId: child.id,
           date: `${selectedDate.getFullYear()}-${(selectedDate.getMonth() + 1).toString().padStart(2, '0')}-${selectedDate.getDate().toString().padStart(2, '0')}`,
           timeSlot: selectedSlot,
-          sessionType: "Individual",
+          sessionType: selectedSessionType,
           amount: amount,
           customerInfo: {
             firstName: session.user.name?.split(' ')[0] || 'Parent',
             lastName: session.user.name?.split(' ').slice(1).join(' ') || 'User',
             email: session.user.email || '',
-            phone: '0000000000', // TODO: Get from user profile
-            address: 'N/A',
+            phone: parentContactInfo.phone || '0771234567', // Fallback to a valid format if no contact
+            address: parentContactInfo.address,
             city: 'Colombo',
           },
         }),
@@ -216,6 +251,7 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
       console.log('Order ID:', paymentDetails.orderId);
       console.log('Amount:', paymentDetails.amount, paymentDetails.currency);
       console.log('Hash (first 20 chars):', paymentDetails.hash?.substring(0, 20) + '...');
+      console.log('Note: Session will be created only after successful payment');
       console.log('===============================');
 
       // Create a form and submit to PayHere (full page redirect)
@@ -287,6 +323,32 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
                   <span className="text-xs text-muted-foreground">Licensed Therapist</span>
                 </div>
               </div>
+            </div>
+          </div>
+          {/* Session Type Selection */}
+          <div className="px-8 pt-4 pb-2">
+            <div className="font-semibold text-sm text-muted-foreground mb-2">Session Type</div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setSelectedSessionType('Individual')}
+                className={`flex-1 py-3 px-4 rounded-xl border font-semibold text-sm transition-all ${selectedSessionType === 'Individual'
+                    ? 'bg-primary text-white border-primary shadow-md'
+                    : 'bg-background text-foreground border-border hover:bg-muted/30'
+                  }`}
+              >
+                Individual
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedSessionType('With Parent')}
+                className={`flex-1 py-3 px-4 rounded-xl border font-semibold text-sm transition-all ${selectedSessionType === 'With Parent'
+                    ? 'bg-primary text-white border-primary shadow-md'
+                    : 'bg-background text-foreground border-border hover:bg-muted/30'
+                  }`}
+              >
+                Family
+              </button>
             </div>
           </div>
           {/* Select Date & Calendar */}
@@ -371,10 +433,10 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
                     key={slotData.slot}
                     variant={selectedSlot === slotData.slot ? "default" : "outline"}
                     className={`rounded-xl px-4 py-3 text-sm font-semibold shadow-sm flex flex-col items-center gap-1 h-auto ${selectedSlot === slotData.slot
-                        ? "bg-primary text-white"
-                        : slotData.isAvailable
-                          ? "hover:bg-primary/10"
-                          : "opacity-50 cursor-not-allowed bg-muted text-muted-foreground"
+                      ? "bg-primary text-white"
+                      : slotData.isAvailable
+                        ? "hover:bg-primary/10"
+                        : "opacity-50 cursor-not-allowed bg-muted text-muted-foreground"
                       }`}
                     onClick={() => slotData.isAvailable && handleSlotClick(slotData.slot)}
                     disabled={!slotData.isAvailable}
@@ -409,6 +471,9 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
                 <span>Therapist:</span> <span className="font-medium text-foreground">Dr. {therapistInfo.name}</span>
               </div>
               <div className="flex justify-between text-sm mb-2 text-muted-foreground">
+                <span>Session Type:</span> <span className="font-medium text-foreground">{selectedSessionType === "With Parent" ? "Family Session" : "Individual Session"}</span>
+              </div>
+              <div className="flex justify-between text-sm mb-2 text-muted-foreground">
                 <span>Duration:</span> <span className="font-medium text-foreground">45 minutes</span>
               </div>
               <div className="flex justify-between text-sm mb-4 text-muted-foreground">
@@ -438,6 +503,11 @@ export const SessionBookingModal: React.FC<SessionBookingModalProps> = ({ open, 
                         : "Proceed to Payment"
                 }
               </Button>
+              {!selectedSlot || availableSlots.find(slot => slot.slot === selectedSlot)?.isFree ? null : (
+                <div className="mt-2 text-xs text-muted-foreground text-center">
+                  Your session will be confirmed after successful payment
+                </div>
+              )}
               {bookingConfirmed && (
                 <div className="mt-3 text-center text-success font-semibold animate-fade-in">Your session has been booked!</div>
               )}

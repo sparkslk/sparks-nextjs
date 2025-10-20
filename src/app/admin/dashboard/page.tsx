@@ -1,36 +1,35 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DonationModal } from '@/components/admin/donation-modal';
-import { SessionModal } from '@/components/admin/session-modal';
 import {
     Users,
-    Database,
     Zap,
     CalendarCheck,
     RefreshCw
 } from "lucide-react";
+import { AnalyticsDashboard } from "@/components/admin/reports/charts";
 
 interface SessionOversight {
-  id: string;
-  therapist: {
     id: string;
-    name: string;
-    email: string;
-  };
-  patient: {
-    id: string;
-    name: string;
-    email: string;
-  };
-  sessionDetails: {
-    duration: number;
-    status: string;
-    scheduledAt: string;
-    createdAt: string;
-  };
+    therapist: {
+        id: string;
+        name: string;
+        email: string;
+    };
+    patient: {
+        id: string;
+        name: string;
+        email: string;
+    };
+    sessionDetails: {
+        duration: number;
+        status: string;
+        scheduledAt: string;
+        createdAt: string;
+    };
 }
 
 interface AdminData {
@@ -66,46 +65,29 @@ interface AdminData {
 }
 
 export default function AdminDashboard() {
-    const mockDonationData = [
-        {
-            id: 1,
-            donorName: "Malini Wickramasinghe",
-            timeAgo: "2 hours ago",
-            amount: 15000
-        },
-        {
-            id: 2,
-            donorName: "Chandana Rajapaksa",
-            timeAgo: "5 hours ago",
-            amount: 7500
-        },
-        {
-            id: 3,
-            donorName: "Sanduni Perera",
-            timeAgo: "1 day ago",
-            amount: 30000
-        },
-        {
-            id: 4,
-            donorName: "Anonymous",
-            timeAgo: "2 days ago",
-            amount: 22500
-        }
-    ];
+    const [recentDonations, setRecentDonations] = useState<{
+        id: string;
+        donorName: string | null;
+        donorEmail: string | null;
+        isAnonymous: boolean;
+        amount: number;
+        paymentStatus: string;
+        createdAt: string;
+    }[]>([]);
 
     const [adminData, setAdminData] = useState<AdminData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-    const [showSessionModal, setShowSessionModal] = useState(false);
-    const [showDonationModal, setShowDonationModal] = useState(false);
 
-    const mappedDonationData = mockDonationData.map((donation) => ({
+    const router = useRouter();
+
+    {/*const mappedDonationData = mockDonationData.map((donation) => ({
         id: donation.id.toString(),
         name: donation.donorName,
         timeAgo: donation.timeAgo,
         amount: donation.amount
-    }));
+    }));*/}
 
     useEffect(() => {
         fetchAdminData();
@@ -113,12 +95,45 @@ export default function AdminDashboard() {
 
     const fetchAdminData = async () => {
         try {
+            // Add a small delay to prevent overwhelming the database
+            await new Promise(resolve => setTimeout(resolve, 200));
+            
             const response = await fetch("/api/admin/dashboard");
             if (!response.ok) {
                 throw new Error("Failed to fetch admin data");
             }
             const data = await response.json();
             setAdminData(data);
+
+            // Load recent donations with delay to prevent connection overload
+            try {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                const donationsRes = await fetch('/api/admin/donations/list?page=1&pageSize=5', { credentials: 'include' });
+                const donationsData = await donationsRes.json();
+                if (donationsData.success) {
+                    setRecentDonations(
+                        (donationsData.data.items as Array<{
+                            id: string;
+                            donorName: string | null;
+                            donorEmail: string | null;
+                            isAnonymous: boolean;
+                            amount: number;
+                            paymentStatus: string;
+                            createdAt: string;
+                        }>).map((d) => ({
+                            id: d.id,
+                            donorName: d.donorName,
+                            donorEmail: d.donorEmail,
+                            isAnonymous: d.isAnonymous,
+                            amount: Number(d.amount),
+                            paymentStatus: d.paymentStatus,
+                            createdAt: d.createdAt,
+                        }))
+                    );
+                }
+            } catch (e) {
+                console.error('Failed to load recent donations', e);
+            }
             setLastUpdated(new Date());
         } catch (err) {
             console.error("Error fetching admin data:", err);
@@ -171,18 +186,17 @@ export default function AdminDashboard() {
                     )}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
                     <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">System Status</CardTitle>
                             <Zap className="h-12 w-12" style={{ color: "#8159A8" }} />
                         </CardHeader>
                         <CardContent>
-                            <div className={`text-2xl font-bold ${
-                                adminData?.systemStatus === "online" ? "text-green-600" : "text-red-600"
-                            }`}>
-                                {adminData?.systemStatus ? 
-                                    adminData.systemStatus.charAt(0).toUpperCase() + adminData.systemStatus.slice(1) 
+                            <div className={`text-2xl font-bold ${adminData?.systemStatus === "online" ? "text-green-600" : "text-red-600"
+                                }`}>
+                                {adminData?.systemStatus ?
+                                    adminData.systemStatus.charAt(0).toUpperCase() + adminData.systemStatus.slice(1)
                                     : "Unknown"}
                             </div>
                             <p className="text-xs text-muted-foreground">99.9% uptime</p>
@@ -219,20 +233,12 @@ export default function AdminDashboard() {
                         </CardContent>
                     </Card>
 
-                    <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Database Size</CardTitle>
-                            <Database className="h-12 w-12" style={{ color: "#8159A8" }} />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">
-                                {adminData?.databaseSize || "N/A"}
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                                {adminData?.databaseUsage || 0}% of capacity
-                            </p>
-                        </CardContent>
-                    </Card>
+                </div>
+
+                {/* Analytics Charts Section */}
+                <div className="mt-8 mb-8">
+                    <h2 className="text-2xl font-bold text-gray-900 mb-6">Platform Analytics</h2>
+                    <AnalyticsDashboard />
                 </div>
 
                 <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -264,13 +270,12 @@ export default function AdminDashboard() {
                                                         </svg>
                                                         {session.sessionDetails.duration} minutes
                                                     </span>
-                                                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                                                        session.sessionDetails.status.toLowerCase() === "completed" ? "bg-green-100 text-green-700" :
-                                                        session.sessionDetails.status.toLowerCase() === "scheduled" ? "bg-blue-100 text-blue-700" :
-                                                        session.sessionDetails.status.toLowerCase() === "in-progress" ? "bg-yellow-100 text-yellow-700" :
-                                                        session.sessionDetails.status.toLowerCase() === "cancelled" ? "bg-red-100 text-red-700" :
-                                                        "bg-gray-100 text-gray-600"
-                                                    }`}>
+                                                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${session.sessionDetails.status.toLowerCase() === "completed" ? "bg-green-100 text-green-700" :
+                                                            session.sessionDetails.status.toLowerCase() === "scheduled" ? "bg-blue-100 text-blue-700" :
+                                                                session.sessionDetails.status.toLowerCase() === "in-progress" ? "bg-yellow-100 text-yellow-700" :
+                                                                    session.sessionDetails.status.toLowerCase() === "cancelled" ? "bg-red-100 text-red-700" :
+                                                                        "bg-gray-100 text-gray-600"
+                                                        }`}>
                                                         {session.sessionDetails.status.toUpperCase()}
                                                     </span>
                                                 </div>
@@ -308,26 +313,10 @@ export default function AdminDashboard() {
                                 <Button
                                     className="hover:opacity-90 hover:shadow-md transition-all duration-200 font-medium"
                                     style={{ backgroundColor: "#8159A8", color: "white" }}
-                                    onClick={() => setShowSessionModal(true)}
+                                    onClick={() => router.push('/admin/sessions')}
                                 >
                                     View All Sessions
                                 </Button>
-                                <SessionModal
-                                    isOpen={showSessionModal}
-                                    onClose={() => setShowSessionModal(false)}
-                                    sessions={
-                                        adminData?.sessionOversightData ? 
-                                            adminData.sessionOversightData.map((session) => ({
-                                                id: session.id,
-                                                name: session.therapist.name,
-                                                amount: session.sessionDetails?.duration?.toString() || "0",
-                                                commission: "N/A",
-                                                sessionDetails: `Session with ${session.patient.name} • ${session.sessionDetails.duration} mins • ${session.sessionDetails.status}`,
-                                                scheduledAt: session.sessionDetails.scheduledAt,
-                                            }))
-                                            : []
-                                    }
-                                />
                             </div>
                         </CardContent>
                     </Card>
@@ -340,11 +329,11 @@ export default function AdminDashboard() {
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-3">
-                                {mockDonationData.map((donation) => (
+                                {recentDonations.map((donation) => (
                                     <div key={donation.id} className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-white rounded-xl border border-gray-100 hover:shadow-sm transition-all duration-200">
                                         <div className="flex-1">
                                             <h4 className="font-semibold text-base text-gray-800 mb-1">
-                                                {donation.donorName}
+                                                {donation.isAnonymous ? 'Anonymous' : (donation.donorName || donation.donorEmail || 'Donor')}
                                             </h4>
                                             <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
                                                 <span className="flex items-center gap-1.5">
@@ -353,20 +342,14 @@ export default function AdminDashboard() {
                                                 </span>
                                             </div>
                                             <div className="flex items-center gap-3 text-sm">
-                                                <span className="flex items-center gap-1 text-gray-500">
-                                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                    </svg>
-                                                    {donation.timeAgo}
-                                                </span>
-                                                <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
-                                                    COMPLETED
+                                                <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">
+                                                    {donation.paymentStatus}
                                                 </span>
                                             </div>
                                         </div>
                                         <div className="text-right flex flex-col items-end">
                                             <div className="text-lg font-bold text-gray-500 mb-0.5">
-                                                Rs. {donation.amount.toLocaleString()}
+                                                Rs. {Number(donation.amount).toLocaleString()}
                                             </div>
                                             <div className="text-sm text-gray-500">Donation</div>
                                         </div>
@@ -377,15 +360,10 @@ export default function AdminDashboard() {
                                 <Button
                                     className="hover:opacity-90 hover:shadow-md transition-all duration-200 font-medium"
                                     style={{ backgroundColor: "#8159A8", color: "white" }}
-                                    onClick={() => setShowDonationModal(true)}
+                                    onClick={() => router.push('/admin/reports')}
                                 >
                                     View All Donations
                                 </Button>
-                                <DonationModal
-                                    isOpen={showDonationModal}
-                                    onClose={() => setShowDonationModal(false)}
-                                    donations={mappedDonationData}
-                                />
                             </div>
                         </CardContent>
                     </Card>

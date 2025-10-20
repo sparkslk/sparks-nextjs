@@ -74,6 +74,9 @@ const AddUser: React.FC<AddUserProps> = ({ open, onOpenChange, onAdd }) => {
     dateOfBirth: "",
     gender: "",
     address: "",
+    addressLine1: "",
+    addressLine2: "",
+    addressLine3: "",
     medicalHistory: "",
     emergencyContact: "",
     
@@ -100,6 +103,9 @@ const AddUser: React.FC<AddUserProps> = ({ open, onOpenChange, onAdd }) => {
       dateOfBirth: "",
       gender: "",
       address: "",
+      addressLine1: "",
+      addressLine2: "",
+      addressLine3: "",
       medicalHistory: "",
       emergencyContact: "",
       fullname: "",
@@ -141,6 +147,14 @@ const AddUser: React.FC<AddUserProps> = ({ open, onOpenChange, onAdd }) => {
     }
 
     try {
+      // Combine 3-line address into single field for API
+      const combinedAddress = [
+        String(formData.addressLine1 || "").trim(),
+        String(formData.addressLine2 || "").trim(),
+        String(formData.addressLine3 || "").trim(),
+      ]
+        .filter(Boolean)
+        .join("\n");
       // Prepare data based on role
       let userData: User & Record<string, unknown> = {
         role: selectedRole,
@@ -155,7 +169,7 @@ const AddUser: React.FC<AddUserProps> = ({ open, onOpenChange, onAdd }) => {
           phone: formData.phone,
           dateOfBirth: formData.dateOfBirth,
           gender: formData.gender,
-          address: formData.address,
+          address: combinedAddress,
           medicalHistory: formData.medicalHistory,
           emergencyContact: formData.emergencyContact,
         };
@@ -296,16 +310,27 @@ const AddUser: React.FC<AddUserProps> = ({ open, onOpenChange, onAdd }) => {
             </div>
 
             <div>
-              <Label htmlFor="address" className="text-sm font-medium text-gray-700">
-                Address
-              </Label>
-              <Textarea
-                id="address"
-                value={formData.address}
-                onChange={(e) => handleInputChange("address", e.target.value)}
-                className="mt-1"
-                rows={2}
-              />
+              <Label className="text-sm font-medium text-gray-700">Address</Label>
+              <div className="mt-1 grid grid-cols-1 gap-2">
+                <Input
+                  id="addressLine1"
+                  value={formData.addressLine1}
+                  onChange={(e) => handleInputChange("addressLine1", e.target.value)}
+                  placeholder="Address line 1"
+                />
+                <Input
+                  id="addressLine2"
+                  value={formData.addressLine2}
+                  onChange={(e) => handleInputChange("addressLine2", e.target.value)}
+                  placeholder="Address line 2"
+                />
+                <Input
+                  id="addressLine3"
+                  value={formData.addressLine3}
+                  onChange={(e) => handleInputChange("addressLine3", e.target.value)}
+                  placeholder="Address line 3"
+                />
+              </div>
             </div>
 
             <div>

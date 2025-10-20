@@ -11,11 +11,12 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, User, AlertCircle, ChevronDown, ChevronRight } from "lucide-react";
+import { Calendar, Clock, User, AlertCircle, ChevronDown, ChevronRight, Video } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { SessionBookingModal } from "@/components/parent/SessionBookingModal";
 import RescheduleModal from "@/components/parent/appointments/RescheduleModal";
 import SessionCancellationDialog from "@/components/parent/SessionCancellationDialog";
+import { canJoinSession, isAppointmentOngoing, handleJoinSession as utilHandleJoinSession } from "@/lib/session-timing-utils";
 
 export default function AppointmentsPage() {
   const [children, setChildren] = useState<Child[]>([]);
@@ -85,10 +86,11 @@ export default function AppointmentsPage() {
               sessionNotes?: string;
               therapist: string;
               therapistEmail: string;
-              therapistPBune: string;
+              therapistPhone: string;
               specializations: string[];
               mode: string;
               primaryFocusAreas: string[];
+              meetingLink?: string | null;
             }) => ({
               id: session.id,
               date: session.date,
@@ -101,11 +103,13 @@ export default function AppointmentsPage() {
               sessionNotes: session.sessionNotes,
               therapist: session.therapist,
               therapistEmail: session.therapistEmail,
-              // therapistPhone: session.therapistPhone,
+              therapistPhone: session.therapistPhone || '',
               specializations: session.specializations,
               mode: session.mode,
               sessionType: session.sessionType,
-              primaryFocusAreas: session.primaryFocusAreas
+              primaryFocusAreas: session.primaryFocusAreas,
+              meetingLink: session.meetingLink,
+              objectives: []
             })) || [];
 
             // Separate reschedule requests from regular appointments
@@ -114,6 +118,13 @@ export default function AppointmentsPage() {
 
             console.log(`Fetched ${childAppointments.length} sessions for child ${child.id}`);
             console.log(`Regular appointments: ${regularAppointments.length}, Reschedule requests: ${rescheduleReqs.length}`);
+
+            // Debug: Log meeting links
+            childAppointments.forEach(apt => {
+              if (apt.meetingLink) {
+                console.log(`Session ${apt.id} has meeting link:`, apt.meetingLink, `(mode: ${apt.mode})`);
+              }
+            });
 
             allAppointments.push(...regularAppointments);
             allRescheduleRequests.push(...rescheduleReqs);
@@ -220,7 +231,7 @@ export default function AppointmentsPage() {
               </div>
               <div className="flex items-center gap-1">
                 <User className="h-4 w-4" />
-                {request.sessionType}
+                {request.type === "With Parent" ? "Family" : "Individual"}
               </div>
             </div>
             {request.sessionNotes && (
@@ -232,9 +243,9 @@ export default function AppointmentsPage() {
             )}
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+            {/* <Badge variant="secondary" className="bg-orange-100 text-orange-800">
               Reschedule Requested
-            </Badge>
+            </Badge> */}
             <Button
               variant="outline"
               size="sm"
@@ -360,14 +371,31 @@ export default function AppointmentsPage() {
                               </div>
                               <div className="flex items-center gap-1">
                                 <User className="h-4 w-4" />
-                                {appointment.sessionType}
+                                {appointment.type === "With Parent" ? "Family" : "Individual"}
                               </div>
+                              {/* Session Mode Badge
+                              {appointment.mode && (
+                                <Badge
+                                  variant="outline"
+                                  className={
+                                    appointment.mode === 'ONLINE'
+                                      ? 'bg-green-50 text-green-700 border-green-300'
+                                      : appointment.mode === 'HYBRID'
+                                      ? 'bg-orange-50 text-orange-700 border-orange-300'
+                                      : 'bg-blue-50 text-blue-700 border-blue-300'
+                                  }
+                                >
+                                  {appointment.mode === 'ONLINE' && '🎥 Online'}
+                                  {appointment.mode === 'HYBRID' && '🔄 Hybrid'}
+                                  {appointment.mode === 'IN_PERSON' && '👤 In-Person'}
+                                </Badge>
+                              )} */}
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                            {/* <Badge variant="secondary" className="bg-blue-100 text-blue-800">
                               Scheduled
-                            </Badge>
+                            </Badge> */}
                             <div className="flex gap-2">
                               <Button
                                 variant="outline"
@@ -385,17 +413,25 @@ export default function AppointmentsPage() {
                               >
                                 Cancel
                               </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="text-green-600 border-green-600 hover:bg-green-50"
-                                onClick={() => {
-                                  // Add join session functionality here
-                                  console.log('Join session for appointment:', appointment.id);
-                                }}
-                              >
-                                Join Session
-                              </Button>
+
+                              {appointment.meetingLink && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className={
+                                    canJoinSession(appointment)
+                                      ? "text-green-600 border-green-600 hover:bg-green-50"
+                                      : isAppointmentOngoing(appointment)
+                                        ? "bg-green-600 text-white hover:bg-green-700"
+                                        : "text-gray-400 border-gray-400 cursor-not-allowed"
+                                  }
+                                  onClick={() => utilHandleJoinSession(appointment)}
+                                  disabled={!canJoinSession(appointment) && !isAppointmentOngoing(appointment)}
+                                >
+                                  <Video className="w-4 h-4 mr-1" />
+                                  {isAppointmentOngoing(appointment) ? "Join Now" : "Join Session"}
+                                </Button>
+                              )}
                             </div>
                           </div>
                         </div>

@@ -77,8 +77,6 @@ export async function GET(
       }
     });
 
-    console.log(`Fetched ${sessions.length} sessions for child ${childId}`);
-
     // Transform database data to match frontend interface
     const transformedSessions = sessions.map(session => {
       const sessionDate = new Date(session.scheduledAt);
@@ -86,7 +84,6 @@ export async function GET(
       // Get therapist details
       const therapist = therapistMap.get(session.therapistId);
       const therapistName = therapist?.name || 'Assigned Therapist';
-      console.log(`Processing session for therapist: ${therapistName}`);
       // Format time in 'Asia/Colombo' timezone using UTC conversion (like dashboard/route)
       const utcDate = new Date(
         sessionDate.getUTCFullYear(),
@@ -111,12 +108,13 @@ export async function GET(
         therapistEmail: therapist?.email || '',
         therapistPhone: '', // Phone not available in current schema
         specializations: Array.isArray(therapist?.specialization) ? therapist.specialization : [therapist?.specialization].filter(Boolean),
-        mode: 'Video Call', // Default mode - adjust based on your session type logic
+        mode: session.sessionType || 'IN_PERSON', // Use actual session type from DB
         status: status,
         duration: session.duration || 60,
         sessionType: session.type || 'Therapy Session',
         notes: '', // No progressNotes property exists on session
         objectives: [],
+        meetingLink: session.meetingLink || null, // Include meeting link for online sessions
       };
     });
 

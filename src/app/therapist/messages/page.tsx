@@ -50,9 +50,20 @@ export default function TherapistMessagesPage() {
   const [filterType, setFilterType] = useState<'ALL' | 'PATIENT' | 'PARENT'>('ALL');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const stopPollingRef = useRef<(() => void) | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     setMounted(true);
+    // Create audio element for notification sound
+    if (typeof window !== 'undefined') {
+      audioRef.current = new Audio('/notification.mp3');
+      audioRef.current.volume = 0.5;
+      
+      // Request notification permission
+      if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
+    }
   }, []);
 
   const loadConversations = async () => {
@@ -101,6 +112,20 @@ export default function TherapistMessagesPage() {
             if (result.messages.length > previousMessageCount && previousMessageCount > 0) {
               // New message received - notify sidebar to update unread count
               chatEvents.notifyMessageReceived(selectedConversation.id);
+              
+              // Play notification sound
+              if (audioRef.current && !document.hidden) {
+                audioRef.current.play().catch(err => console.log('Audio play failed:', err));
+              }
+              
+              // Show browser notification if permission granted
+              if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+                new Notification('New Message', {
+                  body: 'You have received a new message',
+                  icon: '/images/sparkslogo.png',
+                  badge: '/images/sparkslogo.png',
+                });
+              }
             }
             previousMessageCount = result.messages.length;
             
@@ -108,7 +133,7 @@ export default function TherapistMessagesPage() {
             scrollToBottom();
           }
         },
-        3000 // Poll every 3 seconds
+        2000 // Poll every 2 seconds for more responsive updates
       );
     }
     
@@ -276,6 +301,19 @@ export default function TherapistMessagesPage() {
 
   const isMyMessage = (message: Message) => {
     return message.senderId === session?.user?.id;
+  };
+
+  const isSameDay = (date1: Date | string, date2: Date | string) => {
+    const d1 = new Date(date1);
+    const d2 = new Date(date2);
+    return d1.getFullYear() === d2.getFullYear() &&
+           d1.getMonth() === d2.getMonth() &&
+           d1.getDate() === d2.getDate();
+  };
+
+  const shouldShowDateSeparator = (currentMessage: Message, previousMessage: Message | null) => {
+    if (!previousMessage) return false;
+    return !isSameDay(currentMessage.createdAt, previousMessage.createdAt);
   };
 
   if (loading && conversations.length === 0) {
@@ -446,9 +484,11 @@ export default function TherapistMessagesPage() {
                         </div>
                       </DialogContent>
                     </Dialog>
-                    <Badge variant="secondary" className="bg-[#8159A8] text-white">
-                      {conversations.reduce((sum, conv) => sum + (conv.unreadCount || 0), 0)} unread
-                    </Badge>
+                    {conversations.reduce((sum, conv) => sum + (conv.unreadCount || 0), 0) > 0 && (
+                      <Badge variant="secondary" className="bg-[#8159A8] text-white">
+                        {conversations.reduce((sum, conv) => sum + (conv.unreadCount || 0), 0)} unread
+                      </Badge>
+                    )}
                   </div>
                 </div>
                 {/* Search */}
@@ -504,7 +544,7 @@ export default function TherapistMessagesPage() {
                                   : "Patient"}
                               </p>
                             </div>
-                            {conversation.unreadCount && conversation.unreadCount > 0 && (
+                            {Number(conversation.unreadCount) > 0 && (
                               <Badge className="bg-[#8159A8] text-white text-xs px-2 py-1">
                                 {conversation.unreadCount}
                               </Badge>
@@ -563,67 +603,76 @@ export default function TherapistMessagesPage() {
                 </CardHeader>
                 
                 {/* Messages Area */}
-                <div className="flex-1 p-4 overflow-y-auto bg-gradient-to-b from-[#F5F3FB]/30 to-white">
-                  {/* Date Header */}
-                  <div className="text-center mb-6">
-                    <span className="text-sm text-gray-500 bg-white px-3 py-1 rounded-full shadow-sm">
-                      {messages.length > 0 ? formatDate(messages[0].createdAt) : 'Today'}
-                    </span>
-                  </div>
-                  
+                <div className="flex-1 p-4 overflow-y-auto bg-gradient-to-b from-[#F5F3FB]/30 to-white max-h-[calc(100vh-450px)]">
                   <div className="space-y-4">
-                    {messages.map((message) => (
-                      <div
-                        key={message.id}
-                        className={cn(
-                          "flex items-end space-x-2",
-                          isMyMessage(message) && "flex-row-reverse space-x-reverse"
-                        )}
-                      >
-                        {/* Avatar */}
-                        <Avatar className="h-8 w-8 mb-1">
-                          <AvatarFallback className={cn(
-                            "text-white text-sm font-medium",
-                            isMyMessage(message) ? 'bg-[#8159A8]' : 'bg-blue-500'
-                          )}>
-                            {isMyMessage(message) ? 'DR' : 
-                             selectedConversation.participantType === 'PARENT' ? 'P' : 'PT'}
-                          </AvatarFallback>
-                        </Avatar>
-                        
-                        {/* Message Bubble */}
-                        <div className={cn(
-                          "flex-1 max-w-xs",
-                          isMyMessage(message) && "flex justify-end"
-                        )}>
+                    {messages.map((message, index) => {
+                      const previousMessage = index > 0 ? messages[index - 1] : null;
+                      const showDateSeparator = index === 0 || shouldShowDateSeparator(message, previousMessage);
+                      
+                      return (
+                        <div key={message.id}>
+                          {/* Date Separator */}
+                          {showDateSeparator && (
+                            <div className="text-center my-6">
+                              <span className="text-sm text-gray-500 bg-white px-3 py-1 rounded-full shadow-sm">
+                                {formatDate(message.createdAt)}
+                              </span>
+                            </div>
+                          )}
+                          
+                          {/* Message */}
                           <div
                             className={cn(
-                              "px-4 py-3 rounded-2xl relative",
-                              isMyMessage(message)
-                                ? 'bg-[#F5F3FB] text-gray-900 rounded-br-md'
-                                : 'bg-white text-gray-900 rounded-bl-md border border-gray-100 shadow-sm'
+                              "flex items-end space-x-2",
+                              isMyMessage(message) && "flex-row-reverse space-x-reverse"
                             )}
                           >
-                            <p className="text-sm leading-relaxed">{message.content}</p>
+                            {/* Avatar */}
+                            <Avatar className="h-8 w-8 mb-1">
+                              <AvatarFallback className={cn(
+                                "text-white text-sm font-medium",
+                                isMyMessage(message) ? 'bg-[#8159A8]' : 'bg-blue-500'
+                              )}>
+                                {isMyMessage(message) ? 'DR' : 
+                                 selectedConversation.participantType === 'PARENT' ? 'P' : 'PT'}
+                              </AvatarFallback>
+                            </Avatar>
+                            
+                            {/* Message Bubble */}
                             <div className={cn(
-                              "flex items-center justify-between mt-2 gap-2",
-                              isMyMessage(message) ? 'text-gray-500' : 'text-gray-400'
+                              "flex-1 max-w-xs",
+                              isMyMessage(message) && "flex justify-end"
                             )}>
-                              <span className="text-xs">{formatTime(message.createdAt)}</span>
-                              {isMyMessage(message) && (
-                                <div className="flex items-center">
-                                  {message.isRead ? (
-                                    <CheckCheck className="h-3 w-3" />
-                                  ) : (
-                                    <Check className="h-3 w-3" />
+                              <div
+                                className={cn(
+                                  "px-4 py-3 rounded-2xl relative",
+                                  isMyMessage(message)
+                                    ? 'bg-[#F5F3FB] text-gray-900 rounded-br-md'
+                                    : 'bg-white text-gray-900 rounded-bl-md border border-gray-100 shadow-sm'
+                                )}
+                              >
+                                <p className="text-sm leading-relaxed">{message.content}</p>
+                                <div className={cn(
+                                  "flex items-center justify-between mt-2 gap-2",
+                                  isMyMessage(message) ? 'text-gray-500' : 'text-gray-400'
+                                )}>
+                                  <span className="text-xs">{formatTime(message.createdAt)}</span>
+                                  {isMyMessage(message) && (
+                                    <div className="flex items-center">
+                                      {message.isRead ? (
+                                        <CheckCheck className="h-3 w-3" />
+                                      ) : (
+                                        <Check className="h-3 w-3" />
+                                      )}
+                                    </div>
                                   )}
                                 </div>
-                              )}
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                     <div ref={messagesEndRef} />
                   </div>
                 </div>

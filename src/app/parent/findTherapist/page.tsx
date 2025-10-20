@@ -4,7 +4,7 @@ import { useState, useEffect, Fragment } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import {
-    TherapistSearchBar, 
+    TherapistSearchBar,
     TherapistCard,
     TherapistEmptyState,
     TherapistFilters
@@ -41,11 +41,17 @@ interface Therapist {
     bio?: string;
     patientsCount?: number;
     isChildConnection?: boolean; // Added for modal logic
+    // API fields
+    email?: string;
+    gender?: string;
+    dateOfBirth?: string;
+    phone?: string;
+    city?: string;
     highestEducation?: string;
-    adhdExperience?: string; // Added for ADHD experience
-    email?: string; // Added for email
-    dob?: string; // Added for date of birth
-    gender?: string
+    adhdExperience?: string;
+    primarySpecialty?: string;
+    yearsOfExperience?: string;
+    institution?: string;
 }
 
 interface TherapistRequest {
@@ -176,7 +182,7 @@ export default function FindTherapistPage() {
         const fetchTherapists = async () => {
             try {
                 const response = await fetch("/api/therapists");
-          
+
                 if (response.ok) {
                     const data = await response.json();
                     // Convert API data to Therapist interface format
@@ -189,14 +195,54 @@ export default function FindTherapistPage() {
                         bio?: string;
                         patientsCount?: number;
                         rating?: number | string;
+                        email?: string;
+                        gender?: string;
+                        dateOfBirth?: string;
+                        phone?: string;
+                        city?: string;
+                        highestEducation?: string;
+                        adhdExperience?: string;
+                        primarySpecialty?: string;
+                        yearsOfExperience?: string;
+                        institution?: string;
+                        licenseNumber?: string;
                     }) => ({
                         id: therapist.id,
                         name: therapist.name,
-                        // title: therapist.licenseNumber ? `License: ${therapist.licenseNumber}` : "Therapist",
+                        title: therapist.licenseNumber ? `License: ${therapist.licenseNumber}` : "Licensed Therapist",
                         specialties: therapist.specialization || [],
                         rating: typeof therapist.rating === 'number' ? therapist.rating : parseFloat(String(therapist.rating ?? '0')),
+                        reviewCount: 0, // This would need to come from the API
                         experience: therapist.experience ? `${therapist.experience} years` : undefined,
-                        bio: therapist.bio || undefined
+                        sessionTypes: {
+                            inPerson: true, // This would need to come from the API
+                            online: true // This would need to come from the API
+                        },
+                        availability: {
+                            nextSlot: "Contact for availability", // This would need to come from the API
+                            timeSlot: "Contact therapist", // This would need to come from the API
+                            timeCategory: "thisWeek" as const // This would need to come from the API
+                        },
+                        cost: {
+                            isFree: false, // This would need to come from the API
+                            priceRange: "Contact for pricing" // This would need to come from the API
+                        },
+                        languages: ["English"], // This would need to come from the API
+                        tags: ["English"], // This would need to come from the API
+                        image: therapist.image || null,
+                        bio: therapist.bio || undefined,
+                        patientsCount: typeof therapist.patientsCount === 'number' ? therapist.patientsCount : undefined,
+                        // API fields
+                        email: therapist.email || undefined,
+                        gender: therapist.gender || undefined,
+                        dateOfBirth: therapist.dateOfBirth || undefined,
+                        phone: therapist.phone || undefined,
+                        city: therapist.city || undefined,
+                        highestEducation: therapist.highestEducation || undefined,
+                        adhdExperience: therapist.adhdExperience || undefined,
+                        primarySpecialty: therapist.primarySpecialty || undefined,
+                        yearsOfExperience: therapist.yearsOfExperience || undefined,
+                        institution: therapist.institution || undefined
                     })) || [];
 
                     setTherapists(formattedTherapists);
@@ -336,8 +382,8 @@ export default function FindTherapistPage() {
 
                 // Only include patients where parentConnectionStatus is true
                 const activePatients = data.children.filter((p: ApiPatient) => p.connectionStatus === true);
-                console.log("Active patients:",activePatients)
-                
+                console.log("Active patients:", activePatients)
+
                 setPatients(activePatients.map((p: ApiPatient) => ({ id: p.id, name: p.firstName + (p.lastName ? ' ' + p.lastName : '') })));
                 const map: { [patient: string]: Therapist | null } = {};
                 activePatients.forEach((p: ApiPatient) => {
@@ -364,7 +410,7 @@ export default function FindTherapistPage() {
         if (!selectedPatient || !pendingTherapist) return;
         const patientObj = patients.find((p) => p.name === selectedPatient);
         if (!patientObj) return;
-        
+
         try {
             // Get the parent's session to send as senderId
             const sessionResponse = await fetch("/api/auth/session");
@@ -418,10 +464,10 @@ export default function FindTherapistPage() {
     // Handler for confirming request cancellation
     const confirmCancelRequest = async () => {
         if (!requestToCancel) return;
-        
+
         // Close modal immediately for better UX
         setCancelRequestModalOpen(false);
-        
+
         try {
             const response = await fetch(`/api/parent/cancel-therapist-request?requestId=${requestToCancel.requestId}`, {
                 method: 'DELETE',
@@ -436,7 +482,7 @@ export default function FindTherapistPage() {
             }
 
             // Remove from local state after successful API call
-            setRequestedTherapists(prev => 
+            setRequestedTherapists(prev =>
                 prev.filter(req => req.id !== requestToCancel.requestId)
             );
             setNotification(`Request for therapist ${requestToCancel.therapistName} cancelled successfully.`);
@@ -463,10 +509,10 @@ export default function FindTherapistPage() {
     // Handler for confirming disconnection
     const confirmDisconnectTherapist = async () => {
         if (!therapistToDisconnect) return;
-        
+
         // Close modal immediately for better UX
         setDisconnectModalOpen(false);
-        
+
         try {
             // Get the parent's session to send as senderId
             const sessionResponse = await fetch("/api/auth/session");
@@ -485,16 +531,16 @@ export default function FindTherapistPage() {
                     parentId: parentId  // Include the parent ID as sender
                 })
             });
-            
+
             if (!response.ok) {
                 throw new Error("Failed to disconnect therapist");
             }
-            
+
             // Remove the connection from local state
-            setChildTherapistConnections(prev => 
+            setChildTherapistConnections(prev =>
                 prev.filter(conn => !(conn.therapist.id === therapistToDisconnect.therapistId && conn.childName === therapistToDisconnect.childName))
             );
-            
+
             setNotification(`${therapistToDisconnect.therapistName} has been disconnected from ${therapistToDisconnect.childName}. They have been notified of this change.`);
             setTimeout(() => setNotification(null), 5000);
         } catch (error) {
@@ -582,10 +628,10 @@ export default function FindTherapistPage() {
                                                 </div>
                                                 {/* Info Cards */}
                                                 <div className="flex gap-3 mt-5 mb-2 w-full justify-center">
-                                                    <div className="bg-white rounded-xl border border-[#e0d7ed] px-4 py-2 flex flex-col items-center min-w-[80px]">
-                                                        <span className="text-base font-semibold text-primary flex items-center gap-1">{selectedTherapist.rating} <svg className="w-4 h-4 text-yellow-400 inline" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.967a1 1 0 00.95.69h4.175c.969 0 1.371 1.24.588 1.81l-3.38 2.455a1 1 0 00-.364 1.118l1.287 3.966c.3.922-.755 1.688-1.54 1.118l-3.38-2.454a1 1 0 00-1.175 0l-3.38 2.454c-.784.57-1.838-.196-1.54-1.118l1.287-3.966a1 1 0 00-.364-1.118L2.05 9.394c-.783-.57-.38-1.81.588-1.81h4.175a1 1 0 00.95-.69l1.286-3.967z"/></svg></span>
+                                                    {/* <div className="bg-white rounded-xl border border-[#e0d7ed] px-4 py-2 flex flex-col items-center min-w-[80px]">
+                                                        <span className="text-base font-semibold text-primary flex items-center gap-1">{selectedTherapist.rating} <svg className="w-4 h-4 text-yellow-400 inline" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.967a1 1 0 00.95.69h4.175c.969 0 1.371 1.24.588 1.81l-3.38 2.455a1 1 0 00-.364 1.118l1.287 3.966c.3.922-.755 1.688-1.54 1.118l-3.38-2.454a1 1 0 00-1.175 0l-3.38 2.454c-.784.57-1.838-.196-1.54-1.118l1.287-3.966a1 1 0 00-.364-1.118L2.05 9.394c-.783-.57-.38-1.81.588-1.81h4.175a1 1 0 00.95-.69l1.286-3.967z" /></svg></span>
                                                         <span className="text-xs text-muted-foreground mt-1">Rating</span>
-                                                    </div>
+                                                    </div> */}
                                                     <div className="bg-white rounded-xl border border-[#e0d7ed] px-4 py-2 flex flex-col items-center min-w-[80px]">
                                                         <span className="text-base font-semibold text-primary">{typeof selectedTherapist.patientsCount === 'number' ? selectedTherapist.patientsCount : 'N/A'}</span>
                                                         <span className="text-xs text-muted-foreground mt-1">{selectedTherapist.patientsCount === 1 ? 'Patient' : 'Patients'}</span>
@@ -600,22 +646,74 @@ export default function FindTherapistPage() {
                                             <div className="px-7 pt-4 pb-2">
                                                 <div className="font-semibold text-primary mb-3 text-lg">Therapist Details</div>
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 bg-[#f8f6fc] rounded-xl p-4 border border-[#e0d7ed]">
-                                                    <div className="flex flex-col"><span className="text-xs text-muted-foreground font-semibold uppercase mb-1">Specialty</span><span className="text-base text-foreground">{selectedTherapist.specialties?.join(', ') || 'General Psychology'}</span></div>
-                                                    <div className="flex flex-col"><span className="text-xs text-muted-foreground font-semibold uppercase mb-1">Email Address</span><span className="text-base text-foreground">{selectedTherapist.email || 'therapist@email.com'}</span></div>
-                                                    <div className="flex flex-col"><span className="text-xs text-muted-foreground font-semibold uppercase mb-1">Highest Education</span><span className="text-base text-foreground">{selectedTherapist.highestEducation || 'PhD in Clinical Psychology'}</span></div>
-                                                    <div className="flex flex-col"><span className="text-xs text-muted-foreground font-semibold uppercase mb-1">Gender</span><span className="text-base text-foreground">{selectedTherapist.gender || 'Female'}</span></div>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-xs text-muted-foreground font-semibold uppercase mb-1">Specialties</span>
+                                                        <span className="text-base text-foreground">
+                                                            {selectedTherapist.specialties && selectedTherapist.specialties.length > 0
+                                                                ? selectedTherapist.specialties.join(', ')
+                                                                : selectedTherapist.primarySpecialty || 'No specialties listed'}
+                                                        </span>
+                                                    </div>
+                                                    {selectedTherapist.email && (
+                                                        <div className="flex flex-col">
+                                                            <span className="text-xs text-muted-foreground font-semibold uppercase mb-1">Email</span>
+                                                            <span className="text-base text-foreground">{selectedTherapist.email}</span>
+                                                        </div>
+                                                    )}
+                                                    <div className="flex flex-col">
+                                                        <span className="text-xs text-muted-foreground font-semibold uppercase mb-1">Experience</span>
+                                                        <span className="text-base text-foreground">
+                                                            {selectedTherapist.yearsOfExperience || selectedTherapist.experience || 'Experience not specified'}
+                                                        </span>
+                                                    </div>
+                                                    {selectedTherapist.gender && (
+                                                        <div className="flex flex-col">
+                                                            <span className="text-xs text-muted-foreground font-semibold uppercase mb-1">Gender</span>
+                                                            <span className="text-base text-foreground">{selectedTherapist.gender}</span>
+                                                        </div>
+                                                    )}
+                                                    {selectedTherapist.highestEducation && (
+                                                        <div className="flex flex-col">
+                                                            <span className="text-xs text-muted-foreground font-semibold uppercase mb-1">Education</span>
+                                                            <span className="text-base text-foreground">{selectedTherapist.highestEducation}</span>
+                                                        </div>
+                                                    )}
+                                                    {selectedTherapist.institution && (
+                                                        <div className="flex flex-col">
+                                                            <span className="text-xs text-muted-foreground font-semibold uppercase mb-1">Institution</span>
+                                                            <span className="text-base text-foreground">{selectedTherapist.institution}</span>
+                                                        </div>
+                                                    )}
+                                                    <div className="flex flex-col">
+                                                        <span className="text-xs text-muted-foreground font-semibold uppercase mb-1">Current Patients</span>
+                                                        <span className="text-base text-foreground">
+                                                            {typeof selectedTherapist.patientsCount === 'number'
+                                                                ? `${selectedTherapist.patientsCount} ${selectedTherapist.patientsCount === 1 ? 'patient' : 'patients'}`
+                                                                : 'Patient count not available'}
+                                                        </span>
+                                                    </div>
+                                                    {selectedTherapist.city && (
+                                                        <div className="flex flex-col">
+                                                            <span className="text-xs text-muted-foreground font-semibold uppercase mb-1">Location</span>
+                                                            <span className="text-base text-foreground">{selectedTherapist.city}</span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                             {/* ADHD Experience Section */}
-                                            <div className="px-7 pt-2 pb-2">
-                                                <div className="font-semibold text-primary mb-1">ADHD-Specific Experience</div>
-                                                <div className="text-base text-muted-foreground mb-2">{selectedTherapist.adhdExperience || '5+ years working with ADHD children'}</div>
-                                            </div>
+                                            {selectedTherapist.adhdExperience && (
+                                                <div className="px-7 pt-2 pb-2">
+                                                    <div className="font-semibold text-primary mb-1">ADHD-Specific Experience</div>
+                                                    <div className="text-base text-muted-foreground mb-2">{selectedTherapist.adhdExperience}</div>
+                                                </div>
+                                            )}
                                             {/* About Section */}
-                                            <div className="px-7 pt-2 pb-2">
-                                                <div className="font-semibold text-primary mb-1">About</div>
-                                                <div className="text-sm text-muted-foreground mb-2">{selectedTherapist.bio}</div>
-                                            </div>
+                                            {selectedTherapist.bio && (
+                                                <div className="px-7 pt-2 pb-2">
+                                                    <div className="font-semibold text-primary mb-1">About</div>
+                                                    <div className="text-sm text-muted-foreground mb-2">{selectedTherapist.bio}</div>
+                                                </div>
+                                            )}
                                             {/* Action Buttons */}
                                             <div className="flex flex-col gap-2 px-7 pb-7 pt-2">
                                                 {/* Only show button if not a child connection */}
@@ -660,26 +758,25 @@ export default function FindTherapistPage() {
                                                 <div className="relative">
                                                     <Listbox.Button className="w-full border rounded-lg px-3 py-2 text-left bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-primary/40">
                                                         <span>{selectedPatient || "Select a patient"}</span>
-                                                        <svg className="w-5 h-5 text-gray-400 ml-2 pointer-events-none" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                                        <svg className="w-5 h-5 text-gray-400 ml-2 pointer-events-none" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" strokeLinecap="round" strokeLinejoin="round" /></svg>
                                                     </Listbox.Button>
                                                     <Listbox.Options className="absolute z-50 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-72 overflow-auto">
                                                         {patients.map((patient) => {
-                                                            const hasPendingRequest = requestedTherapists.some(req => 
+                                                            const hasPendingRequest = requestedTherapists.some(req =>
                                                                 req.childName === patient.name && req.status === 'PENDING'
                                                             );
                                                             const hasAssignedTherapist = patientTherapistMap[patient.name] !== null;
                                                             const isDisabled = hasPendingRequest || hasAssignedTherapist;
-                                                            
+
                                                             return (
-                                                                <Listbox.Option 
-                                                                    key={patient.id} 
-                                                                    value={patient.name} 
+                                                                <Listbox.Option
+                                                                    key={patient.id}
+                                                                    value={patient.name}
                                                                     disabled={isDisabled}
-                                                                    className={({ active }) => `select-none px-4 py-2 ${
-                                                                        isDisabled 
-                                                                            ? 'text-gray-400 cursor-not-allowed bg-gray-50' 
-                                                                            : `cursor-pointer ${active ? 'bg-primary/10' : ''}`
-                                                                    }`}
+                                                                    className={({ active }) => `select-none px-4 py-2 ${isDisabled
+                                                                        ? 'text-gray-400 cursor-not-allowed bg-gray-50'
+                                                                        : `cursor-pointer ${active ? 'bg-primary/10' : ''}`
+                                                                        }`}
                                                                 >
                                                                     <span>
                                                                         {patient.name}
@@ -712,9 +809,9 @@ export default function FindTherapistPage() {
                                             />
                                         </div>
                                         <div className="flex gap-2 mt-6">
-                                            <Button 
-                                                variant="default" 
-                                                className="flex-1 rounded-lg h-12 text-base font-semibold" 
+                                            <Button
+                                                variant="default"
+                                                className="flex-1 rounded-lg h-12 text-base font-semibold"
                                                 disabled={
                                                     !selectedPatient ||
                                                     requestedTherapists.some(req =>
@@ -889,8 +986,8 @@ export default function FindTherapistPage() {
                                                     })}
                                                 </p>
                                             </div>
-                                            <Button 
-                                                variant="outline" 
+                                            <Button
+                                                variant="outline"
                                                 size="sm"
                                                 className="text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
                                                 onClick={() => handleCancelRequest(req.id, req.therapist.name)}
@@ -916,8 +1013,8 @@ export default function FindTherapistPage() {
                                             onViewProfile={() => handleViewProfile(conn.therapist, true)}
                                             viewDetailsText="View Details"
                                             additionalActions={
-                                                <Button 
-                                                    variant="outline" 
+                                                <Button
+                                                    variant="outline"
                                                     size="lg"
                                                     className="w-full text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300 font-semibold rounded-xl py-2"
                                                     onClick={() => handleDisconnectTherapist(conn.therapist.id, conn.therapist.name, conn.childName)}
@@ -949,7 +1046,7 @@ export default function FindTherapistPage() {
                                 onClick={() => setShowFilters((prev) => !prev)}
                                 aria-label="Show filters"
                             >
-                                <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 5h18M6 12h12M9 19h6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 5h18M6 12h12M9 19h6" strokeLinecap="round" strokeLinejoin="round" /></svg>
                                 {getActiveFiltersCount() > 0 && (
                                     <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground rounded-full text-xs px-1.5 py-0.5 font-semibold border border-white">
                                         {getActiveFiltersCount()}
@@ -1034,31 +1131,21 @@ export default function FindTherapistPage() {
                         </div>
                     )} */}
 
-                    
-                    {/* Therapists Grid */}
-                    {(() => {
-                        // Exclude therapists already connected to a child
-                        const connectedTherapistIds = new Set(childTherapistConnections.map(conn => conn.therapist.id));
-                        const unconnectedTherapists = filteredTherapists.filter(t => !connectedTherapistIds.has(t.id));
-                        return (
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-7">
-                                {unconnectedTherapists.map((therapist) => (
-                                    <TherapistCard
-                                        key={therapist.id}
-                                        therapist={therapist}
-                                        bookingStatus={'idle'}
-                                        onViewProfile={() => handleViewProfile(therapist)}
-                                        viewDetailsText="View Details"
-                                    />
-                                ))}
-                            </div>
-                        );
-                    })()}
 
-                    {filteredTherapists.filter(t => {
-                        const connectedTherapistIds = new Set(childTherapistConnections.map(conn => conn.therapist.id));
-                        return !connectedTherapistIds.has(t.id);
-                    }).length === 0 && (
+                    {/* Therapists Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-7">
+                        {filteredTherapists.map((therapist) => (
+                            <TherapistCard
+                                key={therapist.id}
+                                therapist={therapist}
+                                bookingStatus={'idle'}
+                                onViewProfile={() => handleViewProfile(therapist)}
+                                viewDetailsText="View Details"
+                            />
+                        ))}
+                    </div>
+
+                    {filteredTherapists.length === 0 && (
                         <TherapistEmptyState onClearFilters={clearAllFilters} />
                     )}
                 </div>

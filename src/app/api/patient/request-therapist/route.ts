@@ -46,20 +46,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if patient already has an assigned therapist
-    if (patient.primaryTherapistId) {
-      return NextResponse.json(
-        { error: "You already have an assigned therapist. Please contact support to change therapists." },
-        { status: 400 }
-      );
-    }
-
     // Get therapist details
     const therapist = await prisma.therapist.findUnique({
       where: { id: therapistId },
       include: {
         user: {
           select: {
+            id: true,
             name: true,
             email: true,
           },
@@ -75,13 +68,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if there's already a pending request to this therapist
-    const existingRequest = await prisma.notification.findFirst({
+    const existingRequest = await prisma.therapistAssignmentRequest.findFirst({
       where: {
-        senderId: user.id,
-        receiverId: therapist.userId,
-        type: "SYSTEM",
-        title: { contains: "Therapist Assignment Request" },
-        isRead: false,
+        patientId: patient.id,
+        therapistId: therapistId,
+        status: "PENDING",
       },
     });
 
@@ -92,14 +83,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if patient already has this therapist assigned
+    if (patient.primaryTherapistId === therapistId) {
+      return NextResponse.json(
+        { error: "This therapist is already assigned to you" },
+        { status: 400 }
+      );
+    }
+
+    // Create assignment request in the database
+    const assignmentRequest = await prisma.therapistAssignmentRequest.create({
+      data: {
+        patientId: patient.id,
+        therapistId: therapistId,
+        status: "PENDING",
+        requestMessage: message || null,
+      },
+    });
+
     // Create notification for therapist
-    const notification = await prisma.notification.create({
+    await prisma.notification.create({
       data: {
         senderId: user.id,
-        receiverId: therapist.userId,
+        receiverId: therapist.user.id,
         type: "SYSTEM",
-        title: "Therapist Assignment Request",
-        message: `${patient.firstName} ${patient.lastName} has requested you as their primary therapist. ${message ? `Message: ${message}` : ''} Patient ID: ${patient.id}`,
+        title: "New Patient Request",
+        message: `${patient.firstName} ${patient.lastName} has requested you as their primary therapist. ${message ? `Message: "${message}"` : 'No message provided.'} Please review and respond to this request.`,
         isUrgent: false,
       },
     });
@@ -107,20 +116,20 @@ export async function POST(request: NextRequest) {
     // Create a notification for the patient as confirmation
     await prisma.notification.create({
       data: {
-        senderId: therapist.userId,
         receiverId: user.id,
         type: "SYSTEM",
-        title: "Assignment Request Sent",
-        message: `Your request to ${therapist.user.name || therapist.user.email} has been sent. You will be notified once they respond.`,
+        title: "Connection Request Sent",
+        message: `Your connection request to ${therapist.user.name || therapist.user.email} has been sent successfully. You will be notified once they respond.`,
         isUrgent: false,
       },
     });
 
     return NextResponse.json({
-      message: "Therapist assignment request sent successfully",
-      notification: {
-        id: notification.id,
+      message: "Therapist connection request sent successfully",
+      request: {
+        id: assignmentRequest.id,
         therapistName: therapist.user.name || therapist.user.email,
+        status: "PENDING",
       },
     });
   } catch (error) {

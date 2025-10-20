@@ -95,6 +95,19 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
         phone: user.phone || "",
         dateOfBirth: user.dateOfBirth || "",
         address: user.address || "",
+        // Pre-split address into 3 lines for editing convenience
+        addressLine1: ((): string => {
+          const parts = String(user.address || "").split(/\r?\n|,\s*/);
+          return parts[0] || "";
+        })(),
+        addressLine2: ((): string => {
+          const parts = String(user.address || "").split(/\r?\n|,\s*/);
+          return parts[1] || "";
+        })(),
+        addressLine3: ((): string => {
+          const parts = String(user.address || "").split(/\r?\n|,\s*/);
+          return parts[2] || "";
+        })(),
         medicalHistory: user.medicalHistory || "",
         emergencyContact: user.emergencyContact || "",
         // Therapist specific
@@ -145,6 +158,15 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
     }
 
     try {
+      // Build a 3-line address into a single field
+      const combinedAddress = [
+        String(formData.addressLine1 || "").trim(),
+        String(formData.addressLine2 || "").trim(),
+        String(formData.addressLine3 || "").trim(),
+      ]
+        .filter(Boolean)
+        .join("\n");
+
       // Prepare the data to send to API based on role
       let apiData: User & Record<string, unknown> = {
         role: user.role,
@@ -163,7 +185,7 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
           lastName,
           email: formData.email,
           phone: formData.phone,
-          address: formData.address,
+          address: combinedAddress,
           medicalHistory: formData.medicalHistory,
           emergencyContact: formData.emergencyContact,
         };
@@ -222,7 +244,7 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
           phone: formData.phone,
           gender: formData.gender,
           dateOfBirth: formData.dateOfBirth,
-          address: formData.address,
+          address: combinedAddress,
           medicalHistory: formData.medicalHistory,
           emergencyContact: formData.emergencyContact,
         }),
@@ -332,14 +354,27 @@ const UserDetailEdit: React.FC<UserDetailEditProps> = ({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="address">Address</Label>
-        <Textarea
-          id="address"
-          value={(formData.address as string) || ""}
-          onChange={(e) => handleInputChange("address", e.target.value)}
-          placeholder="Enter address"
-          rows={2}
-        />
+        <Label>Address</Label>
+        <div className="grid grid-cols-1 gap-2">
+          <Input
+            id="addressLine1"
+            value={String(formData.addressLine1 || "")}
+            onChange={(e) => handleInputChange("addressLine1", e.target.value)}
+            placeholder="Address line 1"
+          />
+          <Input
+            id="addressLine2"
+            value={String(formData.addressLine2 || "")}
+            onChange={(e) => handleInputChange("addressLine2", e.target.value)}
+            placeholder="Address line 2"
+          />
+          <Input
+            id="addressLine3"
+            value={String(formData.addressLine3 || "")}
+            onChange={(e) => handleInputChange("addressLine3", e.target.value)}
+            placeholder="Address line 3"
+          />
+        </div>
       </div>
 
       <div className="space-y-2">

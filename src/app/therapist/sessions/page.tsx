@@ -11,6 +11,7 @@ import { Calendar, Clock, User, FileText, Edit, Eye, CheckCircle, Plus, Hourglas
 import { SessionUpdateModal } from "@/components/therapist/SessionUpdateModal";
 import { RescheduleModal } from "@/components/therapist/RescheduleModal";
 import MedicationManagement from "@/components/therapist/MedicationManagement";
+import AssessmentManagement from "@/components/therapist/AssessmentManagement";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Medication } from "@/types/medications";
 
@@ -37,6 +38,7 @@ interface Session {
   primaryFocusAreas?: string[];
   sessionNotes?: string;
   nextSessionGoals?: string;
+  meetingLink?: string; // Add the meetingLink property
 }
 
 export default function TherapistSessionsPage() {
@@ -61,6 +63,10 @@ export default function TherapistSessionsPage() {
   const [medicationPatientId, setMedicationPatientId] = useState<string | null>(null);
   const [isLoadingMedications, setIsLoadingMedications] = useState(false);
 
+  // Add assessment management state
+  const [assessmentPatientId, setAssessmentPatientId] = useState<string | null>(null);
+  const [isLoadingAssessments] = useState(false);
+
   // Add state for reschedule section collapse
   const [isRescheduleSectionsOpen, setIsRescheduleSectionsOpen] = useState(false);
   // Add state for scheduled section collapse
@@ -69,26 +75,26 @@ export default function TherapistSessionsPage() {
   const [showNoAvailabilityPopup, setShowNoAvailabilityPopup] = useState(false);
   const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
 
-  const hardcodedTasks = [
-    {
-      id: "1",
-      title: "Auditory Processing - Listening Task",
-      assignedDate: "2024-07-10",
-      completedDate: "2024-07-22",
-      status: "Completed",
-      score: 78,
-    },
-    {
-      id: "2",
-      title: "Visual Perception - Picture Description",
-      assignedDate: "2024-07-08",
-      status: "Pending",
-    }
-  ];
-
-  // Helper function to safely parse and format dates (similar to parent tasks page)
+  // Helper function to safely parse and format dates avoiding timezone issues
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    // Parse the date string manually to avoid timezone conversion issues
+    let parsedDate;
+    
+    if (dateString.includes('T')) {
+      // Handle ISO format (2025-10-31T18:30:00 or 2025-10-31T18:30:00Z)
+      const datePart = dateString.split('T')[0];
+      const [year, month, day] = datePart.split('-').map(Number);
+      parsedDate = new Date(year, month - 1, day); // month is 0-indexed
+    } else if (dateString.includes('-')) {
+      // Handle date format (2025-10-31)
+      const [year, month, day] = dateString.split('-').map(Number);
+      parsedDate = new Date(year, month - 1, day); // month is 0-indexed
+    } else {
+      // Fallback to native Date parsing
+      parsedDate = new Date(dateString);
+    }
+    
+    return parsedDate.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric'
@@ -96,38 +102,29 @@ export default function TherapistSessionsPage() {
   };
 
   const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    });
-  };
-
-  const formatTimeManual = (dateString: string) => {
-    // Extract just the time part manually to avoid timezone issues
+    // Extract time manually to avoid timezone conversion
     if (dateString.includes('T')) {
       const timePart = dateString.split('T')[1];
       const timeOnly = timePart.split('.')[0]; // Remove milliseconds if present
       const finalTime = timeOnly.split('Z')[0]; // Remove Z if present
       
-      // Convert to 24-hour format
       const [hours, minutes] = finalTime.split(':');
-      return `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`;
+      const hour24 = parseInt(hours, 10);
+      const hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24;
+      const ampm = hour24 >= 12 ? 'PM' : 'AM';
+      
+      return `${hour12}:${minutes.padStart(2, '0')} ${ampm}`;
     }
     
-    // Fallback to original method
-    return formatTime(dateString);
-  };
-
-  const formatDateTime = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
+    // Fallback for other formats with AM/PM
+    return new Date(dateString).toLocaleTimeString('en-US', {
+      hour: 'numeric',
       minute: '2-digit',
-      hour12: false
+      hour12: true
     });
   };
+
+  // Removed unused formatTimeManual and formatDateTime functions
 
   useEffect(() => {
     fetchSessions();
@@ -184,6 +181,12 @@ export default function TherapistSessionsPage() {
     setMedications([]); // Clear previous medications immediately
     setShowMedications(true);
     fetchMedications(patientId); // Then fetch new ones
+  }, []);
+
+  // Add handler for opening assessments modal with patient context
+  const handleOpenAssessmentsModal = useCallback((patientId: string) => {
+    setAssessmentPatientId(patientId);
+    setShowTasks(true);
   }, []);
 
   const getStatusColor = (status: string) => {
@@ -247,14 +250,20 @@ export default function TherapistSessionsPage() {
     // Apply date range filter
     if (dateFrom) {
       filteredSessions = filteredSessions.filter(session => {
-        const sessionDate = new Date(session.scheduledAt).toISOString().split('T')[0];
-        return sessionDate >= dateFrom;
+        // Extract date part manually to avoid timezone issues
+        const sessionDateString = session.scheduledAt.includes('T') 
+          ? session.scheduledAt.split('T')[0] 
+          : session.scheduledAt.split(' ')[0];
+        return sessionDateString >= dateFrom;
       });
     }
     if (dateTo) {
       filteredSessions = filteredSessions.filter(session => {
-        const sessionDate = new Date(session.scheduledAt).toISOString().split('T')[0];
-        return sessionDate <= dateTo;
+        // Extract date part manually to avoid timezone issues
+        const sessionDateString = session.scheduledAt.includes('T') 
+          ? session.scheduledAt.split('T')[0] 
+          : session.scheduledAt.split(' ')[0];
+        return sessionDateString <= dateTo;
       });
     }
 
@@ -282,37 +291,33 @@ export default function TherapistSessionsPage() {
   // Get unique session types for filter dropdown
   const sessionTypes = [...new Set(sessions.map(session => session.type).filter(type => type != null))];
 
-  const isSessionPast = (session: Session) => {
-    // Parse the session time but treat it as local time instead of UTC
-    const sessionTimeString = session.scheduledAt;
-    
-    // If the time has 'Z' or timezone info, we need to handle it carefully
-    let sessionTime;
-    if (sessionTimeString.includes('T') && sessionTimeString.includes('Z')) {
-      // Remove the 'Z' and treat as local time
-      const localTimeString = sessionTimeString.replace('Z', '');
-      sessionTime = new Date(localTimeString);
+  // Helper function to parse datetime string safely without timezone conversion
+  const parseSessionDateTime = (dateString: string): Date => {
+    if (dateString.includes('T')) {
+      // Handle ISO format (2025-10-31T18:30:00 or 2025-10-31T18:30:00Z)
+      const [datePart, timePart] = dateString.split('T');
+      const [year, month, day] = datePart.split('-').map(Number);
+      
+      const timeOnly = timePart.split('.')[0].split('Z')[0]; // Remove milliseconds and Z
+      const [hours, minutes, seconds = 0] = timeOnly.split(':').map(Number);
+      
+      // Create date in local timezone without conversion
+      return new Date(year, month - 1, day, hours, minutes, seconds);
     } else {
-      sessionTime = new Date(sessionTimeString);
+      // Fallback for other formats
+      return new Date(dateString);
     }
-    
+  };
+
+  const isSessionPast = (session: Session) => {
+    const sessionTime = parseSessionDateTime(session.scheduledAt);
     const now = new Date();
     
     return sessionTime <= now;
   };
 
   const isSessionOngoing = (session: Session) => {
-    // Parse the session time but treat it as local time instead of UTC
-    const sessionTimeString = session.scheduledAt;
-    
-    let sessionTime;
-    if (sessionTimeString.includes('T') && sessionTimeString.includes('Z')) {
-      const localTimeString = sessionTimeString.replace('Z', '');
-      sessionTime = new Date(localTimeString);
-    } else {
-      sessionTime = new Date(sessionTimeString);
-    }
-    
+    const sessionTime = parseSessionDateTime(session.scheduledAt);
     const now = new Date();
     const sessionEndTime = new Date(sessionTime.getTime() + (session.duration * 60 * 1000)); // Add duration in milliseconds
     
@@ -321,17 +326,7 @@ export default function TherapistSessionsPage() {
   };
 
   const isSessionCompleted = (session: Session) => {
-    // Parse the session time but treat it as local time instead of UTC
-    const sessionTimeString = session.scheduledAt;
-    
-    let sessionTime;
-    if (sessionTimeString.includes('T') && sessionTimeString.includes('Z')) {
-      const localTimeString = sessionTimeString.replace('Z', '');
-      sessionTime = new Date(localTimeString);
-    } else {
-      sessionTime = new Date(sessionTimeString);
-    }
-    
+    const sessionTime = parseSessionDateTime(session.scheduledAt);
     const now = new Date();
     const sessionEndTime = new Date(sessionTime.getTime() + (session.duration * 60 * 1000)); // Add duration in milliseconds
     
@@ -414,8 +409,11 @@ export default function TherapistSessionsPage() {
   
 
   const handleJoinSession = (session: Session) => {
-    // For now, just show an alert - will implement video call functionality later
-    alert(`Joining session with ${session.patientName}...`);
+    if (session.meetingLink) {
+      window.open(session.meetingLink, "_blank"); // Redirect to the meeting link
+    } else {
+      alert("Meeting link is not available for this session.");
+    }
   };
 
   
@@ -493,7 +491,7 @@ export default function TherapistSessionsPage() {
         
         <CardContent className="pt-0">
           <div className="flex flex-wrap items-center justify-between gap-6">
-            <div className="flex flex-wrap gap-6 md:gap-8 lg:gap-48">
+            <div className="flex flex-wrap gap-6 md:gap-8 lg:gap-42">
               <div className="flex items-center gap-2">
                 <Calendar className="w-6 h-6 text-primary" />
                 <div>
@@ -506,7 +504,7 @@ export default function TherapistSessionsPage() {
                 <Clock className="w-6 h-6 text-primary" />
                 <div>
                   <p className="text-xs text-gray-500">Time</p>
-                  <p className="text-sm font-medium">{formatTimeManual(session.scheduledAt)}</p>
+                  <p className="text-sm font-medium">{formatTime(session.scheduledAt)}</p>
                 </div>
               </div>
               
@@ -625,16 +623,23 @@ export default function TherapistSessionsPage() {
         handleOpenMedicationsModal(patientId);
       }
     };
-    const openTasksModal = () => setShowTasks(true);
+    const openTasksModal = (event: CustomEvent) => {
+      const patientId = event.detail?.patientId || assessmentPatientId;
+      if (patientId) {
+        handleOpenAssessmentsModal(patientId);
+      } else {
+        setShowTasks(true);
+      }
+    };
 
     window.addEventListener("openMedicationsModal", openMedicationsModal as EventListener);
-    window.addEventListener("openTasksModal", openTasksModal);
+    window.addEventListener("openTasksModal", openTasksModal as EventListener);
 
     return () => {
       window.removeEventListener("openMedicationsModal", openMedicationsModal as EventListener);
-      window.removeEventListener("openTasksModal", openTasksModal);
+      window.removeEventListener("openTasksModal", openTasksModal as EventListener);
     };
-  }, [medicationPatientId, handleOpenMedicationsModal]);
+  }, [medicationPatientId, handleOpenMedicationsModal, assessmentPatientId, handleOpenAssessmentsModal]);
 
   if (loading) {
     return (
@@ -677,12 +682,13 @@ export default function TherapistSessionsPage() {
                   {(() => {
                     const upcomingNonReschedule = filterSessionsByTab("scheduled")
                       .filter(s => s.status !== 'RESCHEDULED')
-                      .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
+                      .filter(s => !isSessionPast(s)) // Only include future sessions
+                      .sort((a, b) => parseSessionDateTime(a.scheduledAt).getTime() - parseSessionDateTime(b.scheduledAt).getTime());
                     
                     return upcomingNonReschedule.length > 0 ? (
                       <>
                         <p className="text-lg font-bold text-gray-900 mt-1">
-                          {formatDateTime(upcomingNonReschedule[0].scheduledAt)}
+                          {formatDate(upcomingNonReschedule[0].scheduledAt)} at {formatTime(upcomingNonReschedule[0].scheduledAt)}
                         </p>
                         <p className="text-xs text-gray-500 mt-1">
                           {upcomingNonReschedule[0].patientName}
@@ -690,8 +696,8 @@ export default function TherapistSessionsPage() {
                       </>
                     ) : (
                       <>
-                        <p className="text-lg font-bold text-gray-900 mt-1">No sessions</p>
-                        <p className="text-xs text-gray-500 mt-1">scheduled</p>
+                        <p className="text-lg font-bold text-gray-900 mt-1">No upcoming</p>
+                        <p className="text-xs text-gray-500 mt-1">sessions</p>
                       </>
                     );
                   })()}
@@ -718,7 +724,7 @@ export default function TherapistSessionsPage() {
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
                     This month: {filterSessionsByTab("completed").filter(s => {
-                      const sessionDate = new Date(s.scheduledAt);
+                      const sessionDate = parseSessionDateTime(s.scheduledAt);
                       const thisMonth = new Date();
                       return sessionDate.getMonth() === thisMonth.getMonth() && 
                              sessionDate.getFullYear() === thisMonth.getFullYear();
@@ -1206,85 +1212,26 @@ export default function TherapistSessionsPage() {
         </Dialog>
 
         <Dialog open={showTasks} onOpenChange={setShowTasks}>
-          <DialogContent className="max-w-3xl">
-            <div className="flex items-center justify-between mb-4">
-              <Button
-                style={{ backgroundColor: "#8159A8", color: "#fff" }}
-                className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2 shadow hover:brightness-110"
-                // onClick={() => setShowAssignTask(true)}
-              >
-                <Plus className="w-5 h-5" />
-                Assign a new Task
-              </Button>
-              <div className="flex gap-2">
-                <Badge variant="outline" className="text-sm">
-                  {hardcodedTasks.filter(t => t.status === "Pending").length} Pending
-                </Badge>
-                <Badge variant="outline" className="text-sm bg-green-50 text-green-700">
-                  {hardcodedTasks.filter(t => t.status === "Completed").length} Completed
-                </Badge>
-              </div>
-            </div>
-            <div className="space-y-6">
-              {hardcodedTasks.length === 0 ? (
-                <Card>
-                  <CardContent className="p-8 text-center">
-                    <p className="text-muted-foreground">No tasks assigned.</p>
-                  </CardContent>
-                </Card>
-              ) : 
-                hardcodedTasks.map((task, idx) => (
-                  <div
-                    key={task.id}
-                    className="flex flex-col md:flex-row items-start md:items-center justify-between bg-[#fcfafd] rounded-xl shadow-sm px-6 py-4"
-                    style={{ borderBottom: idx !== hardcodedTasks.length - 1 ? "1px solid #f0eef5" : undefined }}
-                  >
-                    <div>
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <span className="text-base md:text-xl font-semibold text-[#8159A8]">{task.title}</span>
-                        {task.status === "Completed" && (
-                          <span className="bg-green-100 text-green-700 text-xs font-semibold px-2 py-0.5 rounded-full">
-                            Completed
-                          </span>
-                        )}
-                        {task.status === "Pending" && (
-                          <span className="bg-yellow-100 text-yellow-700 text-xs font-semibold px-2 py-0.5 rounded-full">
-                            Pending
-                          </span>
-                        )}
-                        {"score" in task && (
-                          <span className="bg-blue-100 text-blue-700 text-xs font-semibold px-2 py-0.5 rounded-full">
-                            Score: {task.score}
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-xs text-[#8159A8] font-medium">
-                        Assigned: {task.assignedDate}
-                        {task.completedDate && (
-                          <span className="ml-3">
-                            Completed: {task.completedDate}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex gap-2 mt-3 md:mt-0">
-                      <Button
-                        variant="outline"
-                        className="border-red-400 text-red-700 hover:bg-red-50 px-3 py-1 text-xs font-semibold"
-                        style={{ borderColor: "#EF4444" }}
-                      >
-                        Unassign
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="border-primary text-primary hover:bg-primary/10 px-3 py-1 text-xs font-semibold"
-                      >
-                        View Assessment
-                      </Button>
-                    </div>
-                  </div>
-                ))
-              }
+          <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden">
+            <div className="overflow-y-auto max-h-[calc(90vh-8rem)] pr-2">
+              {isLoadingAssessments ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#8159A8]"></div>
+                  <span className="ml-2">Loading assessments...</span>
+                </div>
+              ) : assessmentPatientId ? (
+                <AssessmentManagement 
+                  patientId={assessmentPatientId}
+                  onAssessmentUpdate={() => {
+                    // Optional callback for any updates needed in parent component
+                    console.log('Assessment updated');
+                  }}
+                />
+              ) : (
+                <div className="p-8 text-center">
+                  <p className="text-gray-500">Please select a patient to manage assessments.</p>
+                </div>
+              )}
             </div>
           </DialogContent>
         </Dialog>

@@ -14,8 +14,8 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 
-import { Users, Plus, UserPlus, RefreshCw, AlertCircle } from "lucide-react";
-import { AddChildForm } from "@/components/parent/AddChildForm";
+import { Users, UserPlus, RefreshCw, AlertCircle } from "lucide-react";
+// import { AddChildForm } from "@/components/parent/AddChildForm";
 import { ConnectChildForm } from "@/components/parent/ConnectChildForm";
 import { StatsCard } from "@/components/ui/stats-card";
 import { SessionBookingModal } from "@/components/parent/SessionBookingModal";
@@ -54,7 +54,7 @@ export default function ParentDashboard() {
     const [parentData, setParentData] = useState<ParentData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [showAddChild, setShowAddChild] = useState(false);
+    // const [showAddChild, setShowAddChild] = useState(false);
     const [showConnectChild, setShowConnectChild] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -120,10 +120,10 @@ export default function ParentDashboard() {
 
     console.log(parentData);
 
-    const handleChildAdded = () => {
-        setShowAddChild(false);
-        fetchChildren();
-    };
+    // const handleChildAdded = () => {
+    //     setShowAddChild(false);
+    //     fetchChildren();
+    // };
 
     const handleChildConnected = () => {
         setShowConnectChild(false);
@@ -221,7 +221,7 @@ export default function ParentDashboard() {
                         </DialogContent>
                     </Dialog>
 
-                    <Dialog open={showAddChild} onOpenChange={setShowAddChild}>
+                    {/* <Dialog open={showAddChild} onOpenChange={setShowAddChild}>
                         <DialogTrigger asChild>
                             <Button
                                 className="bg-primary text-primary-foreground font-semibold px-6 py-2 rounded-xl shadow-sm hover:opacity-90 transition"
@@ -240,7 +240,7 @@ export default function ParentDashboard() {
                             </DialogHeader>
                             <AddChildForm onSuccess={handleChildAdded} />
                         </DialogContent>
-                    </Dialog>
+                    </Dialog> */}
                 </div>
             </div>
             {/* Stats Grid - only show when we have children */}
@@ -335,7 +335,7 @@ export default function ParentDashboard() {
 
                                             <div className="space-y-3">
                                                 <div className="flex items-center justify-between">
-                                                    <span className="text-sm font-semibold text-muted-foreground">Overall Progress</span>
+                                                    <span className="text-sm font-semibold text-muted-foreground">Tasks Completed</span>
                                                     <span className="text-sm font-bold text-primary">{child.progressPercentage}%</span>
                                                 </div>
                                                 <div className="relative">
@@ -402,7 +402,7 @@ export default function ParentDashboard() {
                         <Card className="shadow-md border-border bg-background">
                             <CardHeader className="border-b border-border pb-4">
                                 <CardTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
-                                    <span>📅</span> Schedule Session
+                                    Schedule Session
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="pt-6">
@@ -466,14 +466,14 @@ export default function ParentDashboard() {
                                 <UserPlus className="h-4 w-4 mr-2" />
                                 Connect Existing Patient
                             </Button>
-                            <Button
+                            {/* <Button
                                 onClick={() => setShowAddChild(true)}
                                 className="bg-primary text-primary-foreground font-semibold px-6 py-2 rounded-xl shadow-sm hover:opacity-90 transition"
                                 aria-label="Add a new child to start therapy services"
                             >
                                 <Plus className="h-4 w-4 mr-2" />
                                 Add New Patient
-                            </Button>
+                            </Button> */}
                         </div>
                         <div className="mt-6 p-4 bg-accent/10 rounded-lg border border-accent">
                             <p className="text-sm text-accent-foreground font-medium mb-1">Need help getting started?</p>

@@ -35,33 +35,36 @@ model Session {
 }
 
 model User {
-  id                               String              @id @default(cuid())
-  email                            String?             @unique
+  id                               String                 @id @default(cuid())
+  email                            String?                @unique
   name                             String?
-  createdAt                        DateTime            @default(now())
-  updatedAt                        DateTime            @updatedAt
+  createdAt                        DateTime               @default(now())
+  updatedAt                        DateTime               @updatedAt
   emailVerified                    DateTime?
   image                            String?
   metadata                         Json?
   password                         String?
-  role                             UserRole            @default(NORMAL_USER)
+  role                             UserRole               @default(NORMAL_USER)
   accounts                         Account[]
-  refundRequests                   CancelRefund[]      @relation("RefundRequests")
-  processedRefunds                 CancelRefund[]      @relation("ProcessedRefunds")
+  refundRequests                   CancelRefund[]         @relation("RefundRequests")
+  processedRefunds                 CancelRefund[]         @relation("ProcessedRefunds")
   Conversation                     Conversation[]
   Donation                         Donation[]
   Game                             Game[]
-  Message_Message_receiverIdToUser Message[]           @relation("Message_receiverIdToUser")
-  Message_Message_senderIdToUser   Message[]           @relation("Message_senderIdToUser")
-  receivedNotifications            Notification[]      @relation("NotificationReceiver")
-  sentNotifications                Notification[]      @relation("NotificationSender")
-  managedOrganization              Organization?       @relation("OrganizationManager")
+  Message_Message_receiverIdToUser Message[]              @relation("Message_receiverIdToUser")
+  Message_Message_senderIdToUser   Message[]              @relation("Message_senderIdToUser")
+  receivedNotifications            Notification[]         @relation("NotificationReceiver")
+  sentNotifications                Notification[]         @relation("NotificationSender")
+  managedOrganization              Organization?          @relation("OrganizationManager")
   parentGuardianRel                ParentGuardian[]
   patientProfile                   Patient?
   sessions                         Session[]
   SessionReschedule                SessionReschedule[]
   therapistProfile                 Therapist?
   blogs                            blogs[]
+  supportTickets                   SupportTicket[]        @relation("UserSupportTickets")
+  resolvedTickets                  SupportTicket[]        @relation("ResolvedSupportTickets")
+  supportTicketComments            SupportTicketComment[] @relation("SupportTicketComments")
 }
 
 model VerificationToken {
@@ -70,6 +73,20 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model PasswordResetOTP {
+  id         String   @id @default(cuid())
+  email      String
+  otp        String
+  expiresAt  DateTime
+  verified   Boolean  @default(false)
+  attempts   Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([email])
+  @@index([expiresAt])
 }
 
 model Organization {
@@ -377,9 +394,11 @@ model QuizSubmission {
   id               String     @id @default(cuid())
   userId           String?
   sessionId        String
+  quizType         String     @default("WELLNESS") // WELLNESS or ADHD
   responses        Json
   currentStep      Int        @default(1)
   completionStatus QuizStatus @default(IN_PROGRESS)
+  adhdScore        Json?      // Stores ADHD scores: {inattention, hyperactivity, total, type}
   startedAt        DateTime   @default(now())
   completedAt      DateTime?
   updatedAt        DateTime   @updatedAt
@@ -387,6 +406,7 @@ model QuizSubmission {
   @@index([userId])
   @@index([sessionId])
   @@index([completionStatus])
+  @@index([quizType])
 }
 
 model TherapistAvailability {
@@ -704,6 +724,45 @@ model AssessmentAssignment {
   @@index([status])
 }
 
+model SupportTicket {
+  id          String                 @id @default(cuid())
+  email       String
+  title       String
+  description String
+  status      SupportTicketStatus    @default(OPEN)
+  priority    SupportTicketPriority  @default(MEDIUM)
+  userId      String?
+  userName    String?
+  userRole    String?
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  resolvedAt  DateTime?
+  resolvedBy  String?
+  user        User?                  @relation("UserSupportTickets", fields: [userId], references: [id], onDelete: SetNull)
+  resolver    User?                  @relation("ResolvedSupportTickets", fields: [resolvedBy], references: [id], onDelete: SetNull)
+  comments    SupportTicketComment[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([priority])
+  @@index([createdAt])
+}
+
+model SupportTicketComment {
+  id        String        @id @default(cuid())
+  ticketId  String
+  userId    String
+  comment   String
+  isInternal Boolean      @default(true)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  ticket    SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  user      User          @relation("SupportTicketComments", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+  @@index([userId])
+}
+
 enum UserRole {
   NORMAL_USER
   PARENT_GUARDIAN
@@ -912,4 +971,19 @@ enum AssessmentType {
   PROGRESS
   FINAL
   FOLLOW_UP
+}
+
+enum SupportTicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+  PENDING_USER_RESPONSE
+}
+
+enum SupportTicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
 }

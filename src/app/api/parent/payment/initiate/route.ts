@@ -123,14 +123,49 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Parse time to create session datetime
+    let sessionDate: Date;
+    try {
+      const [timeSlotStart] = timeSlot.split("-");
+      const cleanTimeSlot = timeSlotStart.trim();
+
+      let hours: number, minutes: number;
+      const time24Match = cleanTimeSlot.match(/^(\d{1,2}):(\d{2})$/);
+      if (time24Match) {
+        hours = parseInt(time24Match[1]);
+        minutes = parseInt(time24Match[2]);
+      } else {
+        const time12Match = cleanTimeSlot.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+        if (time12Match) {
+          const h = parseInt(time12Match[1]);
+          minutes = parseInt(time12Match[2]);
+          const period = time12Match[3].toUpperCase();
+          hours = period === "AM" ? (h === 12 ? 0 : h) : (h === 12 ? 12 : h + 12);
+        } else {
+          throw new Error(`Invalid time format: "${cleanTimeSlot}"`);
+        }
+      }
+
+      const timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`;
+      sessionDate = new Date(`${dateStr}T${timeStr}.000Z`);
+    } catch (error) {
+      console.error("Failed to parse time:", error);
+      return NextResponse.json(
+        { error: "Invalid time format" },
+        { status: 400 }
+      );
+    }
+
+    // Get session rate
+    const sessionRate = availabilitySlot.isFree ? 0 : (child.primaryTherapist.session_rate || 0);
+
     // Generate unique order ID
     const orderId = `PARENT_${Date.now()}_${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
 
-    // Create payment record with booking details in metadata
+    // Create payment record with session details to be created after successful payment
     const payment = await prisma.payment.create({
       data: {
         orderId,
-        sessionId: null, // No session yet - will be created after payment
         patientId: child.id,
         amount: parseFloat(amount),
         currency: "LKR",
@@ -151,6 +186,8 @@ export async function POST(request: NextRequest) {
             sessionType,
             availabilitySlotId: availabilitySlot.id,
             patientId: child.id,
+            sessionDate: sessionDate.toISOString(), // Store computed session date
+            sessionRate: sessionRate,
           },
           // Track who initiated the payment
           initiatedBy: {

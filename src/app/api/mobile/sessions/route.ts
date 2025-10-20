@@ -90,6 +90,8 @@ export async function GET(request: NextRequest) {
       scheduledAt: session.scheduledAt,
       duration: session.duration,
       sessionNotes: session.sessionNotes,
+      sessionType: session.sessionType,
+      meetingLink: session.meetingLink,
       therapistId: session.therapist.id,
       therapist: {
         id: session.therapist.id,

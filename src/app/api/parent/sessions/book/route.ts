@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { createGoogleMeetEvent, generateSimpleMeetingLink } from "@/lib/google-meet";
 
 export async function POST(request: NextRequest) {
   try {
@@ -156,6 +157,84 @@ export async function POST(request: NextRequest) {
     // Get the rate - check if slot is free, otherwise use therapist's session rate
     const sessionRate = availabilitySlot.isFree ? 0 : (child.primaryTherapist.session_rate || 0);
 
+    // Store therapist info for use outside transaction
+    const therapistUserId = child.primaryTherapist.user.id;
+    const therapistName = child.primaryTherapist.user.name || "Therapist";
+
+    // Generate meeting link for online/hybrid sessions
+    let meetingLink: string | null = null;
+    let calendarEventId: string | null = null;
+
+    // Attempt to create a Google Meet event using the therapist's Google account.
+    // If that fails (no tokens / error), fall back to a simple internal meeting link.
+    try {
+      // Get therapist google account tokens
+      const therapistGoogleAccount = await prisma.account.findFirst({
+        where: {
+          userId: therapistUserId,
+          provider: 'google',
+        },
+        select: {
+          access_token: true,
+          refresh_token: true,
+          scope: true,
+        },
+      });
+
+      // Fetch therapist email (not always loaded earlier)
+      const therapistUser = await prisma.user.findUnique({
+        where: { id: therapistUserId },
+        select: { email: true, name: true },
+      });
+
+      const parentEmail = session.user?.email ?? undefined;
+
+      if (
+        therapistGoogleAccount &&
+        therapistGoogleAccount.access_token &&
+        therapistGoogleAccount.refresh_token &&
+        therapistGoogleAccount.scope &&
+        therapistGoogleAccount.scope.includes('calendar')
+      ) {
+        try {
+          const startISO = sessionDate.toISOString();
+          const endISO = new Date(sessionDate.getTime() + 45 * 60 * 1000).toISOString();
+
+          const attendeeEmails = [therapistUser?.email, parentEmail].filter(Boolean) as string[];
+
+          const meetingResponse = await createGoogleMeetEvent(
+            {
+              summary: `Therapy session for ${child.firstName} ${child.lastName}`,
+              description: `Session booked on SPARKS. Therapist: ${therapistName}`,
+              startDateTime: startISO,
+              endDateTime: endISO,
+              attendeeEmails,
+              timezone: 'Asia/Colombo',
+            },
+            therapistGoogleAccount.access_token!,
+            therapistGoogleAccount.refresh_token!,
+            therapistUserId
+          );
+
+          meetingLink = meetingResponse.meetingLink;
+          calendarEventId = meetingResponse.eventId;
+          console.log(`✅ Google Meet event created for session: ${meetingLink}`);
+        } catch (meetError) {
+          console.error('Failed to create Google Meet event in booking flow:', meetError);
+          // fallback to simple meeting link
+          meetingLink = generateSimpleMeetingLink(`${child.id}-${Date.now()}`);
+          console.log(`⚠️ Using fallback meeting link: ${meetingLink}`);
+        }
+      } else {
+        // Therapist hasn't connected Google calendar or missing tokens -> fallback link
+        meetingLink = generateSimpleMeetingLink(`${child.id}-${Date.now()}`);
+        console.log('⚠️ Therapist has no Google Calendar access - using fallback meeting link');
+      }
+    } catch (err) {
+      console.error('Unexpected error while generating meeting link:', err);
+      meetingLink = generateSimpleMeetingLink(`${child.id}-${Date.now()}`);
+    }
+
     // Create the therapy session and mark the slot as booked in a transaction
     const result = await prisma.$transaction(async (tx) => {
       // First, mark the availability slot as booked (double-check it's still available)
@@ -180,7 +259,9 @@ export async function POST(request: NextRequest) {
           duration: 45, // Fixed 45-minute sessions
           status: "SCHEDULED",
           type: sessionType,
-          bookedRate: sessionRate
+          bookedRate: sessionRate,
+          meetingLink: meetingLink,
+          calendarEventId: calendarEventId
         },
         include: {
           patient: {
@@ -200,6 +281,9 @@ export async function POST(request: NextRequest) {
           }
         }
       });
+
+      console.log(`✅ Free session created successfully: ${therapySession.id}`);
+      console.log(`✅ Meeting link saved in database: ${meetingLink}`);
 
       return therapySession;
     });
@@ -234,7 +318,9 @@ export async function POST(request: NextRequest) {
         scheduledAt: result.scheduledAt,
         duration: result.duration,
         status: result.status,
-        bookedRate: result.bookedRate
+        bookedRate: result.bookedRate,
+        type: result.type,
+        meetingLink: result.meetingLink
       }
     });
 

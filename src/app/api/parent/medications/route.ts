@@ -15,6 +15,19 @@ export async function GET(request: Request) {
       where: {
         patientId: patientId
       },
+      include: {
+        Therapist: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true
+              }
+            }
+          }
+        }
+      },
       orderBy: {
         startDate: 'desc'
       }
@@ -24,6 +37,23 @@ export async function GET(request: Request) {
       where: {
         medication: {
           patientId: patientId
+        }
+      },
+      include: {
+        medication: {
+          include: {
+            Therapist: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true
+                  }
+                }
+              }
+            }
+          }
         }
       },
       orderBy: {
