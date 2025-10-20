@@ -49,14 +49,25 @@ async function handleUserRegistration() {
 
 // --- 2. Handler for Therapist Leaderboard Chart ---
 async function handleTherapistLeaderboard() {
+    // Get all therapists first
     const therapists = await prisma.therapist.findMany({
         include: { user: { select: { name: true } } },
     });
 
+    // Get session counts for each therapist
     const leaderboardData = await Promise.all(
         therapists.map(async (therapist) => {
-            const sessionCount = await prisma.therapySession.count({ where: { therapistId: therapist.id } });
-            const distinctPatients = await prisma.therapySession.findMany({ where: { therapistId: therapist.id }, distinct: ['patientId'] });
+            const sessionCount = await prisma.therapySession.count({ 
+                where: { therapistId: therapist.id } 
+            });
+            
+            // Get distinct patient count using a different approach
+            const distinctPatients = await prisma.therapySession.findMany({
+                where: { therapistId: therapist.id },
+                select: { patientId: true },
+                distinct: ['patientId'],
+            });
+
             return {
                 name: therapist.user.name,
                 sessionCount: sessionCount,

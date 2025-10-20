@@ -50,6 +50,13 @@ export function AnalyticsDashboard() {
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const [loadedCharts, setLoadedCharts] = useState({
+    registration: false,
+    leaderboard: false,
+    session: false,
+    revenue: false,
+  });
 
   useEffect(() => {
     const fetchAllAnalyticsData = async () => {
@@ -59,30 +66,50 @@ export function AnalyticsDashboard() {
         
         const baseUrl = window.location.origin;
         
-        const [regResponse, leaderboardResponse, sessionResponse, revenueResponse] = await Promise.all([
-          fetch(`${baseUrl}/api/admin/reports`),
-          fetch(`${baseUrl}/api/admin/reports?chart=therapistLeaderboard`),
-          fetch(`${baseUrl}/api/admin/reports?chart=sessionGrowth`),
-          fetch(`${baseUrl}/api/admin/reports?chart=revenueBreakdown`),
-        ]);
-
-        if (!regResponse.ok || !leaderboardResponse.ok || !sessionResponse.ok || !revenueResponse.ok) {
-            throw new Error(`One or more API requests failed`);
-        }
-
+        // Helper function to add delay between requests
+        const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+        
+        // Make API calls sequentially with small delays to prevent database connection exhaustion
+        const regResponse = await fetch(`${baseUrl}/api/admin/reports`);
+        if (!regResponse.ok) throw new Error(`Registration data request failed: ${regResponse.status}`);
         const regData = await regResponse.json();
-        const leaderboardData = await leaderboardResponse.json();
-        const sessionData = await sessionResponse.json();
-        const revenueData = await revenueResponse.json();
-
         setRegistrationData(regData);
+        setLoadedCharts(prev => ({ ...prev, registration: true }));
+        await delay(100); // 100ms delay
+
+        const leaderboardResponse = await fetch(`${baseUrl}/api/admin/reports?chart=therapistLeaderboard`);
+        if (!leaderboardResponse.ok) throw new Error(`Leaderboard data request failed: ${leaderboardResponse.status}`);
+        const leaderboardData = await leaderboardResponse.json();
         setLeaderboardData(leaderboardData);
+        setLoadedCharts(prev => ({ ...prev, leaderboard: true }));
+        await delay(100); // 100ms delay
+
+        const sessionResponse = await fetch(`${baseUrl}/api/admin/reports?chart=sessionGrowth`);
+        if (!sessionResponse.ok) throw new Error(`Session data request failed: ${sessionResponse.status}`);
+        const sessionData = await sessionResponse.json();
         setSessionGrowthData(sessionData);
+        setLoadedCharts(prev => ({ ...prev, session: true }));
+        await delay(100); // 100ms delay
+
+        const revenueResponse = await fetch(`${baseUrl}/api/admin/reports?chart=revenueBreakdown`);
+        if (!revenueResponse.ok) throw new Error(`Revenue data request failed: ${revenueResponse.status}`);
+        const revenueData = await revenueResponse.json();
         setRevenueData(revenueData);
+        setLoadedCharts(prev => ({ ...prev, revenue: true }));
 
       } catch (err: any) {
-        setError(err.message || 'An unexpected error occurred.');
         console.error('Error fetching analytics data:', err);
+        
+        // Retry logic for database connection errors
+        if (retryCount < 2 && (err.message.includes('database') || err.message.includes('connection') || err.message.includes('500'))) {
+          setRetryCount(prev => prev + 1);
+          setTimeout(() => {
+            fetchAllAnalyticsData();
+          }, 1000 * (retryCount + 1)); // Exponential backoff
+          return;
+        }
+        
+        setError(err.message || 'An unexpected error occurred.');
       } finally {
         setLoading(false);
       }
@@ -97,8 +124,28 @@ export function AnalyticsDashboard() {
         <div className="w-full">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* --- Loading and Error States --- */}
-                {loading && <p className="col-span-full text-center text-gray-500 py-10">Loading dashboard...</p>}
-                {error && <p className="col-span-full text-center text-red-500 py-10">Error: {error}</p>}
+                {loading && !loadedCharts.registration && (
+                    <div className="col-span-full flex flex-col items-center justify-center py-20 space-y-4">
+                        <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-[#8159A8]"></div>
+                        <p className="text-lg text-gray-600">Loading analytics dashboard...</p>
+                        <p className="text-sm text-gray-500">Fetching data from multiple sources</p>
+                    </div>
+                )}
+                {error && (
+                    <div className="col-span-full flex flex-col items-center justify-center py-20 space-y-4">
+                        <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                            <span className="text-red-600 text-xl">⚠️</span>
+                        </div>
+                        <p className="text-lg text-red-600">Error loading dashboard</p>
+                        <p className="text-sm text-gray-500">{error}</p>
+                        <button 
+                            onClick={() => window.location.reload()} 
+                            className="px-4 py-2 bg-[#8159A8] text-white rounded-lg hover:bg-[#6B429B] transition-colors"
+                        >
+                            Retry
+                        </button>
+                    </div>
+                )}
                 
                 {!loading && !error && (
                     <>
@@ -116,18 +163,25 @@ export function AnalyticsDashboard() {
                                 </div>
                             </CardHeader>
                             <CardContent>
-                                <ResponsiveContainer width="100%" height={250}>
-                                    <LineChart data={registrationData}>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                                        <XAxis dataKey="month" stroke="#6b7280" fontSize={12} tickLine={false} axisLine={false} />
-                                        <YAxis stroke="#6b7280" fontSize={12} tickLine={false} axisLine={false} />
-                                        <Tooltip contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.8)', border: '1px solid #e5e7eb', borderRadius: '0.5rem' }} />
-                                        <Legend />
-                                        <Line type="monotone" dataKey="patients" stroke="#3b82f6" strokeWidth={2} name="Patients" />
-                                        <Line type="monotone" dataKey="guardians" stroke="#10b981" strokeWidth={2} name="Guardians" />
-                                        <Line type="monotone" dataKey="therapists" stroke="#f59e0b" strokeWidth={2} name="Therapists" />
-                                    </LineChart>
-                                </ResponsiveContainer>
+                                {!loadedCharts.registration ? (
+                                    <div className="flex flex-col items-center justify-center h-[250px] space-y-3">
+                                        <div className="animate-spin rounded-full h-10 w-10 border-4 border-blue-200 border-t-blue-600"></div>
+                                        <p className="text-sm text-gray-500">Loading registration data...</p>
+                                    </div>
+                                ) : (
+                                    <ResponsiveContainer width="100%" height={250}>
+                                        <LineChart data={registrationData}>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                                            <XAxis dataKey="month" stroke="#6b7280" fontSize={12} tickLine={false} axisLine={false} />
+                                            <YAxis stroke="#6b7280" fontSize={12} tickLine={false} axisLine={false} />
+                                            <Tooltip contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.8)', border: '1px solid #e5e7eb', borderRadius: '0.5rem' }} />
+                                            <Legend />
+                                            <Line type="monotone" dataKey="patients" stroke="#3b82f6" strokeWidth={2} name="Patients" />
+                                            <Line type="monotone" dataKey="guardians" stroke="#10b981" strokeWidth={2} name="Guardians" />
+                                            <Line type="monotone" dataKey="therapists" stroke="#f59e0b" strokeWidth={2} name="Therapists" />
+                                        </LineChart>
+                                    </ResponsiveContainer>
+                                )}
                             </CardContent>
                         </Card>
 
@@ -145,17 +199,24 @@ export function AnalyticsDashboard() {
                                 </div>
                             </CardHeader>
                             <CardContent>
-                                <ResponsiveContainer width="100%" height={250}>
-                                    <BarChart data={leaderboardData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                                        <XAxis dataKey="name" type="category" stroke="#6b7280" fontSize={11} angle={-25} textAnchor="end" height={70} />
-                                        <YAxis type="number" stroke="#6b7280" fontSize={12} />
-                                        <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }} />
-                                        <Legend verticalAlign="top" />
-                                        <Bar dataKey="sessionCount" name="Sessions" fill="#8b5cf6" radius={[8, 8, 0, 0]} />
-                                        <Bar dataKey="patientCount" name="Patients" fill="#ec4899" radius={[8, 8, 0, 0]} />
-                                    </BarChart>
-                                </ResponsiveContainer>
+                                {!loadedCharts.leaderboard ? (
+                                    <div className="flex flex-col items-center justify-center h-[250px] space-y-3">
+                                        <div className="animate-spin rounded-full h-10 w-10 border-4 border-purple-200 border-t-purple-600"></div>
+                                        <p className="text-sm text-gray-500">Loading leaderboard data...</p>
+                                    </div>
+                                ) : (
+                                    <ResponsiveContainer width="100%" height={250}>
+                                        <BarChart data={leaderboardData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                                            <XAxis dataKey="name" type="category" stroke="#6b7280" fontSize={11} angle={-25} textAnchor="end" height={70} />
+                                            <YAxis type="number" stroke="#6b7280" fontSize={12} />
+                                            <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }} />
+                                            <Legend verticalAlign="top" />
+                                            <Bar dataKey="sessionCount" name="Sessions" fill="#8b5cf6" radius={[8, 8, 0, 0]} />
+                                            <Bar dataKey="patientCount" name="Patients" fill="#ec4899" radius={[8, 8, 0, 0]} />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                )}
                             </CardContent>
                         </Card>
 
@@ -173,16 +234,23 @@ export function AnalyticsDashboard() {
                                 </div>
                             </CardHeader>
                             <CardContent>
-                                <ResponsiveContainer width="100%" height={250}>
-                                    <BarChart data={sessionGrowthData}>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                                        <XAxis dataKey="month" stroke="#6b7280" fontSize={12} />
-                                        <YAxis stroke="#6b7280" fontSize={12} />
-                                        <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }} />
-                                        <Legend verticalAlign="top" />
-                                        <Bar dataKey="sessions" name="Sessions" fill="#10b981" radius={[8, 8, 0, 0]} />
-                                    </BarChart>
-                                </ResponsiveContainer>
+                                {!loadedCharts.session ? (
+                                    <div className="flex flex-col items-center justify-center h-[250px] space-y-3">
+                                        <div className="animate-spin rounded-full h-10 w-10 border-4 border-green-200 border-t-green-600"></div>
+                                        <p className="text-sm text-gray-500">Loading session data...</p>
+                                    </div>
+                                ) : (
+                                    <ResponsiveContainer width="100%" height={250}>
+                                        <BarChart data={sessionGrowthData}>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                                            <XAxis dataKey="month" stroke="#6b7280" fontSize={12} />
+                                            <YAxis stroke="#6b7280" fontSize={12} />
+                                            <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }} />
+                                            <Legend verticalAlign="top" />
+                                            <Bar dataKey="sessions" name="Sessions" fill="#10b981" radius={[8, 8, 0, 0]} />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                )}
                             </CardContent>
                         </Card>
 
@@ -200,26 +268,33 @@ export function AnalyticsDashboard() {
                                 </div>
                             </CardHeader>
                             <CardContent>
-                                <ResponsiveContainer width="100%" height={250}>
-                                    <PieChart>
-                                        <Pie
-                                            data={revenueData as any[]}
-                                            cx="50%"
-                                            cy="50%"
-                                            innerRadius={70}
-                                            outerRadius={100}
-                                            fill="#8884d8"
-                                            paddingAngle={5}
-                                            dataKey="value"
-                                        >
-                                            {revenueData.map((entry, index) => (
-                                                <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                                            ))}
-                                        </Pie>
-                                        <Tooltip formatter={(value: number) => `Rs. ${value.toLocaleString()}`} />
-                                        <Legend />
-                                    </PieChart>
-                                </ResponsiveContainer>
+                                {!loadedCharts.revenue ? (
+                                    <div className="flex flex-col items-center justify-center h-[250px] space-y-3">
+                                        <div className="animate-spin rounded-full h-10 w-10 border-4 border-orange-200 border-t-orange-600"></div>
+                                        <p className="text-sm text-gray-500">Loading revenue data...</p>
+                                    </div>
+                                ) : (
+                                    <ResponsiveContainer width="100%" height={250}>
+                                        <PieChart>
+                                            <Pie
+                                                data={revenueData as any[]}
+                                                cx="50%"
+                                                cy="50%"
+                                                innerRadius={70}
+                                                outerRadius={100}
+                                                fill="#8884d8"
+                                                paddingAngle={5}
+                                                dataKey="value"
+                                            >
+                                                {revenueData.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                                                ))}
+                                            </Pie>
+                                            <Tooltip formatter={(value: number) => `Rs. ${value.toLocaleString()}`} />
+                                            <Legend />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                )}
                             </CardContent>
                         </Card>
                     </>
