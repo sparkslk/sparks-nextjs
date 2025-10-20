@@ -108,6 +108,7 @@ export async function POST(request: NextRequest) {
         currency: "LKR",
         status: "PENDING",
         metadata: {
+          source: "mobile", // Identifies payment source for signature verification
           // Customer info
           firstName,
           lastName,
