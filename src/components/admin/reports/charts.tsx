@@ -97,25 +97,27 @@ export function AnalyticsDashboard() {
         setRevenueData(revenueData);
         setLoadedCharts(prev => ({ ...prev, revenue: true }));
 
-      } catch (err: any) {
+      } catch (err) {
         console.error('Error fetching analytics data:', err);
-        
+
         // Retry logic for database connection errors
-        if (retryCount < 2 && (err.message.includes('database') || err.message.includes('connection') || err.message.includes('500'))) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        if (retryCount < 2 && (errorMessage.includes('database') || errorMessage.includes('connection') || errorMessage.includes('500'))) {
           setRetryCount(prev => prev + 1);
           setTimeout(() => {
             fetchAllAnalyticsData();
           }, 1000 * (retryCount + 1)); // Exponential backoff
           return;
         }
-        
-        setError(err.message || 'An unexpected error occurred.');
+
+        setError(errorMessage || 'An unexpected error occurred.');
       } finally {
         setLoading(false);
       }
     };
 
     fetchAllAnalyticsData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // --- Main Render ---
@@ -277,7 +279,7 @@ export function AnalyticsDashboard() {
                                     <ResponsiveContainer width="100%" height={250}>
                                         <PieChart>
                                             <Pie
-                                                data={revenueData as any[]}
+                                                data={revenueData as never[]}
                                                 cx="50%"
                                                 cy="50%"
                                                 innerRadius={70}

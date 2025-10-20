@@ -2,10 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { FileDown, Calendar, DollarSign, Clock, CreditCard, ArrowLeftRight } from "lucide-react";
+import { CreditCard, ArrowLeftRight } from "lucide-react";
 import { format } from "date-fns";
 
 interface PaymentHistoryData {
@@ -85,6 +84,7 @@ export default function PatientPaymentHistory({
     if (isOpen && patientId) {
       fetchPaymentHistory();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, patientId]);
 
   const fetchPaymentHistory = async () => {
@@ -97,60 +97,11 @@ export default function PatientPaymentHistory({
       }
       const paymentData = await response.json();
       setData(paymentData);
-    } catch (err: any) {
-      setError(err.message || "Failed to load payment history");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load payment history");
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleDownloadCSV = () => {
-    if (!data) return;
-
-    const headers = ["Date", "Type", "Description", "Amount (Rs.)", "Status", "Session ID"];
-    const escapeCsvValue = (value: any) => {
-      const stringValue = String(value ?? "");
-      if (stringValue.includes(",")) {
-        return `"${stringValue.replace(/"/g, '""')}"`;
-      }
-      return stringValue;
-    };
-
-    const csvRows = [
-      headers.join(","),
-      ...data.allTransactions.map(transaction => {
-        if (transaction.type === "payment") {
-          return [
-            escapeCsvValue(transaction.createdAt ? format(new Date(transaction.createdAt), "yyyy-MM-dd HH:mm") : "N/A"),
-            escapeCsvValue("Payment"),
-            escapeCsvValue(`Session Payment - ${transaction.therapistName} (${transaction.sessionStatus})`),
-            escapeCsvValue(transaction.amount!.toFixed(2)),
-            escapeCsvValue(transaction.status!),
-            escapeCsvValue(transaction.sessionId),
-          ].join(",");
-        } else {
-          return [
-            escapeCsvValue(transaction.createdAt ? format(new Date(transaction.createdAt), "yyyy-MM-dd HH:mm") : "N/A"),
-            escapeCsvValue("Refund"),
-            escapeCsvValue(`Refund ${transaction.refundPercentage}% - Cancelled ${transaction.hoursBeforeSession!.toFixed(1)}hrs before`),
-            escapeCsvValue(-transaction.refundAmount!.toFixed(2)),
-            escapeCsvValue(transaction.refundStatus!),
-            escapeCsvValue(transaction.sessionId),
-          ].join(",");
-        }
-      }),
-    ];
-
-    const csvString = csvRows.join("\n");
-    const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `payment-history-${patientName.replace(/\s+/g, '-')}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
   };
 
   const formatCurrency = (amount: number) => `Rs. ${amount.toLocaleString()}`;

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Users, FileDown, Terminal, TrendingUp, Award, FileText } from "lucide-react";
+import { Users, FileDown, Terminal, Award, FileText } from "lucide-react";
 import { format, subMonths } from "date-fns";
 
 interface TherapistPerformanceData {
@@ -25,7 +25,26 @@ interface TherapistPerformanceData {
     totalTherapistEarnings: number;
     averageCompletionRate: number;
   };
-  therapists: any[];
+  therapists: Array<{
+    therapistId: string;
+    therapistName: string;
+    therapistEmail: string;
+    specialization: string[];
+    performance: {
+      totalSessions: number;
+      completedSessions: number;
+      cancelledSessions: number;
+      noShowSessions: number;
+      refundedSessions: number;
+      uniquePatients: number;
+      completionRate: number;
+    };
+    revenue: {
+      totalRevenue: number;
+      therapistEarnings: number;
+      platformCommission: number;
+    };
+  }>;
 }
 
 export default function TherapistPerformanceReport() {
@@ -60,8 +79,8 @@ export default function TherapistPerformanceReport() {
       if (!res.ok) throw new Error("Failed to generate report");
       const data = await res.json();
       setReport(data);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setLoading(false);
     }
@@ -71,7 +90,7 @@ export default function TherapistPerformanceReport() {
     if (!report) return;
 
     const headers = ["Therapist Name", "Email", "Total Sessions", "Completed", "Cancelled", "No-Show", "Refunded", "Unique Patients", "Completion Rate (%)", "Total Revenue (Rs.)", "Therapist Earnings (Rs.)", "Platform Commission (Rs.)"];
-    const escapeCsvValue = (value: any) => {
+    const escapeCsvValue = (value: string | number | null | undefined) => {
       const stringValue = String(value ?? "");
       if (stringValue.includes(",")) {
         return `"${stringValue.replace(/"/g, '""')}"`;

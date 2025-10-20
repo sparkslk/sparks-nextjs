@@ -185,7 +185,11 @@ export async function GET(request: NextRequest) {
       ...sessionTransactions,
       ...donationTransactions,
       ...refundTransactions,
-    ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    ].sort((a, b) => {
+      const dateA = a.date ? new Date(a.date).getTime() : 0;
+      const dateB = b.date ? new Date(b.date).getTime() : 0;
+      return dateB - dateA;
+    });
 
     // Calculate summary statistics
     const summary = {

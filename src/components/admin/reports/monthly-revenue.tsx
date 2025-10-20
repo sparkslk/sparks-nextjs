@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { DollarSign, FileDown, Terminal, TrendingUp, TrendingDown, FileText } from "lucide-react";
+import { DollarSign, FileDown, Terminal, FileText } from "lucide-react";
 import { format, subMonths } from "date-fns";
 
 interface MonthlyRevenueData {
@@ -30,7 +30,16 @@ interface MonthlyRevenueData {
     refundedSessions: number;
     donations: number;
   };
-  transactions: any[];
+  transactions: Array<{
+    id: string;
+    date: string;
+    type: string;
+    description: string;
+    amount: number;
+    commission: number;
+    status: string;
+    isRefunded: boolean;
+  }>;
 }
 
 export default function MonthlyRevenueReport() {
@@ -65,8 +74,8 @@ export default function MonthlyRevenueReport() {
       if (!res.ok) throw new Error("Failed to generate report");
       const data = await res.json();
       setReport(data);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setLoading(false);
     }
@@ -76,7 +85,7 @@ export default function MonthlyRevenueReport() {
     if (!report) return;
 
     const headers = ["Date", "Type", "Description", "Amount (Rs.)", "Commission (Rs.)", "Status"];
-    const escapeCsvValue = (value: any) => {
+    const escapeCsvValue = (value: string | number | null | undefined) => {
       const stringValue = String(value ?? "");
       if (stringValue.includes(",")) {
         return `"${stringValue.replace(/"/g, '""')}"`;

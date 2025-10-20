@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Receipt, FileDown, Terminal, Filter, FileText } from "lucide-react";
+import { Receipt, FileDown, Terminal, FileText } from "lucide-react";
 import { format, subMonths } from "date-fns";
 
 interface TransactionHistoryData {
@@ -34,7 +34,19 @@ interface TransactionHistoryData {
     netRevenue: number;
     netCommission: number;
   };
-  transactions: any[];
+  transactions: Array<{
+    id: string;
+    date: string;
+    transactionId: string;
+    type: string;
+    category: string;
+    customerName: string;
+    description: string;
+    amount: number;
+    commission: number;
+    paymentMethod: string;
+    status: string;
+  }>;
 }
 
 export default function TransactionHistoryReport() {
@@ -70,8 +82,8 @@ export default function TransactionHistoryReport() {
       if (!res.ok) throw new Error("Failed to generate report");
       const data = await res.json();
       setReport(data);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setLoading(false);
     }
@@ -85,7 +97,7 @@ export default function TransactionHistoryReport() {
       : report.transactions.filter(t => t.category === filterCategory);
 
     const headers = ["Date", "Transaction ID", "Type", "Category", "Customer", "Description", "Amount (Rs.)", "Commission (Rs.)", "Payment Method", "Status"];
-    const escapeCsvValue = (value: any) => {
+    const escapeCsvValue = (value: string | number | null | undefined) => {
       const stringValue = String(value ?? "");
       if (stringValue.includes(",")) {
         return `"${stringValue.replace(/"/g, '""')}"`;

@@ -4,9 +4,8 @@ import React from "react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Plus, User, Phone, Mail, Calendar, MapPin, Heart, Star, Award, Clock, FileText, Shield, Users, Edit, Eye, X, DollarSign } from "lucide-react";
+import { RefreshCw, User, Phone, Mail, Calendar, MapPin, Heart, Star, Award, Clock, FileText, Shield, Users, Edit, Eye, X, DollarSign } from "lucide-react";
 import UserDetailEdit from "@/components/admin/users/user-detail-edit";
-import AddUser from "@/components/admin/users/add-user";
 import EmergencyContactDialog from "@/components/admin/users/EmergencyContactDialog";
 import UserDelete from "@/components/admin/users/user-delete";
 import PatientPaymentHistory from "@/components/admin/users/patient-payment-history";
@@ -65,9 +64,6 @@ export default function UsersPage() {
   // State to hold users fetched from the API
   const [users, setUsers] = useState<User[]>([]);
 
-  // State for add user modal
-  const [addUserOpen, setAddUserOpen] = useState(false);
-
   // State for card layout
   const [showFilters, setShowFilters] = useState(false);
   const [activeTab, setActiveTab] = useState<
@@ -86,8 +82,8 @@ export default function UsersPage() {
         }
         const data = await response.json();
         console.log("API Response:", data);
-        console.log("Therapist data sample:", data.data?.find((user: any) => user.role === 'Therapist'));
-        console.log("Guardian data sample:", data.data?.find((user: any) => user.role === 'Guardian'));
+        console.log("Therapist data sample:", data.data?.find((user: User) => user.role === 'Therapist'));
+        console.log("Guardian data sample:", data.data?.find((user: User) => user.role === 'Guardian'));
         if (data && data.data) {
           setUsers(data.data);
         } else {

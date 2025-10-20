@@ -4,12 +4,12 @@ import { requireApiAuth } from "@/lib/api-auth";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await requireApiAuth(request, ["ADMIN"]);
 
-    const therapistId = params.id;
+    const { id: therapistId } = await params;
 
     // Find therapist record by therapist.id
     const therapistRecord = await prisma.therapist.findUnique({

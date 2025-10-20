@@ -86,8 +86,8 @@ export default function UsersPage() {
         }
         const data = await response.json();
         console.log("API Response:", data);
-        console.log("Therapist data sample:", data.data?.find((user: any) => user.role === 'Therapist'));
-        console.log("Guardian data sample:", data.data?.find((user: any) => user.role === 'Guardian'));
+        console.log("Therapist data sample:", data.data?.find((user: User) => user.role === 'Therapist'));
+        console.log("Guardian data sample:", data.data?.find((user: User) => user.role === 'Guardian'));
         if (data && data.data) {
           setUsers(data.data);
         } else {

@@ -17,9 +17,9 @@ async function handleUserRegistration() {
     const therapists = await prisma.therapist.findMany({ where: { createdAt: { gte: startDate, lte: endDate } }, select: { createdAt: true } });
 
     const monthlyData: Record<string, { patients: number; guardians: number; therapists: number }> = {};
-    
+
     // Initialize all months from start to end date to ensure no gaps
-    let currentLoopDate = new Date(startDate);
+    const currentLoopDate = new Date(startDate);
     while (currentLoopDate.getFullYear() < endDate.getFullYear() || (currentLoopDate.getFullYear() === endDate.getFullYear() && currentLoopDate.getMonth() <= endDate.getMonth())) {
         const key = getMonthKey(currentLoopDate);
         monthlyData[key] = { patients: 0, guardians: 0, therapists: 0 };
@@ -92,7 +92,7 @@ async function handleSessionGrowth() {
 
     const monthlyData: Record<string, { sessions: number }> = {};
 
-    let currentLoopDate = new Date(startDate);
+    const currentLoopDate = new Date(startDate);
     while (currentLoopDate.getFullYear() < endDate.getFullYear() || (currentLoopDate.getFullYear() === endDate.getFullYear() && currentLoopDate.getMonth() <= endDate.getMonth())) {
         const key = getMonthKey(currentLoopDate);
         monthlyData[key] = { sessions: 0 };

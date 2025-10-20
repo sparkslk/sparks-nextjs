@@ -3,10 +3,10 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id: patientId } = params;
+    const { id: patientId } = await params;
 
     if (!patientId) {
       return NextResponse.json(
@@ -84,8 +84,8 @@ export async function GET(
 
     // Combine and sort all transactions by date (latest first)
     const allTransactions = [...payments, ...refunds].sort((a, b) => {
-      const dateA = a.createdAt ? new Date(a.createdAt as string).getTime() : 0;
-      const dateB = b.createdAt ? new Date(b.createdAt as string).getTime() : 0;
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
       return dateB - dateA; // Latest first
     });
 

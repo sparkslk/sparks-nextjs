@@ -18,26 +18,22 @@ const FinancialDashboard: React.FC = () => {
     commission: 0,
     donations: 0,
   });
-  const [loadingStats, setLoadingStats] = useState(true);
 
   useEffect(() => {
     fetchStats();
   }, []);
 
   const fetchStats = async () => {
-    setLoadingStats(true);
     try {
       const res = await fetch("/api/admin/reports?chart=revenueBreakdown");
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      const commission = data.find((item: any) => item.name === "Therapy Commissions")?.value || 0;
-      const donations = data.find((item: any) => item.name === "Donations")?.value || 0;
+      const commission = data.find((item: { name: string; value: number }) => item.name === "Therapy Commissions")?.value || 0;
+      const donations = data.find((item: { name: string; value: number }) => item.name === "Donations")?.value || 0;
       const totalRevenue = donations + commission;
       setStats({ totalRevenue, commission, donations });
-    } catch (e) {
+    } catch {
       setStats({ totalRevenue: 0, commission: 0, donations: 0 });
-    } finally {
-      setLoadingStats(false);
     }
   };
 

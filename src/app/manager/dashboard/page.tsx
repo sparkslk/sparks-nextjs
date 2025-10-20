@@ -3,8 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { SessionModal } from "@/components/admin/session-modal";
-import { Users, Database, Zap, CalendarCheck, RefreshCw } from "lucide-react";
+import { Users, Zap, CalendarCheck, RefreshCw } from "lucide-react";
 import { AnalyticsDashboard } from "@/components/admin/reports/charts";
 
 interface SessionOversight {
@@ -60,36 +59,10 @@ interface ManagerData {
 }
 
 export default function ManagerDashboard() {
-  // Mock therapist requests data (replace with API call in production)
-  const mockTherapistRequests = [
-    {
-      id: "1",
-      name: "Dr. Sarah Johnson",
-      specialty: "ADHD Specialist",
-      status: "pending",
-      submittedAt: "2025-01-15T10:30:00Z",
-    },
-    {
-      id: "2",
-      name: "Dr. Michael Chen",
-      specialty: "Child Psychology",
-      status: "under_review",
-      submittedAt: "2025-01-14T14:15:00Z",
-    },
-    {
-      id: "3",
-      name: "Dr. Nadeesha Perera",
-      specialty: "Clinical Psychology",
-      status: "approved",
-      submittedAt: "2025-01-10T09:00:00Z",
-    },
-  ];
-
   const [managerData, setManagerData] = useState<ManagerData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [showSessionModal, setShowSessionModal] = useState(false);
 
   useEffect(() => {
     fetchManagerData();

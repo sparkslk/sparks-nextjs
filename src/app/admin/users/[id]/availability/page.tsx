@@ -12,7 +12,6 @@ import {
   CalendarDays,
   ListChecks,
   ArrowLeft,
-  User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
@@ -50,6 +49,7 @@ function TherapistAvailabilityViewPage(): React.JSX.Element {
     if (therapistId) {
       fetchAvailability();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [therapistId]);
 
   // Therapist header info will be set from the availability API response
