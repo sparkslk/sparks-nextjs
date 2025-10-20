@@ -9,7 +9,7 @@ console.log("API route file loaded");
 
 export async function GET(req: NextRequest) {
     try {
-        await requireApiAuth(req, ['ADMIN']);
+        await requireApiAuth(req, ['ADMIN', 'MANAGER']);
 
         const url = new URL(req.url);
         //const patientId = url.searchParams.get('id');
@@ -223,7 +223,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
     try {
-        await requireApiAuth(req, ['ADMIN']);
+        await requireApiAuth(req, ['ADMIN', 'MANAGER']);
 
         const body = await req.json();
         console.log('Received POST data:', body); // Debug log
