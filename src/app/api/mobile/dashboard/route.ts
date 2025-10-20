@@ -62,6 +62,7 @@ export async function GET(request: NextRequest) {
         },
         hasProfile: false,
         needsProfileSetup: true,
+        needsAdhdQuiz: true,
         stats: {
           upcomingSessions: 0,
           completedSessions: 0,
@@ -234,6 +235,28 @@ export async function GET(request: NextRequest) {
       }
     );
 
+    // Check if user has completed ADHD quiz
+    const adhdQuizSubmission = await prisma.quizSubmission.findFirst({
+      where: {
+        userId: user.id,
+        quizType: "ADHD",
+        completionStatus: "COMPLETED"
+      }
+    });
+
+    const needsAdhdQuiz = !adhdQuizSubmission;
+
+    // Add ADHD quiz to quick actions if not completed
+    if (needsAdhdQuiz) {
+      quickActions.unshift({
+        id: "adhd-assessment",
+        title: "Complete ADHD Assessment",
+        description: "Take a quick assessment to help understand your needs",
+        icon: "clipboard-check",
+        action: "ADHD_QUIZ"
+      });
+    }
+
     // Get unread notification count
     const unreadNotifications = await prisma.notification.count({
       where: {
@@ -257,6 +280,7 @@ export async function GET(request: NextRequest) {
         gender: patient.gender
       },
       hasProfile: true,
+      needsAdhdQuiz,
       therapist: patient.primaryTherapist ? {
         id: patient.primaryTherapist.id,
         name: patient.primaryTherapist.user.name || "Your Therapist",
