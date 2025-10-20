@@ -61,7 +61,7 @@ export const canJoinSession = (appointment: Appointment): boolean => {
     const now = new Date();
     const timeDifference = appointmentTime.getTime() - now.getTime();
     const minutesDifference = timeDifference / (1000 * 60);
-    
+
     console.log('Session timing debug:', {
         appointmentId: appointment.id,
         appointmentDate: appointment.date,
@@ -78,7 +78,7 @@ export const canJoinSession = (appointment: Appointment): boolean => {
 
     // Allow joining 15 minutes before appointment time, during the appointment, or if ongoing
     return (minutesDifference <= 15 && !isAppointmentPast(appointment)) || isAppointmentOngoing(appointment);
-};export const handleJoinSession = (appointment: Appointment): void => {
+}; export const handleJoinSession = (appointment: Appointment): void => {
     console.log('Attempting to join session:', {
         appointmentId: appointment.id,
         meetingLink: appointment.meetingLink,
