@@ -134,31 +134,53 @@ export async function GET(req: NextRequest) {
             // Add more patient-specific fields here
         }));
 
-        const formattedTherapists = therapists.map(therapist => ({
-            id: therapist.id,
-            role: 'Therapist',
-            fullname: therapist.user.name || "Unknown Therapist",
-            email: therapist.user.email || "Unknown Email",
-            licenseNumber: therapist.licenseNumber,
-            specialization: therapist.specialization,
-            experience: therapist.experience,
-            availability: therapist.availability,
-            createdAt: therapist.createdAt,
-            rating: therapist.rating || 0,
-        }));
+        const formattedTherapists = therapists.map(therapist => {
+            console.log('Therapist data:', {
+                id: therapist.id,
+                session_rate: therapist.session_rate,
+                bio: therapist.bio,
+                session_rate_type: typeof therapist.session_rate,
+                bio_type: typeof therapist.bio
+            });
+            
+            return {
+                id: therapist.id,
+                role: 'Therapist',
+                fullname: therapist.user.name || "Unknown Therapist",
+                email: therapist.user.email || "Unknown Email",
+                licenseNumber: therapist.licenseNumber,
+                specialization: therapist.specialization,
+                experience: therapist.experience,
+                availability: therapist.availability,
+                createdAt: therapist.createdAt,
+                rating: therapist.rating || 0,
+                sessionRate: therapist.session_rate?.toNumber() || 0,
+                bio: therapist.bio || "",
+            };
+        });
 
-        const formattedGuardians = guardians.map(guardian => ({
-            id: guardian.id,
-            role: 'Guardian',
-            fullName: guardian.user.name || "Unknown Guardian",
-            email: guardian.user.email || "Unknown Email",
-            patient: guardian.patient
-                ? `${guardian.patient.firstName} ${guardian.patient.lastName}`
-                : "Unknown Patient",
-            relationship: guardian.relationship, // if exists
-            createdAt: guardian.createdAt,
-            // Add more guardian-specific fields here
-        }));
+        const formattedGuardians = guardians.map(guardian => {
+            console.log('Guardian data:', {
+                id: guardian.id,
+                contact_no: guardian.contact_no,
+                contact_no_type: typeof guardian.contact_no,
+                relationship: guardian.relationship
+            });
+            
+            return {
+                id: guardian.id,
+                role: 'Guardian',
+                fullName: guardian.user.name || "Unknown Guardian",
+                email: guardian.user.email || "Unknown Email",
+                patient: guardian.patient
+                    ? `${guardian.patient.firstName} ${guardian.patient.lastName}`
+                    : "Unknown Patient",
+                relationship: guardian.relationship, // if exists
+                contactNo: guardian.contact_no || "",
+                createdAt: guardian.createdAt,
+                // Add more guardian-specific fields here
+            };
+        });
 
         const formattedManagers = users.filter(u => u.role === 'MANAGER').map(manager => ({
             id: manager.id,
@@ -241,6 +263,9 @@ export async function POST(req: NextRequest) {
             patient?: string;
             name?: string | null;
             createdAt: Date;
+            sessionRate?: number;
+            bio?: string;
+            contactNo?: string;
         };
         
         let createdUser: FormattedUser | Patient | Therapist | ParentGuardian;
@@ -355,6 +380,8 @@ export async function POST(req: NextRequest) {
                     if (userData.specialization) therapistData.specialization = userData.specialization;
                     if (userData.experience) therapistData.experience = parseInt(userData.experience);
                     if (userData.availability) therapistData.availability = userData.availability;
+                    if (userData.sessionRate) therapistData.session_rate = parseFloat(userData.sessionRate);
+                    if (userData.bio) therapistData.bio = userData.bio;
 
                     console.log('Creating therapist with data:', therapistData); // Debug log
 
@@ -384,7 +411,9 @@ export async function POST(req: NextRequest) {
                         availability: JSON.stringify(therapistResult.availability),
                         createdAt: therapistResult.createdAt,
                         rating: therapistResult.rating?.toNumber() || 0,
-                    };
+                        sessionRate: therapistResult.session_rate?.toNumber() || 0,
+                        bio: therapistResult.bio || "",
+                    } as FormattedUser;
                 } catch (therapistError) {
                     console.error('Therapist creation error:', therapistError);
                     throw therapistError;
