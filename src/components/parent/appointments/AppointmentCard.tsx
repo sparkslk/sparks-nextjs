@@ -1,12 +1,14 @@
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, User, CalendarDays, CheckCircle, ChevronDown, ChevronRight } from "lucide-react";
+import { Calendar, Clock, User, CalendarDays, CheckCircle, ChevronDown, ChevronRight, Video } from "lucide-react";
 import { Child, Appointment } from "@/types/appointments";
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import RescheduleModal from "./RescheduleModal";
 import SessionCancellationDialog from "../SessionCancellationDialog";
+import { canJoinSession, isAppointmentOngoing, handleJoinSession as utilHandleJoinSession, getSessionStatus } from "@/lib/session-timing-utils";
+import { SessionDebugInfo } from "../SessionDebugInfo";
 
 interface AppointmentCardProps {
   child: Child;
@@ -168,6 +170,29 @@ export default function AppointmentCard({
                   <User className="w-4 h-4 text-gray-400" />
                   <span className="text-sm text-gray-600">{appointment.type}</span>
                 </div>
+                {/* Session Status Badge */}
+                {appointment.meetingLink && (
+                  <div className="flex items-center space-x-2">
+                    <div className={`px-2 py-1 rounded-full text-xs font-medium ${getSessionStatus(appointment) === 'ongoing'
+                      ? 'bg-red-100 text-red-700'
+                      : getSessionStatus(appointment) === 'can-join'
+                        ? 'bg-yellow-100 text-yellow-700'
+                        : getSessionStatus(appointment) === 'ended'
+                          ? 'bg-gray-100 text-gray-700'
+                          : 'bg-blue-100 text-blue-700'
+                      }`}>
+                      {getSessionStatus(appointment) === 'ongoing' && '🔴 Live'}
+                      {getSessionStatus(appointment) === 'can-join' && '🟡 Ready to Join'}
+                      {getSessionStatus(appointment) === 'ended' && '⚫ Ended'}
+                      {getSessionStatus(appointment) === 'upcoming' && '🔵 Upcoming'}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Debug Information - Remove this in production */}
+              <div className="w-full mt-3">
+                <SessionDebugInfo appointment={appointment} />
               </div>
 
               {/* Right side - Action Buttons */}
@@ -185,11 +210,21 @@ export default function AppointmentCard({
                 >
                   Cancel
                 </button>
-                <button
-                  className="px-3 py-1 bg-green-50 border border-green-200 text-green-600 rounded-lg hover:bg-green-100 transition-colors duration-200 text-sm font-medium"
-                >
-                  Join Session
-                </button>
+                {appointment.meetingLink && (
+                  <button
+                    className={`px-3 py-1 rounded-lg transition-colors duration-200 text-sm font-medium flex items-center space-x-1 ${canJoinSession(appointment)
+                      ? "bg-green-50 border border-green-200 text-green-600 hover:bg-green-100"
+                      : isAppointmentOngoing(appointment)
+                        ? "bg-green-600 text-white hover:bg-green-700"
+                        : "bg-gray-50 border border-gray-200 text-gray-400 cursor-not-allowed"
+                      }`}
+                    onClick={() => utilHandleJoinSession(appointment)}
+                    disabled={!canJoinSession(appointment) && !isAppointmentOngoing(appointment)}
+                  >
+                    <Video className="w-4 h-4" />
+                    <span>{isAppointmentOngoing(appointment) ? "Join Now" : "Join Session"}</span>
+                  </button>
+                )}
               </div>
             </div>
           ))}

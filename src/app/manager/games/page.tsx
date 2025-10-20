@@ -223,7 +223,7 @@ export default function GameManagementDashboard() {
               <Trophy className="h-12 w-12" style={{ color: "#8159A8" }} />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-sm">
+              <div className="text-2xl font-bold">
                 {gameStats.mostPopularGame}
               </div>
               <p className="text-xs text-muted-foreground">

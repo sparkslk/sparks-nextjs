@@ -11,6 +11,7 @@ import {
     CalendarCheck,
     RefreshCw
 } from "lucide-react";
+import { AnalyticsDashboard } from "@/components/admin/reports/charts";
 
 interface SessionOversight {
     id: string;
@@ -182,7 +183,7 @@ export default function AdminDashboard() {
                     )}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
                     <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">System Status</CardTitle>
@@ -229,20 +230,12 @@ export default function AdminDashboard() {
                         </CardContent>
                     </Card>
 
-                    <Card className="border-l-4 shadow-sm hover:shadow-md transition-shadow">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Database Size</CardTitle>
-                            <Database className="h-12 w-12" style={{ color: "#8159A8" }} />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">
-                                {adminData?.databaseSize || "N/A"}
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                                {adminData?.databaseUsage || 0}% of capacity
-                            </p>
-                        </CardContent>
-                    </Card>
+                </div>
+
+                {/* Analytics Charts Section */}
+                <div className="mt-8 mb-8">
+                    <h2 className="text-2xl font-bold text-gray-900 mb-6">Platform Analytics</h2>
+                    <AnalyticsDashboard />
                 </div>
 
                 <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
