@@ -71,7 +71,12 @@ export async function GET(request: NextRequest) {
       include: {
         primaryTherapist: {
           include: {
-            user: true
+            user: true,
+            profile: {
+              select: {
+                profileImage: true
+              }
+            }
           }
         }
       }
@@ -89,6 +94,13 @@ export async function GET(request: NextRequest) {
             image: true
           }
         },
+        profile: {
+          select: {
+            profileImage: true,
+            profileImageMimeType: true,
+            profileImageName: true
+          }
+        },
         _count: {
           select: {
             patients: true,
@@ -102,20 +114,35 @@ export async function GET(request: NextRequest) {
     });
 
     // Format therapist data for mobile
-    const formattedTherapists = therapists.map(therapist => ({
-      id: therapist.id,
-      userId: therapist.userId,
-      name: therapist.user.name || "Therapist",
-      email: therapist.user.email,
-      image: therapist.user.image,
-      bio: therapist.bio,
-      specialization: therapist.specialization,
-      experience: therapist.experience,
-      rating: therapist.rating?.toNumber() || 0,
-      patientCount: therapist._count.patients,
-      sessionCount: therapist._count.therapySessions,
-      isMyTherapist: patient?.primaryTherapistId === therapist.id
-    }));
+    const formattedTherapists = therapists.map(therapist => {
+      // Generate profile image URL if profile image exists
+      const profileImageUrl = therapist.profile?.profileImage
+        ? `/api/mobile/therapists/${therapist.id}/profile-image`
+        : null;
+
+      return {
+        id: therapist.id,
+        userId: therapist.userId,
+        name: therapist.user.name || "Therapist",
+        email: therapist.user.email,
+        image: therapist.user.image, // Fallback image
+        profileImageUrl, // Profile image from TherapistProfile table
+        bio: therapist.bio,
+        specialization: therapist.specialization,
+        experience: therapist.experience,
+        rating: therapist.rating?.toNumber() || 0,
+        patientCount: therapist._count.patients,
+        sessionCount: therapist._count.therapySessions,
+        isMyTherapist: patient?.primaryTherapistId === therapist.id
+      };
+    });
+
+    // Sort: Current therapist first, then by rating descending
+    formattedTherapists.sort((a, b) => {
+      if (a.isMyTherapist) return -1;
+      if (b.isMyTherapist) return 1;
+      return b.rating - a.rating;
+    });
 
     // If availability filter is set, check available slots
     if (availability === "today" || availability === "thisWeek") {
@@ -129,7 +156,10 @@ export async function GET(request: NextRequest) {
         id: patient.primaryTherapist.id,
         name: patient.primaryTherapist.user.name || "Your Therapist",
         email: patient.primaryTherapist.user.email,
-        image: patient.primaryTherapist.user.image
+        image: patient.primaryTherapist.user.image,
+        profileImageUrl: patient.primaryTherapist.profile?.profileImage
+          ? `/api/mobile/therapists/${patient.primaryTherapist.id}/profile-image`
+          : null
       } : null,
       hasTherapist: !!patient?.primaryTherapistId
     });

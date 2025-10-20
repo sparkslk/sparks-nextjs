@@ -394,9 +394,11 @@ model QuizSubmission {
   id               String     @id @default(cuid())
   userId           String?
   sessionId        String
+  quizType         String     @default("WELLNESS") // WELLNESS or ADHD
   responses        Json
   currentStep      Int        @default(1)
   completionStatus QuizStatus @default(IN_PROGRESS)
+  adhdScore        Json?      // Stores ADHD scores: {inattention, hyperactivity, total, type}
   startedAt        DateTime   @default(now())
   completedAt      DateTime?
   updatedAt        DateTime   @updatedAt
@@ -404,6 +406,7 @@ model QuizSubmission {
   @@index([userId])
   @@index([sessionId])
   @@index([completionStatus])
+  @@index([quizType])
 }
 
 model TherapistAvailability {

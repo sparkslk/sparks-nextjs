@@ -108,6 +108,7 @@ export async function POST(request: NextRequest) {
         currency: "LKR",
         status: "PENDING",
         metadata: {
+          source: "mobile", // Identifies payment source for signature verification
           // Customer info
           firstName,
           lastName,
@@ -129,8 +130,9 @@ export async function POST(request: NextRequest) {
 
     // Generate PayHere hash for security
     // Formula: MD5(merchant_id + order_id + amount + currency + MD5(merchant_secret).toUpperCase()).toUpperCase()
-    const merchantId = process.env.PAYHERE_MERCHANT_ID || "";
-    const merchantSecret = process.env.PAYHERE_MERCHANT_SECRET || "";
+    // Use mobile-specific credentials for mobile app payments
+    const merchantId = process.env.PAYHERE_MERCHANT_ID_MOBILE || "";
+    const merchantSecret = process.env.PAYHERE_MERCHANT_SECRET_MOBILE || "";
 
     const hashedSecret = crypto
       .createHash("md5")
