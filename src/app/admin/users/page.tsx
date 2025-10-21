@@ -4,8 +4,8 @@ import React from "react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Plus, User, Phone, Mail, Calendar, MapPin, Heart, Star, Award, Clock, FileText, Shield, Users, Edit, Eye, X, DollarSign } from "lucide-react";
-import UserDetailEdit from "@/components/admin/users/user-detail-edit";
+import { RefreshCw, Plus, User, Phone, Mail, Calendar, MapPin, Heart, Star, Award, Clock, FileText, Shield, Users, Eye, X, DollarSign } from "lucide-react";
+// import UserDetailEdit from "@/components/admin/users/user-detail-edit"; // Commented out - not currently used
 import AddUser from "@/components/admin/users/add-user";
 import EmergencyContactDialog from "@/components/admin/users/EmergencyContactDialog";
 import UserDelete from "@/components/admin/users/user-delete";
@@ -34,8 +34,8 @@ export default function UsersPage() {
   const [emergencyContactDetails] = React.useState<
     string | null
   >(null);
-  const [editModalOpen, setEditModalOpen] = React.useState(false);
-  const [editUser, setEditUser] = React.useState<User | null>(null);
+  // const [editModalOpen, setEditModalOpen] = React.useState(false); // Commented out - not currently used
+  // const [editUser, setEditUser] = React.useState<User | null>(null); // Commented out - not currently used
   const [deleteModalOpen, setDeleteModalOpen] = React.useState(false);
   const [deleteUser, setDeleteUser] = React.useState<User | null>(null);
   const [paymentHistoryOpen, setPaymentHistoryOpen] = React.useState(false);
@@ -179,10 +179,10 @@ export default function UsersPage() {
           : "",
         avatar: userWithExtendedProps.fullName
           ? userWithExtendedProps.fullName
-              .split(" ")
-              .map((n: string) => n[0])
-              .join("")
-              .toUpperCase()
+            .split(" ")
+            .map((n: string) => n[0])
+            .join("")
+            .toUpperCase()
           : "",
         avatarColor: "bg-[#8159A8]",
         status: safeString(userWithExtendedProps.status || ""),
@@ -207,10 +207,10 @@ export default function UsersPage() {
           : "",
         avatar: userWithExtendedProps.fullname
           ? userWithExtendedProps.fullname
-              .split(" ")
-              .map((n: string) => n[0])
-              .join("")
-              .toUpperCase()
+            .split(" ")
+            .map((n: string) => n[0])
+            .join("")
+            .toUpperCase()
           : "",
         avatarColor: "bg-[#8159A8]",
         status: safeString(userWithExtendedProps.status || ""),
@@ -232,10 +232,10 @@ export default function UsersPage() {
           : "",
         avatar: userWithExtendedProps.fullName
           ? userWithExtendedProps.fullName
-              .split(" ")
-              .map((n: string) => n[0])
-              .join("")
-              .toUpperCase()
+            .split(" ")
+            .map((n: string) => n[0])
+            .join("")
+            .toUpperCase()
           : "",
         avatarColor: "bg-[#8159A8]",
         status: safeString(userWithExtendedProps.status || ""),
@@ -252,10 +252,10 @@ export default function UsersPage() {
         avatar:
           userWithExtendedProps.fullName || user.name
             ? (userWithExtendedProps.fullName || user.name || "")
-                .split(" ")
-                .map((n: string) => n[0])
-                .join("")
-                .toUpperCase()
+              .split(" ")
+              .map((n: string) => n[0])
+              .join("")
+              .toUpperCase()
             : "",
         avatarColor: "bg-[#8159A8]",
         status: safeString(userWithExtendedProps.status || ""),
@@ -273,10 +273,10 @@ export default function UsersPage() {
       avatar:
         userWithExtendedProps.fullName || user.name
           ? (userWithExtendedProps.fullName || user.name || "")
-              .split(" ")
-              .map((n: string) => n[0])
-              .join("")
-              .toUpperCase()
+            .split(" ")
+            .map((n: string) => n[0])
+            .join("")
+            .toUpperCase()
           : "",
       avatarColor: "bg-[#8159A8]",
       status: safeString(userWithExtendedProps.status || ""),
@@ -413,7 +413,7 @@ export default function UsersPage() {
 
             {/* Action Buttons */}
             <div className="flex items-center justify-end gap-2 pt-4 border-t border-gray-100">
-            <Button
+              <Button
                 variant="outline"
                 size="sm"
                 onClick={() => {
@@ -437,7 +437,7 @@ export default function UsersPage() {
                 <Eye className="w-4 h-4" />
                 View Details
               </Button>
-              <Button
+              {/* <Button
                 variant="outline"
                 size="sm"
                 onClick={() => {
@@ -448,7 +448,7 @@ export default function UsersPage() {
               >
                 <Edit className="w-4 h-4" />
                 Edit
-              </Button>
+              </Button> */}
               <Button
                 variant="outline"
                 size="sm"
@@ -573,11 +573,10 @@ export default function UsersPage() {
                       {[...Array(5)].map((_, i) => (
                         <Star
                           key={i}
-                          className={`w-3 h-3 ${
-                            i < Math.floor(Number(user.rating) || 0)
-                              ? 'text-yellow-400 fill-current'
-                              : 'text-gray-300'
-                          }`}
+                          className={`w-3 h-3 ${i < Math.floor(Number(user.rating) || 0)
+                            ? 'text-yellow-400 fill-current'
+                            : 'text-gray-300'
+                            }`}
                         />
                       ))}
                     </div>
@@ -591,7 +590,7 @@ export default function UsersPage() {
 
             {/* Action Buttons */}
             <div className="flex items-center justify-end gap-2 pt-4 border-t border-gray-100">
-            <Button
+              <Button
                 variant="outline"
                 size="sm"
                 onClick={() => handleViewAvailability(user.id!)}
@@ -612,7 +611,7 @@ export default function UsersPage() {
                 <Eye className="w-4 h-4" />
                 View Details
               </Button>
-              <Button
+              {/* <Button
                 variant="outline"
                 size="sm"
                 onClick={() => {
@@ -623,7 +622,7 @@ export default function UsersPage() {
               >
                 <Edit className="w-4 h-4" />
                 Edit
-              </Button>
+              </Button> */}
               <Button
                 variant="outline"
                 size="sm"
@@ -746,7 +745,7 @@ export default function UsersPage() {
 
             {/* Action Buttons */}
             <div className="flex items-center justify-end gap-2 pt-4 border-t border-gray-100">
-              <Button
+              {/* <Button
                 variant="outline"
                 size="sm"
                 onClick={() => {
@@ -757,7 +756,7 @@ export default function UsersPage() {
               >
                 <Edit className="w-4 h-4" />
                 Edit
-              </Button>
+              </Button> */}
               <Button
                 variant="outline"
                 size="sm"
@@ -850,7 +849,7 @@ export default function UsersPage() {
 
             {/* Action Buttons */}
             <div className="flex items-center justify-end gap-2 pt-4 border-t border-gray-100">
-              <Button
+              {/* <Button
                 variant="outline"
                 size="sm"
                 onClick={() => {
@@ -861,7 +860,7 @@ export default function UsersPage() {
               >
                 <Edit className="w-4 h-4" />
                 Edit
-              </Button>
+              </Button> */}
               <Button
                 variant="outline"
                 size="sm"
@@ -926,12 +925,12 @@ export default function UsersPage() {
         if (Number.isNaN(d.getTime())) return false;
         if (joinedFrom) {
           const from = new Date(joinedFrom);
-          from.setHours(0,0,0,0);
+          from.setHours(0, 0, 0, 0);
           if (d < from) return false;
         }
         if (joinedTo) {
           const to = new Date(joinedTo);
-          to.setHours(23,59,59,999);
+          to.setHours(23, 59, 59, 999);
           if (d > to) return false;
         }
         return true;
@@ -1205,7 +1204,8 @@ export default function UsersPage() {
         emergencyContactDetails={emergencyContactDetails}
       />
 
-      {editUser && (
+      {/* Edit User Modal - Commented out as not currently used */}
+      {/* {editUser && (
         <UserDetailEdit
           user={editUser}
           open={editModalOpen}
@@ -1220,7 +1220,7 @@ export default function UsersPage() {
             setEditModalOpen(false);
           }}
         />
-      )}
+      )} */}
 
       {deleteUser && (
         <UserDelete
@@ -1404,7 +1404,7 @@ export default function UsersPage() {
                             <p className="text-gray-700 leading-relaxed">
                               {String(
                                 selectedUser.emergencyContact ||
-                                  "No emergency contact information available"
+                                "No emergency contact information available"
                               )}
                             </p>
                           );
@@ -1425,7 +1425,7 @@ export default function UsersPage() {
                       <p className="text-gray-700 leading-relaxed">
                         {String(
                           selectedUser.medicalHistory ||
-                            "No medical history information available"
+                          "No medical history information available"
                         )}
                       </p>
                     </div>
@@ -1433,14 +1433,14 @@ export default function UsersPage() {
                 </div>
               )}
 
-                {/* Show error banner if there's an error loading users */}
-                {error && (
-                  <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50">
-                    <div className="px-4 py-2 bg-red-50 border border-red-200 text-red-700 rounded-md shadow">
-                      <strong className="mr-2">Error:</strong> {error}
-                    </div>
+              {/* Show error banner if there's an error loading users */}
+              {error && (
+                <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50">
+                  <div className="px-4 py-2 bg-red-50 border border-red-200 text-red-700 rounded-md shadow">
+                    <strong className="mr-2">Error:</strong> {error}
                   </div>
-                )}
+                </div>
+              )}
 
               {selectedUser.role === "Therapist" && (
                 <div className="space-y-6">
@@ -1533,14 +1533,13 @@ export default function UsersPage() {
                         {[...Array(5)].map((_, i) => (
                           <Star
                             key={i}
-                            className={`h-5 w-5 ${
-                              i <
+                            className={`h-5 w-5 ${i <
                               Math.floor(
                                 parseFloat(String(selectedUser.rating || "0"))
                               )
-                                ? "text-yellow-400 fill-current"
-                                : "text-gray-300"
-                            }`}
+                              ? "text-yellow-400 fill-current"
+                              : "text-gray-300"
+                              }`}
                           />
                         ))}
                       </div>

@@ -11,7 +11,7 @@ import {
   Calendar,
   Download,
   TrendingUp,
-  DollarSign,
+  Coins,
   Users,
   Clock,
   XCircle,
@@ -420,7 +420,7 @@ export default function TherapistReportsPage() {
               <div className="text-gray-500 text-sm">Total Income Earned</div>
             </div>
             <div className="flex-shrink-0 ml-4">
-              <DollarSign className="w-10 h-10 text-[#8159A8]" />
+              <Coins className="w-10 h-10 text-[#8159A8]" />
             </div>
           </Card>
 
@@ -610,7 +610,7 @@ export default function TherapistReportsPage() {
                           : "0"}
                       </p>
                     </div>
-                    <DollarSign className="h-10 w-10 text-[#8159A8]" />
+                    <Coins className="h-10 w-10 text-[#8159A8]" />
                   </div>
                 </CardContent>
               </Card>

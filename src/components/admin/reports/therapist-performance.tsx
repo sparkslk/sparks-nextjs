@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Users, FileDown, Terminal, Award, FileText } from "lucide-react";
 import { format, subMonths } from "date-fns";
+import { generateTherapistPerformancePDF } from "@/lib/admin-pdf-generator";
 
 interface TherapistPerformanceData {
   month: string;
@@ -132,8 +133,33 @@ export default function TherapistPerformanceReport() {
 
   const handleDownloadPDF = () => {
     if (!report) return;
-    
-    window.print();
+
+    try {
+      generateTherapistPerformancePDF({
+        month: format(new Date(`${selectedMonth}-01`), "MMMM yyyy"),
+        overallStats: {
+          activeTherapists: report.overallStats.activeTherapists,
+          totalSessions: report.overallStats.totalSessions,
+          totalRevenue: report.overallStats.totalRevenue,
+          avgCompletionRate: report.overallStats.averageCompletionRate,
+        },
+        therapists: report.therapists.map((t) => ({
+          id: t.therapistId,
+          name: t.therapistName,
+          totalSessions: t.performance.totalSessions,
+          completedSessions: t.performance.completedSessions,
+          cancelledSessions: t.performance.cancelledSessions,
+          noShowSessions: t.performance.noShowSessions,
+          uniquePatients: t.performance.uniquePatients,
+          completionRate: t.performance.completionRate,
+          netRevenue: t.revenue.therapistEarnings,
+          platformCommission: t.revenue.platformCommission,
+        })),
+      });
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      alert("Failed to generate PDF. Please try again.");
+    }
   };
 
   return (
@@ -196,8 +222,8 @@ export default function TherapistPerformanceReport() {
 
       {report && !loading && (
         <>
-          {/* Overall Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {/* Overall Stats - Hidden as per user request */}
+          {/* <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card>
               <CardHeader className="pb-3">
                 <CardDescription>Active Therapists</CardDescription>
@@ -230,7 +256,7 @@ export default function TherapistPerformanceReport() {
                 <CardTitle className="text-2xl">{report.overallStats.averageCompletionRate.toFixed(1)}%</CardTitle>
               </CardHeader>
             </Card>
-          </div>
+          </div> */}
 
           {/* Therapist Performance Table */}
           <Card>
