@@ -11,6 +11,7 @@ import {
 } from "@/components/dashboard/DashboardComponents";
 import { PatientIdCard } from "@/components/dashboard/PatientIdCard";
 import { AssignedTherapistCard } from "@/components/patient/assigned-therapist-card";
+import { PasswordSetupBanner } from "@/components/dashboard/PasswordSetupBanner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -231,6 +232,9 @@ export default function DashboardPage() {
             title="Dashboard"
             subtitle={`Welcome back, ${userData.firstName}!`}
         >
+            {/* Password Setup Banner for OAuth Users */}
+            <PasswordSetupBanner />
+
             {/* User Info Card */}
             <Card className="mb-8 border-0 shadow-lg bg-gradient-to-r from-card/95 to-card/80 backdrop-blur">
                 <CardContent className="p-6">
