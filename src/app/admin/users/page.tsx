@@ -4,8 +4,8 @@ import React from "react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Plus, User, Phone, Mail, Calendar, MapPin, Heart, Star, Award, Clock, FileText, Shield, Users, Edit, Eye, X, DollarSign } from "lucide-react";
-import UserDetailEdit from "@/components/admin/users/user-detail-edit";
+import { RefreshCw, Plus, User, Phone, Mail, Calendar, MapPin, Heart, Star, Award, Clock, FileText, Shield, Users, Eye, X, DollarSign } from "lucide-react";
+// import UserDetailEdit from "@/components/admin/users/user-detail-edit"; // Commented out - not currently used
 import AddUser from "@/components/admin/users/add-user";
 import EmergencyContactDialog from "@/components/admin/users/EmergencyContactDialog";
 import UserDelete from "@/components/admin/users/user-delete";
@@ -34,8 +34,8 @@ export default function UsersPage() {
   const [emergencyContactDetails] = React.useState<
     string | null
   >(null);
-  const [editModalOpen, setEditModalOpen] = React.useState(false);
-  const [editUser, setEditUser] = React.useState<User | null>(null);
+  // const [editModalOpen, setEditModalOpen] = React.useState(false); // Commented out - not currently used
+  // const [editUser, setEditUser] = React.useState<User | null>(null); // Commented out - not currently used
   const [deleteModalOpen, setDeleteModalOpen] = React.useState(false);
   const [deleteUser, setDeleteUser] = React.useState<User | null>(null);
   const [paymentHistoryOpen, setPaymentHistoryOpen] = React.useState(false);
@@ -1204,7 +1204,8 @@ export default function UsersPage() {
         emergencyContactDetails={emergencyContactDetails}
       />
 
-      {editUser && (
+      {/* Edit User Modal - Commented out as not currently used */}
+      {/* {editUser && (
         <UserDetailEdit
           user={editUser}
           open={editModalOpen}
@@ -1219,7 +1220,7 @@ export default function UsersPage() {
             setEditModalOpen(false);
           }}
         />
-      )}
+      )} */}
 
       {deleteUser && (
         <UserDelete
