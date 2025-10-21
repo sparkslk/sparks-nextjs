@@ -82,7 +82,6 @@ export default function PatientsPage() {
     const [patients, setPatients] = useState<Patient[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [ageGroupFilter, setAgeGroupFilter] = useState("all");
-    const [statusFilter, setStatusFilter] = useState("all");
     const [sessionFilter, setSessionFilter] = useState("all");
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -143,9 +142,6 @@ export default function PatientsPage() {
             (ageGroupFilter === "adult" && patient.age >= 18 && patient.age < 65) ||
             (ageGroupFilter === "senior" && patient.age >= 65);
 
-        // Status filter
-        const matchesStatus = statusFilter === "all" || patient.status === statusFilter;
-
         // Session filter
         const matchesSession = sessionFilter === "all" ||
             (sessionFilter === "recent" && patient.lastSession &&
@@ -154,13 +150,12 @@ export default function PatientsPage() {
             (sessionFilter === "overdue" && !patient.nextSession && patient.lastSession &&
                 new Date(patient.lastSession) < new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
 
-        return matchesSearch && matchesAgeGroup && matchesStatus && matchesSession;
+        return matchesSearch && matchesAgeGroup && matchesSession;
     });
 
     const clearAllFilters = () => {
         setSearchTerm("");
         setAgeGroupFilter("all");
-        setStatusFilter("all");
         setSessionFilter("all");
     };
 
@@ -211,7 +206,7 @@ export default function PatientsPage() {
                 </div>
 
                 {/* Filters */}
-                <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
                     <div className="relative">
                         <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                         <Input
@@ -232,17 +227,6 @@ export default function PatientsPage() {
                             <SelectItem value="child">Child (0-17)</SelectItem>
                             <SelectItem value="adult">Adult (18-64)</SelectItem>
                             <SelectItem value="senior">Senior (65+)</SelectItem>
-                        </SelectContent>
-                    </Select>
-
-                    <Select value={statusFilter} onValueChange={setStatusFilter}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Treatment Status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All statuses</SelectItem>
-                            <SelectItem value="active">Active</SelectItem>
-                            <SelectItem value="inactive">Inactive</SelectItem>
                         </SelectContent>
                     </Select>
 
@@ -268,6 +252,7 @@ export default function PatientsPage() {
                             <SelectItem value="old">Older than 30 days</SelectItem>
                         </SelectContent>
                     </Select>
+
                     <div className="flex justify-end">
                         <Button
                             onClick={clearAllFilters}

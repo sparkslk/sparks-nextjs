@@ -84,7 +84,7 @@ export default function ForgotPasswordPage() {
         }
 
         try {
-            const response = await fetch("/api/auth/forgot-password", {
+            const response = await fetch("/api/mobile/forgot-password", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email: email.trim() }),
@@ -117,7 +117,7 @@ export default function ForgotPasswordPage() {
         setOtp(["", "", "", "", "", ""]);
 
         try {
-            const response = await fetch("/api/auth/forgot-password", {
+            const response = await fetch("/api/mobile/forgot-password", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email: email.trim() }),
@@ -192,7 +192,7 @@ export default function ForgotPasswordPage() {
         }
 
         try {
-            const response = await fetch("/api/auth/forgot-password/verify", {
+            const response = await fetch("/api/mobile/forgot-password/verify", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email: email.trim(), otp: otpCode }),
@@ -232,7 +232,7 @@ export default function ForgotPasswordPage() {
         }
 
         try {
-            const response = await fetch("/api/auth/forgot-password/reset", {
+            const response = await fetch("/api/mobile/forgot-password/reset", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
