@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Receipt, FileDown, Terminal, FileText } from "lucide-react";
 import { format, subMonths } from "date-fns";
+import { generateTransactionHistoryPDF } from "@/lib/admin-pdf-generator";
 
 interface TransactionHistoryData {
   month: string;
@@ -137,8 +138,22 @@ export default function TransactionHistoryReport() {
 
   const handleDownloadPDF = () => {
     if (!report) return;
-    
-    window.print();
+
+    try {
+      const filteredTransactions = filterCategory === "ALL"
+        ? report.transactions
+        : report.transactions.filter(t => t.category === filterCategory);
+
+      generateTransactionHistoryPDF({
+        month: format(new Date(`${selectedMonth}-01`), "MMMM yyyy"),
+        categoryFilter: filterCategory,
+        summary: report.summary,
+        transactions: filteredTransactions,
+      });
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      alert("Failed to generate PDF. Please try again.");
+    }
   };
 
   const getCategoryBadgeColor = (category: string) => {

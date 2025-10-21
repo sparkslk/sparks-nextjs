@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { DollarSign, FileDown, Terminal, FileText } from "lucide-react";
 import { format, subMonths } from "date-fns";
+import { generateMonthlyRevenuePDF } from "@/lib/admin-pdf-generator";
 
 interface MonthlyRevenueData {
   month: string;
@@ -119,8 +120,23 @@ export default function MonthlyRevenueReport() {
 
   const handleDownloadPDF = () => {
     if (!report) return;
-    
-    window.print();
+
+    try {
+      generateMonthlyRevenuePDF({
+        month: format(new Date(`${selectedMonth}-01`), "MMMM yyyy"),
+        summary: {
+          totalRevenue: report.summary.totalRevenue,
+          therapyRevenue: report.summary.therapyRevenue,
+          donationRevenue: report.summary.donationRevenue,
+          totalCommission: report.summary.totalCommission,
+          transactionCount: report.summary.transactionCount,
+        },
+        transactions: report.transactions,
+      });
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      alert("Failed to generate PDF. Please try again.");
+    }
   };
 
   const formatCurrency = (amount: number) => `Rs. ${amount.toLocaleString()}`;
