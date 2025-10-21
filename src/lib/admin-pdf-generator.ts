@@ -2,7 +2,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 const primaryColor: [number, number, number] = [129, 89, 168]; // #8159A8
-const accentGreen: [number, number, number] = [16, 185, 129]; // #10b981
+// const accentGreen: [number, number, number] = [16, 185, 129]; // #10b981 - Reserved for future use
 
 // Helper function to add header to PDF
 function addHeader(doc: jsPDF, title: string, dateRange: string) {
