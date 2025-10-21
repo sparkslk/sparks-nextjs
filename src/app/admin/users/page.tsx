@@ -574,8 +574,8 @@ export default function UsersPage() {
                         <Star
                           key={i}
                           className={`w-3 h-3 ${i < Math.floor(Number(user.rating) || 0)
-                              ? 'text-yellow-400 fill-current'
-                              : 'text-gray-300'
+                            ? 'text-yellow-400 fill-current'
+                            : 'text-gray-300'
                             }`}
                         />
                       ))}
@@ -1533,11 +1533,11 @@ export default function UsersPage() {
                           <Star
                             key={i}
                             className={`h-5 w-5 ${i <
-                                Math.floor(
-                                  parseFloat(String(selectedUser.rating || "0"))
-                                )
-                                ? "text-yellow-400 fill-current"
-                                : "text-gray-300"
+                              Math.floor(
+                                parseFloat(String(selectedUser.rating || "0"))
+                              )
+                              ? "text-yellow-400 fill-current"
+                              : "text-gray-300"
                               }`}
                           />
                         ))}

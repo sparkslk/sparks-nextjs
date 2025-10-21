@@ -242,8 +242,8 @@ export default function TransactionHistoryReport() {
 
       {report && !loading && (
         <>
-          {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {/* Summary Cards - Hidden as per user request */}
+          {/* <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card>
               <CardHeader className="pb-3">
                 <CardDescription>Total Transactions</CardDescription>
@@ -286,7 +286,7 @@ export default function TransactionHistoryReport() {
                 </div>
               </CardContent>
             </Card>
-          </div>
+          </div> */}
 
           {/* Transactions Table */}
           <Card>

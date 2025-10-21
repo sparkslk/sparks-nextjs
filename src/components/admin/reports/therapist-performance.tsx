@@ -222,8 +222,8 @@ export default function TherapistPerformanceReport() {
 
       {report && !loading && (
         <>
-          {/* Overall Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {/* Overall Stats - Hidden as per user request */}
+          {/* <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card>
               <CardHeader className="pb-3">
                 <CardDescription>Active Therapists</CardDescription>
@@ -256,7 +256,7 @@ export default function TherapistPerformanceReport() {
                 <CardTitle className="text-2xl">{report.overallStats.averageCompletionRate.toFixed(1)}%</CardTitle>
               </CardHeader>
             </Card>
-          </div>
+          </div> */}
 
           {/* Therapist Performance Table */}
           <Card>

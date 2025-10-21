@@ -201,8 +201,8 @@ export default function MonthlyRevenueReport() {
 
       {report && !loading && (
         <>
-          {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Summary Cards - Hidden as per user request */}
+          {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card>
               <CardHeader className="pb-3">
                 <CardDescription>Total Revenue</CardDescription>
@@ -241,7 +241,7 @@ export default function MonthlyRevenueReport() {
                 </div>
               </CardContent>
             </Card>
-          </div>
+          </div> */}
 
           {/* Transactions Table */}
           <Card>
